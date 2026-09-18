@@ -1,0 +1,607 @@
+/* ============================================================================
+   PROFILE — the record and the insurance
+
+   Two tabs over one section, drawn by lib/profile-tabs.js — as a segmented
+   group sharing one row with the section name and the screen's buttons, which
+   is the reference's bar and replaces a strip with an action row stacked under
+   it. The tabs are still LINKS, not buttons: each is its own address, so the
+   Back button works and a reviewer can send someone straight to the one they
+   mean. Password was a third tab over a row of asterisks; it is a button in
+   that bar now — see js/screens/profile.js.
+
+   The section was called Settings, with Notification Setting beside it in a
+   sidebar group. Notification Setting was never drawn — the row only ever led
+   to placeholder.html — so the group had one real child, which is a chevron
+   you must open to reach a single destination. What is left is one nav row
+   called what it holds.
+   ========================================================================= */
+
+/* Nothing here for the bar across the top: .pp-tabbar and .pp-tabs are in
+   components.css, because the bar is a component — section name, tab strip
+   and the screen's buttons on one row — and the two screens below share it.
+   It replaced a strip with a .pp-actions row stacked under it, which cost a
+   band of height on every tab. */
+
+/*
+ * The panel is a .pp-card as well, so it has the same edge, radius and shadow
+ * as every other panel in the portal. This rule only supplies the padding —
+ * .pp-card is a flex column with no padding of its own, because most cards
+ * fill it with a head and a body and this one is a plain block.
+ */
+.pp-profile {
+  padding: var(--pp-pad-card);
+}
+
+/* An h2 section heading, and the only one in the portal that was not set in
+   the heading ink — it ran muted, two steps down, so the top of the Profile
+   screen was quieter than the field values underneath it. */
+.pp-profile__title {
+  margin-bottom: var(--pp-space-5);
+  font-size: var(--pp-size-h2);
+  line-height: var(--pp-leading-h2);
+  font-weight: var(--pp-weight-semibold);
+  color: var(--pp-text-strong);
+}
+
+.pp-profile__identity {
+  display: flex;
+  gap: var(--pp-space-7);
+  align-items: flex-start;
+}
+
+/*
+ * The portrait slot.
+ *
+ * Same reasoning as every other photograph in this build: the frame is the
+ * design, the picture is not invented. Sized to the drawn 150 × 150 and given
+ * the patient's initials so the slot is identifiably theirs rather than an
+ * anonymous grey square.
+ */
+.pp-profile__portrait {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 9.375rem;
+  height: 9.375rem;
+  border-radius: var(--pp-radius);
+  background-color: var(--pp-brand-050);
+  color: var(--pp-brand-700);
+  font-size: var(--pp-size-monogram);
+  font-weight: var(--pp-weight-semibold);
+  line-height: 1;
+  letter-spacing: var(--pp-tracking-caps);
+  text-transform: uppercase;
+  user-select: none;
+}
+
+/* ----------------------------------------------------------------------------
+   THE RECORD'S OWN GRID
+
+   Not the shared .pp-defs--two-up, and the difference is the label column.
+   .pp-defs sizes it to `max-content`, which is right for a short panel of
+   facts inside a card but wrong here: the reference sets the labels on a fixed
+   column so that Name, Contact Number, DOB, Race and Address all start their
+   values at the same x, and so that the second pair on each line starts at the
+   same x as the first pair's does. With max-content the two halves of the grid
+   land on different measures and the panel reads as two lists side by side
+   rather than one record in two columns.
+
+   11rem is the drawn 176px. The value column is capped so the pairs stay a
+   readable distance apart on a wide screen instead of the second half drifting
+   off to the right edge.
+   ------------------------------------------------------------------------- */
+
+.pp-profile__grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 11rem minmax(0, 21rem) 11rem minmax(0, 1fr);
+  row-gap: var(--pp-space-4);
+  align-items: baseline;
+  min-width: 0;
+  margin: 0;
+  font-size: var(--pp-size-sm);
+}
+
+.pp-profile__grid dt {
+  color: var(--pp-text-muted);
+}
+
+.pp-profile__grid dd {
+  min-width: 0;
+  margin: 0;
+  padding-right: var(--pp-space-5);
+  color: var(--pp-text-strong);
+  font-weight: var(--pp-weight-medium);
+  overflow-wrap: anywhere;
+}
+
+/*
+ * Emergency contact: THREE pairs a line, not two.
+ *
+ * It runs the full width of the panel — there is no portrait beside it — and
+ * its four values are a name, a phone number, an address and one word. Two
+ * columns would give each of them half a panel and take two lines to say what
+ * fits on one and a bit.
+ */
+.pp-profile__grid--three {
+  grid-template-columns: repeat(3, max-content minmax(0, 1fr));
+  column-gap: var(--pp-space-5);
+}
+
+.pp-profile__section {
+  margin-top: var(--pp-space-6);
+  padding-top: var(--pp-space-6);
+  border-top: 1px solid var(--pp-line);
+}
+
+/* Below 75rem the four-column grid stops fitting the address and the email on
+   one line each; below 60rem the portrait stops fitting beside it at all. */
+@media (width < 75rem) {
+  .pp-profile__grid,
+  .pp-profile__grid--three {
+    grid-template-columns: 11rem minmax(0, 1fr);
+    column-gap: 0;
+  }
+}
+
+@media (width < 60rem) {
+  .pp-profile__identity {
+    flex-direction: column;
+    gap: var(--pp-space-5);
+  }
+
+  .pp-profile__grid,
+  .pp-profile__grid--three {
+    grid-template-columns: minmax(0, 9rem) minmax(0, 1fr);
+    column-gap: var(--pp-space-4);
+  }
+}
+
+/* ============================================================================
+   INSURANCE
+
+   Moved here from screen-billing.css with the screen itself, then redrawn to
+   the reference: one PANEL PER POLICY rather than two bands inside a single
+   card, and the identifiers ACROSS rather than down.
+   ========================================================================= */
+
+/*
+ * The wrapper is now just a stack.
+ *
+ * It used to be the card — bordered, padded, white — with the two plans as
+ * bands inside it divided by a rule. That put the outline around the pair and
+ * nothing around either one, on the one screen whose job is telling two
+ * near-identical policies apart. Each plan carries its own .pp-card now and
+ * this holds the gap between them.
+ */
+.pp-insurance {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pp-gap-block);
+}
+
+/*
+ * The head strip: the rank on the left, the buttons hard right.
+ *
+ * Tighter vertically than the shared .pp-card__head — 8px instead of the
+ * usual 12 — because it holds a 32px button rather than a bare title. At the
+ * default padding the strip comes to 56px against a fact row of about 40, and
+ * the head starts to read as the content. It was tighter still, at 4px, which
+ * took the strip down to 40 and left the buttons all but touching the title
+ * rule beneath them; 8 clears them on both sides and still keeps the head
+ * under the shared one.
+ *
+ * ⚠ The reference fills this strip grey. It is left WHITE with a hairline,
+ * which is the portal's standing decision about card heads — see the note on
+ * .pp-card__head in components.css. The structure is the drawn one; only the
+ * fill is the portal's.
+ */
+.pp-plan__head {
+  justify-content: space-between;
+  padding-top: var(--pp-space-2);
+  padding-bottom: var(--pp-space-2);
+}
+
+/* The promote and edit buttons. They wrap: on a narrow screen they drop under
+   the rank rather than squeezing the heading beside them. */
+.pp-plan__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pp-space-3);
+}
+
+/* ----------------------------------------------------------------------------
+   THE IDENTIFIER ROW — six columns, hairlines between
+
+   Label over value, straight across the panel, which is how the reference
+   draws it and is the change that shortens this screen most. As a two-up <dl>
+   the same six facts took three rows down the left half of the panel and left
+   the right half empty; across, they are one row and one glance.
+
+   The hairline is a border on each column rather than a divider element, so
+   the rule is exactly as tall as the tallest value in the row — the grid
+   stretches every item to the row's height for free. An insurer name long
+   enough to wrap takes the lines beside it with it.
+   ------------------------------------------------------------------------- */
+
+.pp-facts {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  margin: 0;
+}
+
+.pp-facts__item {
+  min-width: 0;
+  padding: 0 var(--pp-space-4);
+  border-left: 1px solid var(--pp-line);
+}
+
+/* The first column in a row sits flush with the panel's own padding, and has
+   nothing to its left to be divided from. */
+.pp-facts__item:nth-child(6n + 1) {
+  padding-left: 0;
+  border-left: none;
+}
+
+.pp-facts dt {
+  color: var(--pp-text-muted);
+  font-size: var(--pp-size-xs);
+}
+
+.pp-facts dd {
+  margin: var(--pp-space-1) 0 0;
+  color: var(--pp-text-strong);
+  font-size: var(--pp-size-sm);
+  font-weight: var(--pp-weight-medium);
+  overflow-wrap: anywhere;
+}
+
+/*
+ * Fewer columns as the panel narrows — and the hairlines have to be re-cut
+ * each time, because "first in the row" moves.
+ *
+ * Each block re-applies the border to every column, then takes it off the new
+ * first-of-row. The re-application is written as :nth-child so it outweighs
+ * the rule it is overriding: a bare .pp-facts__item would lose to the
+ * :nth-child(6n + 1) above it on specificity and the stray divider would stay.
+ */
+@media (width < 80rem) {
+  .pp-facts {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    row-gap: var(--pp-space-4);
+  }
+
+  .pp-facts__item:nth-child(6n + 1) {
+    padding-left: var(--pp-space-4);
+    border-left: 1px solid var(--pp-line);
+  }
+
+  .pp-facts__item:nth-child(3n + 1) {
+    padding-left: 0;
+    border-left: none;
+  }
+}
+
+@media (width < 48rem) {
+  .pp-facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .pp-facts__item:nth-child(3n + 1) {
+    padding-left: var(--pp-space-4);
+    border-left: 1px solid var(--pp-line);
+  }
+
+  .pp-facts__item:nth-child(2n + 1) {
+    padding-left: 0;
+    border-left: none;
+  }
+}
+
+/* The two scans, under the identifiers. .pp-card-slots below is the flex row;
+   this is only the gap above it. */
+.pp-plan__scans {
+  margin-top: var(--pp-space-6);
+}
+
+/* ============================================================================
+   THE INSURANCE CARD SLOT
+
+   Replaces .pp-plan__card above, which was a labelled placeholder that could
+   not be filled. The ID-1 aspect ratio (85.6 × 54 mm) is kept and is the
+   reason the empty and filled states are the same shape: attaching a photo
+   should not make the page jump.
+
+   Those older rules are left in place. They are still what the drawn design
+   shows, and deleting them would take the fallback with them if a slot is
+   ever rendered without script.
+   ========================================================================= */
+
+.pp-card-slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pp-gap-block);
+}
+
+/*
+ * Fixed, not stretched.
+ *
+ * It was `flex: 1 1 18rem; max-width: 24rem`, so two slots in a panel as wide
+ * as this one grew to 24rem each and the pair spread across the whole width.
+ * The reference draws them at their own size against the left edge, which is
+ * also the honest thing for a photograph of a card: a scan does not get more
+ * legible for being stretched, and a slot the width of a browser window
+ * announces itself louder than the policy it belongs to.
+ */
+.pp-card-slot {
+  flex: 0 1 17.25rem;
+  min-width: 0;
+}
+
+.pp-card-slot__label {
+  margin: 0 0 var(--pp-space-2);
+  color: var(--pp-text);
+  font-size: var(--pp-size-sm);
+  font-weight: var(--pp-weight-medium);
+}
+
+/* The frame — the same box empty or full. */
+.pp-card-slot__frame {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--pp-space-2);
+  width: 100%;
+  margin: 0;
+  aspect-ratio: 85.6 / 54;
+  border-radius: var(--pp-radius);
+  overflow: hidden;
+}
+
+/* Empty: a real button, dashed, and it says what it takes. */
+.pp-card-slot__frame--empty {
+  border: 1px dashed var(--pp-line-strong);
+  background-color: var(--pp-grey-025);
+  color: var(--pp-text-muted);
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.pp-card-slot__frame--empty svg {
+  width: 1.75rem;
+  height: 1.75rem;
+  color: var(--pp-text-faint);
+}
+
+.pp-card-slot__frame--empty:hover {
+  border-color: var(--pp-action);
+  background-color: var(--pp-surface-tint);
+}
+
+.pp-card-slot__frame--empty:focus-visible {
+  outline: 2px solid var(--pp-focus);
+  outline-offset: 2px;
+}
+
+/*
+ * Read-only, and nothing on file.
+ *
+ * The empty frame's twin without the button: same dashed box, same size, no
+ * hover, no pointer. A patient should be able to tell at a glance that a side
+ * is missing; they should not be able to tell by pressing it.
+ */
+.pp-card-slot__frame--missing {
+  border: 1px dashed var(--pp-line-strong);
+  background-color: var(--pp-grey-025);
+  color: var(--pp-text-muted);
+  text-align: center;
+}
+
+.pp-card-slot__frame--missing svg {
+  width: 1.75rem;
+  height: 1.75rem;
+  color: var(--pp-text-faint);
+}
+
+/* A shown card has no buttons under it, so the filename line is the last
+   thing in the slot and carries the bottom of it. */
+.pp-card-slot--static .pp-card-slot__file {
+  margin-bottom: 0;
+}
+
+/* Mid-drag. Same treatment as hover plus a solid edge, so the target being
+   aimed at is unambiguous when several are on screen. */
+.pp-card-slot[data-dragging='true'] .pp-card-slot__frame--empty,
+.pp-card-slot[data-dragging='true'] .pp-card-slot__frame--filled {
+  border-style: solid;
+  border-color: var(--pp-action);
+  background-color: var(--pp-surface-tint);
+}
+
+.pp-card-slot__hint {
+  font-weight: var(--pp-weight-medium);
+}
+
+.pp-card-slot__meta {
+  color: var(--pp-text-muted);
+  font-size: var(--pp-size-xs);
+}
+
+/* Filled: the image fills the frame. `contain` rather than `cover` — a card
+   is a document, and cropping the edge off one to fill a box can take the
+   member ID with it. */
+.pp-card-slot__frame--filled {
+  border: 1px solid var(--pp-line-strong);
+  background-color: var(--pp-grey-050);
+}
+
+.pp-card-slot__image {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* A PDF has no thumbnail to show without a renderer, so it is named rather
+   than previewed — an empty frame would read as a failed upload. */
+.pp-card-slot__pdf {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--pp-space-2);
+  color: var(--pp-text-muted);
+  font-size: var(--pp-size-sm);
+  font-weight: var(--pp-weight-medium);
+}
+
+.pp-card-slot__pdf svg {
+  width: 2rem;
+  height: 2rem;
+}
+
+.pp-card-slot__file {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--pp-space-3);
+  margin: var(--pp-space-2) 0 0;
+  font-size: var(--pp-size-xs);
+}
+
+/* A phone camera names its files things like
+   "IMG_20260818_144233_HDR_final.heic". Truncated rather than wrapped, so one
+   long name cannot push the buttons below it out of line. */
+.pp-card-slot__filename {
+  overflow: hidden;
+  color: var(--pp-text);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pp-card-slot__size {
+  flex: none;
+  color: var(--pp-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.pp-card-slot__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pp-space-2);
+  margin-top: var(--pp-space-3);
+}
+
+/* Removing an image is the one action here with no undo — the same muted-then-
+   red treatment the medication and pharmacy tables give theirs. */
+.pp-card-slot__remove {
+  color: var(--pp-text-muted);
+}
+
+.pp-card-slot__remove:hover {
+  background-color: var(--pp-red-bg);
+  color: var(--pp-red-fg);
+}
+
+.pp-card-slot .pp-field__error {
+  margin-top: var(--pp-space-2);
+}
+
+/* "Upload Insurance Card" in the drawer, which now sits straight on top of the
+   slots — the paragraph that used to separate them repeated what every empty
+   slot says on its face. Further off the field grid above it than the shared
+   eyebrow is, and further off the slot labels below, so the heading reads as
+   the start of a section rather than as a caption on the first slot. */
+.pp-eyebrow--slots {
+  margin-top: var(--pp-space-6);
+  margin-bottom: var(--pp-space-3);
+}
+
+/* --- The pair inside the popup ---------------------------------------------
+ * On the screen behind it the slots are drawn at card size against the left
+ * edge — see .pp-card-slot above, and the note there about not stretching a
+ * photograph. In the dialog they are the last thing in a 52rem form, and two
+ * card-sized boxes with 15rem of empty white beside them read as a layout that
+ * ran out rather than one that ended. A half each, which is what the reference
+ * draws.
+ *
+ * A grid, so the two are equal whatever their contents: a filled slot carries a
+ * filename line and a row of buttons that an empty one does not, and as flex
+ * items that difference moved the divider between them.
+ */
+.pp-modal .pp-card-slots {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--pp-gap-block);
+}
+
+/* Under about a phone the pair stacks — on the screen (flex) and in the popup
+   (grid) alike, which is why it takes two rules to say one thing. */
+@media (width < 30rem) {
+  .pp-card-slot {
+    flex-basis: 100%;
+    max-width: none;
+  }
+}
+
+@media (width < 36rem) {
+  .pp-modal .pp-card-slots {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ============================================================================
+   CARD DETAILS — the third tab
+
+   The table itself is components.css. What is here is the brand mark and the
+   masked number, moved from css/screen-billing.css with the screen — a card
+   on file is a fact about the patient, the same argument that moved the
+   insurance panels. See lib/profile-tabs.js.
+   ========================================================================= */
+
+/* --- The card brand mark ---------------------------------------------------------
+   NOT the Visa logo. Reproducing a payment network's registered mark in a
+   prototype is both a trademark question and a maintenance one — the artwork
+   changes and nobody notices. This is a neutral plate with the brand name
+   set in it, which occupies the same slot and says the same thing. Swap it
+   for the licensed asset in the real build. */
+.pp-brandmark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 2.75rem;
+  height: 1.75rem;
+  border: 1px solid var(--pp-line);
+  border-radius: var(--pp-radius-sm);
+  background-color: var(--pp-grey-025);
+  /* Neutral ink, not the brand green — a card network's mark has nothing to
+     do with the practice, and tinting it would imply a relationship. */
+  color: var(--pp-text-strong);
+  font-size: var(--pp-size-mark);
+  font-weight: var(--pp-weight-bold);
+  letter-spacing: var(--pp-tracking-caps);
+}
+
+.pp-card-number {
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-3);
+  /* Tabular figures so the masked groups line up down the column — ragged
+     asterisks make five identical rows look like five different formats. */
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--pp-tracking-caps);
+}
+
+/*
+ * The line under the Add Card form that says what is kept and what is not.
+ *
+ * It sits below the fields rather than above them: it describes what happens
+ * when the form is submitted, and a warning read before there is anything to
+ * warn about is a warning read twice.
+ */
+.pp-modal__notice {
+  margin-top: var(--pp-gap-block);
+}

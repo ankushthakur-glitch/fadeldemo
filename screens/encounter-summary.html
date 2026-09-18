@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MediNova EHR — Encounter Summary</title>
+    <link rel="icon" type="image/svg+xml" href="../assets/img/favicon.svg" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="../css/reset.css" />
+    <link rel="stylesheet" href="../css/tokens.css" />
+    <link rel="stylesheet" href="../css/base.css" />
+    <link rel="stylesheet" href="../css/ui-kit.css" />
+    <link rel="stylesheet" href="../css/screen-patient.css" />
+    <link rel="stylesheet" href="../css/screen-encounter-summary.css" />
+
+    <script type="module" src="../js/main.js"></script>
+    <script type="module" src="../js/screens/encounter-summary.js"></script>
+    <script src="../js/open-me-properly.js"></script>
+  </head>
+
+  <body class="es">
+    <!-- The standard header: the way back and the screen's name on the left,
+         what state the note is in on the right. It used to sit inside the
+         document card as a head of its own, which put the screen's title
+         below the patient strip and inside the thing it names. -->
+    <div class="ui-page-head ui-page-head--flush">
+      <div class="ui-page-head__lead">
+        <a class="ui-page-head__back" href="scheduler.html?tab=visit-notes"
+          data-testid="es--back" aria-label="Back to the encounter list">
+          <svg class="ui-icon" aria-hidden="true"><use href="#i-caret-left"></use></svg>
+        </a>
+        <h1 class="ui-page-head__title">Encounter Summary</h1>
+      </div>
+
+      <div class="ui-page-head__actions">
+        <span id="stateBadge" data-testid="es--state"></span>
+      </div>
+    </div>
+
+    <div class="es__cols">
+      <!-- ===================== WHO AND WHO SIGNED =====================
+           Both live in the same rail, in the order the question is asked:
+           who is this note about, then whose name is on it. The patient used
+           to run as a strip across the whole page above the note, which spent
+           a full band of vertical space on six short facts and pushed the note
+           itself below the fold on a laptop. Beside the note it is always on
+           screen, costs no height, and sits next to the signature it belongs
+           with. -->
+      <aside class="es__rail">
+        <section class="es__patient-card" id="patientCard" data-testid="es--patient"></section>
+
+        <section class="es__card">
+          <h2 class="es__card-title">Signatures</h2>
+          <div id="signatures" data-testid="es--signatures"></div>
+        </section>
+      </aside>
+
+      <!-- ===================== THE NOTE ===================== -->
+      <main class="es__main">
+        <div class="es__doc">
+          <!-- The document names itself. The page head says which screen you
+               are on; this says which note you are reading, and it is the note
+               type that tells a clinician what shape the body will be in. -->
+          <h2 class="es__doc-title" id="docTitle" data-testid="es--doc-title"></h2>
+          <div class="es__doc-body" id="summaryBody" data-testid="es--body"></div>
+        </div>
+      </main>
+    </div>
+
+    <!-- What the note offers depends on whether it is filed. Unsigned it is a
+         document to commit or send back for edits; signed it is a record to
+         take a copy of. Painted rather than toggled, so the bar never carries
+         a button that does nothing. -->
+    <footer class="es__foot">
+      <span class="es__foot-hint" id="footHint" data-testid="es--foot-hint"></span>
+      <div class="es__foot-actions" id="footActions" data-testid="es--actions"></div>
+    </footer>
+
+    <!-- ===================== SIGN & LOCK =====================
+         Signing is a deliberate step with its own dialog, not a button that
+         silently stamps a name: the clinician types the name they are signing
+         under and sees it rendered as the signature that will go on the note
+         before committing it. -->
+    <ui-modal id="signModal" heading="Sign &amp; Lock encounter" size="sm">
+      <div class="es__sign">
+        <p class="es__sign-lead" id="signLead" data-testid="es--sign-lead"></p>
+
+        <ui-input id="signName" label="Type your full name to sign" required
+          placeholder="e.g. Olivia Rhye, MD" data-testid="es--sign-name"></ui-input>
+
+        <div class="es__sign-preview" data-testid="es--sign-preview">
+          <span class="es__sign-label">Signature</span>
+          <span class="es__sign-ink" id="signInk" aria-live="polite"></span>
+        </div>
+
+        <ui-checkbox id="signAttest" data-testid="es--sign-attest">
+          I confirm this note is accurate and complete, and I am signing it as
+          the responsible clinician.
+        </ui-checkbox>
+
+        <p class="es__sign-warn">
+          Signing files the note to the chart and locks it. It cannot be
+          edited afterwards.
+        </p>
+      </div>
+
+      <div class="ui-modal__actions">
+        <ui-button variant="tertiary" id="signCancel" data-testid="es--sign-cancel">Cancel</ui-button>
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="primary" id="signConfirm" data-testid="es--sign-confirm">
+          Sign &amp; Lock
+        </ui-button>
+      </div>
+    </ui-modal>
+  </body>
+</html>

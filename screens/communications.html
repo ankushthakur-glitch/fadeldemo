@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MediNova EHR — Communications</title>
+    <link rel="icon" type="image/svg+xml" href="../assets/img/favicon.svg" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="../css/reset.css" />
+    <link rel="stylesheet" href="../css/tokens.css" />
+    <link rel="stylesheet" href="../css/base.css" />
+    <link rel="stylesheet" href="../css/ui-kit.css" />
+    <!-- No overlay.css: this screen has no modal or drawer. The New Chat panel
+         is a popover anchored to its button, styled in the screen sheet. -->
+    <link rel="stylesheet" href="../css/screen-patient.css" />
+    <link rel="stylesheet" href="../css/screen-leads.css" />
+    <link rel="stylesheet" href="../css/screen-communications.css" />
+
+    <script type="module" src="../js/main.js"></script>
+    <script type="module" src="../js/screens/communications.js"></script>
+    <script src="../js/open-me-properly.js"></script>
+  </head>
+
+  <body class="pt comm">
+    <header class="pt__bar">
+      <img class="pt__logo" src="../assets/img/medinova-logo.svg" width="158" height="32"
+        alt="MediNova Gastroenterology Clinic" />
+      <ui-main-nav active="communications"></ui-main-nav>
+      <div class="pt__bar-actions">
+        <ui-time-clock></ui-time-clock>
+        <button type="button" class="pt__icon-action" aria-label="Notifications">
+          <svg class="ui-icon" aria-hidden="true"><use href="#i-bell"></use></svg>
+        </button>
+        <ui-avatar name="Amara Mensah" size="sm"></ui-avatar>
+      </div>
+    </header>
+
+    <!-- The standard header: where you are on the left, what you can do on
+         the right. The four kinds are a tablist built by hand rather than a
+         <ui-tabs> — all four select the SAME list, so there are no panels to
+         swap and every tab points its aria-controls at the one thread list —
+         but they wear the shared strip's classes, so a tab here is the same
+         object as a tab on any other screen.
+
+         The title is not drawn: "Chats" beside a strip reading All /
+         Patients / Clinicians / Groups is the screen naming itself twice, and
+         the strip is the wider of the two words. It stays in the lead slot as
+         a visually hidden <h1>, the same way the Scheduler carries its name —
+         a screen with a tablist and no heading at all is one a screen reader
+         cannot announce. -->
+    <div class="ui-page-head ui-page-head--flush comm__head">
+      <div class="ui-page-head__lead">
+        <h1 class="u-sr-only">Chats</h1>
+        <div class="ui-tabs ui-tabs--primary" role="tablist"
+          aria-label="Conversation type" id="kindTabs"></div>
+      </div>
+
+      <div class="ui-page-head__actions">
+        <!-- The New Chat panel is anchored to its button, so the two are
+             wrapped together: the outside-click handler asks whether the
+             pointer landed inside .comm__new, and an anchor that was not
+             the panel's parent would close it on its own controls. -->
+        <div class="comm__new">
+          <ui-button variant="primary" icon="chat" id="newBtn"
+            aria-expanded="false" aria-haspopup="dialog" aria-controls="newPanel"
+            data-testid="comm--new">New Chat</ui-button>
+
+          <div class="comm__new-panel" id="newPanel" role="dialog" aria-label="New chat"
+            hidden data-testid="comm--new-panel">
+            <div class="comm__new-head">
+              <ui-select id="nType" label="Conversation type" label-hidden size="sm"
+                placeholder="Select Type" data-testid="comm--n-type"></ui-select>
+              <ui-input id="nSearch" icon-end="search" label="Add users" label-hidden
+                size="sm" placeholder="Add 1 or more Users"
+                data-testid="comm--n-search"></ui-input>
+            </div>
+
+            <!-- Groups need a name; one-to-one chats are named by the
+                 person you are talking to, so this only appears for a
+                 group. Left blank it is composed from the members. -->
+            <div class="comm__new-name" id="nNameRow" hidden>
+              <ui-input id="nName" label="Group name" size="sm"
+                placeholder="Named from the members if left blank"
+                data-testid="comm--n-name"></ui-input>
+            </div>
+
+            <div class="comm__new-picked" id="nPicked" hidden
+              aria-label="Selected people"></div>
+
+            <div class="comm__new-body" id="nBody"></div>
+
+            <p class="comm__new-hint" id="nHint" role="status"></p>
+
+            <div class="comm__new-foot">
+              <ui-button variant="tertiary" size="sm" id="nCancel"
+                data-testid="comm--n-cancel">Cancel</ui-button>
+              <span class="comm__spacer"></span>
+              <ui-button variant="primary" size="sm" id="nStart"
+                data-testid="comm--n-start">Start Chat</ui-button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="comm__shell">
+
+      <div class="comm__cols">
+        <!-- ================= LEFT: the conversations ================= -->
+        <aside class="comm__list-pane" aria-label="Conversations">
+          <div class="comm__search">
+            <ui-input id="qSearch" icon="search" label="Search chats" label-hidden
+              placeholder="Search" data-testid="comm--search"></ui-input>
+          </div>
+
+          <!-- Two answers, both on show. This list has exactly two ways to
+               narrow it beyond the search box, and two chips cost less room
+               than the button that would hide them — a filter control earns
+               its panel when the answers outgrow the strip, and here they
+               never do. Standing chips also say what is currently ON without
+               being opened, which is the thing a hidden panel cannot do. -->
+          <div class="comm__quick" id="quickFilters" role="group"
+            aria-label="Quick filters" data-testid="comm--quick"></div>
+
+          <div class="comm__threads" id="threadList" role="tabpanel"
+            data-testid="comm--list"></div>
+          <p class="comm__threads-empty" id="threadEmpty" hidden data-testid="comm--list-empty">
+            No conversations match this search.
+          </p>
+        </aside>
+
+        <!-- ================= RIGHT: the conversation ================= -->
+        <main class="comm__conv" id="main">
+          <div class="comm__blank" id="blankState" data-testid="comm--blank">
+            <svg class="ui-icon comm__blank-icon" aria-hidden="true">
+              <use href="#i-chat"></use>
+            </svg>
+            <h2>Select a conversation to read it</h2>
+            <p>Choose a chat from the list, or start a new one with a patient, a colleague or a group.</p>
+          </div>
+
+          <div class="comm__pane" id="convPane" hidden>
+            <header class="comm__conv-head" id="convHead"></header>
+
+            <div class="comm__stream" id="stream" data-testid="comm--stream"
+              tabindex="0" role="log" aria-label="Messages"></div>
+
+            <!-- The trims live INSIDE the field and the send button sits
+                 outside it. The three of them do something to the draft you
+                 are writing, so they belong in the box the draft is in; Send
+                 does something to the conversation, which is why it is the
+                 one control on this row wearing a fill and a word. -->
+            <form class="comm__composer" id="composer" data-testid="comm--composer">
+              <div class="comm__composer-field">
+                <label class="u-sr-only" for="draft">Type your message</label>
+                <input class="comm__composer-input" id="draft" type="text" autocomplete="off"
+                  placeholder="Type your message…" data-testid="comm--draft" />
+
+                <button type="button" class="comm__composer-btn" id="dictateBtn"
+                  aria-label="Dictate a message" data-testid="comm--dictate">
+                  <svg class="ui-icon" aria-hidden="true"><use href="#i-mic"></use></svg>
+                </button>
+                <button type="button" class="comm__composer-btn" id="attachBtn"
+                  aria-label="Attach a file" data-testid="comm--attach">
+                  <svg class="ui-icon" aria-hidden="true"><use href="#i-paperclip"></use></svg>
+                </button>
+                <button type="button" class="comm__composer-btn comm__composer-btn--ai"
+                  id="assistBtn" aria-label="Draft with the assistant"
+                  data-testid="comm--assist">
+                  <svg class="ui-icon" aria-hidden="true"><use href="#i-sparkle"></use></svg>
+                </button>
+              </div>
+
+              <button type="submit" class="comm__send" id="sendBtn"
+                data-testid="comm--send">
+                <svg class="ui-icon" aria-hidden="true"><use href="#i-send"></use></svg>
+                Send
+              </button>
+            </form>
+          </div>
+        </main>
+      </div>
+    </div>
+  </body>
+</html>

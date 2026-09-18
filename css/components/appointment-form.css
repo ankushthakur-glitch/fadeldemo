@@ -1,0 +1,410 @@
+/* ============================================================================
+   THE APPOINTMENT FORM
+
+   The booking dialog, wherever it is opened from. It began as one screen's
+   markup — the scheduler's Appointment modal — and stayed in
+   css/screen-scheduler.css for as long as the scheduler was the only place a
+   booking was made. It is not any more: the chart's Appointments module opens
+   the same form on the patient whose chart is already open, so the two would
+   otherwise have been the same dialog drawn by two stylesheets, drifting apart
+   a rule at a time.
+
+   So it lives here, linked by both screens, and the rules are written against
+   CLASSES rather than the ids the scheduler's own markup happens to use — an
+   `#mSlots` in a shared sheet is a rule that only ever works on one of the two
+   forms that need it. The chart's form is the scheduler's minus the patient
+   picker (the chart already knows whose appointment this is), which is why
+   nothing here assumes that field exists.
+
+   Everything the form is made of is in this file: the field grid, the When
+   panel with its month grid and its open slots, the hairline sections, and the
+   eligibility answer. What is NOT here is anything either screen wraps around
+   it — the scheduler's calendar, the chart's appointment table — because those
+   are not the form.
+   ========================================================================= */
+
+/* THE DIALOG SETS ITS OWN WIDTH.
+   xl is the widest step the modal offers — 74rem — and it was chosen when this
+   form carried a billing rail beside the field set. It no longer does, and at
+   74rem the three fields on a line are wider than any answer they hold: a
+   location, an activity and a clinician's name all read short. 64rem keeps
+   three to a line at a comfortable measure, puts the month grid beside its
+   times without either of them stretching, and leaves a laptop screen with
+   room around the dialog instead of filling it edge to edge.
+
+   Keyed off the form rather than off #apptModal, so the dialog the chart opens
+   is the same width as the dialog the scheduler opens without either screen
+   having to know the other's id. */
+.ui-modal__dialog:has(.appt) { max-width: 64rem; }
+
+.appt { display: flex; flex-direction: column; gap: var(--space-7); }
+
+/* The hosts that script paints into, hidden until they hold something.
+   Each of these is a flex child of a gapped column, so an empty one is not
+   free: it costs the gap either side of it whether or not it draws a pixel.
+   .appt__slots collapses the same way, next to its own rule. */
+.appt__elig-result:empty,
+.appt__history:empty { display: none; }
+
+/* --- Two-column body ------------------------------------------------------- */
+
+/* One column. This wrapper carried the billing rail beside the field set, and
+   the rail is gone — everything it held is now stated where it is acted on
+   (account status under the patient, eligibility in its own section). A
+   1fr + 17rem grid with nothing in the second track was reserving a third of
+   the dialog for an empty column, which the drawer only hid by overriding it
+   back to one. */
+.appt__cols { display: grid; grid-template-columns: minmax(0, 1fr); }
+
+/* One step of air between the parts of the form, and one step only. This was
+   12px — tighter than the gap between two rows of the SAME grid, so a field sat
+   closer to the section below it than to the field above it, and Chief
+   Complaint's label crowded the panel over it. It is now the largest gap on the
+   form, which is what makes the parts read as parts. */
+.appt__main { display: flex; flex-direction: column; gap: var(--space-8); min-width: 0; }
+
+/* The care-type panels, which are what .appt__main actually contains.
+   .appt__main's one step of air never reached the form: its only child is the
+   Clinical or the Procedure wrapper, and those were bare <div>s in the flow —
+   so the grid of pickers, the When panel, the complaint pair and the two
+   hairline sections stacked with NOTHING between them. The When panel started
+   on the pixel the Provider select ended on, and Chief Complaint's label sat
+   against the bottom of the grey. The gap belongs on the box that holds the
+   parts, so it is declared here as well as on the wrapper above it. */
+.appt__kind { display: flex; flex-direction: column; gap: var(--space-8); }
+
+/* Columns are spaced wider than rows. With one gutter for both, a multi-column
+   form reads as a grid of unrelated cells — the field below is as close as the
+   field beside, so nothing tells the eye which fields share a line. The two
+   were 24/32px, set when this form lived in a 52rem drawer where the height
+   was free and the width was not; centred it has the width, so the pair comes
+   down a step each and the booking core loses about 40px of dead vertical. */
+.appt__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-7) var(--space-8);
+}
+
+/* A field that takes the whole line rather than a third of it. Patient is the
+   scheduler's — a name, an MRN and often a second identifier — and the chart's
+   form uses it for the reason pair and the procedure picker. It is a class
+   rather than a list of ids because the two forms do not hold the same fields;
+   what they hold in common is the idea of a field too long for one track. */
+.appt__grid > .appt__field-wide { grid-column: 1 / -1; }
+
+/* Two and three column variants. Both were only ever declared inside
+   .ui-modal--drawer, which is where this form is opened — so a --2 grid read
+   as the base three columns anywhere else. Declared here, the modifier means
+   what it says wherever it is used. */
+.appt__grid--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.appt__grid--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+/* --- Sections -------------------------------------------------------------- */
+
+.appt__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding-top: var(--space-7);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.appt__section-title {
+  font-size: var(--font-size-title-section);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+/* A heading with something on the same line as it — the Eligibility section's
+   "Check eligibility" button, the Resources section's line of explanation. The
+   two were previously stacked, because this element carried a class and no
+   rules: a div in the flow, so the button sat under its own heading with a
+   full section gap between them. */
+.appt__section-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-5);
+  flex-wrap: wrap;
+}
+/* A line of explanation belongs beside the words it explains. An action does
+   not: "Check eligibility" is pushed to the far end, where the eye looks for a
+   button, rather than sitting against the heading as if it were part of it. */
+.appt__section-head ui-button { margin-left: auto; }
+
+/* --- When: the day beside its own times -------------------------------------
+   One panel for one question. The month grid answers WHICH DAY and the buttons
+   beside it answer WHAT TIME, and the second list is drawn from the first — so
+   they are laid out as cause and effect, left to right, on a sunken ground
+   that separates them from the fields that decide them both.
+   -------------------------------------------------------------------------- */
+
+.appt__when {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-7);
+  /* Stretch, not start: the month grid is six weeks tall whatever else is in
+     the panel, and with the columns aligned to the top that left a block of
+     bare grey beside it. The times column now fills the height instead — the
+     list of starts grows into it and scrolls inside itself on a busy day. */
+  align-items: stretch;
+  padding: var(--space-6);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+}
+
+/* NO TIMES YET, SO NO COLUMN FOR THEM.
+   Until a provider and an activity have been picked there is nothing to put
+   beside the month grid (see renderSlots), and a 1fr track holding nothing
+   still takes its width: two thirds of the panel stood as bare grey with
+   nothing in it. Emptied, the panel drops to one track and shrinks to the
+   calendar it is holding.
+
+   Both panels lose the whole column when it is empty, where the clinical one
+   used to keep it. It kept it because the wait-list checkbox lived down there
+   and had to stay reachable; the checkbox has moved out from under the times,
+   so there is nothing left in an empty times column but grey.
+
+   The Time label goes with it without a rule of its own: it is inside the
+   column being hidden. */
+.appt__when:has(.appt__slots:empty) {
+  grid-template-columns: auto;
+  width: fit-content;
+}
+.appt__when:has(.appt__slots:empty) .appt__when-times { display: none; }
+
+/* A save refused for a missing day or time. The panel is the field, so the
+   panel is what wears the error — a sentence in the notice bar at the top of
+   the form is read after the scroll, not before it. */
+.appt__when--error {
+  box-shadow: var(--focus-ring-critical);
+}
+
+.appt__when-cal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  align-self: start;
+}
+
+/* The month grid has no label of its own, and inside a panel of its own it
+   needs one — this is the field called Date. Same size and weight as every
+   other field label on the form. */
+.appt__when-label {
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+}
+
+/* Flat against the panel: the component ships as a floating popover with a
+   shadow, which is right when it opens over a page and wrong when it is part
+   of one. */
+.appt__picker .ui-datepicker {
+  /* 24px cells rather than the component's 32. A six-week grid at full size is
+     the tallest thing on the form and sets the height of the whole panel; at
+     this step the month still reads at a glance and the panel loses ~50px,
+     which is the difference between the Resources section being on screen and
+     being below the fold. The filter rail's copy of this picker is sized the
+     same way. */
+  --datepicker-cell: var(--space-9);
+  display: block;
+  padding: var(--space-6);
+  box-shadow: none;
+  background-color: var(--color-bg-surface);
+  border-color: var(--color-border-subtle);
+}
+.appt__picker .ui-datepicker__title { font-size: var(--font-size-caption); }
+.appt__picker .ui-datepicker__day { font-size: var(--font-size-caption); }
+
+/* The times fill the rest of the panel and the wait list closes it: the whole
+   point of that checkbox is that none of these times will do, so it belongs
+   under them rather than three sections away. */
+.appt__when-times {
+  display: flex;
+  flex-direction: column;
+  /* The step the calendar column puts between its label and its box, so the
+     two labels sit on one line and the two boxes start on the next. */
+  gap: var(--space-4);
+  min-width: 0;
+}
+
+/* The wait list, now that it stands on its own under the When panel rather
+   than inside the times column. It is a single checkbox between two much
+   heavier things — a sunken panel above it, a pair of reason fields below — so
+   it needs its own air to read as a question rather than as a caption on
+   whichever of them it is nearer. */
+.appt__waitlist {
+  display: block;
+  margin-block: var(--space-2);
+}
+
+/* Empty until there is a provider and an activity to compute times from. It
+   collapses rather than standing there as an empty bordered box — see
+   renderSlots(). */
+.appt__slots:empty { display: none; }
+
+/* The box is as tall as the times it holds and no taller. Stretched to the
+   month grid's six weeks, a quiet morning drew one row of buttons in a 300px
+   box of white — a bigger hole than the grey it was covering. It still cannot
+   outgrow the panel: shrink is on, so a busy day is capped by the calendar
+   beside it and scrolls inside itself as before. */
+.appt__when-times .appt__slots {
+  flex: 0 1 auto;
+  min-height: 0;
+  max-height: none;
+}
+
+/* --- Open slots -------------------------------------------------------------
+   Offered under the provider, grouped by the availability block they come
+   from, so it is obvious which clinic session a time belongs to.
+   -------------------------------------------------------------------------- */
+
+.appt__slots {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  /* Tall enough to hold a full clinic day's starts beside the month grid —
+     the box used to stop at 13rem in a narrow drawer and scroll a list four
+     buttons wide. */
+  max-height: 17rem;
+  overflow-y: auto;
+  padding: var(--space-6);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+}
+
+.appt__slots-head { display: flex; align-items: baseline; gap: var(--space-4); }
+
+/* The booked time in words. This is what the removed Time field used to say,
+   so it carries the emphasis a value gets rather than a label — and now that
+   the TIME eyebrow has moved out to the panel's own label, it is the only
+   thing in the head and reads at the size a value is read at. */
+.appt__slots-chosen {
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+.appt__slots-count {
+  margin-left: auto;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-full);
+  background-color: var(--color-status-success-surface);
+  color: var(--color-status-success-text);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-medium);
+}
+
+.appt__slots-hint { font-size: var(--font-size-caption); color: var(--color-text-tertiary); }
+
+.appt__slot-group { display: flex; flex-direction: column; gap: var(--space-3); }
+
+.appt__slot-group-label {
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-tertiary);
+}
+
+.appt__slot-row { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+
+.appt__slot {
+  height: var(--control-height-sm);
+  padding: 0 var(--space-5);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+  font-size: var(--font-size-caption);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+.appt__slot:hover {
+  border-color: var(--color-border-brand);
+  background-color: var(--color-brand-surface);
+  color: var(--color-brand-text);
+}
+.appt__slot:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.appt__slot--selected {
+  border-color: var(--color-brand-solid);
+  background-color: var(--color-brand-solid);
+  color: var(--color-text-inverse);
+  font-weight: var(--font-weight-medium);
+}
+.appt__slot--selected:focus-visible { box-shadow: var(--focus-ring-solid); }
+.appt__slot--selected:hover {
+  background-color: var(--color-brand-solid-hover);
+  color: var(--color-text-inverse);
+}
+
+/* --- The eligibility answer --------------------------------------------------
+   What came back from the payer: six short facts, none of them longer than a
+   plan name. The class was on the markup and NOWHERE in this stylesheet, so a
+   <dl> fell back to the browser's own block layout — every label on its own
+   line, every value on the line under it, twelve lines of ragged left edge
+   inside a green box the height of the form's whole Resources section.
+
+   As a grid they are read the way facts are read everywhere else in this app
+   (the wait list's identity strip is the same shape): label over value, as
+   many to a row as the width allows, all of them on one baseline. Six facts
+   cost two rows instead of twelve lines.
+   -------------------------------------------------------------------------- */
+
+.appt__elig {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: var(--space-6) var(--space-7);
+  margin-top: var(--space-5);
+}
+.appt__elig dt {
+  font-size: var(--font-size-fact-label);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-fact-label);
+}
+.appt__elig dd {
+  margin-top: var(--space-2);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+}
+
+/* --- Eligibility history ---------------------------------------------------- */
+
+.appt__history { display: flex; flex-direction: column; gap: var(--space-4); }
+
+.appt__history-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-5);
+  padding: var(--space-4) var(--space-5);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-caption);
+}
+.appt__history-date { font-variant-numeric: tabular-nums; color: var(--color-text-secondary); }
+.appt__history-by { margin-left: auto; color: var(--color-text-tertiary); }
+
+/* Said where a panel would otherwise be blank — no checks on file yet, or no
+   patient chosen to have any. */
+.appt__rail-empty { font-size: var(--font-size-caption); color: var(--color-text-tertiary); }
+
+/* --- Narrow windows ---------------------------------------------------------
+   The form is a centred dialog, so what it reflows against is the viewport
+   rather than any container the two screens put it in.
+   -------------------------------------------------------------------------- */
+
+/* A window too narrow for the dialog's full width. Three fields to a line stop
+   being readable well before the panel does, so they drop to two — and the
+   month grid stops sitting beside its times, because 18rem of calendar plus a
+   row of time buttons no longer fit on one line. */
+@media (max-width: 75rem) {
+  .appt__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .appt__grid--3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* Stacked, but the month keeps its own width — a six-week grid stretched
+     across the full dialog puts an inch of air between Monday and Tuesday. */
+  .appt__when { grid-template-columns: minmax(0, 1fr); }
+  .appt__when-cal { align-items: flex-start; }
+}
+
+@media (max-width: 60rem) {
+  .appt__grid { grid-template-columns: minmax(0, 1fr); }
+  .appt__grid--2,
+  .appt__grid--3 { grid-template-columns: minmax(0, 1fr); }
+}

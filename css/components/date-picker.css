@@ -1,0 +1,154 @@
+/* ============================================================================
+   ui-date-picker — a month grid for choosing one date.
+
+   Roving tabindex, not a tab stop per day: 42 cells would otherwise cost 42
+   presses to get past. One day is reachable with Tab, the arrows move within
+   the grid, PageUp/PageDown change month, Home/End jump to the ends of the
+   week, and moving past the edge of the month pulls the next month into view.
+   ========================================================================= */
+
+ui-date-picker { display: inline-block; }
+
+.ui-datepicker {
+  /* Local geometry, kept together so the grid can be resized in one place. */
+  --datepicker-width: 18rem;
+  --datepicker-cell: var(--space-10); /* 32px */
+
+  display: inline-block;
+  width: var(--datepicker-width);
+  padding: var(--space-6);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface-raised);
+  box-shadow: var(--elevation-raised);
+}
+
+.ui-datepicker__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-6);
+}
+
+.ui-datepicker__title {
+  flex: 1;
+  text-align: center;
+  font-size: var(--font-size-title-section);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.ui-datepicker__nav {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--datepicker-cell);
+  height: var(--datepicker-cell);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.ui-datepicker__nav:hover { background-color: var(--color-bg-surface-hover); }
+.ui-datepicker__nav:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.ui-datepicker__nav .ui-icon {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}
+/* The year jumps show a doubled chevron; the second glyph tucks under the
+   first so the pair reads as one "«" without needing another sprite entry. */
+.ui-datepicker__nav--year .ui-icon + .ui-icon { margin-left: -0.4em; }
+
+.ui-datepicker__weekdays,
+.ui-datepicker__week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: var(--space-2);
+}
+.ui-datepicker__week { margin-top: var(--space-2); }
+
+.ui-datepicker__weekday {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--datepicker-cell);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-tertiary);
+}
+
+.ui-datepicker__day {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: var(--datepicker-cell);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text-primary);
+  font-family: inherit;
+  font-size: var(--font-size-md);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+.ui-datepicker__day:hover:not(.ui-datepicker__day--selected):not(:disabled) {
+  background-color: var(--color-bg-surface-hover);
+}
+.ui-datepicker__day:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.ui-datepicker__day--outside { color: var(--color-text-disabled); }
+
+.ui-datepicker__day--today {
+  box-shadow: inset 0 0 0 var(--border-width-thin) var(--color-border-brand);
+}
+
+.ui-datepicker__day--selected {
+  background-color: var(--color-brand-solid);
+  color: var(--color-text-inverse);
+  font-weight: var(--font-weight-semibold);
+}
+.ui-datepicker__day--selected:focus-visible { box-shadow: var(--focus-ring-solid); }
+
+.ui-datepicker__day:disabled {
+  color: var(--color-text-disabled);
+  cursor: not-allowed;
+}
+
+.ui-datepicker__footer {
+  display: flex;
+  justify-content: center;
+  margin-top: var(--space-6);
+}
+
+.ui-datepicker__today {
+  padding: var(--space-2) var(--space-4);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text-link);
+  font-family: inherit;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+}
+.ui-datepicker__today:hover { background-color: var(--color-bg-surface-hover); }
+.ui-datepicker__today:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* --- The delegated picker panel ---------------------------------------------
+   js/lib/date-menu.js parents one <ui-date-picker> to <body> and anchors it
+   under whichever date field was pressed. Geometry arrives through a generated
+   stylesheet rather than inline styles, which is how select-menu.js places its
+   list too — one rule rewritten on scroll beats two style properties written
+   per frame. */
+
+.ui-date-menu {
+  position: fixed;
+  z-index: var(--z-select-menu);
+  top: var(--date-menu-top, 0);
+  left: var(--date-menu-left, 0);
+}

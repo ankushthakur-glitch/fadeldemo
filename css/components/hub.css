@@ -1,0 +1,209 @@
+/* ============================================================================
+   Hub — the card grid a section lands on when it holds several modules.
+
+   Started life as the Settings hub. Reports needs the same thing (and will
+   hold more reports over time), so the block moved here under a neutral name
+   rather than being copied with a second prefix. Both sections stay in step by
+   construction.
+
+   THE FIELD IS ONE GRID, AND EVERY CARD IN IT IS THE SAME HEIGHT.
+
+   This used to be two explicit flex rows — row 1 the built modules, row 2 what
+   was still pending — where a card matched the tallest card of ITS OWN ROW and
+   nothing else. That is the worst of both: Billing was padded out to match
+   Templates beside it, but Groups on the row below was free to be
+   short, so the page had two arbitrary heights rather than one deliberate one.
+   Master, meanwhile, hid two of its sections behind an internal scrollbar to
+   keep from dragging its row down the page — a card surrounded by blank space
+   that was still concealing links.
+
+   It then went the other way for a while, `align-items: start`, every card
+   exactly as tall as its own list. That is honest and it is not what this page
+   is: a hub is READ BY SCANNING ACROSS IT, and a ragged lower edge makes the
+   eye do the work of a rule. The reference draws one module height and leaves
+   the space under a short card blank.
+
+   So: `grid-auto-rows: 1fr` and cards that stretch. Every row of the grid is
+   the height of the tallest card on the page — Master's eight sections — and
+   every card fills its cell, whether it lists eight sections or one. The list
+   sits at the top of the card and the room left over sits under it, which is
+   exactly what the reference does with its own Billing and Audit Log cards.
+   Nothing needs capping or scrolling to hold the line.
+
+   The built/pending split survives where it is actually true — on the card
+   itself, as `--soon` — rather than as a rule ruled across the page.
+
+   NOT `columns`. A multi-column field would pack the cards tighter still, and
+   that was tried first: it is the wrong tool because the balancer decides its
+   own column height, and with seven unbreakable cards Chrome settled on a tall
+   target, used three of the five columns it had been given and left the right
+   third of the page empty. A grid's track count is arithmetic, not a heuristic.
+   What the grid gives up is the space under a short card in a tall row, which
+   the reference leaves blank in exactly the same place.
+
+   Track count is left to `auto-fill` rather than fixed: at the 1440 the Figma
+   is drawn at, a 16rem minimum resolves to five tracks of ~267px, which is the
+   reference's own card width, and it steps down to four and three on narrower
+   windows without a media query per breakpoint.
+
+   Cards are <section>, never <a>: a card that contains links cannot itself be
+   one — nesting anchors is invalid, and assistive tech loses the inner links.
+   ========================================================================= */
+
+/* A hub is a page body like any other: eight above and the same frame round
+   the rest — see THE FRAME UNDER THE HEADER BAND in base.css.
+
+   The side gutter used to be 32px, on the reasoning that a field of cards wants
+   more air round it than a table does. It does not, once the cards themselves
+   carry the air: the reference frames this page at the ordinary layout gutter,
+   and the 24px that came back is the difference between fitting four columns at
+   1440 and fitting the five the design is drawn with. */
+.ui-hub {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-4) var(--layout-gutter) var(--space-10);
+}
+
+.ui-hub__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+  /*
+   * `1fr` on the implicit rows is what makes every card the same height.
+   *
+   * The grid has no height of its own to distribute, so an `fr` row resolves
+   * to the largest row's content — and because every row resolves to the same
+   * figure, so does every cell in them. Items stretch by default, so a card
+   * with one link is drawn to the same edge as Master's eight. Do NOT put
+   * `align-items: start` back: it opts every card out of the stretch and the
+   * lower edge goes ragged again.
+   */
+  grid-auto-rows: 1fr;
+  gap: var(--space-7);
+}
+
+.ui-hub__card {
+  display: flex;
+  flex-direction: column;
+  /* No width of its own any more — the track sets it. The old `flex: 0 1 17rem`
+     with a 20rem cap is what held the field to four columns at 1440 and left a
+     column's worth of empty page beside Master. */
+  padding: var(--space-7);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-xl);
+  background-color: var(--color-bg-surface);
+  color: inherit;
+}
+
+/* The card is a container, so the hover cue follows the links inside it
+   rather than the whole box. */
+.ui-hub__card:has(a:hover),
+.ui-hub__card:has(a:focus-visible) { border-color: var(--color-border-brand); }
+
+/* Tightened to the reference's own rhythm: the rule under the title used to
+   carry 12px below it and another 6px of margin under that, which read as a
+   gap between two parts of the card rather than as the line that joins them. */
+.ui-hub__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  padding-bottom: var(--space-5);
+  margin-bottom: var(--space-4);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+/* 32px, not the 40 it used to be. Two reasons, both about the track being
+   narrower now that five of them fit: eight pixels off the icon is eight
+   pixels off every card's height, and it is eight pixels back for the title,
+   which is what keeps a two-word title on one line — a wrapped title pushes
+   that card's rule out of step with the rule on the card beside it,
+   and the mismatch is the first thing the eye finds along a row. */
+.ui-hub__icon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-10);
+  height: var(--space-10);
+  border-radius: var(--radius-md);
+  background-color: var(--color-brand-surface);
+  color: var(--color-brand-text);
+}
+.ui-hub__icon .ui-icon { width: var(--icon-size-md); height: var(--icon-size-md); }
+
+.ui-hub__title {
+  font-size: var(--font-size-title-card);
+  line-height: var(--line-height-tight);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.ui-hub__title a { color: inherit; text-decoration: none; }
+.ui-hub__title a:hover { color: var(--color-text-link); text-decoration: underline; }
+.ui-hub__title a:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--radius-sm); }
+
+/* Sections you can jump straight to — one row per section, label left,
+   chevron right. `padding-inline-start: 0` matters: the reset only zeroes
+   list padding for `ul[role="list"]`, so a plain <ul> keeps the browser's
+   40px indent and the rows sit further right than the icon above them.
+
+   NOT CAPPED, AND NOT SCROLLED.
+
+   This list used to stop at 13rem and scroll inside itself, because a card
+   that grew to fit Master's seven sections dragged the two cards sharing its
+   row down with it. Nothing shares a row now — the column flow lets a tall card
+   simply be tall — so the cap bought nothing and cost two of Master's seven
+   links, which were reachable only by finding a scrollbar inside a card that
+   had visible empty space beneath it.
+
+   No `gap` either. The rows are 32px of their own, which is the reference's
+   pitch and the same height as every other control in the app; the 12px that
+   used to sit between them made a five-row card 60px taller than it needed to
+   be for no gain in legibility — the hover background already tells one row
+   from the next. */
+.ui-hub__links {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  list-style: none;
+}
+
+.ui-hub__links a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  /* Matches .ui-hub__head's horizontal rhythm — the label lines up under the
+     icon above it, not under the title, which starts further right. The
+     negative inline margin is what pulls the hover background out to the
+     card's own padding while leaving the text where the icon is. */
+  padding: var(--space-3);
+  margin: 0 calc(var(--space-3) * -1);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-body);
+  color: var(--color-text-primary);
+  text-decoration: none;
+}
+.ui-hub__links a .ui-icon {
+  flex: none;
+  width: var(--icon-size-xs);
+  height: var(--icon-size-xs);
+  color: var(--color-text-tertiary);
+}
+.ui-hub__links a:hover { background-color: var(--color-bg-surface-hover); }
+.ui-hub__links a:hover .ui-icon { color: var(--color-text-secondary); }
+.ui-hub__links a:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* A module that has not been built. Reads as deliberate rather than broken. */
+.ui-hub__card--soon { background-color: var(--color-bg-surface-sunken); }
+.ui-hub__card--soon .ui-hub__icon {
+  background-color: var(--color-bg-surface-active);
+  color: var(--color-text-tertiary);
+}
+.ui-hub__card--soon .ui-hub__title { color: var(--color-text-secondary); }
+
+.ui-hub__soon {
+  padding-top: var(--space-3);
+  font-size: var(--font-size-caption);
+  color: var(--color-text-tertiary);
+}

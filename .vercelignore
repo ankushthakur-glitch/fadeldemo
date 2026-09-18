@@ -1,0 +1,46 @@
+# What NOT to publish when the prototype is deployed.
+#
+# The deployed site is a public URL, so anything in the repo that is not part
+# of the prototype itself would be browsable by whoever gets the link. These
+# are dev tooling and reference material, not the thing being shared.
+
+# ---------------------------------------------------------------------------
+# REAL PATIENT DATA — must never be published.
+#
+# Reference screenshots from the live gGastro system, containing patient
+# names, a subscriber ID, dates of birth, a clinic address and a staff login.
+# These are already excluded from git, so a GitHub-sourced deployment cannot
+# reach them — but `vercel` run from this folder uploads the WORKING TREE, not
+# the commit. Without this line that command would put PHI on a public URL.
+# ---------------------------------------------------------------------------
+Screenshot
+
+# Local environment files. Gitignored, so a GitHub-sourced deployment never
+# sees them — but this command uploads the working tree, which is the same
+# reason the Screenshot rule above exists.
+.env
+.env.*
+
+node_modules
+
+# Dev tooling. Playwright never runs on the host, and the screenshot baselines
+# are several MB of PNGs nobody reviewing the prototype needs.
+tests
+test-results
+playwright.config.js
+
+# Third-party design-system source, kept in the repo for reference while
+# building the components. Not ours to republish.
+Ref Components
+refdummypage.html
+
+# Database setup, not part of the prototype. It is run once by hand in the
+# Supabase SQL editor and has no business being fetchable from the public URL —
+# where its header would helpfully explain to a stranger exactly how open the
+# row-level security on the comment table is.
+supabase
+
+# Local helpers.
+Open Prototype.cmd
+Open Prototype.command
+.claude

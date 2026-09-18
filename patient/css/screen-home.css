@@ -1,0 +1,366 @@
+/* ============================================================================
+   HOME — the dashboard
+
+   The greeting, then ONE grid of four cards, two by two:
+
+     the greeting, and the sentence counting what is waiting
+     Upcoming Appointment   Messages
+     Current Medication     Forms & Consents
+
+   The appointment card used to take a band of its own across the full width.
+   It reads as a quadrant now like the other three, which is what lets Messages
+   join the screen without pushing the record below the fold: four half-width
+   cards in two rows occupy the height the old full-width band plus two lists
+   already took.
+
+   24px between the greeting and the grid and between the cards rather than the
+   portal's 16px block gap: this is the one screen that is nothing but panels,
+   and at 16px the columns read as a single block of rules rather than as
+   separate things.
+
+   WHAT WAS HERE AND IS NOT ANY MORE: an amber balance panel with a Pay Bill
+   button in the greeting row, a row of three "needs your attention" tiles
+   under it, and a three-across message digest along the foot. The dashboard
+   spent its first two bands on errands that all have a screen of their own in
+   the nav, and pushed the record itself below the fold. The four cards that
+   remain now start at the top of the well and get the whole of it — and the
+   messages that survive do so as a CARD in the grid, a short list of threads
+   with "More ↗" on it, not as a digest band of its own.
+
+   NOTHING HERE RESTYLES A SHARED COMPONENT. The Upcoming Appointment card is
+   drawn from the same parts as an Appointment card — .pp-appt-when and
+   .pp-appt-facts, both in components.css — so the two say the same things in
+   the same order in the same shapes. The one thing this file does to them is
+   widen the fact grid to three columns, and it does that with a CONTAINER
+   query on the card body, so the rule follows the card rather than the window.
+   ========================================================================= */
+
+.pp-home {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pp-space-6);
+}
+
+/* ============================================================================
+   THE GREETING
+
+   A title and one derived sentence, nothing beside them. It sat in a
+   space-between row for as long as there was a balance panel on the other end
+   of it; with that gone a flex row would only be a block pretending to be one.
+   ========================================================================= */
+
+/*
+ * The page's only heading, sitting above everything, so it takes --pp-size-h1
+ * — which is now 23px and exists precisely because this rule used to have to
+ * invent a raw 22px to bridge the hollow between h2 and a 28px h1 that
+ * belonged to the sign-in screen.
+ */
+.pp-hello__title {
+  font-size: var(--pp-size-h1);
+  font-weight: var(--pp-weight-semibold);
+  line-height: var(--pp-leading-h1);
+  letter-spacing: var(--pp-tracking-display);
+  color: var(--pp-text-strong);
+}
+
+.pp-hello__sub {
+  margin-top: var(--pp-space-1);
+  color: var(--pp-text-muted);
+  font-size: var(--pp-size-sm);
+}
+
+/* ============================================================================
+   UPCOMING APPOINTMENT — the top-left quadrant
+
+   The one card on this screen with dates and buttons on it, and it sits in
+   half the well like the other three. Half the well is under the 22rem-plus-
+   22rem a second visit column would need, so the two visits the card carries
+   sit one ABOVE the other, separated by the same hairline that used to run
+   between them — the grid below decides that by measuring, so the card needs
+   no second rule for the narrow case.
+   ========================================================================= */
+
+/*
+ * THE VISITS, one per row at this width — the same grid that draws them side
+ * by side in a wider card, told how narrow a column may get.
+ *
+ * auto-fit rather than a fixed count: at half the well the two visits stack,
+ * and if the card ever gets the full width back they sit side by side without
+ * this rule changing. 22rem is the width below which a visit stops being able
+ * to say "4517 Washington Ave. Manchester, Kentucky" without breaking the
+ * address over three lines.
+ *
+ * The hairlines between the columns are the 1px GAP showing the card's line
+ * colour through — one rule that works between columns and between rows
+ * without either the first or the last visit having to know where it sits.
+ */
+.pp-home__appts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(22rem, 100%), 1fr));
+  /* An EQUAL share each of whatever height the row gives the card. The visits
+     are the only thing in this card that can absorb it, and the background
+     here is the line colour: rows that sized to their content would leave the
+     unclaimed height showing as a grey band under the last visit rather than
+     as white card. `1fr` still takes its minimum from the content, so a visit
+     never gets less room than it needs. */
+  grid-auto-rows: 1fr;
+  gap: 1px;
+  background: var(--pp-line);
+}
+
+/*
+ * Each visit is a CONTAINER, which is how the shared .pp-appt-facts block
+ * knows how many columns to take. A visit in the half-well card is past 28rem
+ * and gets the two columns components.css draws by default; on a narrow window
+ * it falls to one, and neither this file nor that one measures the window to
+ * decide.
+ *
+ * The padding moved off the card body and onto the visit — the body is flush
+ * and each visit pays for its own room, which is what lets the gap between
+ * them read as a full-height rule.
+ */
+.pp-home__appt {
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pp-space-3);
+  padding: var(--pp-pad-card);
+  background: var(--pp-surface);
+}
+
+/* Intake on the left, Join at the right edge — the foot of a card, drawn
+   inside one, because each visit ends in its own pair of actions. margin-top:
+   auto is what lines the buttons up across columns of different heights: a
+   visit with a short reason still puts its actions on the bottom edge. */
+.pp-home__appt-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-2);
+  margin-top: auto;
+  padding-top: var(--pp-space-1);
+}
+
+/*
+ * Provider, Location and Visit mode across; Reason for Visit — the long one,
+ * and the only fact with a visible label — on its own line under them, which
+ * it already asks for with .pp-appt-fact--wide.
+ *
+ * 52rem, not 28: three columns of "4517 Washington Ave. Manchester, Kentucky"
+ * need the room, and between 28 and 52 the two-column layout is the better
+ * answer rather than a fallback. A visit in the half-well card reaches 52rem
+ * only on a very wide display; short of that it takes the two- and one-column
+ * layouts components.css already draws.
+ */
+@container (width >= 52rem) {
+  .pp-home__appt .pp-appt-facts {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* The headline and its Today/Tomorrow pill stay together at the left. Pushed
+   apart, the pill would sit at the far edge of the card from the date it
+   qualifies. */
+.pp-home__appt-head {
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-3);
+}
+
+/* --- Nothing upcoming ------------------------------------------------------
+   The one branch of the appointment card that has no visit to draw. */
+
+.pp-home__empty {
+  color: var(--pp-text-strong);
+  font-size: var(--pp-size-h3);
+  font-weight: var(--pp-weight-semibold);
+  line-height: var(--pp-leading-h3);
+}
+
+.pp-home__empty-meta {
+  margin-top: var(--pp-space-1);
+  color: var(--pp-text-muted);
+  font-size: var(--pp-size-sm);
+}
+
+/* ============================================================================
+   THE FOUR CARDS
+
+   Two columns, and the cards fill them in source order: appointments and
+   messages across the top, medications and paperwork under them.
+
+   Each ROW is one height — the grid's own stretch, left alone rather than
+   turned off. It was align-items: start for as long as the shorter card of a
+   pair could only answer the extra height with a blank panel at its foot. It
+   does not have to: a card whose body is a list gives the difference to its
+   rows (see .pp-home__list), and the appointment card gives it to its visits,
+   so three outstanding forms stand level with six medications and nothing
+   ends in an empty white box.
+   ========================================================================= */
+
+.pp-home__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--pp-space-6);
+}
+
+/*
+ * A LIST CARD SPENDS ITS ROW'S HEIGHT ON ITS ROWS.
+ *
+ * Messages, Current Medication and Forms & Consents. The card is already a
+ * flex column with a flex: 1 body (components.css); these three lines carry
+ * that down through the list to the rows, so the shorter card of a pair —
+ * three pending forms beside six medications — grows its rows instead of
+ * leaving the difference blank under the last one.
+ *
+ * align-items: center follows from it: a row given more than its two lines
+ * need should hold its avatar or its index against the middle of them, not
+ * hang it from the top edge of a tall row.
+ */
+.pp-home__list .pp-card__body {
+  display: flex;
+}
+
+/* min-width: 0 is not decoration.
+ *
+ * Making the body a flex row turns the list into a flex item, and a flex
+ * item's automatic minimum size is its MIN-CONTENT width. A thread row's
+ * preview is `white-space: nowrap` (.pp-home__preview), so the list's
+ * min-content is the whole untruncated sentence — near 750px on a 600px card.
+ * With min-width left at auto the list refuses to go below that, the row
+ * hairlines run out past the card's right border and the unread badge is
+ * drawn outside the card entirely. Zero lets the list take the card's width,
+ * which is what puts the ellipsis back on the preview. */
+.pp-home__list .pp-list {
+  flex: 1;
+  min-width: 0;
+}
+
+.pp-home__list .pp-list__item {
+  flex: 1;
+  align-items: center;
+}
+
+/* Two chips on one row — a schedule plus "Refill" or
+   "Self-reported" — wrap under each other rather than squeezing the name. At
+   half the well there is room for most pairs; the cap is what keeps a long
+   name from being crushed by the exceptions. */
+.pp-home__grid .pp-list__tags {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: 40%;
+  row-gap: var(--pp-space-1);
+}
+
+/* ============================================================================
+   THE FORMS CARD
+
+   The only rows in this grid that end in a control, and the only ones that
+   are not stretched to fill their card. Everything else here is a record
+   being read; a form is a job, and the button is the point of the row — see
+   the FORMS & CONSENTS block in js/screens/home.js.
+
+   WHY THIS ONE OPTS OUT OF THE EQUAL-HEIGHT RULE. Every other card in the
+   grid answers a tall neighbour by giving the extra height to its rows, and
+   that works while the two are within a row or two of each other — six
+   threads beside two appointments, six medications beside four of anything.
+   The paperwork card holds what the practice is still waiting on, which is
+   three things and is supposed to fall to nothing: stretched to the six-row
+   medication card beside it, each of three rows was nearly 200px tall, a
+   name and a date marooned in the middle of a white band with the next name
+   a hundred pixels below it. A list whose rows are further apart than they
+   are tall has stopped reading as a list.
+
+   So the rows keep their own height — the same height a medication row has,
+   which is what makes the two cards in this row read as one pair — and the
+   card stops where they stop rather than carrying the difference as a blank
+   panel at its foot. A card that is honestly shorter than its neighbour is
+   better than a tall card that is mostly nothing.
+   ========================================================================= */
+
+/* The card ends with its last row. Nothing else in the grid does this; see
+   above for why this one has to. */
+.pp-home__forms {
+  align-self: start;
+}
+
+/* Rows at their natural height, against the .pp-home__list rule that hands
+   them a share of whatever the stretch added. */
+.pp-home__forms .pp-list__item {
+  flex: none;
+}
+
+/* ONE WIDTH FOR ALL OF THEM, AND IT IS THE LONGEST LABEL'S.
+   The four labels are three different lengths — "Start Form" beside "Review &
+   Consent" beside "Give consent again" — and buttons sized to their own text
+   start at three different depths down the card, which reads as three
+   different controls rather than one column of them. The table on the Forms
+   screen gets its alignment from being a table; each row here is its own flex
+   line and cannot see the row above, so the width is stated once. The name
+   takes what is left, with an ellipsis when it has to.
+
+   Never squeezed and never wrapped, either: a button whose label has broken
+   across two lines has stopped looking like a button. */
+.pp-home__cta {
+  flex: none;
+  min-width: 10.5rem;
+}
+
+/* On a phone the card is the width of the screen and the row still has to
+   hold a name, a date, a chip and a button. The button drops to a line of its
+   own across the row rather than shaving the form's name down to two words: it
+   is the thing the row exists for, and the one part that cannot shrink. */
+@media (width < 30rem) {
+  .pp-home__forms .pp-list__item {
+    flex-wrap: wrap;
+  }
+
+  .pp-home__cta {
+    flex-basis: 100%;
+  }
+}
+
+/* The thread's name and, when it is marked urgent, the bell beside it. */
+.pp-home__thread-name {
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-2);
+  min-width: 0;
+}
+
+.pp-home__thread-name > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The same red bell the Messages screen puts beside an urgent thread. It is
+   drawn here rather than borrowed because screen-messages.css is not on this
+   page — the mark is two declarations, and loading a screen's stylesheet to
+   get them would be the larger dependency. */
+.pp-home__urgent {
+  display: inline-flex;
+  flex: none;
+  color: var(--pp-red-strong);
+}
+
+/* One line of the last thing said, cut with an ellipsis. A preview that wraps
+   to three lines makes the Messages card taller than the appointment beside it
+   to quote a sentence the patient reads on the Messages screen anyway. */
+.pp-home__preview {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ============================================================================
+   NARROW SCREENS
+
+   Two columns, then one — all four cards in a single column, in the same
+   order. There is only ever one grid on this screen deciding anything.
+   ========================================================================= */
+
+@media (width < 60rem) {
+  .pp-home__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

@@ -1,0 +1,362 @@
+/* ============================================================================
+   Settings ▸ Templates — the list (tpl__) and the builder (tb__).
+
+   Both screens use the shared page head, the shared gutter and the shared
+   elevation rule: a panel is a surface with a border and NO shadow; only
+   things that float over content (the row ⋮ menu, the dialogs) are raised.
+   ========================================================================= */
+
+/* ============================================================================
+   THE LIST
+   ========================================================================= */
+
+.tpl__body {
+  flex: 1;
+  min-height: 0;
+  padding: var(--layout-gutter);
+  /* Eight above, twenty around — see THE FRAME UNDER THE HEADER BAND in
+     base.css. */
+  padding-top: var(--space-4);
+  overflow-y: auto;
+}
+
+
+/* The name is the way into the template, so it is a link and looks like one.
+   The macro variant is a button because it opens a dialog rather than a page —
+   a link that does not navigate is a link that breaks the middle-click. */
+.tpl__name {
+  color: var(--color-text-link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.tpl__name:hover { color: var(--color-text-link-hover); }
+
+.tpl__name--button {
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.tpl__name--button:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--radius-sm); }
+
+.tpl__date { font-family: var(--font-family-numeric); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* One button per row, opening the shared ⋮ panel. Three inline buttons would
+   be three tab stops per row — three hundred on a hundred rows. */
+.tpl__row-menu {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-height-sm);
+  height: var(--control-height-sm);
+  border-radius: var(--radius-md);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+}
+.tpl__row-menu:hover { background-color: var(--color-bg-surface-hover); color: var(--color-text-primary); }
+.tpl__row-menu:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* --- Dialogs ---------------------------------------------------------------- */
+
+.tpl__form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5) var(--space-6);
+  align-items: end;
+}
+.tpl__field--wide { grid-column: 1 / -1; }
+
+.tpl__confirm { font-size: var(--font-size-body); color: var(--color-text-primary); }
+.tpl__confirm-note {
+  margin-top: var(--space-4);
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+}
+
+/* ============================================================================
+   THE BUILDER
+
+   Two columns that both scroll: the palette of everything the practice has,
+   and the template being assembled. Neither can push the other off screen, so
+   the page itself never scrolls.
+   ========================================================================= */
+
+.tb { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+.tb__head { gap: var(--space-5); }
+
+/* The name is a field, not a heading: a template with no name cannot be
+   saved, so it is the first control rather than something behind a dialog. */
+.tb__title-field { display: flex; align-items: center; gap: var(--space-5); min-width: 0; }
+.tb__title-field ui-input { width: 20rem; }
+
+/* Which of the seven kinds this template belongs to. Stated rather than
+   editable — the kind decides which tab it lands on, and changing it after
+   the fact is a move, not an edit. */
+.tb__kind {
+  flex: none;
+  padding: 0 var(--space-5);
+  height: 1.375rem;
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--radius-full);
+  background-color: var(--color-bg-surface-active);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-caption);
+  white-space: nowrap;
+}
+
+.tb__saved {
+  font-size: var(--font-size-caption);
+  color: var(--color-status-success-text);
+}
+.tb__saved:empty { display: none; }
+
+.tb__cols {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 20rem minmax(0, 1fr);
+  gap: var(--layout-gap);
+  padding: var(--layout-gutter);
+  /* Eight above, twenty around — see THE FRAME UNDER THE HEADER BAND in
+     base.css. */
+  padding-top: var(--space-4);
+}
+
+@media (max-width: 900px) {
+  .tb__cols { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* --- Left: the palette ------------------------------------------------------ */
+
+.tb__palette,
+.tb__canvas {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+  overflow: hidden;
+}
+
+.tb__palette-head {
+  flex: none;
+  padding: var(--space-6);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+}
+.tb__palette-head ui-input { width: 100%; }
+
+.tb__palette-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-6);
+}
+
+.tb__palette-empty {
+  padding: var(--space-7);
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-body);
+}
+
+.tb__group + .tb__group { margin-top: var(--space-7); }
+
+/* Grouping is the one real change from the legacy palette, whose flat
+   alphabetical list put "Layout - Space/Blank Line" next to "Patient Date of
+   Birth" with nothing to say they are different kinds of thing. */
+.tb__group-title {
+  margin-bottom: var(--space-4);
+  font-size: var(--font-size-title-eyebrow);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+.tb__chip {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-2);
+  padding: var(--space-4) var(--space-5);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+  font-family: inherit;
+  font-size: var(--font-size-body);
+  color: var(--color-text-primary);
+  text-align: left;
+  cursor: grab;
+}
+.tb__chip:hover { border-color: var(--color-border-brand); background-color: var(--color-brand-surface); }
+.tb__chip:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.tb__chip:active { cursor: grabbing; }
+.tb__chip span { flex: 1; min-width: 0; }
+
+.tb__chip-add { flex: none; width: var(--icon-size-sm); height: var(--icon-size-sm); color: var(--color-text-tertiary); }
+.tb__chip:hover .tb__chip-add { color: var(--color-brand-text); }
+
+/* A section that may appear only once and already has stays visible but
+   inert. Hiding it would leave the reader hunting for where it went. */
+.tb__chip--used {
+  background-color: var(--color-bg-surface-sunken);
+  color: var(--color-text-tertiary);
+  cursor: default;
+}
+.tb__chip--used:hover { border-color: var(--color-border-subtle); background-color: var(--color-bg-surface-sunken); }
+.tb__chip-used { flex: none; width: var(--icon-size-sm); height: var(--icon-size-sm); color: var(--color-status-success-text); }
+.tb__chip--used .tb__chip-add { display: none; }
+
+/* --- Right: the template ---------------------------------------------------- */
+
+.tb__canvas-head {
+  flex: none;
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-5);
+  padding: var(--space-6) var(--space-7);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.tb__canvas-title { font-size: var(--font-size-title-section); font-weight: var(--font-weight-semibold); color: var(--color-text-primary); }
+
+.tb__count { margin-left: auto; font-size: var(--font-size-caption); color: var(--color-text-tertiary); }
+
+.tb__list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-6) var(--space-7);
+  list-style: none;
+}
+
+.tb__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  margin-bottom: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+  cursor: grab;
+}
+.tb__row:hover { border-color: var(--color-border-default); }
+
+/* The row being dragged fades in place rather than disappearing, so the list
+   does not reflow under the pointer mid-drag. */
+.tb__row--dragging { opacity: 0.4; }
+
+/* Where it would land: a brand rule on the leading edge, not a moved gap —
+   an inserted placeholder makes every row below jump as the pointer travels. */
+.tb__row--over { box-shadow: inset 0 2px 0 0 var(--color-brand-solid); }
+
+.tb__handle { flex: none; color: var(--color-text-tertiary); display: inline-flex; }
+.tb__handle .ui-icon { width: var(--icon-size-sm); height: var(--icon-size-sm); }
+
+/* Position in the running order, which is the only thing a template decides. */
+.tb__row-index {
+  flex: none;
+  width: 1.5rem;
+  font-family: var(--font-family-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-tertiary);
+  text-align: right;
+}
+
+.tb__row-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-1); }
+.tb__row-label { font-size: var(--font-size-body); color: var(--color-text-primary); }
+.tb__row-group { font-size: var(--font-size-2xs); color: var(--color-text-tertiary); }
+
+.tb__row-actions { flex: none; display: inline-flex; gap: var(--space-2); }
+
+/* Up / down as well as drag: a drag-only canvas cannot be used by keyboard,
+   and this is a settings screen someone will work through one-handed. */
+.tb__row-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: var(--radius-md);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+}
+.tb__row-btn:hover:not(:disabled) { background-color: var(--color-bg-surface-hover); color: var(--color-text-primary); }
+.tb__row-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.tb__row-btn:disabled { opacity: 0.35; cursor: default; }
+.tb__row-btn .ui-icon { width: var(--icon-size-sm); height: var(--icon-size-sm); }
+.tb__row-btn--danger:hover:not(:disabled) { background-color: var(--color-status-critical-surface); color: var(--color-status-critical-text); }
+
+/* The drop target sits under the list rather than replacing it, so an empty
+   template and a full one are the same object with the same affordance. */
+.tb__drop {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-5);
+  margin: 0 var(--space-7) var(--space-7);
+  padding: var(--space-8);
+  border: var(--border-width-thin) dashed var(--color-border-default);
+  border-radius: var(--radius-md);
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-body);
+  text-align: center;
+}
+.tb__drop[hidden] { display: none; }
+.tb__drop--over { border-color: var(--color-brand-solid); background-color: var(--color-brand-surface); color: var(--color-brand-text); }
+
+/* --- Read-only -------------------------------------------------------------- */
+
+.tb--read-only .tb__row,
+.tb--read-only .tb__chip { cursor: default; }
+
+/* --- Preview ---------------------------------------------------------------- */
+
+.tb__preview-lead {
+  margin-bottom: var(--space-7);
+  font-size: var(--font-size-body);
+  color: var(--color-text-secondary);
+}
+
+.tb__preview {
+  padding: var(--space-8);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+}
+
+.tb__preview-section + .tb__preview-section { margin-top: var(--space-7); }
+.tb__preview-section h3 {
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+/* What the section will hold once the note is written. A ruled line rather
+   than lorem text — the template decides the headings, not the content. */
+.tb__preview-blank {
+  display: block;
+  height: var(--space-9);
+  margin-top: var(--space-3);
+  border-bottom: var(--border-width-thin) dashed var(--color-border-subtle);
+}
+
+.tb__preview-space { height: var(--space-9); }
+.tb__preview-rule { margin: var(--space-7) 0; border-top: var(--border-width-thin) solid var(--color-border-subtle); }
+
+.tb__preview-layout {
+  margin: var(--space-5) 0;
+  font-size: var(--font-size-2xs);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  font-weight: var(--font-weight-semibold);
+}

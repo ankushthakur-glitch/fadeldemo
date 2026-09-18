@@ -1,0 +1,200 @@
+/* ============================================================================
+   ui-menu and ui-dropdown-menu — the two list surfaces.
+
+   They look alike and they are not the same thing. ui-menu is a list of
+   ACTIONS: role="menu", items are buttons, clicking one does something and the
+   menu closes. ui-dropdown-menu is a list of CHOICES: role="listbox", items
+   are options, clicking one changes a value. Getting this wrong is the most
+   common ARIA mistake in a component library, so they are separate elements
+   rather than one with a mode flag.
+
+   Both take --elevation-raised: content passes underneath them, they are not
+   detached from the page the way a modal is.
+   ========================================================================= */
+
+ui-menu,
+ui-dropdown-menu { display: block; }
+
+.ui-menu {
+  display: flex;
+  flex-direction: column;
+  min-width: 12rem;
+  padding: var(--space-2);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface-raised);
+  box-shadow: var(--elevation-raised);
+}
+
+.ui-menu__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  width: 100%;
+  padding: var(--space-4) var(--space-6);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text-primary);
+  font-family: inherit;
+  font-size: var(--font-size-md);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.ui-menu__item:hover:not(:disabled),
+.ui-menu__item:focus-visible {
+  outline: none;
+  background-color: var(--color-bg-surface-hover);
+}
+
+.ui-menu__item:disabled {
+  color: var(--color-text-disabled);
+  cursor: not-allowed;
+}
+
+.ui-menu__item--selected { color: var(--color-brand-text); }
+
+.ui-menu__item--critical { color: var(--color-status-critical-text); }
+.ui-menu__item--critical:hover:not(:disabled),
+.ui-menu__item--critical:focus-visible {
+  background-color: var(--color-status-critical-surface);
+}
+.ui-menu__item--critical .ui-menu__icon { color: var(--color-status-critical-text); }
+
+.ui-menu__item--success { color: var(--color-status-success-text); }
+.ui-menu__item--success:hover:not(:disabled),
+.ui-menu__item--success:focus-visible {
+  background-color: var(--color-status-success-surface);
+}
+.ui-menu__item--success .ui-menu__icon { color: var(--color-status-success-text); }
+
+.ui-menu__item--warning { color: var(--color-status-warning-text-strong); }
+.ui-menu__item--warning:hover:not(:disabled),
+.ui-menu__item--warning:focus-visible {
+  background-color: var(--color-status-warning-surface);
+}
+.ui-menu__item--warning .ui-menu__icon { color: var(--color-status-warning-text-strong); }
+
+.ui-menu__icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--color-text-tertiary);
+}
+.ui-menu__icon .ui-icon,
+.ui-menu__check .ui-icon,
+.ui-menu__trailing .ui-icon {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}
+
+.ui-menu__body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.ui-menu__label { font-weight: var(--font-weight-medium); }
+
+.ui-menu__desc {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}
+
+.ui-menu__check {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--color-brand-text);
+}
+
+.ui-menu__trailing {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-xs);
+}
+
+.ui-menu__divider {
+  height: var(--border-width-thin);
+  margin: var(--space-2) 0;
+  background-color: var(--color-border-subtle);
+}
+
+/* --- ui-dropdown-menu ----------------------------------------------------- */
+
+.ui-dropdown-menu {
+  max-height: 15rem;
+  overflow-y: auto;
+  margin: 0;
+  padding: var(--space-2);
+  list-style: none;
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface-raised);
+  box-shadow: var(--elevation-raised);
+}
+
+.ui-dropdown-menu:focus-visible {
+  outline: none;
+  box-shadow: var(--elevation-raised), var(--focus-ring);
+}
+
+.ui-dropdown-menu__option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-6);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.ui-dropdown-menu__option--active:not(.ui-dropdown-menu__option--disabled) {
+  background-color: var(--color-bg-surface-hover);
+}
+
+.ui-dropdown-menu__option--disabled {
+  color: var(--color-text-disabled);
+  cursor: not-allowed;
+}
+
+.ui-dropdown-menu__icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--color-text-tertiary);
+}
+.ui-dropdown-menu__icon .ui-icon,
+.ui-dropdown-menu__check .ui-icon {
+  width: var(--icon-size-md);
+  height: var(--icon-size-md);
+}
+
+.ui-dropdown-menu__body {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-4);
+  flex: 1;
+  min-width: 0;
+}
+
+.ui-dropdown-menu__label {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ui-dropdown-menu__desc {
+  font-size: var(--font-size-md);
+  color: var(--color-text-tertiary);
+}
+
+.ui-dropdown-menu__check {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--color-brand-text);
+}

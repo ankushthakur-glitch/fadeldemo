@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MediNova EHR — Add Patient</title>
+    <link rel="icon" type="image/svg+xml" href="../assets/img/favicon.svg" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="../css/reset.css" />
+    <link rel="stylesheet" href="../css/tokens.css" />
+    <link rel="stylesheet" href="../css/base.css" />
+    <link rel="stylesheet" href="../css/ui-kit.css" />
+    <link rel="stylesheet" href="../css/screen-patient.css" />
+    <link rel="stylesheet" href="../css/screen-add-patient.css" />
+    <link rel="stylesheet" href="../css/screen-leads.css" />
+
+    <script type="module" src="../js/main.js"></script>
+    <script type="module" src="../js/screens/patient-add.js"></script>
+    <!-- Lead → Patient conversion. Additive: without ?lead= it does nothing. -->
+    <script type="module" src="../js/screens/patient-add-lead.js"></script>
+    <script src="../js/open-me-properly.js"></script>
+  </head>
+
+  <body class="pt">
+    <header class="pt__bar">
+      <img
+        class="pt__logo"
+        src="../assets/img/medinova-logo.svg"
+        width="158"
+        height="32"
+        alt="MediNova Gastroenterology Clinic"
+      />
+      <ui-main-nav active="patient"></ui-main-nav>
+      <div class="pt__bar-actions">
+        <ui-time-clock></ui-time-clock>
+        <button type="button" class="pt__icon-action" aria-label="Notifications">
+          <svg class="ui-icon" aria-hidden="true"><use href="#i-bell"></use></svg>
+        </button>
+        <ui-avatar name="Amara Mensah" size="sm"></ui-avatar>
+      </div>
+    </header>
+
+    <!--
+      THE HEAD SAYS WHERE YOU ARE, AND NOTHING ELSE.
+
+      It carried more for a while: the half-typed patient's name spliced into
+      the title, a meta line for the reserved record number and the date the
+      form was started, and a "Not yet saved" badge hard right. All three
+      restated something the form itself already says a screen-height below —
+      the name fields are the first thing on the form, the record number is
+      printed two rows down, and the sticky footer is where saving actually
+      happens — so the head spent its width echoing the body and changed under
+      the reader as they typed.
+
+      It is now the same head the referral processing screen wears: back, then
+      the title. One line, static, no work to do.
+    -->
+    <div class="ui-page-head ui-page-head--split">
+      <div class="ui-page-head__lead">
+        <a class="ui-page-head__back" href="patient-directory.html" data-testid="add--back" aria-label="Back to patients">
+          <svg class="ui-icon" aria-hidden="true"><use href="#i-caret-left"></use></svg>
+        </a>
+        <h1 class="ui-page-head__title" id="apTitle" data-testid="add--title">Add patient</h1>
+      </div>
+    </div>
+
+    <!-- ==========================================================================
+         ONE FORM, TOP TO BOTTOM.
+
+         This screen was three tabs — Patient Info / Insurance / Guarantor — and
+         a two-column body. Registration is one continuous act taken at a desk
+         with the patient in front of you, and tabs turned it into three: you
+         could not see how much was left, the Save button reported required
+         fields on a tab you were not looking at, and the two columns meant the
+         eye had to run down one side of the screen and back up the other.
+
+         Now it reads in the order the questions are asked, one column of
+         sections, each section a card. Every section is a full-width band, and
+         the field grid inside it fills the width — which is what keeps the page
+         short enough to scroll in one pass rather than tall and narrow.
+         ======================================================================= -->
+    <main class="ap__body">
+      <form id="addPatientForm" class="ap__form" novalidate>
+
+        <!-- ================= PATIENT BASIC DETAILS ================= -->
+        <section class="ap__card" data-icon="user" data-tone="brand" id="patientBasics">
+          <div class="ap__card-head ap__card-head--inline">
+            <span>Patient Basic Details</span>
+            <!-- The lead conversion strip lands here when ?lead= is in the URL.
+                 It used to be a full banner above the form; it is context about
+                 where this record came from, not the first thing to read. -->
+            <span class="ap__head-slot" id="leadSlot"></span>
+          </div>
+          <div class="ap__card-body ap__grid">
+            <ui-select label="Prefix" placeholder="Select" id="prefix"></ui-select>
+            <ui-input label="First Name" required data-testid="add--first-name"></ui-input>
+            <ui-input label="Middle Name"></ui-input>
+
+            <ui-input label="Last Name" required data-testid="add--last-name"></ui-input>
+            <ui-select label="Suffix" empty-option="—" id="suffix" data-testid="add--suffix"></ui-select>
+            <ui-input label="Preferred Name" data-testid="add--preferred-name"></ui-input>
+            <div class="ap__dob">
+              <ui-input label="Date Of Birth" type="date" required data-testid="add--dob"></ui-input>
+              <span class="ap__age" data-testid="add--age">—</span>
+            </div>
+            <ui-select
+              label="Birth Sex"
+              placeholder="Select"
+              id="birthSex"
+              required
+              data-testid="add--birth-sex"
+            ></ui-select>
+
+            <!-- ADDRESS FIELD ORDER — the system's one sequence:
+                   Country · Address Line 1 · Address Line 2 · City · State · ZIP
+
+                 Country leads because it decides which State list and which
+                 postcode format the rest of the block uses; the five after it
+                 are written in the order they appear on an envelope. Same five,
+                 same order, in the guarantor's block, the subscriber's, and the
+                 clinician and pharmacy masters. -->
+            <!-- One field, not three boxes. The three-box version was gGastro's,
+                 and it cost two extra tab stops, broke paste, and needed its own
+                 focus-shuffling script to be usable at all. A social security
+                 number is one number; the dashes are formatting, so the field
+                 writes them as you type. -->
+            <ui-input
+              label="Social Security Number"
+              placeholder="000-00-0000"
+              inputmode="numeric"
+              data-ssn
+              data-testid="add--ssn"
+            ></ui-input>
+            <!-- NO MRN FIELD HERE. The number is issued by the system when the
+                 record is saved, not typed or chosen by the person filling the
+                 form in, so a read-only box showing a number that does not
+                 exist yet was one more thing on the page that nobody could act
+                 on. The MRN appears where it is useful — the directory column,
+                 the scheduler's patient picker, the chart header — once there
+                 is a patient for it to belong to. -->
+            <ui-select label="Country" id="country" required data-testid="add--country"></ui-select>
+            <ui-input label="Address Line 1" required data-testid="add--address1"></ui-input>
+            <!-- One column: it holds "Apt 3B", and at two it pushed the row
+                 over five columns and left a hole where the sixth would be. -->
+            <ui-input label="Address Line 2" data-testid="add--address2"></ui-input>
+            <ui-input label="City" required data-testid="add--city"></ui-input>
+            <ui-select label="State" placeholder="Select" id="state" required data-testid="add--state"></ui-select>
+            <ui-input label="ZIP" required data-testid="add--zip"></ui-input>
+
+            <ui-input label="Mobile Phone" placeholder="(000) 000-0000" required data-testid="add--mobile"></ui-input>
+            <ui-input label="Home Phone" placeholder="(000) 000-0000"></ui-input>
+            <ui-input label="Work Phone" placeholder="(000) 000-0000"></ui-input>
+
+            <ui-input label="E-mail" type="email" data-testid="add--email"></ui-input>
+
+            <ui-select label="Contact Preference" placeholder="Select" id="contactPreference"></ui-select>
+            <ui-select
+              label="Preferred Electronic Clinical Lab"
+              placeholder="Select lab"
+              id="preferredLab"
+              data-testid="add--preferred-lab"
+            ></ui-select>
+
+            <!-- NO OPT-OUT BLOCK HERE — not portal appointment reminders, and
+                 not Text to Pay. Both are messaging preferences the patient
+                 owns themselves: the portal already carries the reminder
+                 setting, where they can change it at three in the morning
+                 without ringing the desk, and Text to Pay is answered by the
+                 first message the billing service sends. A copy on the
+                 registration form was a second answer to the same question,
+                 taken from a different person at a different time, with
+                 nothing deciding which of the two wins. -->
+          </div>
+        </section>
+
+        <!-- ================= ADDITIONAL DETAILS ================= -->
+        <section class="ap__card" data-icon="layers" data-tone="brand">
+          <h2 class="ap__card-head">Additional Details</h2>
+          <div class="ap__card-body ap__grid">
+            <ui-select label="Type" id="patientType" data-testid="add--type"></ui-select>
+            <ui-select label="Nationality" placeholder="Select" id="nationality"></ui-select>
+            <ui-select label="Marital Status" placeholder="Select" id="maritalStatus"></ui-select>
+            <!-- The RECORD status — active / inactive — which drives the
+                 directory's tabs. "Health Status" (alive / deceased) is a
+                 different field and is not used by the practice. -->
+            <ui-select label="Status" id="patientStatus" data-testid="add--status"></ui-select>
+
+            <!-- Each qualifier sits beside the field it qualifies, and stays
+                 disabled until that field has a value: a race detail on its own
+                 means nothing. -->
+            <ui-select label="Race" placeholder="Select" id="race" data-testid="add--race"></ui-select>
+            <ui-select
+              label="Race Details"
+              placeholder="Select"
+              id="raceDetails"
+              disabled
+              data-testid="add--race-details"
+            ></ui-select>
+
+            <ui-select label="Ethnicity" placeholder="Select" id="ethnicity" data-testid="add--ethnicity"></ui-select>
+            <ui-select
+              label="Ethnicity Details"
+              placeholder="Select"
+              id="ethnicityDetails"
+              disabled
+              data-testid="add--ethnicity-details"
+            ></ui-select>
+
+            <ui-select label="Tribal Affiliation" placeholder="Select" id="tribalAffiliation"></ui-select>
+            <ui-select label="Preferred Language" id="language"></ui-select>
+
+            <!-- Identity, as the record codes it. These four used to sit in the
+                 basics behind a "Birth Sex Declined" tick-box, appearing only
+                 if it was ticked. They are demographics like the five above
+                 them — asked of everyone, left blank when not answered — and a
+                 field that exists only down one branch of a checkbox is a field
+                 nobody knows the form has. -->
+            <ui-select
+              label="Sexual Orientation"
+              placeholder="Select"
+              id="sexualOrientation"
+              data-testid="add--sexual-orientation"
+            ></ui-select>
+            <ui-select
+              label="Gender Identity"
+              placeholder="Select"
+              id="genderIdentity"
+              data-testid="add--gender-identity"
+            ></ui-select>
+            <ui-select
+              label="Pronouns"
+              placeholder="Select"
+              id="pronouns"
+              data-testid="add--pronouns"
+            ></ui-select>
+            <ui-select
+              label="Sex for Clinical Use"
+              placeholder="Select"
+              id="sexForClinicalUse"
+              data-testid="add--sex-clinical"
+            ></ui-select>
+
+            <!-- What the record used to say. Maiden Name and Aliases were other
+                 spellings of the same question and are gone; the From/To dates
+                 that used to bracket the name went with them (RM-003) because
+                 nobody at the practice ever filled them in. A previous name is
+                 useful for matching an incoming record to this patient, and
+                 matching does not care when the name changed. -->
+            <ui-input label="Previous Name" data-testid="add--previous-name"></ui-input>
+          </div>
+        </section>
+
+        <!-- ================= INFORMATION SHARING ================= -->
+        <section class="ap__card" data-icon="shield" data-tone="warning">
+          <h2 class="ap__card-head">Information Sharing</h2>
+          <div class="ap__card-body ap__grid">
+            <!-- FIELD NAMES AND ORDER ARE gGASTRO'S, VERBATIM.
+                 This section is the one place on the form where the label is
+                 not a description we are free to improve — it is what the
+                 practice's staff have read off the legacy screen for years,
+                 what their policy documents quote, and what an auditor asks
+                 for by name. "Privacy Policy acknowledged" and "Exclude from
+                 clinical reports (hide name on financial reports)" were both
+                 clearer English and both wrong, because neither is the string
+                 anybody outside this file uses. The same goes for the reading
+                 order: consent to share, then what may be imported, then what
+                 the patient has asked not to receive. -->
+            <div class="ap__field--wide ap__stack-checks">
+              <ui-checkbox data-testid="add--privacy-policy">Privacy Policy</ui-checkbox>
+            </div>
+
+            <ui-select
+              label="Protect Data"
+              placeholder="Select"
+              id="protectData"
+              data-testid="add--protect-data"
+            ></ui-select>
+
+            <!-- MEDICATION HISTORY IMPORT.
+                 The import is a consent, not a capability: the e-prescribing
+                 vendor will ask the pharmacy benefit network for a history
+                 only where the patient has said it may. -->
+            <ui-select
+              label="Medication History Import"
+              id="medicationHistoryImport"
+              data-testid="add--medication-history-import"
+            ></ui-select>
+
+            <ui-select label="CAHPS State Restriction" id="cahps" data-testid="add--cahps"></ui-select>
+            <ui-input
+              label="Patient Data Restrictions"
+              value="No"
+              readonly
+              data-testid="add--data-restrictions"
+            ></ui-input>
+
+            <!-- THE TWO DECLINES, ON A BAND OF THEIR OWN UNDER THE FIELDS.
+                 These used to hang inside the Medication History Import cell,
+                 in that one 15rem column. Two sentences that long in a column
+                 that narrow wrapped to three lines and two, which made one
+                 cell of the row four times the height of its neighbours: the
+                 three fields beside it kept their own baseline and the card
+                 grew a hole under them the width of half the page. Neither
+                 sentence is about the import anyway — one is about reminders,
+                 the other about how the patient's name appears on reports.
+                 They are preferences of the same kind as the Privacy Policy
+                 tick at the top of this card, so they get the same treatment:
+                 a full-width row of ticks, laid side by side, sitting after
+                 the fields because "what the patient has asked not to
+                 receive" is the last thing asked at the desk. -->
+            <div class="ap__field--wide ap__stack-checks">
+              <ui-checkbox data-testid="add--decline-reminders">Patient declines to receive preventive and follow up care reminders</ui-checkbox>
+              <ui-checkbox data-testid="add--exclude-clinical-reports">Exclude from clinical reports (Hide name on financial reports)</ui-checkbox>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= INSURANCE =================
+             On the form rather than behind a tab. Coverage is asked for at the
+             same desk, in the same conversation, and eligibility sits INSIDE
+             this card because there is nothing to ask a payer until a policy
+             is on file — it is the last step of taking one, not a section of
+             its own. -->
+        <section class="ap__card" data-icon="card" data-tone="info">
+          <div class="ap__card-head ap__card-head--inline">
+            <span>Insurance Details</span>
+            <ui-radio-group
+              inline
+              options="Yes,No"
+              value="Yes"
+              data-testid="add--has-insurance"
+            ></ui-radio-group>
+          </div>
+
+          <div class="ap__card-body" id="insuranceFields">
+            <div class="ap__grid">
+              <!-- The workflow says "multiple policies supported", so the
+                   coverage order is explicit rather than implied by row order. -->
+              <ui-select
+                label="Coverage Order"
+                options="Primary,Secondary,Tertiary"
+                value="Primary"
+                data-testid="add--coverage-order"
+              ></ui-select>
+              <ui-select label="Insurance Type" placeholder="Select" options="Commercial,Medicare,Medicaid,Workers comp,Self-pay"></ui-select>
+              <ui-input label="Insurance Name" required data-testid="add--insurance-name"></ui-input>
+              <ui-input label="Member ID" required data-testid="add--member-id"></ui-input>
+              <ui-input label="Group Number" data-testid="add--group-number"></ui-input>
+              <ui-input label="Effective Start Date" type="date"></ui-input>
+              <ui-input label="Effective End Date" type="date"></ui-input>
+
+              <!-- "Other" is typed into this same field: a relationship of
+                   "Other" with no way to say WHICH is an answer no claim can be
+                   built on. -->
+              <ui-select
+                label="Patient Relationship To Insured"
+                options="Self,Spouse,Child,Other"
+                value="Self"
+                free-text="Other"
+                free-text-placeholder="State the relationship"
+                data-testid="add--relationship-to-insured"
+              ></ui-select>
+
+              <h3 class="ap__group">Subscriber</h3>
+              <ui-input label="Subscriber First Name" required data-testid="add--subscriber-first"></ui-input>
+              <ui-input label="Subscriber Last Name" required></ui-input>
+              <ui-input label="Subscriber Date of Birth" type="date"></ui-input>
+              <ui-select label="Subscriber Sex" placeholder="Select" options="Female,Male,Other"></ui-select>
+
+              <!-- The fifth cell of the subscriber row rather than a band of
+                   its own under it: four fields and a tick-box is one row. -->
+              <div class="ap__inline-check">
+                <ui-checkbox checked data-testid="add--same-address">Address same as patient</ui-checkbox>
+              </div>
+
+              <!-- Unticking the box above is a question, and this is where it
+                   gets answered — directly under it, in the system's address
+                   order, rather than in a dialog or further down the form. -->
+              <div class="ap__grid ap__field--wide ap__subscriber-address"
+                   id="subscriberAddress" hidden data-testid="add--subscriber-address">
+                <ui-input label="Address Line 1" data-testid="add--sub-address1"></ui-input>
+                <ui-input label="Address Line 2" data-testid="add--sub-address2"></ui-input>
+                <ui-input label="City" data-testid="add--sub-city"></ui-input>
+                <ui-select label="State" placeholder="Select" id="subscriberState" data-testid="add--sub-state"></ui-select>
+                <ui-input label="ZIP" data-testid="add--sub-zip"></ui-input>
+              </div>
+
+              <h3 class="ap__group">Insurance card</h3>
+              <!-- Two drop zones splitting the card between them. Spanning two
+                   grid columns each, they left two columns of nothing to the
+                   right of a five-column row. -->
+              <div class="ap__uploads ap__field--wide">
+                <ui-file-upload
+                  label="Front Side"
+                  accept=".png,.jpg"
+                  max-size="5MB"
+                  data-testid="add--card-front"
+                ></ui-file-upload>
+                <ui-file-upload label="Back Side" accept=".png,.jpg" max-size="5MB"></ui-file-upload>
+              </div>
+            </div>
+
+            <!-- Eligibility is not a section. It is one button and the answer
+                 it comes back with: there is nothing to ask a payer until a
+                 policy is on file, so the button stays shut until one is, and
+                 the readout appears only when there is something to read. A
+                 titled block sitting there saying "waiting on a policy" was a
+                 heading, an icon and three lines of type spent telling the
+                 registrar they had not finished typing yet. -->
+            <div class="ap__policy-actions">
+              <ui-button variant="tertiary" size="sm" icon="plus" data-testid="add--another-policy"
+                >Add another policy</ui-button
+              >
+              <span class="ap__spacer"></span>
+              <p class="ap__eligibility" id="eligibilityBody"></p>
+              <ui-button
+                variant="secondary"
+                size="sm"
+                icon="clock"
+                disabled
+                data-testid="add--check-eligibility"
+                >Check eligibility</ui-button
+              >
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= GUARANTOR =================
+             Hidden unless the patient is a minor.
+
+                 Patient 18 or over? ── Yes ──▶ guarantor IS the patient
+                                      └─ No  ──▶ parent or legal guardian
+
+             On the Yes branch the whole section was a form that mirrored the
+             patient record into itself and locked every field — twenty boxes
+             restating what had just been typed above them. So there is nothing
+             to show: an adult is their own guarantor and the record says so
+             without being asked. The section appears the moment a date of birth
+             makes the patient a minor, and disappears again if that date is
+             corrected. -->
+        <section class="ap__card" data-icon="dollar" data-tone="info" id="guarantorSection" hidden data-testid="add--guarantor">
+          <div class="ap__card-head ap__card-head--inline">
+            <span>Guarantor</span>
+            <span class="ap__lane" id="guarantorLane">Patient is under 18</span>
+          </div>
+          <div class="ap__card-body">
+
+            <div class="ap__grid" id="guarantorForm">
+              <ui-select
+                label="Patient relationship"
+                id="guarantorRelationship"
+                required
+                data-testid="add--guarantor-relationship"
+              ></ui-select>
+              <ui-input label="First Name" required data-testid="add--guarantor-first"></ui-input>
+              <ui-input label="Middle Name" data-testid="add--guarantor-middle"></ui-input>
+
+              <ui-input label="Last Name" required data-testid="add--guarantor-last"></ui-input>
+              <ui-select label="Suffix" empty-option="—" id="guarantorSuffix"></ui-select>
+              <ui-input label="Date of Birth" type="date" data-testid="add--guarantor-dob"></ui-input>
+              <ui-select
+                label="Gender"
+                placeholder="Select"
+                id="guarantorGender"
+                data-testid="add--guarantor-gender"
+              ></ui-select>
+              <ui-input
+                label="Social Security Number"
+                placeholder="000-00-0000"
+                inputmode="numeric"
+                data-ssn
+                data-testid="add--guarantor-ssn"
+              ></ui-input>
+
+              <ui-input label="Cell Phone" placeholder="(000) 000-0000" data-testid="add--guarantor-cell"></ui-input>
+              <ui-input label="Home Phone" placeholder="(000) 000-0000" data-testid="add--guarantor-home"></ui-input>
+              <ui-input label="Work Phone" placeholder="(000) 000-0000" data-testid="add--guarantor-work"></ui-input>
+              <!-- A billing address can differ from a clinical one, so the
+                   guarantor's contact details are asked for rather than
+                   assumed. -->
+              <ui-input label="E-mail" type="email" data-testid="add--guarantor-email"></ui-input>
+
+              <!-- Same five, same order as the patient's block above. -->
+              <ui-select label="Country" id="guarantorCountry" data-testid="add--guarantor-country"></ui-select>
+              <ui-input label="Address Line 1" required
+                data-testid="add--guarantor-address1"></ui-input>
+              <ui-input label="Address Line 2" data-testid="add--guarantor-address2"></ui-input>
+              <ui-input label="City" required data-testid="add--guarantor-city"></ui-input>
+              <ui-select label="State" placeholder="Select" id="guarantorState" data-testid="add--guarantor-state"></ui-select>
+              <ui-input label="ZIP" required data-testid="add--guarantor-zip"></ui-input>
+              <!-- Copying the address is an action on the whole block, so it
+                   sits at the end of it rather than welded to Line 1 — where it
+                   was an icon of a page that nobody could read, and where it
+                   pushed the row past five columns. -->
+              <div class="ap__field-action">
+                <ui-button
+                  variant="outline"
+                  size="sm"
+                  icon="copy"
+                  data-testid="add--guarantor-copy-address"
+                >Same as patient</ui-button>
+              </div>
+
+              <ui-textarea class="ap__field--wide" label="Comments" rows="2"
+                data-testid="add--guarantor-comments"></ui-textarea>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= SUPPORT PERSONS =================
+             The designation is the whole point of the section: an emergency
+             contact may be rung, a HIPAA contact may be told things, and
+             treating the two as one is how the wrong person hears a diagnosis. -->
+        <section class="ap__card" data-icon="users" data-tone="brand">
+          <div class="ap__card-head ap__card-head--inline">
+            <span>Support Persons</span>
+            <ui-button variant="outline" size="sm" icon="plus" data-testid="add--new-support"
+              >Add support person</ui-button
+            >
+          </div>
+          <div class="ap__card-body">
+            <ui-data-table
+              id="supportPersons"
+              empty-text="No support person on file. Add one so there is someone to ring."
+              data-testid="add--support-persons"
+            ></ui-data-table>
+          </div>
+        </section>
+
+        <!-- Providers. This was two sections — a "Providers" panel holding the
+             PCP and a separate "Referring Physicians" table — which meant a PCP
+             who also sent the referral was entered twice and could disagree
+             with themselves. One list now; Role tells them apart. -->
+        <section class="ap__card" data-icon="stethoscope" data-tone="brand">
+          <div class="ap__card-head ap__card-head--inline">
+            <span>Providers</span>
+            <ui-button variant="outline" size="sm" icon="plus" data-testid="add--new-provider"
+              >Add provider</ui-button
+            >
+          </div>
+          <div class="ap__card-body">
+            <ui-data-table
+              id="providers"
+              empty-text="No provider on file."
+              data-testid="add--providers"
+            ></ui-data-table>
+          </div>
+        </section>
+
+        <section class="ap__card" data-icon="pill" data-tone="brand">
+          <div class="ap__card-head ap__card-head--inline">
+            <span>Pharmacies</span>
+            <ui-button variant="outline" size="sm" icon="plus" data-testid="add--new-pharmacy"
+              >Add pharmacy</ui-button
+            >
+          </div>
+          <div class="ap__card-body">
+            <ui-data-table
+              id="pharmacies"
+              empty-text="No pharmacy on file."
+              data-testid="add--pharmacies"
+            ></ui-data-table>
+          </div>
+        </section>
+
+      </form>
+    </main>
+
+    <!-- ================= PHARMACY PICKER ================= -->
+    <ui-modal id="pharmacyModal" heading="Pharmacy list" size="lg">
+      <div class="ap__picker">
+        <div class="ap__picker-filters">
+          <ui-input label="Name" size="sm" data-testid="pharmacy--filter-name"></ui-input>
+          <ui-input label="City" size="sm"></ui-input>
+          <ui-select label="Type" size="sm" id="pharmacyType"></ui-select>
+          <ui-select label="Status" size="sm" options="Active,Inactive" value="Active"></ui-select>
+        </div>
+        <div class="ap__picker-results">
+          <ui-data-table id="pharmacyResults" data-testid="pharmacy--results"></ui-data-table>
+        </div>
+        <p class="ap__picker-count" data-testid="pharmacy--count"></p>
+        <div class="ui-modal__actions">
+          <ui-button variant="outline" data-modal-dismiss data-testid="pharmacy--close"
+            >Close</ui-button
+          >
+          <span class="ui-modal__actions-spacer"></span>
+        </div>
+      </div>
+    </ui-modal>
+
+    <!-- ================= SUPPORT PERSON FORM =================
+         Relationship, name and contact number are the three things an
+         emergency call needs, so all three are required. The designation is
+         required too, and deliberately has no default: leaving it blank would
+         mean guessing whether this person may be told clinical information. -->
+    <ui-modal id="supportModal" heading="Support person" size="md">
+      <div class="ap__grid">
+        <ui-input label="First Name" required data-testid="support--first-name"></ui-input>
+        <ui-input label="Last Name" required data-testid="support--last-name"></ui-input>
+
+        <ui-select
+          label="Relationship to patient"
+          placeholder="Select"
+          id="supportRelationship"
+          required
+          data-testid="support--relationship"
+        ></ui-select>
+        <ui-input
+          label="Contact Number"
+          placeholder="(000) 000-0000"
+          required
+          data-testid="support--phone"
+        ></ui-input>
+
+        <ui-input class="ap__field--wide" label="E-mail" type="email" data-testid="support--email"></ui-input>
+
+        <!-- TWO PERMISSIONS, TWO TICKS.
+             They were one required "Designation" radio group with three
+             options — Emergency Contact, HIPAA Contact, Both — which is a
+             three-way answer to a question that has two independent halves.
+             "Both" existed only because a radio group cannot say yes twice,
+             and a person who is neither (the son who is listed so the chart
+             knows he exists) could not be recorded at all.
+
+             As checkboxes each permission is answered on its own, in the words
+             the practice uses for it, and the combination that used to be
+             called "Both" is simply both boxes ticked. Neither is pre-ticked:
+             an access permission nobody granted must not arrive granted.
+
+             NO NOTES FIELD. It was a free-text box under an access decision,
+             which is the worst place in the record to put a sentence that
+             might qualify it — "only for urgent matters" typed here would look
+             like a restriction and bind nobody. What this person may hear is
+             said by the two boxes above and nowhere else. -->
+        <fieldset class="ap__field--wide ap__stack-checks ap__support-perms">
+          <legend class="ui-field__label">Permissions</legend>
+          <ui-checkbox data-testid="support--emergency">Emergency Contact</ui-checkbox>
+          <ui-checkbox data-testid="support--hipaa">HIPAA Approved</ui-checkbox>
+        </fieldset>
+      </div>
+      <div class="ui-modal__actions">
+        <ui-button variant="outline" data-modal-dismiss>Cancel</ui-button>
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="primary" data-testid="support--save">Save support person</ui-button>
+      </div>
+    </ui-modal>
+
+    <!-- ================= PROVIDER FORM =================
+         One form for every provider on the record. "Role" is what used to be
+         the difference between the Providers panel and the Referring
+         Physicians table. -->
+    <ui-modal id="providerModal" heading="Provider" size="lg">
+      <div class="ap__grid">
+        <ui-select
+          label="Provider role"
+          id="providerRole"
+          required
+          data-testid="provider--role"
+        ></ui-select>
+        <ui-select label="Type" options="Person,Institution" value="Person" data-testid="provider--type"></ui-select>
+
+        <!-- PICKED FROM THE LIST, NOT TYPED.
+             This drawer used to open on First Name / Last Name, which meant a
+             clinician the practice already refers to daily was re-keyed at
+             every registration — "Dr Helena Ward", "Helena Ward MD", "H.
+             Ward" — and the same person ended up on three patients under three
+             spellings, none of which joins to anything. The clinicians are a
+             catalogue: the practice's own providers and the referrers it
+             works with. Choosing one fills the specialty, the practice and the
+             contact details from that record, so what lands on the patient is
+             the same clinician every other patient carries.
+
+             `free-text` is the escape hatch, and it matters: a patient's PCP
+             three states away is genuinely not on this list, and a picker with
+             no way out would send the registrar off to maintain a master
+             mid-registration. Stepping out of the list turns the field into a
+             name box and the details below it back into blanks to fill. -->
+        <ui-select
+          class="ap__field--wide"
+          label="Provider"
+          placeholder="Select a provider"
+          id="providerName"
+          required
+          free-text="__other"
+          free-text-placeholder="Type the provider's full name"
+          data-testid="provider--name"
+        ></ui-select>
+
+        <ui-select label="Specialty" placeholder="Select" id="providerSpecialty" data-testid="provider--specialty"></ui-select>
+        <ui-select label="Status" options="Active,Inactive" value="Active"></ui-select>
+
+        <ui-input label="Institution Name" id="providerInstitution" data-testid="provider--institution"></ui-input>
+        <ui-input label="Contact Number" placeholder="(000) 000-0000" id="providerPhone" data-testid="provider--phone"></ui-input>
+        <ui-input label="Email" type="email" id="providerEmail" data-testid="provider--email"></ui-input>
+      </div>
+      <div class="ui-modal__actions">
+        <ui-button variant="outline" data-modal-dismiss>Cancel</ui-button>
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="primary" data-testid="provider--save">Save provider</ui-button>
+      </div>
+    </ui-modal>
+
+    <!-- Sticky action footer -->
+    <footer class="ap__foot">
+      <span class="ap__foot-req" id="formRequiredNote">Fields marked * are required</span>
+      <span class="ap__foot-note" id="formStatus" role="status"></span>
+      <ui-button variant="outline" data-testid="add--cancel">Cancel</ui-button>
+      <ui-button variant="secondary" data-testid="add--save-draft">Save draft</ui-button>
+      <ui-button variant="primary" data-testid="add--save">Save</ui-button>
+    </footer>
+  </body>
+</html>

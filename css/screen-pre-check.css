@@ -1,0 +1,932 @@
+/* ============================================================================
+   Pre-procedure checklist — the nurse's verification sheet.
+
+   Three fixed bands and one scrolling one: title, the sheet, and the commit
+   bar. The commit bar carries the outstanding list, because "what is left"
+   gets asked from halfway down the sheet and the answer must not be somewhere
+   the nurse has to scroll to find.
+
+   The sheet itself is one card with ruled section headings rather than a stack
+   of cards. It is a single document that gets signed once; boxing each section
+   separately would say otherwise.
+   ========================================================================= */
+
+.pck {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background-color: var(--color-bg-page);
+}
+
+/* --- Title ----------------------------------------------------------------- */
+
+/* The page header is .ui-page-head in base.css — one band, every screen.
+   Nothing was different about this one, so nothing is redeclared here. */
+
+.pck__back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-9);
+  height: var(--space-9);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+}
+.pck__back:hover { background-color: var(--color-bg-surface-hover); color: var(--color-text-primary); }
+.pck__back:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.pck__title {
+  font-size: var(--font-size-title-page);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  color: var(--color-text-primary);
+}
+.pck__subtitle {
+  margin-top: var(--space-2);
+  font-size: var(--font-size-body);
+  color: var(--color-text-secondary);
+}
+.pck__head ui-badge { margin-left: auto; }
+
+/* --- Body ------------------------------------------------------------------ */
+
+.pck__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--layout-gutter);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.pck__notice:empty { display: none; }
+
+/* --- Whose sheet this is ---------------------------------------------------- */
+
+.pck__facts {
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: var(--space-6);
+  padding: var(--card-padding-tight);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+}
+.pck__facts dt {
+  font-size: var(--font-size-2xs);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  font-weight: var(--font-weight-semibold);
+}
+.pck__facts dd { margin-top: var(--space-2); font-size: var(--font-size-body); }
+.pck__facts-mrn {
+  margin-left: var(--space-3);
+  font-family: var(--font-family-numeric);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-tertiary);
+}
+
+/* --- The sheet -------------------------------------------------------------- */
+
+/* flex: none is load-bearing. The card clips its own corners with
+   overflow: hidden, and a flex item that hides its overflow is allowed to
+   shrink below its content — so inside the scrolling column it would squash
+   itself and cut the sheet off at the fold rather than letting the column
+   scroll. */
+.pck__card {
+  flex: none;
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+  overflow: hidden;
+
+  /* HOW FAR DOWN ITS CELL A CONTROL SITS.
+
+     A labelled field spends a label line and the gap under it before its
+     control starts, and the control is 34px tall. Anything on this sheet that
+     draws no label of its own — a radio pair whose question is already the
+     section heading, the row of allergy ticks — starts at the very top of its
+     cell instead, so beside a labelled field it floats a label's height too
+     high and the row reads as two answers on two different lines.
+
+     These three say that distance once, in the tokens it is actually made of,
+     so a change to the label size or the control height carries through rather
+     than leaving a hand-tuned number behind. --pck-answer-offset lands the
+     MIDDLE of an unlabelled answer row on the middle of the control beside it,
+     which is what the eye reads as "the same line". */
+  --pck-label-block: calc(var(--font-size-label) * var(--line-height-caption) + var(--space-2));
+  --pck-answer-line: calc(var(--font-size-body) * var(--line-height-snug));
+  --pck-answer-offset: calc(
+    var(--pck-label-block) + (var(--control-height-md) - var(--pck-answer-line)) / 2
+  );
+}
+
+.pck__card-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  flex-wrap: wrap;
+  padding: var(--space-6) var(--space-7);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.pck__card-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  font-size: var(--font-size-title-card);
+  line-height: var(--line-height-tight);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+.pck__card-title .ui-icon { color: var(--color-text-tertiary); }
+
+.pck__card-actions { display: flex; gap: var(--space-4); margin-left: auto; }
+
+/* With no heading beside them the actions are the whole row, so the bar drops
+   to the height of the buttons rather than holding a heading's worth of air. */
+.pck__card-head--actions-only { padding: var(--space-5) var(--space-7); }
+
+/* Embedded in a host card that already draws the frame and the heading row.
+   Its own border, background and inset are the second of each around the same
+   content, and the doubled padding is where most of the wasted space came
+   from — see preCheckSheetMarkup's `header` option. */
+.pck__card--embedded {
+  border: none;
+  border-radius: 0;
+  background: none;
+  overflow: visible;
+}
+.pck__card--embedded > .pck__sheet > .pck__card-body { padding: 0; }
+
+.pck__card-body {
+  display: flex;
+  flex-direction: column;
+  /* Sections are separated by twice what separates a heading from its own
+     content (--space-5 on .pck__section). A heading has to read as belonging
+     to what is under it rather than floating between two groups, and at the
+     old --space-6 the two gaps were 12px and 10px — near enough identical
+     that the whole sheet read as one flat list. */
+  gap: var(--space-8);
+  padding: var(--space-7);
+}
+
+/* The commit bar takes its inset from the host card when the sheet is embedded
+   — its own would be a second one inside it. The frame, the ground and the body
+   padding are handled by .pck__card--embedded above. */
+.pck__card--embedded > .pck__sticky {
+  padding-inline: 0;
+  padding-bottom: 0;
+}
+
+/* A ruled heading rather than a boxed one: the sections are parts of a single
+   document, not separate forms.
+
+   Set at reading weight and size rather than as a small uppercase caption. On a
+   sheet this long the headings are what the eye scans to find its place, and a
+   caption sized under the field labels beneath it loses that race. */
+.pck__legend {
+  padding-bottom: var(--space-4);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+  font-size: var(--font-size-title-section);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+/* --- Field layout ----------------------------------------------------------- */
+
+.pck__stack { display: flex; flex-direction: column; gap: var(--space-5); }
+
+/* The gap is --space-2 because that is what .ui-field gives every label/control
+   pair in the product. At --space-4 a hand-built widget sat 4px lower than the
+   <ui-select> beside it in the same row, which is exactly the sort of drift
+   nobody can name and everybody can see. */
+.pck__field { display: flex; flex-direction: column; gap: var(--space-2); }
+
+/* Line height stated for the same reason: .ui-field__label sets
+   --line-height-caption, and a hand-built label left on the inherited body
+   height was a 2px shorter first line — enough to knock the control under it
+   out of line with its neighbour. */
+.pck__field-label {
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-caption);
+  color: var(--color-text-secondary);
+}
+
+/* A label for one PART of a composite answer — the three quick-select rows that
+   between them write one IV line. Same size and ink as the field label, a step
+   back in WEIGHT, so "IV Details" reads as the question and "Quick Select -
+   Needle Gauge" as a row inside its answer. Set identically, the four labels
+   read as four separate questions, three of which have no field.
+
+   Weight rather than ink because ink is already spoken for twice in this
+   corner: the field label is secondary and "select as many as apply" riding on
+   the end of this one is tertiary. A third value between them would be a
+   distinction nobody can see; dropping to regular is one nobody can miss. */
+.pck__field--sub > .pck__field-label { font-weight: var(--font-weight-regular); }
+
+.pck__checks { display: grid; gap: var(--space-4); }
+.pck__checks--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4) var(--space-7); }
+
+/* A yes/no question, pressed as a pair rather than picked from a radio. */
+.pck__yn { display: flex; align-items: center; gap: var(--space-6); }
+
+/* --- Patient arrival: time stamped, not typed ------------------------------- */
+
+.pck__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+}
+.pck__row-label { font-size: var(--font-size-body); color: var(--color-text-secondary); }
+.pck__row-label strong {
+  margin-left: var(--space-2);
+  color: var(--color-text-primary);
+  font-family: var(--font-family-numeric);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Staff initials ---------------------------------------------------------- */
+
+.pck__staff {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--font-size-body);
+  color: var(--color-text-secondary);
+}
+.pck__staff strong { color: var(--color-text-primary); }
+.pck__staff span { font-size: var(--font-size-caption); color: var(--color-text-tertiary); }
+
+/* ui-textarea has no label-hidden attribute of its own, and the NOTES heading
+   above it is already the visible label — so the field's own label is kept for
+   assistive tech and taken off screen. */
+.pck__notes .ui-field__label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* --- IV access ---------------------------------------------------------------
+   Gauge, site and attempts are short closed lists chosen by a gloved hand, so
+   they are pressed rather than picked out of a dropdown.
+   -------------------------------------------------------------------------- */
+
+.pck__chips { display: flex; flex-wrap: wrap; gap: var(--space-4); }
+
+.pck__chip {
+  min-width: var(--space-10);
+  padding: var(--space-3) var(--space-5);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+  font-family: inherit;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.pck__chip:hover { border-color: var(--color-border-strong); }
+.pck__chip:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.pck__chip[aria-pressed='true'] {
+  border-color: var(--color-brand-solid);
+  background-color: var(--color-brand-solid);
+  color: var(--color-text-inverse);
+  font-weight: var(--font-weight-medium);
+}
+
+/* The quick-select chips write into this one field rather than three
+   separate ones — typing over what they built is just as valid an answer. */
+.pck__iv-input-row { display: flex; align-items: flex-end; gap: var(--space-3); }
+.pck__iv-input-row ui-input { flex: 1; min-width: 0; }
+.pck__iv-clear {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-10);
+  height: var(--space-10);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-heading-md);
+  line-height: 1;
+  cursor: pointer;
+}
+.pck__iv-clear:hover { border-color: var(--color-border-strong); color: var(--color-text-primary); }
+.pck__iv-clear:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.pck__hint { font-size: var(--font-size-2xs); color: var(--color-text-tertiary); }
+
+/* --- Commit bar ------------------------------------------------------------- */
+
+.pck__foot {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-6) var(--space-8);
+  background-color: var(--color-bg-surface);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.pck__foot-hint {
+  flex: 1;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-tertiary);
+}
+
+/* --- Not fit for procedure ---------------------------------------------------- */
+
+.pck__confirm { display: flex; flex-direction: column; gap: var(--space-6); }
+.pck__confirm p { font-size: var(--font-size-body); color: var(--color-text-secondary); }
+.pck__confirm strong { color: var(--color-text-primary); font-weight: var(--font-weight-semibold); }
+
+/* ============================================================================
+   THE LONG SHEET
+
+   The checklist grew from nine sections to thirteen and from thirty questions
+   to something near a hundred and eighty. It reads as one continuous document
+   — every section open, in the order it is worked through — so what matters
+   below is the cell that holds a question together with whatever it reveals.
+   ========================================================================= */
+
+/* One column, top to bottom. The sheet reads as a single document from arrival
+   to sign-off, the way the paper form it replaces does.
+
+   IT IS ALSO THE SIZE CONTAINER EVERY GRID BELOW MEASURES ITSELF AGAINST.
+
+   The column widths used to answer to the VIEWPORT, and the sheet has not been
+   a whole page since screens/pre-check.html went away — in the encounter it is
+   the middle of three columns. On a 1800px display with both rails open that
+   left "Medical Conditions" laying three fields across about 500px: labels
+   wrapping mid-phrase, the IV chips breaking four rows deep, and a window wide
+   enough for anything you like being no help at all, because the sheet was
+   never asked how much room IT had. A container query asks the right question,
+   and it keeps working when a rail is collapsed and the same sheet suddenly has
+   1700px to spend. */
+.pck__sheet {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  container-type: inline-size;
+  container-name: pck-sheet;
+}
+
+/* --- Sections ---------------------------------------------------------------- */
+
+.pck__section { display: flex; flex-direction: column; gap: var(--space-5); }
+
+/* The heading is the collapse control. It keeps the ruled look of the old
+   static heading, because the sections are still parts of one document. */
+
+/* --- The grid, and the cell that fixes the conditionals -----------------------
+   A revealed field renders INSIDE the cell of the control that revealed it.
+   It used to be appended to the section, which put "Specify other
+   anticoagulant" in the left column while the select asking for it sat in the
+   right — a question with no visible subject.
+   -------------------------------------------------------------------------- */
+
+.pck__grid {
+  display: grid;
+  gap: var(--space-5) var(--space-7);
+  align-items: start;
+}
+.pck__grid--1 { grid-template-columns: minmax(0, 1fr); }
+.pck__grid--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.pck__grid--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+.pck__cell { display: flex; flex-direction: column; gap: var(--space-4); min-width: 0; }
+
+/* A TICK IS AS WIDE AS WHAT IT SAYS.
+
+   <ui-checkbox> is a block, so stretched down a cell its host box runs the
+   full column while the label inside it stops after two words — and the box a
+   pointer lands on is the host, not the label. In a third of a row that was a
+   latent oddity nobody hit; once "Taking insulin" was handed a 600px cell to
+   lay its reveals along, the middle of the control was 250px of dead air and
+   clicking it did nothing at all.
+
+   Only the standalone ticks: the ones inside .pck__checks are grid items laid
+   out in columns of their own, and hugging there would break the column. */
+.pck__cell > ui-checkbox { align-self: flex-start; }
+.pck__cell--span-2 { grid-column: span 2; }
+.pck__cell--span-3 { grid-column: span 3; }
+
+/* Indented and ruled, so a revealed field reads as belonging to the control
+   above it rather than as the next question. */
+.pck__children {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding-left: var(--space-5);
+  border-left: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+/* A REVEAL THAT HAS A ROW TO ITSELF LAYS OUT ALONG IT.
+
+   Stacking is right for a reveal inside a one-third cell: there is nowhere
+   else for it to go. A cell that takes the whole grid has somewhere else, and
+   Diabetes is the case that proves it — sugar, insulin type, last dose and
+   pump action stacked four deep in a third of the row while the other two
+   thirds held nothing at all.
+
+   The descendant combinator rather than the child one is deliberate: the
+   insulin follow-ups are a reveal INSIDE a reveal, and a rule that only
+   reached the first level would lay the outer group along the row and leave
+   the inner one stacking down out of it. The left rule stays on both, so the
+   nesting is still readable — one rule per level of "because you said yes".
+
+   Only at the widths where the row is actually a row. Once the grid has
+   collapsed, `span-3` is one column wide and a row of fields inside it would
+   be the same overflow this rule exists to prevent.
+
+   40rem rather than the 46rem the columns answer to, because this asks a
+   different question. The column count is about a field holding its label on
+   one line three times over; this is about one leaf and one group fitting
+   beside each other, and they do it in less. */
+@container pck-sheet (width >= 40rem) {
+  .pck__cell--span-3 .pck__children {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    column-gap: var(--space-7);
+  }
+  /* A leaf takes what it needs and no more. Grown to an equal share, "Last
+     Blood Sugar" held a 176px box in the middle of a 390px cell and pushed
+     "Taking insulin" out to the centre of the row, which put half a screen of
+     nothing between a question and the answer it belongs to. */
+  .pck__cell--span-3 .pck__children > .pck__cell {
+    flex: 0 1 auto;
+    min-width: 11rem;
+  }
+
+  /* A revealed field that reveals more takes the room, because it is not one
+     field but a group: the slack the leaves beside it did not want is exactly
+     what its own row of children needs. Held to a leaf's share, the insulin
+     type and the last dose could not both fit inside it and stacked — which is
+     the layout this whole block exists to undo.
+
+     And it lays that room out ACROSS rather than down. A cell is a column
+     everywhere else on the sheet, which is right when a reveal has only its
+     own narrow cell to fall into; here the group is already sitting on a row
+     that was widened for it, so a tick with its follow-up stacked underneath
+     spent a second line saying what fits on the end of the first. Diabetes is
+     the whole of the case: the sugar, the tick and the pump action are one
+     answer to one question, and they now read as one line of it. */
+  .pck__cell--span-3 .pck__children > .pck__cell:has(> .pck__children) {
+    flex: 1 1 22rem;
+    flex-direction: row;
+    align-items: flex-start;
+    column-gap: var(--space-5);
+    flex-wrap: wrap;
+  }
+
+  /* THE TICK THAT OPENS A GROUP ANSWERS ON THE LINE THE OTHER ANSWERS ARE ON.
+   *
+   * "Taking insulin" draws no label, so it started at the top of its cell —
+   * level with the WORDS "Last Blood Sugar (if known)" rather than with the
+   * box under them. Everything it reveals then hangs from that top, so the
+   * Diabetes row came out as a staircase four steps deep: leaf label and tick,
+   * then leaf box and the insulin label, then the insulin box, each a step
+   * right and a step down from the last. Four lines to carry two answers and
+   * two follow-ups, and no two of them lining up on anything.
+   *
+   * The rule is the one this sheet already applies to every other answer that
+   * draws no label of its own: it owes its neighbour the label line it does not
+   * draw. Bottom alignment cannot do it here — the tick is not the last thing
+   * in its cell, its own children are — so this is the one place the distance
+   * is still added at the top rather than measured from the row's floor.
+   *
+   * It costs a label line of height and buys back the staircase: the tick now
+   * reads on one line with the blood sugar to its left and the pump action to
+   * its right, three answers on one line and every box on the same baseline,
+   * instead of four steps down and to the right.
+   *
+   * --pck-answer-offset rather than --pck-label-block, because a tick is a line
+   * of text and the thing beside it is a 34px box: the label line alone left it
+   * sitting 7px high in that box, which is the half-difference the offset token
+   * exists to spend. */
+  .pck__cell--span-3 .pck__children > .pck__cell:has(> .pck__children) > ui-checkbox:first-child {
+    margin-top: var(--pck-answer-offset);
+  }
+}
+
+/* --- Radios ------------------------------------------------------------------
+   Every binary on the sheet. They were checkbox pairs, which could say both
+   and could say neither.
+   -------------------------------------------------------------------------- */
+
+/* padding: 0 on the LEGEND as well as the fieldset. A <legend> carries 2px of
+   inline padding from the UA sheet, which is why "NPO" started two pixels to
+   the right of "Dose" directly under it — the one indent on the sheet that no
+   rule here asked for. */
+.pck__radio { border: none; padding: 0; margin: 0; }
+.pck__radio > legend { padding: 0; }
+
+/* One line, not one per option. The base .ui-radio-group__options stacks its
+   choices, which is right for a standalone question with long answers and
+   wrong for every binary on this sheet — "No / Yes" spent two rows saying
+   what fits in half of one, and on a sheet of ~180 questions that doubled the
+   height of every section. `row` has to be stated here rather than left to
+   the default, because this rule only overrode `display` and inherited the
+   column direction from the rule it was meant to be replacing.
+
+   Still wrapping: Held per instructions carries three options and Mallampati
+   four, and those drop to a second line in a narrow column rather than
+   overflowing it. */
+.pck__radio .ui-radio-group__options {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  /* Wrapped lines pack from the top instead of stretching to fill the box.
+     Stretched, a two-line answer pushed its FIRST line down by half the slack,
+     which is how "No Anticoagulant / Taking Anticoagulant" ended up sitting
+     lower than the box naming which anticoagulant it was. */
+  align-content: center;
+  gap: var(--space-3) var(--space-6);
+
+  /* THE ROW IS AS TALL AS THE CONTROL BESIDE IT.
+
+     A radio row is 20px of ink and an <ui-input> is 34px tall. Given only its
+     own height the row started where the control started and ended 14px above
+     it, so "Diabetes  No/Yes" sat seven pixels higher than "Mastectomy  [No]"
+     directly to its right — one question, two lines, on every row of this
+     sheet where a binary sits beside a box. Held to the control's height and
+     centred in it, the two agree by construction rather than by a number
+     somebody tuned.
+
+     `align-content: center` above is the other half: `flex-start` would pin
+     the line to the top of the taller box and give back the 14px. It is safe
+     for the groups that DO wrap — two lines already exceed the min-height, so
+     there is no slack left for centring to move them through. */
+  min-height: var(--control-height-md);
+  /* 4px between the question and its first answer, and nothing on top of that.
+     The base group spends --space-3 of margin AND --space-3 of padding there,
+     where .ui-field spends --space-2 between a label and its control — so on
+     every row where a radio pair sits beside a <ui-select>, the two halves of
+     one question started on two different lines. Matching .ui-field also takes
+     8px off each of the sheet's radio groups. */
+  margin-top: var(--space-2);
+  padding-top: 0;
+}
+
+/* NPO is the exception to the row above: its two answers are a sentence each,
+   and the second carries a detail box that belongs under it. Stacked, the box
+   sits directly beneath the option that asked for it; in a row it would sit
+   under both and belong to neither. */
+.pck__radio .pck__npo-options {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-4);
+  /* The row above centres its single line inside a control-height box. Turned
+     on its side that same `center` centres the COLUMN across the cell instead,
+     which indented both NPO answers away from the label asking for them and
+     from the GLP-1 tick underneath. Stretch is what a column of full-width
+     options wants, and it undoes the inheritance without touching the row. */
+  align-content: stretch;
+}
+
+.pck__npo-detail {
+  padding-left: var(--space-9);
+  margin-top: var(--space-1);
+}
+
+.pck__checks--wrap { grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); }
+
+/* --- The allergy ticks, across rather than down -------------------------------
+   NKDA, Soy and Egg are three words between them, and stacked they spent three
+   rows of a column beside a single text box — a 141px cell answering a 58px
+   one, and most of it white. Across, the three claims read as the set they are
+   and the cell comes down to the height of the field it shares its row with.
+
+   The EMR-review tick is the exception and takes the full width: it is not a
+   fourth allergen but the attestation that the list above was checked against
+   the record, and it carries a sentence rather than a word.
+   -------------------------------------------------------------------------- */
+.pck__checks--answer { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.pck__checks--answer > [data-allergy='medications'] { grid-column: 1 / -1; }
+
+@container pck-sheet (width < 30rem) {
+  .pck__checks--answer { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* --- Answers that draw no label of their own ---------------------------------
+   Two shapes on this sheet answer a question the SECTION HEADING already asked,
+   so they carry no label above them: the Yes/No pairs in Weight Loss Medication
+   and Anticoagulant, whose legend is kept for screen readers and taken off
+   screen, and the row of allergy ticks. Left alone each starts at the very top
+   of its cell, a label's height above the <ui-select> sharing its row — so
+   "Taking Anticoagulant" and the box naming which one sat on two different
+   lines while being one answer.
+
+   The offset is only owed when there IS something beside them. Once the grid
+   has collapsed to a single column the neighbour is above rather than
+   alongside, and the same push down becomes a gap with nothing on the other
+   side of it — so it is scoped to the widths where the row is a row.
+   -------------------------------------------------------------------------- */
+
+@container pck-sheet (width >= 30rem) {
+  /* MEASURED FROM THE BOTTOM OF THE ROW, NOT PUSHED DOWN FROM THE TOP OF IT.
+   *
+   * This used to be arithmetic: push the unlabelled answer down by the label
+   * line it does not draw, and for the tick rows by half the difference
+   * between a control and a line of text on top of that. It aligned a
+   * ONE-LINE answer correctly and nothing else, because it hangs the answer
+   * from a phantom label rather than landing it on the control band.
+   *
+   * Both of the answers that are more than one line paid for that. The
+   * anticoagulant pair wraps to two rows in a third of the sheet, so the push
+   * put its first radio on the control's line and left the second one dangling
+   * 13px below the box beside it — and grew the section 28px to make room for
+   * the overhang. The allergy ticks are two rows by construction and cost 41px
+   * the same way. Both opened with a band of empty column under the heading
+   * while the field beside them started at the top, which reads as a rendering
+   * fault rather than as alignment.
+   *
+   * Bottom alignment says the same thing without any arithmetic. In a row of
+   * `label + control` the control IS the last thing, so an answer flushed to
+   * the bottom of that row lands on it — exactly where the old offset put a
+   * one-line answer, now derived rather than computed. An answer taller than
+   * one line grows UP into the label slot that was empty anyway instead of
+   * pushing the whole row down past its neighbour.
+   *
+   * align-self is stated because .pck__grid is `align-items: start`: without
+   * it the cell is only as tall as its own content and there is no row bottom
+   * to flush to.
+   *
+   * Still scoped to the widths where the row is a row. Once the grid has
+   * collapsed to one column the neighbour is above rather than alongside, and
+   * there is nothing to align with. */
+  .pck__grid--2 > .pck__cell:has(> .pck__radio > legend.u-sr-only),
+  .pck__grid--3 > .pck__cell:has(> .pck__radio > legend.u-sr-only),
+  .pck__grid--2 > .pck__cell:has(> .pck__checks--answer),
+  .pck__grid--3 > .pck__cell:has(> .pck__checks--answer) {
+    align-self: stretch;
+    justify-content: flex-end;
+  }
+}
+
+/* --- Controls sized to the answer they take -----------------------------------
+   A date is ten characters and a blood sugar is three. Stretched across a
+   column they read as boxes waiting for a sentence, and on a wide screen with
+   both rails collapsed the sheet was asking for "08/09/2026" in a field the
+   width of a paragraph. Capped, they say what shape of answer they want before
+   anything is typed — and the cap only ever binds when the column is wider
+   than the value, so a narrow column is untouched.
+   -------------------------------------------------------------------------- */
+
+.pck__cell ui-input[type='number'] { max-width: 11rem; }
+.pck__cell ui-input[type='date'],
+.pck__cell ui-input[type='time'] { max-width: 13rem; }
+.pck__cell ui-input[type='datetime-local'] { max-width: 17rem; }
+
+/* --- Derived scores -----------------------------------------------------------
+   Read-only and announced: nobody watches a number change while ticking boxes.
+   -------------------------------------------------------------------------- */
+
+.pck__score {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+.pck__score-value {
+  padding: var(--space-1) var(--space-4);
+  border-radius: var(--radius-pill);
+  background-color: var(--color-bg-surface-active);
+  font-family: var(--font-family-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.pck__alert-wrap { display: flex; flex-direction: column; gap: var(--space-3); }
+
+/* --- Vitals -------------------------------------------------------------------- */
+
+.pck__bp { display: flex; align-items: center; gap: var(--space-3); }
+.pck__bp ui-input { flex: 1; min-width: 0; }
+.pck__bp-slash { color: var(--color-text-tertiary); font-size: var(--font-size-heading-md); }
+
+/* An amber ring, not a red one: an out-of-range vital is a conversation with
+   anaesthesia, not a rejected value. */
+.pck__flagged .ui-input,
+ui-input.pck__flagged .ui-input {
+  border-color: var(--color-status-warning-solid);
+  box-shadow: 0 0 0 2px var(--color-status-warning-surface);
+}
+
+.pck__slider-row { display: flex; align-items: center; gap: var(--space-4); }
+/* Track and thumb come from the shared bare-range rule in forms.css.
+   `accent-color` tinted a platform-drawn slider; nothing here is drawn by the
+   platform any more. */
+.pck__slider { flex: 1; min-width: 0; }
+.pck__slider-value {
+  min-width: var(--space-9);
+  font-family: var(--font-family-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+  text-align: right;
+}
+
+/* --- Allergy rows ------------------------------------------------------------- */
+
+.pck__allergy-rows { display: flex; flex-direction: column; gap: var(--space-4); }
+
+.pck__allergy-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 1fr)) auto;
+  gap: var(--space-4);
+  align-items: end;
+}
+
+/* --- Small square buttons ------------------------------------------------------ */
+
+.pck__icon-button {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-9);
+  height: var(--space-9);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+}
+.pck__icon-button:hover { border-color: var(--color-border-strong); color: var(--color-text-primary); }
+.pck__icon-button:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.pck__row { flex-wrap: wrap; }
+.pck__row-actions { display: flex; align-items: center; gap: var(--space-3); }
+.pck__row-label .ui-icon { vertical-align: -0.125em; margin-right: var(--space-1); }
+
+.pck__time-edit {
+  flex-basis: 100%;
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-3);
+  padding-top: var(--space-4);
+}
+.pck__time-edit ui-input { flex: 1; min-width: 0; max-width: 12rem; }
+
+.pck__staff { flex-wrap: wrap; }
+.pck__staff-at { margin-left: auto; }
+
+/* --- The commit bar the sheet owns ---------------------------------------------
+   The sheet's own commit, distinct from whatever the host does next: this one
+   files the checklist, the encounter's footer moves the case on. It runs the
+   full width because it is the end of a document, not one control on a row —
+   after a hundred and eighty answers the button should be impossible to miss.
+   -------------------------------------------------------------------------- */
+
+.pck__sticky {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-4);
+  padding: var(--space-6) var(--space-7);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+  background-color: var(--color-bg-surface);
+}
+.pck__sticky-hint {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-tertiary);
+  text-align: center;
+}
+.pck__sticky ui-button,
+.pck__sticky ui-button button { width: 100%; }
+
+.pck__confirm-text { font-size: var(--font-size-body); color: var(--color-text-secondary); }
+
+/* --- Preview Default ------------------------------------------------------------
+   The practice template, read before it is taken. See defaultPreviewMarkup in
+   js/lib/pre-check-form.js for what is in it and why.
+
+   A two-column row rather than a table, because the two halves are read
+   differently: the label is scanned down the left until the reader finds the
+   question they care about, and only then is the value on the right read at
+   all. A table would ask for a third column for the tag, and the tag is a
+   property of the answer beside it rather than a column of its own.
+
+   The status is carried on `data-status` and painted from there, so the row's
+   colour and the words in its tag cannot disagree — both come from the one
+   value the preview worked out.
+   -------------------------------------------------------------------------- */
+
+.pck__preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  margin-top: var(--space-5);
+}
+
+.pck__preview-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.pck__preview-title {
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+.pck__preview-rows {
+  display: flex;
+  flex-direction: column;
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.pck__preview-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+  gap: var(--space-4);
+  align-items: baseline;
+  padding: var(--space-3) var(--space-5);
+  font-size: var(--font-size-body-sm);
+}
+.pck__preview-row + .pck__preview-row {
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+/* A row that would change something is tinted; one that agrees with the sheet
+   is not. Most of the template usually agrees, and tinting all of it would
+   leave the two lines worth noticing indistinguishable from the twenty that
+   are not. */
+.pck__preview-row[data-status='fills'] { background-color: var(--color-status-info-surface); }
+.pck__preview-row[data-status='differs'] { background-color: var(--color-status-warning-surface); }
+
+.pck__preview-label { color: var(--color-text-secondary); }
+
+.pck__preview-value {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  align-items: baseline;
+  justify-content: space-between;
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+.pck__preview-tag {
+  flex: none;
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-tertiary);
+}
+.pck__preview-tag--fills { color: var(--color-status-info-text); }
+.pck__preview-tag--differs { color: var(--color-status-warning-text-strong); }
+
+/* The preview is read inside a modal, which is sized by the viewport rather
+   than by the sheet — so this one stays a media query. */
+@media (max-width: 44rem) {
+  .pck__preview-row { grid-template-columns: minmax(0, 1fr); gap: var(--space-1); }
+}
+
+/* ============================================================================
+   HOW MANY COLUMNS THE SHEET HAS ROOM FOR
+
+   Measured against .pck__sheet, not the window — see the note on it above.
+
+   The numbers are the width a field needs to hold its label on one line and its
+   control at a usable size, about 14rem, plus the gutter between columns. Below
+   46rem three of those do not fit and the section drops to two; below 30rem
+   only one does. A cell that spans the grid narrows with it, or a "span 3" in a
+   two-column section would push a third column back into existence.
+   ========================================================================= */
+
+@container pck-sheet (width < 46rem) {
+  .pck__grid--3,
+  .pck__checks--3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pck__cell--span-3 { grid-column: span 2; }
+  .pck__allergy-row { grid-template-columns: minmax(0, 1fr); }
+}
+
+@container pck-sheet (width < 30rem) {
+  .pck__grid--2,
+  .pck__grid--3,
+  .pck__checks--3 { grid-template-columns: minmax(0, 1fr); }
+  .pck__cell--span-2,
+  .pck__cell--span-3 { grid-column: span 1; }
+}

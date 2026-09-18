@@ -1,0 +1,1789 @@
+/* ============================================================================
+   Practice Settings — Profile, Locations, Users.
+   ========================================================================= */
+
+/* The header's action group is .ui-page-head__actions in base.css. This
+   screen's own actions swap with the tab and used to sit in a private group
+   that re-declared the slot's margin and gap — one more copy of a rule the
+   band already owns. */
+
+/* --- Identity card (the practice itself) ----------------------------------- */
+
+.prc__identity {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding: var(--card-padding);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+}
+
+/* A stand-in for the building photo — a tinted panel, not a fake image. */
+.prc__photo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 8rem;
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+  color: var(--color-text-tertiary);
+}
+.prc__photo .ui-icon { width: var(--icon-size-lg); height: var(--icon-size-lg); }
+
+.prc__name {
+  font-size: var(--font-size-heading-md);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+}
+
+/* Key/value list used by both the identity card and Basic Information. */
+.prc__kv { display: grid; grid-template-columns: 10rem minmax(0, 1fr); gap: var(--space-4) var(--space-6); }
+.prc__kv dt { font-size: var(--font-size-fact-label); color: var(--color-fact-label); font-weight: var(--font-weight-regular); }
+
+/* The office-hours block is a label over a table rather than a <dt> beside a
+   value, so it cannot come from .prc__kv — but it sits in the same row as one
+   and has to match it. It had been borrowing .ui-field__label, which is the
+   label on an INPUT: medium weight, primary ink, because it names a control
+   you are about to type into. Beside four read-only names in secondary that
+   read as the one bold thing in the card, which is not what it is. */
+.prc__kv-label {
+  font-size: var(--font-size-fact-label);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-fact-label);
+}
+.prc__kv dd {
+  margin: 0;
+  font-size: var(--font-size-body);
+  color: var(--color-text-primary);
+  min-width: 0;
+  /* URLs and email addresses have no spaces to break at, so without this
+     they overflow the card rather than wrapping. */
+  overflow-wrap: anywhere;
+}
+
+/* The identity card is 20rem wide and the pair list was built for the panel
+   beside it, which is three times that. A 10rem label column took more than
+   half of what was left after the card's own inset, so every value wrapped —
+   and because a URL has nowhere to break, it wrapped MID-WORD:
+   "www.medinovagast / ro.example" is not a legible address.
+
+   In a column this narrow the pair stacks instead. The name sits above its
+   value, both get the card's full width, and the addresses fit on one line.
+   Side by side is the better shape when there is room for it, which is why
+   this is scoped to the card rather than changed for both. */
+.prc__identity .prc__kv {
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+}
+.prc__identity .prc__kv dt { margin-bottom: var(--space-1); }
+
+.prc__panel {
+  padding: var(--card-padding);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+}
+
+.prc__panel-title {
+  margin-bottom: var(--space-6);
+  font-size: var(--font-size-title-card);
+  line-height: var(--line-height-tight);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+/* --- Profile layout --------------------------------------------------------- */
+
+.prc__profile {
+  display: grid;
+  grid-template-columns: 20rem minmax(0, 1fr);
+  gap: var(--space-7);
+  align-items: start;
+}
+
+@media (max-width: 1000px) {
+  .prc__profile { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Basic Information and Billing stack in the right-hand column. Without the
+   wrapper the grid put Billing back under the identity card. */
+.prc__profile-col { display: flex; flex-direction: column; gap: var(--space-7); min-width: 0; }
+
+/* --- Practice profile switcher -----------------------------------------------
+   Clinic and ASC are two billing entities, and which one you are working as
+   changes NPI, hours, claim form and the appointment types on offer. That is
+   too consequential for a dropdown you can change without noticing — both
+   options stay on screen with the active one held down. */
+
+.prc__profile-switch {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.prc__profile-switch-btn {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding: var(--space-4) var(--space-6);
+  min-width: 11rem;
+  text-align: left;
+  background-color: var(--color-bg-surface);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+.prc__profile-switch-btn:hover { background-color: var(--color-bg-surface-hover); }
+.prc__profile-switch-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* Held down, not merely tinted: which entity you are billing as must survive
+   being read in greyscale. */
+.prc__profile-switch-btn[aria-pressed='true'] {
+  border-color: var(--color-border-brand);
+  border-width: var(--border-width-thick);
+  background-color: var(--color-brand-surface);
+}
+
+.prc__profile-switch-label {
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+.prc__profile-switch-btn[aria-pressed='true'] .prc__profile-switch-label {
+  color: var(--color-brand-text);
+}
+.prc__profile-switch-sub { font-size: var(--font-size-caption); color: var(--color-text-secondary); }
+
+.prc__two-col {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-7);
+}
+
+@media (max-width: 800px) {
+  .prc__two-col { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* The Practice Information pair sits below the two columns, full width. */
+.prc__kv--wide { margin-top: var(--space-7); }
+
+.prc__hours { display: flex; flex-direction: column; gap: var(--space-3); }
+.prc__hours-row { display: flex; justify-content: space-between; gap: var(--space-5); font-size: var(--font-size-body); }
+.prc__hours-day { color: var(--color-text-tertiary); }
+/* "Closed" is real information, not a disabled control, so it uses the
+   tertiary text colour. --color-text-disabled is only 2.8:1 on white. */
+.prc__hours-closed { color: var(--color-text-tertiary); }
+
+.prc__info { font-size: var(--font-size-body); line-height: var(--line-height-normal); color: var(--color-text-primary); }
+
+/* --- Locations -------------------------------------------------------------- */
+
+.prc__locations { display: flex; flex-direction: column; gap: var(--space-5); min-height: 0; }
+
+/* A one-line practice strip instead of a full card. The card duplicated the
+   Profile tab and pushed the table half a screen down. */
+.prc__strip {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-4) var(--space-6);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+  font-size: var(--font-size-body);
+  color: var(--color-text-secondary);
+  flex-wrap: wrap;
+}
+
+.prc__strip ui-select { width: 11rem; }
+.prc__strip ui-input { width: 24rem; max-width: 100%; }
+.prc__strip-name { font-weight: var(--font-weight-semibold); color: var(--color-text-primary); }
+.prc__strip-sep { color: var(--color-text-disabled); }
+.prc__strip-count { margin-left: auto; color: var(--color-text-tertiary); }
+
+.prc__muted { color: var(--color-text-tertiary); }
+.prc__spacer { flex: 1; }
+
+/* The Action column's pair of icons. Delete only turns red on approach, so a
+   list of sites is not a row of warnings at rest. */
+.prc__icon-action--danger:hover {
+  background-color: var(--color-status-critical-surface);
+  color: var(--color-status-critical-text);
+}
+
+/* The status switch reads its own state, so the label is the value — it wants
+   the row's rhythm, not a form field's. */
+.prc__locations .ui-table ui-toggle { font-size: var(--font-size-body-sm); }
+
+/* --- Location detail dialog --------------------------------------------------- */
+
+.prc__detail-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  padding-bottom: var(--space-6);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+  margin-bottom: var(--space-6);
+}
+
+.prc__detail-id {
+  font-family: var(--font-family-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--font-size-body);
+  color: var(--color-text-secondary);
+}
+
+.prc__detail-note {
+  margin-bottom: var(--space-6);
+  font-size: var(--font-size-body);
+  color: var(--color-text-secondary);
+  line-height: var(--line-height-normal);
+}
+
+.prc__detail-cols {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-6);
+  align-items: start;
+}
+
+@media (max-width: 800px) {
+  .prc__detail-cols { grid-template-columns: minmax(0, 1fr); }
+}
+
+.prc__detail-col { display: flex; flex-direction: column; gap: var(--space-5); min-width: 0; }
+.prc__detail-body { padding: var(--space-6); }
+
+/* Detail lists are read, not filled in, so the label column can be narrower. */
+.prc__detail-body .prc__kv { grid-template-columns: 9rem minmax(0, 1fr); gap: var(--space-3) var(--space-5); }
+
+.prc__status-cell { display: inline-flex; align-items: center; gap: var(--space-4); }
+
+/* --- Users -------------------------------------------------------------------
+   Minimal card: identity on one line, two facts, two actions. The earlier
+   version led with an 80px avatar and a three-row key/value block, which made
+   a directory of eight people fill the screen without saying much.
+   -------------------------------------------------------------------------- */
+
+.prc__user-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(19rem, 1fr));
+  gap: var(--space-5);
+}
+
+.prc__user {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding: var(--card-padding-tight);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+}
+
+.prc__user-head { display: flex; align-items: center; gap: var(--space-5); }
+
+.prc__user-avatar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-10);
+  height: var(--space-10);
+  border-radius: var(--radius-full);
+  background-color: var(--color-brand-surface);
+  color: var(--color-brand-text);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-semibold);
+}
+
+.prc__user-ident { flex: 1; min-width: 0; }
+
+.prc__user-name {
+  display: block;
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --- Role pill --------------------------------------------------------------
+   The role is the reason a user list gets read at all — who can prescribe,
+   who can bill, who can administer — so it carries a tint rather than sitting
+   in grey under the name. Tones are assigned in data/practice.js by what the
+   role can reach, not by severity. The status badge beside it is an outlined
+   ui-badge, so the two never read as the same thing.
+   -------------------------------------------------------------------------- */
+
+.prc__role {
+  display: inline-flex;
+  align-items: center;
+  height: 1.25rem;
+  margin-top: var(--space-1);
+  padding: 0 var(--space-5);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--letter-spacing-wide);
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.prc__role--brand {
+  background-color: var(--color-brand-surface);
+  color: var(--color-brand-text);
+}
+.prc__role--info {
+  background-color: var(--color-status-info-surface);
+  color: var(--color-status-info-text);
+}
+.prc__role--warning {
+  background-color: var(--color-status-warning-surface);
+  color: var(--color-status-warning-text);
+}
+.prc__role--critical {
+  background-color: var(--color-status-critical-surface);
+  color: var(--color-status-critical-text);
+}
+.prc__role--neutral {
+  background-color: var(--color-status-neutral-surface);
+  color: var(--color-status-neutral-text);
+}
+
+.prc__user-facts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+}
+.prc__user-facts span { overflow-wrap: anywhere; }
+
+.prc__user-foot {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  padding-top: var(--space-4);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+/* --- Read-only user profile dialog ----------------------------------------- */
+
+.prc__profile-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  padding-bottom: var(--space-6);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.prc__user-avatar--lg {
+  width: var(--space-11);
+  height: var(--space-11);
+  font-size: var(--font-size-body);
+}
+
+.prc__profile-name {
+  display: block;
+  font-size: var(--font-size-heading-md);
+  line-height: var(--line-height-tight);
+  font-weight: var(--font-weight-semibold);
+}
+
+.prc__profile-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-6);
+  padding: var(--space-6) 0;
+}
+.prc__profile-facts dt {
+  font-size: var(--font-size-2xs);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  font-weight: var(--font-weight-semibold);
+}
+.prc__profile-facts dd {
+  font-size: var(--font-size-body);
+  color: var(--color-text-primary);
+  overflow-wrap: anywhere;
+}
+
+.prc__user-link {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-link);
+  background: none;
+  cursor: pointer;
+}
+.prc__user-link:hover { text-decoration: underline; }
+.prc__user-link:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.prc__resend {
+  margin-left: auto;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-link);
+  text-decoration: underline;
+  background: none;
+  cursor: pointer;
+}
+.prc__resend:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.prc__resend[disabled] { color: var(--color-text-tertiary); text-decoration: none; cursor: default; }
+
+/* --- User form ---------------------------------------------------------------- */
+
+.prc__mini-body { padding: var(--space-6); }
+.prc__checks { display: flex; flex-direction: column; gap: var(--space-4); }
+
+/* Two columns, for field sets that pair naturally — user name / password,
+   confirmation / strength. Three columns left odd gaps. */
+.prc__pair-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5) var(--space-6);
+  align-items: start;
+}
+
+@media (max-width: 640px) {
+  .prc__pair-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+.prc__hint {
+  margin-bottom: var(--space-5);
+  font-size: var(--font-size-caption);
+  color: var(--color-text-tertiary);
+  line-height: var(--line-height-caption);
+}
+
+/* Password strength — a stepped bar, so the width comes from a class rather
+   than an inline style. */
+.prc__strength { display: flex; align-items: center; gap: var(--space-5); margin-top: var(--space-2); }
+
+.prc__strength-track {
+  flex: 1;
+  height: var(--space-4);
+  border-radius: var(--radius-full);
+  background-color: var(--color-bg-surface-active);
+  overflow: hidden;
+}
+
+.prc__strength-fill {
+  display: block;
+  width: 0;
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: width var(--duration-fast) var(--ease-out);
+}
+
+.prc__strength-fill--s1 { width: 20%; }
+.prc__strength-fill--s2 { width: 40%; }
+.prc__strength-fill--s3 { width: 60%; }
+.prc__strength-fill--s4 { width: 80%; }
+.prc__strength-fill--s5 { width: 100%; }
+
+.prc__strength-fill--critical { background-color: var(--color-status-critical-solid); }
+.prc__strength-fill--warning { background-color: var(--color-status-warning-solid); }
+.prc__strength-fill--info { background-color: var(--color-status-info-solid); }
+.prc__strength-fill--success { background-color: var(--color-status-success-solid); }
+
+.prc__strength-label {
+  min-width: 3.5rem;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+}
+
+/* Location and group pickers — a checkbox with context beside it. */
+.prc__pick-list { display: flex; flex-direction: column; gap: var(--space-2); }
+
+.prc__pick {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-4);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+.prc__pick:hover { background-color: var(--color-bg-surface-hover); }
+
+.prc__pick-body { flex: 1; min-width: 0; }
+/* The address sits under the checkbox label, indented past the box. */
+.prc__pick-body small {
+  display: block;
+  padding-left: var(--space-9);
+  font-size: var(--font-size-caption);
+  color: var(--color-text-tertiary);
+}
+
+/* --- Long form inside the modals -------------------------------------------- */
+
+.prc__form { display: flex; flex-direction: column; gap: var(--space-7); }
+
+.prc__form-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-5) var(--space-6);
+  align-items: end;
+}
+
+@media (max-width: 800px) {
+  .prc__form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+.prc__span-2 { grid-column: span 2; }
+.prc__span-all { grid-column: 1 / -1; }
+
+.prc__logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 7rem;
+  border: var(--border-width-thin) dashed var(--color-border-default);
+  border-radius: var(--radius-md);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+}
+.prc__logo:hover { border-color: var(--color-border-brand); color: var(--color-brand-text); }
+.prc__logo .ui-icon { width: var(--icon-size-lg); height: var(--icon-size-lg); }
+
+.prc__section {
+  padding: var(--space-6);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.prc__section-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  margin-bottom: var(--space-5);
+  font-size: var(--font-size-title-section);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.prc__legend {
+  font-size: var(--font-size-title-section);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-5);
+}
+
+/* The ID Qualifier repeater. */
+.prc__repeater-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-4);
+}
+
+.prc__repeater-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: var(--space-5);
+  align-items: end;
+  margin-bottom: var(--space-4);
+}
+
+/* Office hours inside the modal — toggle + from/to per day. */
+.prc__hours-edit { display: flex; flex-direction: column; gap: var(--space-4); }
+
+.prc__hours-edit-row {
+  display: grid;
+  grid-template-columns: 12rem minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-5);
+  align-items: center;
+}
+
+@media (max-width: 700px) {
+  .prc__hours-edit-row { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* --- Location form ----------------------------------------------------------
+   The legacy Location Form is two columns: the location's own attributes on
+   the left, and the related lists (contact numbers, billing, identifiers) on
+   the right. Keeping that split means staff who know gGastro can still find
+   things by position.
+   ------------------------------------------------------------------------- */
+
+/* The location page scrolls on its own, with the action footer pinned. */
+.prc__page {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--layout-gutter);
+  /* Eight above, twenty around — see THE FRAME UNDER THE HEADER BAND in
+     base.css. */
+  padding-top: var(--space-4);
+}
+
+.prc__foot {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-5);
+  padding: var(--space-5) var(--space-8);
+  background-color: var(--color-bg-surface);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+  box-shadow: var(--elevation-raised);
+}
+
+.prc__foot-note {
+  margin-right: auto;
+  font-size: var(--font-size-body);
+  color: var(--color-status-critical-text);
+}
+
+.prc__loc-cols {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-7);
+  align-items: start;
+}
+
+@media (max-width: 1000px) {
+  .prc__loc-cols { grid-template-columns: minmax(0, 1fr); }
+}
+
+.prc__loc-col { display: flex; flex-direction: column; gap: var(--space-6); min-width: 0; }
+
+.prc__loc-fields { display: flex; flex-direction: column; gap: var(--space-5); }
+
+/* Colour select with its swatch alongside. */
+.prc__colour-field { display: flex; align-items: flex-end; gap: var(--space-5); }
+.prc__colour-field ui-select { flex: 1; min-width: 0; }
+
+/* A small dot version of the swatch, for use inside a table cell. */
+.ui-swatch--dot {
+  width: var(--space-6);
+  height: var(--space-6);
+  border-radius: var(--radius-full);
+}
+
+.prc__name-cell { display: inline-flex; align-items: center; gap: var(--space-5); }
+
+/* --- Mini tables (the "+" panels) ------------------------------------------- */
+
+.prc__mini {
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+  overflow: hidden;
+}
+
+.prc__mini-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+  padding: var(--space-4) var(--space-6);
+  background-color: var(--color-bg-surface-sunken);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Padding lives on the panel body, not the head, so tables sit flush. */
+.prc__mini > .prc__loc-fields,
+.prc__mini > .prc__form-grid,
+.prc__mini > .prc__id-grid { padding: var(--space-6); }
+
+.prc__mini-table { width: 100%; font-size: var(--font-size-body); }
+
+.prc__mini-table th {
+  padding: var(--space-3) var(--space-6);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+  text-align: left;
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.prc__mini-table td {
+  padding: var(--space-3) var(--space-6);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+  vertical-align: middle;
+}
+
+.prc__mini-table tr:last-child td { border-bottom: none; }
+
+.prc__mini-actions { width: var(--space-11); text-align: right; }
+
+.prc__mini-empty {
+  padding: var(--space-6);
+  text-align: center;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-caption);
+}
+
+/* The identifier block — twelve short fields, two per row. */
+.prc__id-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5) var(--space-6);
+}
+
+@media (max-width: 640px) {
+  .prc__id-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+.prc__modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-4);
+  padding-top: var(--space-5);
+}
+
+/* ============================================================================
+   Users — enterprise table. Cards were fine for eight people; a practice with
+   hundreds of users and providers needs search, filters and bulk actions,
+   which is what everything below is for.
+   ========================================================================= */
+
+.usr__search { width: 22rem; }
+
+.usr__wrap { display: flex; flex-direction: column; gap: var(--space-5); min-height: 0; flex: 1; }
+
+/* --- Filter bar ---------------------------------------------------------------
+   The search box is in the page header now, with every other screen's. What
+   is left here is nothing: the six-select bar that used to sit above the table
+   is <ui-filter> now, the same control every other list in the product uses,
+   opened from the same button in the same place.
+
+   It went because six selects held permanently open cost more vertical space
+   than they earned, and because a bar that could be folded away while still
+   filtering was a table quietly missing rows. See css/components/filter.css.
+   -------------------------------------------------------------------------- */
+
+/* --- Bulk action bar — appears only while rows are selected -------------------- */
+
+.usr__bulk {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  padding: var(--space-4) var(--space-6);
+  border: var(--border-width-thin) solid var(--color-border-brand);
+  border-radius: var(--radius-md);
+  background-color: var(--color-brand-surface);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-brand-text);
+}
+.usr__bulk-spacer { flex: 1; }
+
+/* --- Table cells ----------------------------------------------------------- */
+
+/* A compact version of the profile dialog's avatar — the table row is 44px
+   tall, not room enough for the 40px circle the read-only profile uses. */
+.usr__avatar { width: var(--space-9); height: var(--space-9); font-size: var(--font-size-2xs); }
+
+.usr__name-link {
+  padding: 0;
+  background: none;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-brand-text);
+  cursor: pointer;
+}
+.usr__name-link:hover { text-decoration: underline; }
+.usr__name-link:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--radius-sm); }
+
+/* --- Empty state ------------------------------------------------------------- */
+
+.usr__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-11) var(--space-8);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+  text-align: center;
+}
+.usr__empty .ui-icon { width: var(--icon-size-lg); height: var(--icon-size-lg); color: var(--color-text-tertiary); }
+.usr__empty-title { font-size: var(--font-size-title-section); font-weight: var(--font-weight-semibold); color: var(--color-text-primary); }
+.usr__empty-actions { display: flex; gap: var(--space-5); }
+
+/* --- Provider onboarding -------------------------------------------------------
+   Name and additional info on the left; the repeatable contact groups down
+   the right. A provider has any number of addresses, numbers, emails, sites
+   and identifiers, so every group is a list that grows — fixed slots are how
+   the second office number ends up in the notes field.
+   -------------------------------------------------------------------------- */
+
+.prv { display: flex; flex-direction: column; gap: var(--space-6); }
+/* THE PROVIDER DRAWER IS WIDER THAN THE OTHERS, and it has to be. The xl
+   drawer is 52rem, which is the right size for a form of stacked questions;
+   this one is two columns of them, and the right-hand column carries the
+   Licenses group whose row asks four things at once. At 52rem those four
+   boxes cannot sit on a line, and stacked two-by-two a single licence takes
+   as much height as the whole Identifications list. So the panel takes the
+   width the content needs rather than the width the size step hands it. */
+#providerProfileModal .ui-modal__dialog--xl,
+#providerOnboardModal .ui-modal__dialog--xl {
+  max-width: 76rem;
+}
+
+.prv__cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-6);
+  align-items: start;
+}
+.prv__col { display: flex; flex-direction: column; gap: var(--space-6); }
+
+.prv__card {
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.prv__card-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  background-color: var(--color-brand-surface);
+}
+
+.prv__card-title {
+  flex: 1;
+  padding: var(--space-4) var(--space-5);
+  background-color: var(--color-brand-surface);
+  font-size: var(--font-size-title-card);
+  line-height: var(--line-height-tight);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+.prv__card-head .prv__card-title { background: none; }
+
+.prv__card > .prv__grid,
+.prv__card > ui-textarea,
+.prv__card > ui-checkbox,
+.prv__card > .prv__sign,
+.prv__card > .prv__row {
+  margin: var(--space-5);
+}
+.prv__card > .prv__row + .prv__row { margin-top: calc(var(--space-5) * -1 + var(--space-4)); }
+
+.prv__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5);
+}
+
+/* The + that grows a group. Sits in the header because it belongs to the
+   group, not to the last row in it. */
+.prv__add,
+.prv__drop {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-9);
+  height: var(--space-9);
+  flex: none;
+  margin-right: var(--space-4);
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.prv__add:hover { background-color: var(--color-bg-surface); color: var(--color-brand-text); }
+.prv__drop { margin-right: 0; }
+.prv__drop:hover { background-color: var(--color-bg-surface-hover); color: var(--color-status-critical-text); }
+.prv__add:focus-visible,
+.prv__drop:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.prv__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+/* Two controls to a row, and one of them is a <select> in the caret shell
+   (.ui-select-shell, components/select-menu.css) while the other may be a
+   plain <input>. The ROW sizes the shell; the BOX is drawn on whatever is
+   actually typed into or picked from, or the border would land around the
+   wrapper and the arrow would sit outside it. */
+.prv__type { flex: none; width: 8.5rem; }
+.prv__value { flex: 1; min-width: 0; }
+
+input.prv__value,
+.prv__type > select,
+.prv__value > select {
+  height: var(--control-height-md);
+  /* Left only. The right-hand pad is the caret's, and it is set on
+     .ui-select-shell > select at the same specificity as this rule — a
+     shorthand here would win on source order and put the arrow over the
+     text. */
+  padding-left: var(--space-4);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+  font-family: inherit;
+  font-size: var(--font-size-body);
+  color: var(--color-text-primary);
+}
+
+/* The text field has no caret to leave room for, so it pads both sides. */
+input.prv__value { padding-right: var(--space-4); }
+
+input.prv__value:focus-visible,
+.prv__type > select:focus-visible,
+.prv__value > select:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.prv__swatch { flex: none; width: 8.5rem; display: flex; align-items: center; }
+
+/* A ROW THAT ASKS FOUR THINGS — the Licenses group. A licence carries a
+   taxonomy, a number and two dates, and all four belong to the same record:
+   read across the line and you have the whole licence. That only works if the
+   drawer is wide enough to give each box a readable width, which is what the
+   76rem above buys; below that the four fold back to the two-by-two block they
+   used to be, because four boxes strung across a narrow panel are unreadable.
+   The labels are printed above each box either way, and the remove button
+   takes a column of its own down the right rather than a cell in the grid. */
+.prv__fields {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+/* Consecutive licences need to read as separate records; without a rule they
+   run together into one eight-box grid. */
+.prv__card > .prv__row--fields + .prv__row--fields {
+  margin-top: var(--space-4);
+  padding-top: var(--space-5);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.prv__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.prv__field-label {
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+}
+.prv__field input.prv__value,
+.prv__field .prv__value { width: 100%; }
+
+.prv__sign { display: flex; flex-direction: column; gap: var(--space-3); }
+.prv__sign-label {
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+.prv__sign-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-8) var(--space-5);
+  border: var(--border-width-thin) dashed var(--color-border-default);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+  font-family: inherit;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.prv__sign-drop:hover { border-color: var(--color-brand-solid); background-color: var(--color-brand-surface); }
+.prv__sign-drop:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.prv__sign-drop .ui-icon { color: var(--color-text-tertiary); }
+
+/* Narrower than this and the drawer is no longer 76rem wide — it is whatever
+   the window left it — so the licence row folds back to two-by-two. */
+@media (max-width: 78rem) {
+  .prv__fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 75rem) {
+  .prv__cols { grid-template-columns: minmax(0, 1fr); }
+  .prv__grid { grid-template-columns: minmax(0, 1fr); }
+  /* A licence's four boxes go one under another for the same reason the pairs
+     above do: two columns inside a drawer this narrow leaves a date box too
+     small to read the year out of. */
+  .prv__fields { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* --- Assign Role / Manage Permissions — small dialogs ------------------------- */
+
+.usr__mini-form { display: flex; flex-direction: column; gap: var(--space-6); }
+.usr__mini-context { font-size: var(--font-size-body); color: var(--color-text-secondary); }
+
+/* --- Delete confirmation -------------------------------------------------- */
+
+.usr__confirm { display: flex; flex-direction: column; gap: var(--space-6); }
+.usr__confirm p { font-size: var(--font-size-body); color: var(--color-text-secondary); }
+.usr__confirm strong { color: var(--color-text-primary); font-weight: var(--font-weight-semibold); }
+
+/* --- Row ⋮ menu ---------------------------------------------------------------
+   Body-parented, positioned through a generated stylesheet — same pattern as
+   the scheduler's row menu and Master's own copy. This page does not load
+   either of those stylesheets, hence a third copy under the same class
+   names rather than a shared import across unrelated screens. */
+
+.mst__menu {
+  position: fixed;
+  top: var(--mst-menu-top, 0);
+  left: var(--mst-menu-left, 0);
+  z-index: var(--z-dropdown);
+  min-width: 13rem;
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+  box-shadow: var(--elevation-overlay);
+}
+
+.mst__menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  width: 100%;
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-md);
+  background: none;
+  font-family: inherit;
+  font-size: var(--font-size-body);
+  color: var(--color-text-primary);
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.mst__menu-item:hover { background-color: var(--color-bg-surface-hover); }
+.mst__menu-item:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.mst__menu-item .ui-icon { flex: none; color: var(--color-text-tertiary); }
+
+.mst__menu-item--danger { color: var(--color-status-critical-text); }
+.mst__menu-item--danger:hover { background-color: var(--color-status-critical-surface); }
+.mst__menu-item--danger .ui-icon { color: currentColor; }
+
+.mst__menu-rule {
+  height: var(--border-width-thin);
+  margin: var(--space-2) 0;
+  background-color: var(--color-border-subtle);
+}
+
+/* ============================================================================
+   ROLES & RESPONSIBILITY (rol__)
+
+   A 28 × 9 grid is only usable if it stays dense and if the header and the
+   feature column never scroll away. Both are sticky; everything else is
+   deliberately plain so the ticks are what the eye lands on.
+   ========================================================================= */
+
+/* The panel is the scroller — same reason as .prn. .set__body hides its own
+   overflow, so a tab that names no scroll container has its lower half
+   silently cut off: here that was the stats card and the permission history
+   under the matrix. */
+.rol {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+/* Both bounded-height children would otherwise shrink to fit the column
+   instead of letting it scroll. */
+.rol__meta { flex: none; }
+
+.rol__filters {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+}
+
+.rol__field { width: 13rem; }
+
+/* --- Role picker ---------------------------------------------------------------
+   One dropdown, not a wall of chips. Fifteen roles as chips wrapped onto two
+   rows and pushed the matrix — the thing this tab exists to show — below the
+   fold. Who holds the role, and when it last changed, is in the stats card
+   under the matrix.
+   -------------------------------------------------------------------------- */
+
+.rol__picker { display: flex; align-items: flex-end; }
+.rol__role-select { width: 16rem; max-width: 100%; }
+
+.rol__filters-end {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin-left: auto;
+}
+
+/* --- The matrix ------------------------------------------------------------- */
+
+/*
+ * The matrix takes whatever height the panel has left, and draws at the
+ * compact density while it does.
+ *
+ * Twenty-eight features against eight actions is 224 cells, and at the 44px
+ * default row a scroller capped at 34rem showed eleven of them — the answer to
+ * "what can this role do" arriving four scrolls at a time, with white space
+ * under the card on any screen taller than a laptop. `density="compact"` on
+ * the wrapper is the component's own opt-in (36px rows, tighter cells; see the
+ * density block in tokens.css), and it is what this table is for: a grid of
+ * ticks with no prose in it, where the row height is doing nothing but
+ * separating one tick from the next.
+ *
+ * flex rather than a fixed cap for the same reason — the panel knows how much
+ * room there is and the matrix is the last thing in it.
+ */
+.rol__matrix {
+  flex: 1 1 auto;
+  min-height: 18rem;
+  overflow: auto;
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+}
+
+.rol__table { width: 100%; }
+
+.rol__table thead th {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  background-color: var(--color-bg-table-head);
+}
+
+/* The feature name is the row's label — it has to survive a sideways scroll
+   or the ticks stop meaning anything. */
+.rol__table .rol__feature,
+.rol__table .rol__feature-col {
+  position: sticky;
+  left: 0;
+  z-index: var(--z-sticky);
+  min-width: 13rem;
+  background-color: var(--color-bg-surface);
+  text-align: left;
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-primary);
+}
+.rol__table .rol__feature-col {
+  z-index: calc(var(--z-sticky) + 1);
+  background-color: var(--color-bg-surface-sunken);
+  font-weight: var(--font-weight-medium);
+}
+
+.rol__cell { text-align: center; }
+.rol__all-col { text-align: center; }
+
+/* A group header spans the row and is a rest for the eye, not a data row. */
+.rol__group-row th {
+  position: sticky;
+  left: 0;
+  padding: var(--space-3) var(--space-5);
+  background-color: var(--color-brand-01);
+  color: var(--color-text-brand);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  text-align: left;
+}
+
+.rol__glyph { display: inline-flex; }
+.rol__glyph .ui-icon { width: var(--icon-size-md); height: var(--icon-size-md); }
+.rol__glyph--yes { color: var(--color-status-success-solid); }
+.rol__glyph--no { color: var(--color-status-critical-solid); }
+
+/* Sized by the shared rule now — the permissions matrix is the densest grid
+   of checkboxes in the product and is exactly where they should not be a
+   different size from everywhere else. */
+.rol__check { cursor: pointer; }
+.rol__check:disabled { cursor: not-allowed; opacity: 0.45; }
+/* `accent-color` tinted the platform control; the box is painted by this
+   project now, so the "all" box takes the same treatment as its row. */
+
+.rol__empty {
+  padding: var(--space-7);
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-body-sm);
+}
+.rol__muted { color: var(--color-text-tertiary); font-size: var(--font-size-body-sm); }
+
+/* --- Pending-changes banner -------------------------------------------------
+   Warning-toned rather than critical: unsaved work is a state to resolve, not
+   a failure. It sits above the table so it cannot be scrolled past. */
+
+.rol__banner {
+  border: var(--border-width-thin) solid var(--color-status-warning-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-status-warning-surface);
+}
+
+.rol__banner-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-6);
+  padding: var(--space-5) var(--space-6);
+}
+
+.rol__banner-title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+  color: var(--color-status-warning-text);
+  font-size: var(--font-size-body-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.rol__banner-actions { display: flex; align-items: center; gap: var(--space-5); }
+
+.rol__banner-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--color-status-warning-text);
+  font-size: var(--font-size-body-sm);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+}
+.rol__banner-link:hover { text-decoration: underline; }
+.rol__banner-link:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm);
+}
+
+/* --- Change summary --------------------------------------------------------- */
+
+.rol__changes {
+  width: 100%;
+  border-collapse: collapse;
+  border-top: var(--border-width-thin) solid var(--color-status-warning-border);
+  background-color: var(--color-bg-surface);
+  font-size: var(--font-size-body-sm);
+}
+
+.rol__changes th,
+.rol__changes td {
+  padding: var(--space-4) var(--space-6);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+  text-align: left;
+  vertical-align: top;
+}
+
+.rol__changes thead th {
+  background-color: var(--color-status-info-surface);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
+}
+
+.rol__changes td span { display: block; }
+
+.rol__changes-role { background-color: var(--color-bg-surface-sunken); vertical-align: top; }
+
+.rol__role-pill {
+  display: inline-block;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-full);
+  background-color: var(--color-status-info-surface);
+  color: var(--color-status-info-text);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-medium);
+}
+
+.rol__removed-mark { color: var(--color-status-critical-solid); }
+.rol__granted-mark { color: var(--color-status-success-solid); }
+.rol__removed-mark .ui-icon,
+.rol__granted-mark .ui-icon { width: var(--icon-size-sm); height: var(--icon-size-sm); }
+
+/* --- Statistics and history -------------------------------------------------- */
+
+.rol__meta {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: var(--space-6);
+}
+
+.rol__stats,
+/* The history card is bounded and scrolls inside itself.
+   It sits in a two-card band above the matrix, and a role with a dozen recorded
+   changes would otherwise stretch that band and push the matrix — the thing the
+   tab exists to show — off the bottom of the screen. Bounded, the band is the
+   same height whichever role is picked, which is also what stops the matrix
+   jumping every time the picker changes. */
+.rol__history {
+  display: flex;
+  flex-direction: column;
+  max-height: 15rem;
+  padding: var(--space-6);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+}
+
+.rol__stats-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-6);
+  margin-bottom: var(--space-6);
+}
+
+.rol__stats-title {
+  margin: 0;
+  font-size: var(--font-size-title-section);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.rol__stats-sub {
+  margin: var(--space-2) 0 0;
+  font-size: var(--font-size-body-sm);
+  color: var(--color-text-tertiary);
+}
+
+.rol__facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: var(--space-5);
+  margin: 0;
+}
+.rol__facts dt { font-size: var(--font-size-fact-label); color: var(--color-fact-label); font-weight: var(--font-weight-regular); }
+.rol__facts dd {
+  margin: var(--space-2) 0 0;
+  font-size: var(--font-size-body-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+.rol__history-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  list-style: none;
+  margin: var(--space-5) 0 0;
+  padding: 0;
+}
+
+.rol__history-item {
+  padding: var(--space-5) 0;
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+}
+.rol__history-item:last-child { border-bottom: none; }
+
+.rol__history-when,
+.rol__history-who {
+  display: block;
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-tertiary);
+}
+.rol__history-what {
+  margin: var(--space-2) 0;
+  font-size: var(--font-size-body-sm);
+  color: var(--color-text-primary);
+}
+
+.rol__form { display: grid; gap: var(--space-6); }
+.rol__confirm { font-size: var(--font-size-body-sm); color: var(--color-text-secondary); }
+
+@media (max-width: 1100px) {
+  .rol__meta { grid-template-columns: minmax(0, 1fr); }
+  .rol__filters-end { margin-left: 0; }
+}
+
+/* ============================================================================
+   PRINT CONFIGURATION (prn__)
+
+   Every rendering of a letterhead on this screen — card thumbnail, live
+   preview, full preview dialog — comes from the same markup, so the card can
+   never show something the printer would not.
+   ========================================================================= */
+
+/* The panel is the scroller.
+   .set__body hides its own overflow and hands each tab a flex column to fill,
+   so a tab that names no scroll container simply gets clipped at the fold —
+   which is what happened here: the configuration list ran past the bottom of
+   the window with no way to reach it. */
+.prn {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.prn__toolbar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+}
+
+
+.prn__toolbar-controls { display: flex; align-items: center; gap: var(--space-4); }
+.prn__search { width: 14rem; }
+
+/* --- The list ------------------------------------------------------------------
+ *
+ * A table, not a grid of cards. The cards each rendered a postage-stamp
+ * thumbnail of their own letterhead and stood a third of a screen tall, which
+ * meant that answering "which of these is the default" on a practice with
+ * fifty headers on file was half a minute of scrolling. The facts a person
+ * scans this list for are short and comparable, so they line up in columns; the
+ * letterhead itself is judged full size, behind Preview, which is the only
+ * rendering of it worth judging. See practice-print-config.js.
+ */
+
+.prn__table-card { min-width: 0; }
+
+.prn__cell-name {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+/* The second line of a two-line cell: the description, the alignment, the
+   version count. Quiet enough that the row still scans on its first line
+   alone. */
+.prn__cell-sub {
+  display: block;
+  margin-top: var(--space-1);
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-tertiary);
+}
+
+/* Preview, Edit, and the "⋮" that holds the rest — see PRINT_COLUMNS in
+   js/screens/practice-print-config.js for why the other three moved. The "⋮"
+   sits tighter to Edit than Edit does to Preview: it belongs to the group it
+   overflows rather than standing beside it as a fourth peer. */
+.prn__row-actions {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: var(--space-3);
+}
+
+.prn__empty {
+  padding: var(--space-9);
+  border: var(--border-width-thin) dashed var(--color-border-default);
+  border-radius: var(--radius-md);
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-body-sm);
+  text-align: center;
+}
+
+/* --- The letterhead itself ---------------------------------------------------- */
+
+.prn__header { display: flex; flex-direction: column; gap: var(--space-5); }
+.prn__header--logo-only .prn__header-text { display: none; }
+
+.prn__header-logo img { max-height: 3rem; width: auto; }
+
+.prn__header-text {
+  font-size: var(--font-size-body-sm);
+  line-height: var(--line-height-normal);
+  color: var(--color-text-primary);
+}
+
+.prn__header-facts {
+  margin-top: var(--space-4);
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-secondary);
+}
+
+.prn__align--left { text-align: left; }
+.prn__align--center { text-align: center; }
+.prn__align--right { text-align: right; }
+.prn__align--center img { margin-inline: auto; display: block; }
+.prn__align--right img { margin-left: auto; display: block; }
+
+.prn__muted { color: var(--color-text-tertiary); font-style: italic; }
+
+/* --- Sample page --------------------------------------------------------------- */
+
+.prn__page {
+  padding: var(--space-8);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-base-white);
+  box-shadow: var(--elevation-raised);
+}
+.prn__page + .prn__page { margin-top: var(--space-7); }
+
+.prn__rule {
+  margin: var(--space-6) 0;
+  border: none;
+  border-top: var(--border-width-thin) solid var(--color-border-default);
+}
+
+.prn__doc-title {
+  margin: 0 0 var(--space-5);
+  font-size: var(--font-size-title-section);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.prn__doc-body { display: grid; gap: var(--space-4); margin: 0; }
+.prn__doc-body dt { font-size: var(--font-size-fact-label); color: var(--color-fact-label); font-weight: var(--font-weight-regular); }
+.prn__doc-body dd {
+  margin: 0;
+  font-size: var(--font-size-body-sm);
+  color: var(--color-text-primary);
+}
+
+.prn__footer {
+  margin-top: var(--space-8);
+  padding-top: var(--space-5);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-tertiary);
+  text-align: center;
+}
+
+/* --- Editor -------------------------------------------------------------------
+   Form on the left, a real rendered page on the right. The two scroll
+   independently so the preview stays in view while a long form is filled in. */
+
+.prn__editor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-7);
+}
+
+.prn__editor-form,
+.prn__editor-preview { max-height: 60vh; overflow-y: auto; padding-right: var(--space-4); }
+
+.prn__editor-preview {
+  padding: var(--space-6);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+}
+
+.prn__preview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+  margin-bottom: var(--space-6);
+}
+
+.prn__section { display: grid; gap: var(--space-6); }
+
+.prn__section + .prn__section {
+  margin-top: var(--space-7);
+  padding-top: var(--space-7);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.prn__section-title {
+  margin: 0;
+  font-size: var(--font-size-title-section);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.prn__pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-6); }
+.prn__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5) var(--space-6);
+}
+
+.prn__checks {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
+  gap: var(--space-4);
+}
+
+.prn__check,
+.prn__radio {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  font-size: var(--font-size-body-sm);
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+
+.prn__radios { display: flex; flex-wrap: wrap; gap: var(--space-6); }
+
+.prn__error {
+  margin: var(--space-3) 0 0;
+  font-size: var(--font-size-body-sm);
+  color: var(--color-status-critical-text);
+}
+.prn__error[hidden] { display: none; }
+
+/* --- Rich text ------------------------------------------------------------------ */
+
+.prn__rte {
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+  overflow: hidden;
+}
+.prn__rte:focus-within { border-color: var(--color-border-focus); box-shadow: var(--focus-ring); }
+
+.prn__rte-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+  background-color: var(--color-bg-surface-sunken);
+}
+
+.prn__rte-bar button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--space-9);
+  height: var(--space-9);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-body-sm);
+  cursor: pointer;
+}
+.prn__rte-bar button:hover {
+  background-color: var(--color-bg-surface-hover);
+  color: var(--color-text-primary);
+}
+.prn__rte-bar button:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.prn__rte-bar .ui-icon { width: var(--icon-size-sm); height: var(--icon-size-sm); }
+
+.prn__rte-divider {
+  width: var(--border-width-thin);
+  height: var(--space-7);
+  background-color: var(--color-border-default);
+}
+
+.prn__rte-size {
+  height: var(--space-9);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-2xs);
+}
+
+/* This one sits in a toolbar of 24px buttons, so it takes the small caret the
+   rest of the bar uses (.prn__rte-bar .ui-icon, above) and a pad to match.
+   The shell's default is sized for a 32px field and would swallow the label. */
+.ui-select-shell > .prn__rte-size {
+  padding-left: var(--space-3);
+  padding-right: calc(var(--icon-size-sm) + var(--space-4));
+}
+.prn__rte-size + .ui-icon { right: var(--space-2); }
+
+.prn__rte-area {
+  min-height: 6rem;
+  padding: var(--space-5);
+  font-size: var(--font-size-body-sm);
+  line-height: var(--line-height-normal);
+  color: var(--color-text-primary);
+}
+.prn__rte-area:focus { outline: none; }
+.prn__rte-area:empty::before {
+  content: attr(data-placeholder);
+  color: var(--color-text-tertiary);
+}
+
+.prn__over-limit { color: var(--color-status-critical-text); }
+
+/* --- Logo picker ------------------------------------------------------------------ */
+
+.prn__logo-row { display: flex; align-items: flex-start; gap: var(--space-6); }
+
+.prn__logo-thumb {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 7rem;
+  height: 3.5rem;
+  padding: var(--space-3);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-bg-surface-sunken);
+  object-fit: contain;
+}
+.prn__logo-thumb--empty { font-size: var(--font-size-2xs); color: var(--color-text-tertiary); }
+
+.prn__logo-controls { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-4); }
+.prn__logo-controls .ui-field__hint { flex-basis: 100%; margin: 0; }
+
+/* --- Preview dialog ------------------------------------------------------------- */
+
+.prn__preview-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-6);
+  margin-bottom: var(--space-6);
+  padding-bottom: var(--space-5);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.prn__zoom {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  font-size: var(--font-size-body-sm);
+}
+
+.prn__zoom button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--space-9);
+  height: var(--space-9);
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-body-sm);
+  cursor: pointer;
+}
+.prn__zoom button:hover {
+  background-color: var(--color-bg-surface-hover);
+  color: var(--color-text-primary);
+}
+.prn__zoom button:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.prn__preview-toolbar-end { display: flex; align-items: center; gap: var(--space-4); }
+
+.prn__preview-stage {
+  max-height: 60vh;
+  overflow: auto;
+  padding: var(--space-6);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+}
+
+@media (max-width: 1100px) {
+  .prn__editor { grid-template-columns: minmax(0, 1fr); }
+  .prn__editor-form,
+  .prn__editor-preview { max-height: none; }
+  .prn__grid,
+  .prn__pair { grid-template-columns: minmax(0, 1fr); }
+}

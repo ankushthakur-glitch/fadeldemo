@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MediNova EHR — Reports</title>
+    <link rel="icon" type="image/svg+xml" href="../assets/img/favicon.svg" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="../css/reset.css" />
+    <link rel="stylesheet" href="../css/tokens.css" />
+    <link rel="stylesheet" href="../css/base.css" />
+    <link rel="stylesheet" href="../css/ui-kit.css" />
+    <link rel="stylesheet" href="../css/screen-patient.css" />
+    <link rel="stylesheet" href="../css/screen-leads.css" />
+    <link rel="stylesheet" href="../css/screen-reports.css" />
+
+    <script type="module" src="../js/main.js"></script>
+    <script type="module" src="../js/screens/reports.js"></script>
+    <script src="../js/open-me-properly.js"></script>
+  </head>
+
+  <body class="pt">
+    <header class="pt__bar">
+      <img class="pt__logo" src="../assets/img/medinova-logo.svg" width="158" height="32"
+        alt="MediNova Gastroenterology Clinic" />
+      <ui-main-nav active="reports"></ui-main-nav>
+      <div class="pt__bar-actions">
+        <ui-time-clock></ui-time-clock>
+        <button type="button" class="pt__icon-action" aria-label="Notifications">
+          <svg class="ui-icon" aria-hidden="true"><use href="#i-bell"></use></svg>
+        </button>
+        <ui-avatar name="Amara Mensah" size="sm"></ui-avatar>
+      </div>
+    </header>
+
+    <!--
+      REPORTS IS ONE SCREEN, AND IT OPENS ON A REPORT.
+
+      It used to be a hub: five cards of category headings, each row a link to
+      one of four more screens that were themselves the same shell with a
+      different tab strip. Clicking Reports landed you on a menu about reports
+      rather than on a report, and every reading of a number cost two clicks
+      and a back arrow to get out of.
+
+      There are twelve reports and they are the twelve the practice actually
+      asks for by name, so the menu is a rail down the left of the report
+      itself. Reports in the top nav opens End of year AR — the first of the
+      pack — and every other one is one click from there, with no way back to
+      a landing page because there is no longer a landing page to go back to.
+
+      The reports are declared in data/reports.js and drawn by
+      js/lib/report-screen.js. A thirteenth is an entry in the catalogue and
+      nothing in this file.
+    -->
+    <div class="ui-page-head ui-page-head--flush rep__head">
+      <div class="ui-page-head__lead">
+        <!-- No back arrow. Reports is a destination in the top nav now, not a
+             screen you arrive at from a hub, and an arrow that pointed at the
+             dashboard would be inventing a journey nobody made. -->
+        <h1 class="ui-page-head__title">Reports</h1>
+      </div>
+
+      <!-- Filter and export, hard right, and read as TWO things rather than a
+           run of four.
+
+           On the left of the group, the two questions every report is run
+           with: the period, and the company it is run for. On the right, what
+           you do with what they produced. A hairline divides them, because
+           without it the row was a queue of controls in which the date picker
+           and the Export button looked like the same kind of thing.
+
+           WHY THOSE TWO ARE OUT HERE AND THE REST ARE BEHIND THE BUTTON.
+           Every report in the pack asks them, and asks them identically — the
+           range, and which of the practice's two businesses. A reader working
+           through the ASC's December wants the next report to be the ASC's
+           December too, and a parameter that is the same on all eleven sheets
+           is a parameter that should not be re-answered eleven times. The
+           filter button holds what actually differs.
+
+           Only one of the two actions carries a word. Export is the one that
+           was asked for and the one that leaves the building; Print is the
+           utility beside it, so it is its glyph alone with the label kept for
+           screen readers. Two equally-weighted outline buttons side by side
+           gave the row two focal points and no answer to which was the point
+           of it. -->
+      <div class="ui-page-head__actions" id="repActions">
+        <div class="rep__period">
+          <ui-select id="repPeriod" label="Period" label-hidden
+            options="Week,Month,Quarter,Year,Custom range"
+            value="Month" data-testid="report--period"></ui-select>
+
+          <div class="rep__nav" data-nav="Week" hidden>
+            <ui-input id="navWeek" label="Week containing" label-hidden type="date"
+              data-testid="report--nav-week"></ui-input>
+          </div>
+          <div class="rep__nav" data-nav="Month" hidden>
+            <ui-input id="navMonth" label="Month" label-hidden type="month"
+              data-testid="report--nav-month"></ui-input>
+          </div>
+          <div class="rep__nav" data-nav="Quarter" hidden>
+            <ui-select id="navQuarter" label="Quarter" label-hidden
+              data-testid="report--nav-quarter"></ui-select>
+          </div>
+          <div class="rep__nav" data-nav="Year" hidden>
+            <ui-select id="navYear" label="Year" label-hidden
+              data-testid="report--nav-year"></ui-select>
+          </div>
+          <!-- The two ends of a custom range read as one control, so their
+               labels come off and an en dash sits between them: in a header
+               row a pair of stacked "From"/"To" fields is twice the height of
+               everything beside it. The names survive as the fields' own
+               accessible labels. -->
+          <div class="rep__nav rep__nav--custom" data-nav="Custom range" hidden>
+            <ui-input id="navFrom" label="From" label-hidden type="date"
+              data-testid="report--from"></ui-input>
+            <span class="rep__nav-sep" aria-hidden="true">—</span>
+            <ui-input id="navTo" label="To" label-hidden type="date"
+              data-testid="report--to"></ui-input>
+          </div>
+
+          <!-- WHICH OF THE TWO COMPANIES. The practice bills the ASC's
+               facility fee as one business and everything else as the other,
+               and every report in the pack is run for one of them or for
+               both. Its answers are filled in from data/reports.js rather
+               than written here, so a third business is a line in the
+               catalogue and nothing in this file.
+
+               Nothing chosen means both, which is why the empty row is
+               "All businesses" — an answer you can land on rather than a
+               question left hanging. -->
+          <ui-select id="repBusiness" label="Business" label-hidden
+            empty-option="All businesses" data-testid="report--business"></ui-select>
+        </div>
+
+        <!-- WHAT THIS REPORT IS RUN WITH, and it is a different sheet on
+             every one of them.
+
+             The period says WHEN and the business says WHOSE. This is
+             everything else: the providers, the sites, the codes, the payer
+             group, the bill type, the grouping and the tick boxes — copied
+             from the parameter panel of the report each one replaces, in its
+             order and its wording. Because a report is a declaration rather
+             than a screen, so is its sheet: see `params` in data/reports.js
+             and paramGroups() in js/lib/report-screen.js.
+
+             They are DROPDOWNS rather than the tick lists this button opens
+             everywhere else in the product. A sheet of nine questions over
+             vocabularies of twenty providers and forty codes is several
+             hundred tick boxes, and a reader would scroll past eight
+             questions to reach the one they came for. See the chapter on it
+             in js/components/ui-filter.js.
+
+             It sits with the period rather than with Export, on the near side
+             of the hairline: both of them decide what the table holds, and
+             Export and Print take away whatever they settled on. -->
+        <ui-filter id="repFilter" label="Filters" align="end" width="20rem"
+          panel-label="Report parameters" data-testid="report--filter"></ui-filter>
+
+        <span class="rep__actions-rule" aria-hidden="true"></span>
+
+        <ui-button variant="outline" icon="download"
+          data-testid="report--export">Export CSV</ui-button>
+        <ui-button variant="outline" icon="printer" icon-only label="Print"
+          data-testid="report--print">Print</ui-button>
+      </div>
+    </div>
+
+    <main class="ui-page-body rep__body rep__body--rail">
+      <!-- The pack, down the left. A <nav> of buttons rather than links:
+           every report is this same page with a different table in it, and a
+           reader who has set a custom range should not lose it by moving to
+           the next report. The address bar still keeps up — see choose() in
+           js/lib/report-screen.js — so a report is still something you can
+           send to a colleague. -->
+      <nav class="rep__rail" aria-label="Reports">
+        <p class="rep__rail-title">Reports</p>
+        <ul class="rep__rail-list" id="repRail" data-testid="report--rail"></ul>
+      </nav>
+
+      <div class="rep__pane">
+        <!-- Only ever seen on paper. A printout torn off the tray has no
+             period picker, so the range is written out here in words. The
+             practice's own name is not repeated: every printed page in this
+             product carries the letterhead above it — see
+             js/lib/print-letterhead.js. -->
+        <div class="rep__print-head" aria-hidden="true">
+          <p class="rep__print-title">Reports</p>
+          <p class="rep__print-meta" data-print-meta></p>
+        </div>
+
+        <section class="rep__stats" id="repStats" aria-label="Summary"></section>
+
+        <section class="rep__detail" aria-label="Report detail">
+          <!-- THE NAME, AND NOTHING UNDER IT.
+
+               Each report used to carry a sentence saying what it counted —
+               "What is still owed at the close of the year, aged by financial
+               class." It was written for a reader arriving from a hub of
+               titles, who might not know which of sixteen they had opened.
+               Nobody arrives that way now: the rail names the report, the
+               heading names it again, and the column headings say what every
+               figure is. A third telling was a line of grey text standing
+               between the title and the first number.
+
+               The sentence is not deleted, only unpublished — every report
+               still declares its `blurb` in data/reports.js, where it goes on
+               documenting what the report means for whoever adds the next
+               one. -->
+          <div class="rep__detail-head">
+            <h2 class="rep__detail-title" id="repHeading" data-testid="report--title"></h2>
+          </div>
+
+          <!-- Filled and shown only for a report the practice has not
+               finished configuring — CAHPS today. It sits between the
+               report's name and its first figure because that is where the
+               reading starts. -->
+          <p class="rep__pending" id="repPending" data-testid="report--pending" hidden></p>
+
+          <!-- The one table in this product allowed to be wider than the viewport:
+               it scrolls itself rather than pushing the page sideways. That makes
+               it a scrollable region, and a region that scrolls but cannot be
+               focused hides its right-hand columns from every reader not holding a
+               mouse — so it takes a tab stop and a name. The name is the report's
+               own heading, so what announces itself is the report, not "region". -->
+          <div class="rep__table-wrap" id="repTableWrap" tabindex="0" role="region"
+            aria-labelledby="repHeading">
+            <table class="ui-table" data-testid="report--table">
+              <thead>
+                <!-- A second header row, for the reports whose columns come in
+                     families: the year-end view prints four money columns for
+                     the month and the same four for the year, and without a
+                     span above them the reader has eight identical headings
+                     and no way to tell which half is which. Empty and hidden
+                     on the reports that have no families. -->
+                <tr id="repGroups" data-testid="report--groups" hidden></tr>
+                <tr id="repHead"></tr>
+              </thead>
+              <tbody id="repRows"></tbody>
+              <!-- The report's answer, kept out of the paging: a total of the
+                   rows that happen to be on page one is a total of nothing. -->
+              <tfoot>
+                <tr class="rep__totals" id="repTotalsRow" data-testid="report--totals"></tr>
+              </tfoot>
+            </table>
+          </div>
+
+          <p class="rep__empty" id="repEmpty" hidden data-testid="report--empty">
+            No activity recorded in this period.
+          </p>
+          <div id="repFoot"></div>
+        </section>
+      </div>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,92 @@
+/* ============================================================================
+   THE PRACTICE LETTERHEAD, ON EVERYTHING THAT PRINTS
+
+   A printed page that leaves this building is a document about a patient, and
+   whoever picks it up — a specialist, a payer, the patient's family, a court —
+   has to be able to say which practice produced it before they read a word of
+   it. The consent forms carried the practice mark and nothing else did, so a
+   printed chart summary, a count sheet, a referral or a filled-in form arrived
+   as anonymous paper with clinical facts on it.
+
+   This band fixes that in one place rather than in thirty. Every screen in
+   this product prints by calling window.print() on itself, so a single element
+   at the top of <body> — hidden on screen, shown only on paper — lands above
+   whatever that screen decided to print. js/lib/print-letterhead.js builds it
+   from the DEFAULT print configuration in Practice Settings, which is where a
+   practice already says what its letterhead is; nothing here invents a second
+   answer to that question.
+
+   THE OPT-OUT
+   `<body data-print-letterhead="off">` suppresses it. Exactly one screen needs
+   that — Practice Settings → Print Configuration, whose Preview prints a
+   sample page that IS a letterhead. Stamping a second one over the top of it
+   would be the screen disagreeing with itself.
+   ========================================================================= */
+
+/* Hidden while you are looking at the screen. Plain `display: none` rather
+   than the clip-to-nothing trick the patient portal uses: this element is
+   built once at page load and sits in the document from then on, so it is
+   never toggled in the same frame as print() and never has to survive that
+   race. */
+.print-letterhead { display: none; }
+
+@media print {
+  .print-letterhead {
+    display: flex;
+    align-items: center;
+    gap: var(--space-6);
+    /* The band is the first thing on the sheet and the document follows it, so
+       the space and the rule below it belong to the band rather than to
+       whatever a screen happens to put next. */
+    margin-bottom: var(--space-7);
+    padding-bottom: var(--space-5);
+    border-bottom: var(--border-width-thick) solid var(--color-text-primary);
+    /* Every screen's own print rules unwind its layout to static blocks; this
+       element is not part of any of them, and says so. */
+    break-inside: avoid;
+    page-break-inside: avoid;
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  /* An <img>, not a background: browsers suppress background images when
+     printing by default and print <img> regardless, and a letterhead whose
+     mark silently drops out is worse than one that was never added. The
+     ceiling matches .prn__header-logo in css/screen-practice.css so the band
+     that prints is the size the Print Configuration preview showed. */
+  .print-letterhead__logo {
+    flex: none;
+    max-height: 3rem;
+    width: auto;
+  }
+
+  .print-letterhead__text { min-width: 0; }
+
+  .print-letterhead__name {
+    font-size: var(--font-size-body);
+    font-weight: var(--font-weight-semibold);
+    line-height: var(--line-height-tight);
+    color: var(--color-text-primary);
+  }
+
+  /* The address, the phone, whichever practice facts the configuration asks
+     for — one line, quiet, under the name. */
+  .print-letterhead__facts {
+    margin-top: var(--space-2);
+    font-size: var(--font-size-2xs);
+    line-height: var(--line-height-normal);
+    color: var(--color-text-secondary);
+  }
+
+  /* Centred and right-aligned configurations put the mark where the text sits
+     rather than always at the left edge. */
+  .print-letterhead--center { flex-direction: column; align-items: center; text-align: center; }
+  .print-letterhead--right { flex-direction: row-reverse; text-align: right; }
+
+  /* "Logo Only" is a real configuration — it is what continuation sheets use. */
+  .print-letterhead--logo-only .print-letterhead__text { display: none; }
+}
+
+/* The one screen whose printed page is itself a letterhead. See the note at
+   the top of this file. */
+body[data-print-letterhead='off'] .print-letterhead { display: none !important; }

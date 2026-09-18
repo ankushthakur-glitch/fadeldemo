@@ -1,0 +1,65 @@
+/* ============================================================================
+   Audit Log — a filter bar over one long table.
+
+   The screen is deliberately plain. It is read under pressure, usually to
+   answer a question somebody outside the practice has asked, so nothing here
+   competes with the rows: no cards, no summary tiles, no colour that is not
+   carrying a category or an outcome.
+   ========================================================================= */
+
+/* The band's own geometry — padding, alignment, colours — belongs to
+   .ui-page-head in base.css and is not restated here; the title stands alone,
+   with no line under it. */
+
+/* The gutter, the gap and the scroll are .ui-page-body in base.css. */
+
+/* --- Filters -------------------------------------------------------------------
+   Behind the header's Filters button, in the shared panel — <ui-filter>, see
+   css/components/filter.css. Five of the seven are lists of answers and are
+   drawn as ticks; the date range and the patient search cannot be, and are
+   contributed to the panel as fields under their own headings. Every one of
+   them keeps its label: seven controls with only placeholder text is a set
+   nobody can read back to themselves. */
+
+
+/* --- Table -------------------------------------------------------------------
+   flex: none because the body is a scrolling flex column — without it the card
+   shrinks and its own overflow silently cuts rows off the bottom. */
+
+/* The card and the scrolling wrap are .ui-table-card and .ui-table-wrap in
+   base.css and components/data-table.css — the same two objects a
+   <ui-data-table> screen gets for free. This table is hand-built, because ten
+   columns of audit with a detail link do not fit the component, but it is the
+   same object on screen. */
+.aud__table-wrap { flex: none; }
+
+.aud__stamp { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.aud__muted { color: var(--color-text-tertiary); font-size: var(--font-size-2xs); }
+.aud__mrn { color: var(--color-text-tertiary); font-size: var(--font-size-2xs); font-variant-numeric: tabular-nums; }
+
+
+.aud__empty {
+  padding: var(--space-9);
+  text-align: center;
+  font-size: var(--font-size-body);
+  color: var(--color-text-tertiary);
+}
+
+/* --- Detail dialog ------------------------------------------------------------- */
+
+.aud__detail-list { display: flex; flex-direction: column; gap: var(--space-3); }
+
+.aud__detail-row {
+  display: grid;
+  grid-template-columns: 9rem minmax(0, 1fr);
+  gap: var(--space-5);
+  align-items: baseline;
+}
+.aud__detail-row dt { font-size: var(--font-size-fact-label); color: var(--color-fact-label); font-weight: var(--font-weight-regular); }
+.aud__detail-row dd { font-size: var(--font-size-body); word-break: break-word; }
+.aud__detail-row code {
+  font-family: var(--font-family-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--font-size-caption);
+}
+

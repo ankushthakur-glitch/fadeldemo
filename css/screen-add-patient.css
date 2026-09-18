@@ -1,0 +1,565 @@
+/* ============================================================================
+   Add Patient — the gGastro Patient Form rebuilt in MediNova's UI.
+
+   ONE COLUMN, ONE FORM. This screen was three tabs and a two-column body:
+   Patient Info's own details on the left, coded demographics and a stack of
+   collapsible sub-record panels on the right, with Insurance and Guarantor
+   behind tabs of their own. Registration is one continuous act, so it is one
+   continuous form now — a single column of full-width section cards, read top
+   to bottom, with a dense field grid inside each card.
+
+   The density is the point. A two-column page puts two fields per row and runs
+   long; a full-width card fits five or six, which is what keeps the whole
+   record inside a scroll or two.
+   ========================================================================= */
+
+/* The page header is .ui-page-head in base.css — one band, every screen. */
+
+.ap__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--layout-gutter);
+  /* Eight above, twenty around — see THE FRAME UNDER THE HEADER BAND in
+     base.css. */
+  padding-top: var(--space-4);
+}
+
+/* --- Card ------------------------------------------------------------------ */
+
+.ap__card {
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+  margin-bottom: var(--layout-gap);
+  overflow: hidden;
+  /* The faintest lift. A registration form is a stack of a dozen cards, and at
+     that count a real shadow reads as clutter; this only separates the card
+     from the page behind it. */
+  box-shadow: var(--shadow-xs);
+}
+
+/* 8px above and below, not 12: the head is a title and a caret on one line,
+   and on a form that stacks a dozen of these the band's own height is paid
+   twelve times over. The 24px sides stay, so the title starts on the same
+   vertical as the fields in the body under it. */
+.ap__card-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  padding: var(--space-4) var(--space-9);
+  background-color: var(--color-bg-surface-sunken);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-tight);
+}
+
+/* A shut card keeps no rule under its head — the border would be a line under
+   nothing. */
+.ap__card--shut .ap__card-head { border-bottom: none; }
+
+/* --- Sections open and shut -------------------------------------------------
+   Registration is one continuous form, and it is long: twelve cards, and the
+   part being worked on is rarely the part at the top. So every card's head is
+   a control — press it and the section folds away, leaving its title in place
+   as a marker of what is there.
+
+   The head is NOT itself the button. Several of these heads carry their own
+   controls — the Yes/No on Insurance, Add support person, the lead chip — and
+   a button cannot contain a button. The title and the caret are the button;
+   whatever else the head holds sits beside it, still reachable, still its own
+   tab stop.
+   -------------------------------------------------------------------------- */
+
+.ap__card-toggle {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  padding: 0;
+  border: none;
+  background: none;
+  text-align: left;
+  font: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.ap__card-toggle:hover { color: var(--color-brand-text); }
+.ap__card-toggle:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* 16px, the Figma icon size, rather than the 14px it used to be. It is the
+   only thing on the head that says the section opens, and against a shorter
+   band a caret smaller than the text beside it read as decoration rather than
+   as the control it is. */
+.ap__card-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* --- The section's mark ------------------------------------------------------
+   A tinted square per section, the same object the dashboard's card heads
+   carry. Eight bands of grey type down a form this long give the eye nothing
+   to navigate by, and with the sections folding one at a time the heads are
+   most of what is on the screen — so they are what has to read at a glance.
+
+   THE TONE MEANS SOMETHING. Green for who the patient is, amber for what they
+   consent to, blue for who pays. Eight decorative squares in eight colours
+   would be bunting; three tones, each used for one kind of question, is a key.
+   -------------------------------------------------------------------------- */
+
+.ap__card-icon {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-10);
+  height: var(--space-10);
+  border-radius: var(--radius-md);
+  background-color: var(--color-brand-surface);
+  color: var(--color-brand-text);
+}
+.ap__card-icon .ui-icon { width: var(--icon-size-md); height: var(--icon-size-md); }
+.ap__card-icon--info {
+  background-color: var(--color-status-info-surface);
+  color: var(--color-status-info-text);
+}
+.ap__card-icon--warning {
+  background-color: var(--color-status-warning-surface);
+  color: var(--color-status-warning-text);
+}
+
+/* The fold mark sits at the END of the head, past whatever controls that head
+   carries — the Yes/No on Insurance, Add support person — so every section
+   folds from the same place rather than from halfway along some of them. */
+.ap__card-caret-btn {
+  order: 99;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-height-sm);
+  height: var(--control-height-sm);
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: inherit;
+  cursor: pointer;
+}
+.ap__card-caret-btn:hover { background-color: var(--color-bg-surface-hover); }
+
+.ap__card-caret {
+  flex: none;
+  width: var(--icon-size-md);
+  height: var(--icon-size-md);
+  color: var(--color-text-tertiary);
+  transition: transform var(--duration-base) var(--ease-out);
+}
+.ap__card-head:has(.ap__card-toggle[aria-expanded='false']) .ap__card-caret {
+  transform: rotate(-90deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ap__card-caret { transition: none; }
+}
+
+/* A header that carries its own Yes/No control on the right. */
+.ap__card-head--inline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-6);
+}
+
+/* 20/24 rather than a flat 16 all round: the extra side inset is what lets a
+   two-column field grid breathe without the columns touching the border. */
+.ap__card-body { padding: var(--space-8) var(--space-9) var(--space-9); }
+.ap__card-body[hidden] { display: none; }
+
+
+/* --- Field grid ------------------------------------------------------------
+   Columns are set by the card's width rather than by a fixed count: at 13rem
+   apiece a full-width card takes five to eight, a modal takes two or three,
+   and a laptop takes four — the same markup, no breakpoints to keep in step.
+
+   Two spans on top of that. --x2 is for the fields whose CONTENT is long: a
+   street address, an e-mail, an insurance name. --wide is for the ones that
+   are not fields at all — a group heading, a checkbox stack, a revealed
+   sub-block. Anything else gets one column, because a 13rem box is already
+   wider than a ZIP code or a date. */
+
+/* ONE FIELD, ONE CELL — and every row ends where the card does.
+
+   The two-column span this grid used to hand out for "long" content was the
+   whole reason the form looked ragged. The column count is set by the card's
+   width, so it changes with the window; a two-column field that will not fit
+   at the end of a row moves down to the next one and leaves a hole behind it,
+   and the holes move about as the window resizes. There is no ordering of the
+   fields that fixes that, because there is no fixed number of columns.
+
+   So nothing spans. A cell is 13rem at its narrowest, and what is still full
+   width is what was never a field: a group heading, a row of tick-boxes, a
+   sub-grid, a comments box.
+
+   WHY 13rem AND NOT 15. The floor decides the column count, and the column
+   count decides how many times this form makes you scroll. 15rem bought two
+   things that turned out not to be worth what they cost: boxes wider than
+   anything typed into them, and a column fewer at every window size this is
+   used at. The binding measure is the longest LABEL on the form — "Preferred
+   Electronic Clinical Laboratory", which sets at 184px — and a 13rem floor
+   renders as a 208-225px track, so every one of the fifty-eight labels still
+   has a line to itself with room over. Below 13rem that stops being true.
+
+   What the column it buys back is worth, measured on this form: 2967px tall
+   to 2632 at 1024, 2632 to 2422 at 1280, 2422 to 2344 at 1440, 2344 to 2266
+   at 1667, 2266 to 2110 at 1920. Between a tenth and a thirtieth of the
+   scroll, for boxes nobody was filling to the edge.
+
+   It cuts both ways and the trade is deliberate: more columns means a card
+   whose field count does not divide by them ends its last row further short.
+   Information Sharing has four fields, so a seven-column window leaves three
+   cells empty where six left two. A ragged last row costs nothing to read
+   past; a row that did not have to exist costs a scroll. */
+
+.ap__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+  gap: var(--space-8) var(--space-7);
+  align-items: end;
+}
+
+.ap__field--wide { grid-column: 1 / -1; }
+
+@media (max-width: 640px) {
+  .ap__grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* --- Group heading ---------------------------------------------------------
+   A label for a run of fields inside a card that is already about one thing —
+   Subscriber, Insurance card, Eligibility. It was a full-width hairline rule
+   with the label sitting in it, which drew a line across the card for every
+   group and made a section of what is only a label. A short brand tick to the
+   left of the words does the same job and draws nothing across anything. */
+
+.ap__group {
+  grid-column: 1 / -1;
+  padding-left: var(--space-5);
+  border-left: 2px solid var(--color-border-brand);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+}
+
+/* Between two blocks rather than at the head of a grid. */
+.ap__group--standalone { margin: var(--space-9) 0 var(--space-6); }
+
+/* Date of birth shows a computed age, the way intake staff read it — on the
+   label's line, at the right of the cell.
+
+   It used to be a bordered box standing beside the input, which made the one
+   date field on the form narrower than every other box in the grid. The label
+   row is empty over there and the age is a readout, not a field: it belongs in
+   the caption, not in the row of controls. */
+.ap__dob { position: relative; }
+
+.ap__age {
+  position: absolute;
+  top: 0;
+  right: 0;
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+/* No date typed yet, so there is no age to show. */
+.ap__age--empty { color: var(--color-text-tertiary); }
+
+/* A tick sharing a row with fields — "Address same as patient" beside the
+   subscriber's four boxes. The cell's floor is the row's floor, so giving it
+   the control's own height and centring inside that puts the box on the same
+   middle line as the inputs either side of it. It used to be bottom-aligned
+   with a hand-set 8px of padding under it, which left the tick riding two and
+   a half pixels high of the boxes it was meant to sit level with. */
+.ap__inline-check {
+  display: flex;
+  align-items: center;
+  min-height: var(--control-height-md);
+}
+
+/* The host stops being a block. <ui-checkbox> is display:block, so what the
+   cell was centring was a LINE BOX — inherited line-height, several pixels
+   taller than the tick sitting on it — and the tick came out high by that
+   difference rather than by nothing. As a flex item the host is exactly as
+   tall as the tick, and the tick lands where the cell puts it.
+
+   The tick's own box stays pinned to the TOP of its label rather than being
+   centred against it, which leaves it one pixel high of the inputs beside it.
+   That pixel stays. Top-pinning is what a checkbox whose label runs to three
+   lines needs, it is how every other tick in the product is drawn, and one
+   screen's stylesheet is the wrong place to overrule the component for a
+   pixel. If it is worth closing, close it in .ui-choice for everybody. */
+.ap__inline-check ui-checkbox { display: flex; }
+
+/* A grid cell holding a button rather than a field, sat on the same baseline
+   as the boxes either side of it. */
+.ap__field-action { display: flex; align-items: flex-end; }
+
+/* --- The policy's own actions ----------------------------------------------
+   Add another policy on the left, the eligibility check on the right, and the
+   answer between them. One row rather than a button, a heading and a titled
+   panel stacked down the foot of the card. */
+
+.ap__policy-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  flex-wrap: wrap;
+  margin-top: var(--space-8);
+  padding-top: var(--space-7);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+}
+.ap__spacer { flex: 1; }
+
+/* The answer, when there is one. Empty until the check has something to say —
+   a permanent line reading "waiting on a policy" is the form telling the
+   registrar they have not finished typing. */
+.ap__eligibility {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin: 0;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+}
+.ap__eligibility:empty { display: none; }
+.ap__eligibility .ui-icon { width: var(--icon-size-sm); height: var(--icon-size-sm); }
+.ap__eligibility[data-tone='pass'] { color: var(--color-status-success-text); }
+.ap__eligibility[data-tone='stop'] { color: var(--color-status-critical-text); }
+.ap__eligibility[data-tone='info'] { color: var(--color-text-secondary); }
+
+/* Two drop zones side by side, filling the card between them. */
+.ap__uploads {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: var(--space-7);
+}
+
+/* --- Pharmacy picker (inside the modal) ------------------------------------ */
+
+.ap__picker { display: flex; flex-direction: column; gap: var(--space-6); }
+
+.ap__picker-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: var(--space-5);
+}
+
+/* The result list scrolls inside the dialog so the filters and the count
+   stay put while you look through it. */
+.ap__picker-results { max-height: 22rem; display: flex; }
+.ap__picker-results ui-data-table { flex: 1; min-width: 0; display: flex; }
+.ap__picker-results .ui-table-wrap { flex: 1; overflow: auto; }
+
+.ap__picker-count {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-tertiary);
+}
+
+/* E-Rx capability flags — (R) retail, (L) long term care, (CS) controlled. */
+.ap__rx-flags { display: inline-flex; gap: var(--space-2); }
+
+.ap__rx-flag {
+  display: inline-flex;
+  align-items: center;
+  height: 1.125rem;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-status-info-surface);
+  color: var(--color-status-info-text);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-medium);
+}
+
+/* Two-line cell: primary value with its address beneath. */
+.ap__stacked small { display: block; color: var(--color-text-tertiary); }
+
+.ap__row-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-9);
+  height: var(--space-9);
+  border-radius: var(--radius-md);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+}
+.ap__row-remove:hover { background-color: var(--color-status-critical-surface); color: var(--color-status-critical-text); }
+.ap__row-remove:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.ap__row-remove .ui-icon { width: var(--icon-size-sm); height: var(--icon-size-sm); }
+
+/* --- Card-head lane label -------------------------------------------------- */
+
+/* Names the registration rule a card implements, so a reviewer can trace it
+   back to the workflow without guessing. */
+.ap__lane {
+  font-size: var(--font-size-title-eyebrow);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-tertiary);
+  letter-spacing: var(--letter-spacing-wide);
+}
+
+/* --- The answer a check came back with ---------------------------------------
+   What is left of the decision gate this screen used to draw: a question, its
+   branch and the consequence, in a bordered block. The eligibility check was
+   its last user, and one line beside the button that ran it says the same
+   thing — so the block has gone and the answer's own class stayed.
+   -------------------------------------------------------------------------- */
+
+.ap__gate-a {
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-semibold);
+  color: inherit;
+}
+
+/* The icon spins only while the check is actually in flight. */
+.ap__spin { animation: ap-spin 900ms linear infinite; }
+
+@keyframes ap-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ap__spin { animation: none; }
+}
+
+
+/* --- Sex and gender detail -------------------------------------------------
+   Revealed by "Birth Sex Declined". Set apart from the fields around it so it
+   reads as the answer to that checkbox rather than four more demographics. */
+
+.ap__sex-detail {
+  padding: var(--space-8) var(--space-9);
+  border-left: 3px solid var(--color-border-brand);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+  /* Top-aligned, not bottom: "Sex for Clinical Use" carries a hint beneath
+     it, and .ap__grid's default `end` would align the bottom of that hint
+     with the control beside it, knocking the pair out of line. */
+  align-items: start;
+}
+
+/* --- Subscriber address ----------------------------------------------------
+   Revealed by unticking "Subscriber address same as patient". Set apart the
+   same way the sex detail block is, and for the same reason: it is the answer
+   to the checkbox above it, not five more fields in the policy form. */
+
+.ap__subscriber-address {
+  margin-top: var(--space-5);
+  padding: var(--space-8) var(--space-9);
+  border-left: 3px solid var(--color-border-brand);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+  align-items: start;
+}
+.ap__subscriber-address[hidden] { display: none; }
+
+/* --- Field with an inline "+" ---------------------------------------------- */
+
+/* Race, Ethnicity, Language and friends can hold more than one value in
+   gGastro; the "+" adds another without leaving the form. */
+.ap__addable { display: flex; align-items: flex-end; gap: var(--space-3); }
+.ap__addable > *:first-child { flex: 1; min-width: 0; }
+
+.ap__add-inline {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-height-md);
+  height: var(--control-height-md);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.ap__add-inline:hover { background-color: var(--color-bg-surface-hover); border-color: var(--color-border-brand); color: var(--color-brand-text); }
+.ap__add-inline:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.ap__add-inline .ui-icon { width: var(--icon-size-sm); height: var(--icon-size-sm); }
+
+/* --- Stacked checkbox groups ------------------------------------------------ */
+
+/* Across the card, not down it. Three tick-boxes stacked in a full-width band
+   is three short lines of text with a page of white to the right of them, and
+   it made a run of two or three questions look like a section of its own. */
+.ap__stack-checks {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(18rem, max-content));
+  gap: var(--space-4) var(--space-9);
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+.ap__support-perms legend { grid-column: 1 / -1; padding: 0; margin-bottom: var(--space-2); }
+
+/* A run of checkboxes that belongs to the field directly above it rather than
+   to the card. Nothing uses it now — the two "declines" that did were the
+   reason this modifier existed, and they have moved to a full-width band of
+   their own under the fields (see Information Sharing in patient-add.html).
+   The rule is kept because the shape recurs: a tick that qualifies ONE field
+   still belongs in that field's column, as long as its label is short enough
+   to sit on a line or two at 15rem. */
+.ap__stack-checks--under-field {
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+/* The two support-person permissions. They share the stacked-checks grid, but
+   each label is a permission rather than a preference — "HIPAA Approved" is a
+   decision about who may be told a diagnosis — so the pair is given a rule
+   above it and a little more air, and reads as a block of its own inside the
+   drawer rather than as two more ticks. */
+.ap__support-perms {
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+
+/* --- Slot in a card heading ------------------------------------------------
+   Holds whatever a module wants to say about this record without opening with
+   it — the lead conversion chip is the only one so far. */
+
+.ap__head-slot:empty { display: none; }
+
+/* --- Sticky footer --------------------------------------------------------- */
+
+.ap__foot {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-5);
+  padding: var(--space-6) var(--space-9);
+  background-color: var(--color-bg-surface);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+  box-shadow: var(--elevation-raised);
+}
+
+/* Says what the asterisks scattered up the form mean, once, where the person
+   about to press Save is looking. It yields its space to an error: the note is
+   a standing fact, the error is about the click just made. */
+.ap__foot-req {
+  margin-right: auto;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-tertiary);
+}
+.ap__foot-req[hidden] { display: none; }
+
+.ap__foot-note {
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-status-critical-text);
+}
+.ap__foot-note:empty { display: none; }

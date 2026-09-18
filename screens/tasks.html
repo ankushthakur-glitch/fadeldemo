@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MediNova EHR — Task Management</title>
+    <link rel="icon" type="image/svg+xml" href="../assets/img/favicon.svg" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="../css/reset.css" />
+    <link rel="stylesheet" href="../css/tokens.css" />
+    <link rel="stylesheet" href="../css/base.css" />
+    <link rel="stylesheet" href="../css/ui-kit.css" />
+    <link rel="stylesheet" href="../css/screen-patient.css" />
+    <link rel="stylesheet" href="../css/screen-leads.css" />
+    <link rel="stylesheet" href="../css/screen-tasks.css" />
+
+    <script type="module" src="../js/main.js"></script>
+    <script type="module" src="../js/screens/tasks.js"></script>
+    <script src="../js/open-me-properly.js"></script>
+  </head>
+
+  <body class="pt tsk">
+    <header class="pt__bar">
+      <img class="pt__logo" src="../assets/img/medinova-logo.svg" width="158" height="32"
+        alt="MediNova Gastroenterology Clinic" />
+      <ui-main-nav active="tasks"></ui-main-nav>
+      <div class="pt__bar-actions">
+        <ui-time-clock></ui-time-clock>
+        <button type="button" class="pt__icon-action" aria-label="Notifications">
+          <svg class="ui-icon" aria-hidden="true"><use href="#i-bell"></use></svg>
+        </button>
+        <ui-avatar name="Amara Mensah" size="sm"></ui-avatar>
+      </div>
+    </header>
+
+    <!-- The tab strip is the whole navigation for this screen, so the page
+         title sits beside it rather than above: a second heading row would
+         push the first worklist row below the fold on a laptop. -->
+    <div class="ui-page-head ui-page-head--flush tsk__head">
+      <div class="ui-page-head__lead">
+        <h1 class="u-sr-only">Task Management</h1>
+        <ui-tabs selected="all" primary data-testid="tsk--tabs">
+          <ui-tab value="all" label="All Tasks"></ui-tab>
+          <ui-tab value="mine" label="My Tasks"></ui-tab>
+          <ui-tab value="recalls" label="Recalls"></ui-tab>
+          <ui-tab value="refills" label="Refill Requests"></ui-tab>
+          <ui-tab value="orders" label="Orders"></ui-tab>
+        </ui-tabs>
+      </div>
+
+      <!-- ONE SET OF CONTROLS FOR FIVE WORKLISTS.
+
+           Each tab used to draw its own toolbar above its own table: a search
+           box and up to four filter selects, five times over, on the row where
+           the first task should have been. Five toolbars in five places is
+           also five chances for them to drift apart, and they had — the same
+           filter was 10rem wide on one tab and full width on another.
+
+           There is one search box and one filter panel now, in the header's
+           action slot where every other worklist in the EHR keeps them. They
+           re-point at whichever tab is open rather than being rebuilt per
+           panel, so there is never a stale search box sitting in a hidden
+           one. Filled by paintHeaderControls(). -->
+      <div class="ui-page-head__actions">
+        <span id="headerSearch" class="tsk__search-host"></span>
+
+        <!-- The standard filter control (js/components/ui-filter.js). Its
+             questions are set from JS rather than declared here: this one
+             button serves five worklists, and Recalls does not filter by the
+             same things Refills does. See paintHeaderControls(). -->
+        <ui-filter id="tskFilter" label="Filters" panel-label="Filter this worklist"
+          data-testid="tsk--filter"></ui-filter>
+
+        <!-- Whatever the open worklist offers beyond narrowing itself:
+             Generate letters on Recalls, Refresh status on E-prescriptions. -->
+        <span id="headerExtra"></span>
+
+        <!-- Filled by JS (paintHeaderAction) — the one "add" action for this
+             screen, contextual to whichever tab is open: New Task, New
+             Recall, New Refill, New Lab Order, or nothing on E-prescriptions,
+             which has nothing to add from here. -->
+        <span id="headerAction"></span>
+      </div>
+    </div>
+
+    <main class="ui-list-body tsk__body">
+      <div id="panel-all" role="tabpanel" aria-labelledby="tab-all">
+        <div id="allPanel"></div>
+      </div>
+      <div id="panel-mine" role="tabpanel" aria-labelledby="tab-mine" hidden>
+        <div id="minePanel"></div>
+      </div>
+      <div id="panel-recalls" role="tabpanel" aria-labelledby="tab-recalls" hidden>
+        <div id="recallsPanel"></div>
+      </div>
+      <div id="panel-refills" role="tabpanel" aria-labelledby="tab-refills" hidden>
+        <div id="refillsPanel"></div>
+      </div>
+      <div id="panel-orders" role="tabpanel" aria-labelledby="tab-orders" hidden>
+        <div id="ordersPanel"></div>
+      </div>
+
+      <!-- ================= TASK DETAIL =================
+           A COLUMN OF THE WORKLIST CARD, NOT A DIALOG.
+
+           A task is read against the list it came out of: you open one, decide
+           it is not yours, and open the next. A centred modal makes that a
+           cycle of open-read-dismiss with the list blacked out behind a scrim
+           each time, and after three of them nobody remembers which row they
+           were on. The panel takes the right-hand column of the open card
+           instead — the rows stay lit and clickable beside it, the table
+           scrolls sideways in what is left rather than hiding under it,
+           clicking another ID swaps what the panel shows rather than closing
+           and reopening it, and Escape or the ✕ gives the full table back.
+
+           PARKED HERE, USED IN THERE. openTaskPane() moves this element into
+           whichever tab panel is open. It lives outside all five in the markup
+           so that repainting a worklist — which replaces that panel's innards
+           wholesale — can never take the detail panel with it.
+
+           Filled by paintTaskPane() in js/screens/tasks.js. It stays empty
+           markup here because everything in it — the title, the six facts, the
+           timeline — belongs to whichever task is open. -->
+      <aside id="taskPane" class="tsk__pane" aria-labelledby="taskPaneId"
+        data-testid="tsk--pane" hidden></aside>
+    </main>
+
+    <!-- ================= NEW TASK =================
+         The dialog answers four questions in the order a person asks them:
+         who is it for, what is it about, what has to happen, and by when.
+         Everything that was ornament has gone: the dashed "No recipients
+         yet." well that took a third of the panel to say nothing, and the
+         View Chart button, which navigated the whole window away from a
+         half-typed form and lost it. Reading a chart is not part of writing
+         a task; the task lands in a worklist row that opens the chart. -->
+    <ui-modal id="taskModal" heading="New Task" size="md">
+      <div class="tsk__form">
+        <!-- SEVERAL RECIPIENTS, AND THE DIALOG SAYS WHAT THAT MEANS.
+             The same piece of work genuinely is handed to two or three people
+             at once — the nurse and the front desk both chase the same
+             histology — and asking for that a name at a time, by sending the
+             form again, is the same typing done three times.
+
+             So the field takes a set. What it must not do is the thing the old
+             chip row did silently: a task is owned by somebody, and has an
+             assignee, a status and a history that are all answers about ONE
+             person, so three names cannot be one task. Three names are three
+             tasks — three ids, three trails, three statuses, and closing one
+             closes nothing for the other two.
+
+             That was always true; what was missing was anybody saying so. The
+             line under the field says it, in the dialog, before Send is
+             pressed: "Sends 3 separate tasks — one each…". Naming the
+             consequence at the moment the choice is made is what makes the
+             fan-out honest, and it costs one sentence that is not even drawn
+             until a second name is picked.
+
+             The picker is a <select multiple>, so what has been chosen is read
+             off the closed field itself — see js/lib/select-menu.js, which
+             gives it a face and checkbox rows. Recipient first, because who it
+             is for decides everything below it. "Me" stays as a one-click
+             quick-pick beside it and now ADDS rather than replaces: the
+             commonest pairing of all is somebody else and the person typing. -->
+        <div class="ui-field tsk__recipients">
+          <div class="tsk__recipients-row">
+            <ui-select id="taskRecipientPicker" label="Recipient" required multiple
+              placeholder="Search staff…" data-testid="tsk--recipient-picker"></ui-select>
+            <ui-button variant="outline" icon="user-plus" data-testid="tsk--recipient-self"
+              >Me</ui-button>
+          </div>
+          <p class="tsk__fanout" id="taskFanout" data-testid="tsk--recipient-fanout" hidden></p>
+        </div>
+
+        <div class="tsk__pair">
+          <ui-select id="taskPatient" label="Patient" placeholder="Search patients…"
+            data-testid="tsk--patient"></ui-select>
+          <ui-select id="taskType" label="Type" data-testid="tsk--type"></ui-select>
+        </div>
+
+        <ui-input id="taskSubject" label="Subject" placeholder="What needs doing?" required
+          data-testid="tsk--subject"></ui-input>
+
+        <ui-textarea id="taskMessage" label="Message" rows="3"
+          placeholder="Anything the recipient needs to know…"></ui-textarea>
+
+        <!-- NO LOCATION FIELD.
+             A task belongs to a person, not to a building. It was asked of
+             every task, defaulted to the first site, and read by nothing — not
+             the worklist columns, not the filters, not the detail panel, and
+             not the row that opens the chart. Where the work happens is
+             already said by the two things that decide it: who it is assigned
+             to, and which patient it is about.
+
+             Priority is three answers, so it is three buttons rather than a
+             dropdown: one click instead of two, and the choice is readable
+             without opening anything. Native radios do the keyboard work and
+             the "2 of 3" announcement; the segments are only paint. Filled
+             from TASK_PRIORITIES in tasks.js so the vocabulary has one home.
+             Full width now that Location is not sharing the row with it — the
+             three segments have the measure to be read as a scale rather than
+             squeezed into half a dialog. -->
+        <fieldset class="tsk__seg" id="taskPriority" data-testid="tsk--priority">
+          <legend class="ui-field__label">Priority</legend>
+          <div class="tsk__seg-track"></div>
+        </fieldset>
+
+        <div class="tsk__pair">
+          <ui-input id="taskStart" label="Start Date" type="date" data-testid="tsk--start"></ui-input>
+          <ui-input id="taskDue" label="Due Date" type="date" data-testid="tsk--due"></ui-input>
+        </div>
+      </div>
+
+      <div class="ui-modal__actions">
+        <ui-button variant="tertiary" data-tsk-dismiss data-testid="tsk--task-cancel"
+          >Cancel</ui-button
+        >
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="outline" data-testid="tsk--send-new">Send &amp; New</ui-button>
+        <ui-button variant="primary" icon="send" data-testid="tsk--send">Send</ui-button>
+      </div>
+    </ui-modal>
+
+    <!-- ================= START / COMPLETE COMMENT =================
+         Moving a task on is the moment somebody knows something about it, and
+         until now that knowledge had nowhere to go: Start and Complete fired
+         straight from the detail panel and wrote one fixed line into the
+         trail — "A. Mensah completed this task" — which records that it
+         happened and nothing about what happened. The next person to open the
+         task read a closed row and had to ring somebody to find out why.
+
+         So the two verbs ask. One dialog, not two: Start and Complete are the
+         same question ("anything to say about this?") asked at two moments,
+         and the heading, the prompt and the button are set from whichever
+         verb opened it — see openStepModal() in tasks.js.
+
+         THE COMMENT IS OPTIONAL. Most tasks are exactly what their subject
+         says and have nothing to add, and a required box would be answered
+         with a full stop within a week. Left empty, the trail reads as it
+         always did. Filled, the comment hangs under that trail entry, in the
+         words of the person who moved it. -->
+    <ui-modal id="taskStepModal" heading="Start task" size="sm">
+      <div class="tsk__form">
+        <p class="tsk__step-subject" id="taskStepSubject" data-testid="tsk--step-subject"></p>
+        <ui-textarea id="taskStepComment" label="Comment" rows="3"
+          data-testid="tsk--step-comment"></ui-textarea>
+      </div>
+
+      <div class="ui-modal__actions">
+        <ui-button variant="tertiary" data-tsk-dismiss data-testid="tsk--step-cancel"
+          >Cancel</ui-button
+        >
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="primary" data-testid="tsk--step-confirm">Start</ui-button>
+      </div>
+    </ui-modal>
+
+    <!-- ================= REASSIGN =================
+         Handing a task to someone else is a decision about a person, and
+         until now it was made in a bare dropdown that opened under the
+         Reassign button: nine names, no task in sight. On a worklist where
+         every row looks like every other row that is one mis-click away from
+         sending the wrong task to the wrong person, and nothing on screen
+         said which task was being moved.
+
+         So it asks in the middle of the screen instead, with the task named
+         at the top and the person it is currently with stated underneath.
+         The list is the same staff roster; what is new is the context around
+         it, and a note — optional, like the step dialog's — for the sentence
+         that makes a handover make sense to whoever picks it up. -->
+    <ui-modal id="taskReassignModal" heading="Reassign task" size="sm">
+      <div class="tsk__form">
+        <p class="tsk__step-subject" id="taskReassignSubject"
+          data-testid="tsk--reassign-subject"></p>
+        <p class="tsk__confirm" id="taskReassignFrom" data-testid="tsk--reassign-from"></p>
+
+        <ui-select id="taskReassignTo" label="Reassign to" placeholder="Select a person" required
+          data-testid="tsk--reassign-to"></ui-select>
+        <ui-textarea id="taskReassignNote" label="Note" rows="3"
+          data-testid="tsk--reassign-note"></ui-textarea>
+      </div>
+
+      <div class="ui-modal__actions">
+        <ui-button variant="tertiary" data-tsk-dismiss data-testid="tsk--reassign-cancel"
+          >Cancel</ui-button
+        >
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="primary" data-testid="tsk--reassign-confirm">Reassign</ui-button>
+      </div>
+    </ui-modal>
+
+    <!-- ================= RECALL FORM =================
+         Patient stands alone, first — every other field in this dialog
+         depends on who it is for, so it stays disabled until one is
+         chosen (see gatePatientFirst in tasks.js). -->
+    <ui-modal id="recallModal" heading="Recall Form" size="md">
+      <div class="tsk__form">
+        <ui-select id="recallPatient" label="Patient" placeholder="Search patients…" required
+          data-testid="tsk--recall-patient"></ui-select>
+
+        <div class="tsk__pair">
+          <ui-select id="recallProvider" label="Provider" placeholder="Select provider" required
+            disabled data-testid="tsk--recall-provider"></ui-select>
+          <ui-select id="recallLocation" label="Location" disabled
+            data-testid="tsk--recall-location"></ui-select>
+        </div>
+
+        <div class="tsk__pair">
+          <ui-select id="recallType" label="Type" placeholder="Select recall type" required
+            disabled data-testid="tsk--recall-type"></ui-select>
+          <ui-select id="recallInterval" label="Interval" disabled
+            data-testid="tsk--recall-interval"></ui-select>
+        </div>
+
+        <ui-input id="recallDate" label="Due date" type="date" required disabled
+          data-testid="tsk--recall-date"></ui-input>
+
+        <ui-textarea id="recallNote" label="Description" rows="3" disabled
+          placeholder="Why this patient is being recalled…"></ui-textarea>
+
+        <p class="tsk__form-error" id="recallError" role="alert" hidden></p>
+      </div>
+
+      <div class="ui-modal__actions">
+        <ui-button variant="tertiary" data-tsk-dismiss>Cancel</ui-button>
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="primary" data-testid="tsk--recall-save">Save</ui-button>
+      </div>
+    </ui-modal>
+
+    <!-- ================= NEW LAB ORDER =================
+         Same patient-first rule as Recall Form and Refill Request. -->
+    <ui-modal id="labOrderModal" heading="New lab order" size="md">
+      <div class="tsk__form">
+        <ui-select id="labPatient" label="Patient" placeholder="Search patients…" required
+          data-testid="tsk--lab-patient"></ui-select>
+
+        <div class="tsk__pair">
+          <ui-select id="labProvider" label="Ordering provider" placeholder="Select provider"
+            required disabled data-testid="tsk--lab-provider"></ui-select>
+          <ui-select id="labRoute" label="Route" disabled data-testid="tsk--lab-route"></ui-select>
+        </div>
+
+        <ui-select id="labPriority" label="Priority" disabled data-testid="tsk--lab-priority"></ui-select>
+
+        <div class="ui-field">
+          <span class="ui-field__label">Tests</span>
+          <div class="tsk__checks tsk__checks--disabled" id="labTests" data-testid="tsk--lab-tests"></div>
+        </div>
+
+        <p class="tsk__form-error" id="labError" role="alert" hidden></p>
+      </div>
+
+      <div class="ui-modal__actions">
+        <ui-button variant="tertiary" data-tsk-dismiss>Cancel</ui-button>
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="primary" data-testid="tsk--lab-save">Send order</ui-button>
+      </div>
+    </ui-modal>
+
+    <!-- ================= NEW REFILL REQUEST =================
+         Same patient-first rule as Recall Form and New Lab Order. -->
+    <ui-modal id="refillModal" heading="New refill request" size="md">
+      <div class="tsk__form">
+        <ui-select id="refillPatient" label="Patient" placeholder="Search patients…" required
+          data-testid="tsk--refill-patient"></ui-select>
+
+        <div class="tsk__pair">
+          <ui-input id="refillMedication" label="Medication" placeholder="e.g. Mesalamine 1.2 g"
+            required disabled data-testid="tsk--refill-medication"></ui-input>
+          <ui-select id="refillPharmacy" label="Pharmacy" placeholder="Select pharmacy" required
+            disabled data-testid="tsk--refill-pharmacy"></ui-select>
+        </div>
+
+        <div class="tsk__pair">
+          <ui-select id="refillProvider" label="Prescriber" placeholder="Select provider" required
+            disabled data-testid="tsk--refill-provider"></ui-select>
+          <ui-input id="refillDetail" label="Detail" placeholder="e.g. Delayed release, 90 day"
+            disabled data-testid="tsk--refill-detail"></ui-input>
+        </div>
+
+        <p class="tsk__form-error" id="refillError" role="alert" hidden></p>
+      </div>
+
+      <div class="ui-modal__actions">
+        <ui-button variant="tertiary" data-tsk-dismiss>Cancel</ui-button>
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="primary" data-testid="tsk--refill-save">Save</ui-button>
+      </div>
+    </ui-modal>
+
+    <!-- ================= DENY REFILL ================= -->
+    <ui-modal id="denyModal" heading="Deny refill request" size="sm">
+      <div class="tsk__form">
+        <p class="tsk__confirm" id="denyBody"></p>
+        <ui-select id="denyReason" label="Reason" placeholder="Select a reason" required
+          data-testid="tsk--deny-reason"></ui-select>
+        <p class="tsk__form-error" id="denyError" role="alert" hidden></p>
+      </div>
+
+      <div class="ui-modal__actions">
+        <ui-button variant="tertiary" data-tsk-dismiss>Cancel</ui-button>
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="danger" data-testid="tsk--deny-confirm">Deny request</ui-button>
+      </div>
+    </ui-modal>
+
+    <!-- ================= GENERATE LETTERS ================= -->
+    <ui-modal id="lettersModal" heading="Generate recall letters" size="sm">
+      <div class="tsk__form">
+        <p class="tsk__confirm" id="lettersBody"></p>
+        <ui-select id="lettersHeader" label="Print configuration"
+          data-testid="tsk--letters-header"></ui-select>
+      </div>
+
+      <div class="ui-modal__actions">
+        <ui-button variant="tertiary" data-tsk-dismiss>Cancel</ui-button>
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="primary" icon="printer" data-testid="tsk--letters-confirm"
+          >Generate</ui-button
+        >
+      </div>
+    </ui-modal>
+  </body>
+</html>

@@ -1,0 +1,1805 @@
+/* ============================================================================
+   COMPONENTS — the parts the screens are assembled from.
+
+   Plain classes rather than custom elements. The EHR reaches for <ui-input>
+   and friends because twenty dense clinical screens share a lot of stateful
+   behaviour; the portal has eleven mostly-static screens, and a class is the
+   cheaper thing that does the job. The two places behaviour genuinely lives —
+   the modal and the password reveal — are handled in JS against these classes.
+   ========================================================================= */
+
+/* ============================================================================
+   BUTTON
+   ========================================================================= */
+
+.pp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--pp-space-2);
+  min-height: var(--pp-btn-h);
+  padding: 0 var(--pp-space-4);
+  border: 1px solid transparent;
+  border-radius: var(--pp-radius-ctl);
+  background-color: transparent;
+  color: var(--pp-text);
+  font-size: var(--pp-size-sm);
+  font-weight: var(--pp-weight-medium);
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.pp-btn:hover {
+  text-decoration: none;
+}
+
+.pp-btn[disabled],
+.pp-btn[aria-disabled='true'] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pp-btn--primary {
+  background-color: var(--pp-action);
+  border-color: var(--pp-action);
+  color: var(--pp-text-on-brand);
+}
+
+.pp-btn--primary:hover {
+  background-color: var(--pp-action-hover);
+  border-color: var(--pp-action-hover);
+}
+
+.pp-btn--primary:active {
+  background-color: var(--pp-action-active);
+  border-color: var(--pp-action-active);
+}
+
+.pp-btn--outline {
+  background-color: var(--pp-surface);
+  border-color: var(--pp-action);
+  color: var(--pp-action);
+}
+
+.pp-btn--outline:hover {
+  background-color: var(--pp-brand-050);
+}
+
+/* The quiet third option — "Cancel Appointment" sits beside a bordered
+   "Reschedule" and must read as the lesser of the two without being invisible. */
+.pp-btn--quiet {
+  color: var(--pp-text);
+}
+
+.pp-btn--quiet:hover {
+  background-color: var(--pp-surface-hover);
+}
+
+.pp-btn--neutral {
+  background-color: var(--pp-surface);
+  border-color: var(--pp-line-strong);
+  color: var(--pp-text);
+}
+
+.pp-btn--neutral:hover {
+  background-color: var(--pp-surface-hover);
+}
+
+/*
+ * The destructive confirm — one button in the portal, and it is the one that
+ * cancels an appointment and accepts a fee.
+ *
+ * --pp-red-solid rather than --pp-red-fg: the token exists precisely for red
+ * carrying white text, and the text step fails contrast behind white. Solid
+ * red, not an outline, because the button beside it (Keep Appointment) is the
+ * safe answer and the two must not read as a matched pair.
+ */
+.pp-btn--danger {
+  background-color: var(--pp-red-solid);
+  border-color: var(--pp-red-solid);
+  color: var(--pp-white);
+}
+
+.pp-btn--danger:hover {
+  background-color: var(--pp-red-strong);
+  border-color: var(--pp-red-strong);
+}
+
+.pp-btn--sm {
+  min-height: var(--pp-btn-h-sm);
+  padding: 0 var(--pp-space-3);
+  font-size: var(--pp-size-xs);
+}
+
+.pp-btn--full {
+  width: 100%;
+}
+
+/* Square, icon-only. The filter button beside the Messages search, the kebab at
+   the end of a card row. */
+.pp-btn--icon {
+  width: var(--pp-btn-h);
+  min-height: var(--pp-btn-h);
+  padding: 0;
+}
+
+.pp-btn--icon.pp-btn--sm {
+  width: var(--pp-btn-h-sm);
+}
+
+/* --- Link-shaped actions ------------------------------------------------------ */
+
+.pp-link {
+  color: var(--pp-text-link);
+  font-size: var(--pp-size-sm);
+  font-weight: var(--pp-weight-medium);
+  text-decoration: underline;
+  text-underline-offset: 0.1875rem;
+  cursor: pointer;
+}
+
+/* "More ↗" in a card head — a link that opens the full section. */
+.pp-more {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pp-space-1);
+  color: var(--pp-text-link);
+  font-size: var(--pp-size-sm);
+  font-weight: var(--pp-weight-medium);
+}
+
+.pp-more:hover {
+  text-decoration: underline;
+}
+
+/* ============================================================================
+   FORM FIELDS
+   ========================================================================= */
+
+.pp-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pp-space-2);
+  min-width: 0;
+}
+
+.pp-label {
+  font-size: var(--pp-size-sm);
+  font-weight: var(--pp-weight-medium);
+  color: var(--pp-text-strong);
+}
+
+/* The wrapper exists so an icon can sit inside the control's box. Padding on
+   the input reserves the space; the icon is positioned into it. */
+.pp-control {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.pp-input,
+.pp-textarea,
+.pp-select {
+  width: 100%;
+  min-height: var(--pp-control-h);
+  padding: 0 var(--pp-space-3);
+  border: 1px solid var(--pp-line-strong);
+  border-radius: var(--pp-radius-ctl);
+  background-color: var(--pp-surface);
+  color: var(--pp-text-strong);
+  font-size: var(--pp-size-sm);
+}
+
+.pp-textarea {
+  min-height: 5rem;
+  padding: var(--pp-space-2) var(--pp-space-3);
+  resize: vertical;
+  line-height: var(--pp-leading-normal);
+}
+
+.pp-input::placeholder,
+.pp-textarea::placeholder {
+  color: var(--pp-text-faint);
+}
+
+/*
+ * A FIELD THAT CANNOT BE TYPED IN LOOKS LIKE ONE.
+ *
+ * The MRN and the date of birth on a form come from the record and are shown
+ * so they can be checked, not changed. That used to be said in a sentence
+ * under every one of them — "From your record. Message your care team to
+ * change it." — which is a two-line paragraph repeated three times in a
+ * section to explain something the control should say by being looked at.
+ *
+ * Sunk ground, muted ink, and the arrow rather than the I-beam: the same
+ * three signals every disabled control in the portal gives. `readonly` and
+ * not `disabled`, because the value still has to be submitted and still has
+ * to be reachable by keyboard and announced — a screen reader says "read
+ * only" on its own, which is the other half of what the sentence was for.
+ */
+.pp-input[readonly],
+.pp-textarea[readonly] {
+  border-color: var(--pp-line);
+  background-color: var(--pp-surface-sunk);
+  color: var(--pp-text-muted);
+  cursor: default;
+}
+
+/* No focus ring worth the name on a field nothing can be typed into, but the
+   border still has to move — a keyboard user tabbing through needs to see
+   where they are. */
+.pp-input[readonly]:focus,
+.pp-textarea[readonly]:focus {
+  border-color: var(--pp-line-strong);
+  box-shadow: none;
+}
+
+.pp-input:focus,
+.pp-textarea:focus,
+.pp-select:focus {
+  outline: none;
+  border-color: var(--pp-focus);
+  box-shadow: 0 0 0 3px var(--pp-brand-200);
+}
+
+/* Room for the trailing affordance — the mail glyph, the reveal eye, the
+   calendar picker. */
+.pp-control--icon .pp-input,
+.pp-control--icon .pp-select {
+  padding-right: var(--pp-space-8);
+}
+
+/*
+ * A <select> inside .pp-control--icon already has our chevron drawn over its
+ * right-hand end, and the browser draws its own underneath — two arrows, one
+ * control. `appearance: none` removes the platform one and leaves ours.
+ *
+ * Only inside .pp-control--icon: a bare .pp-select with no glyph of its own
+ * still needs the native arrow, or it becomes a text field that mysteriously
+ * opens a menu.
+ */
+.pp-control--icon .pp-select {
+  appearance: none;
+}
+
+.pp-control__icon {
+  position: absolute;
+  right: var(--pp-space-4);
+  display: flex;
+  color: var(--pp-text-faint);
+  pointer-events: none;
+}
+
+/* The reveal eye is a real button, so it must take the pointer back. */
+.pp-control__button {
+  position: absolute;
+  right: var(--pp-space-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: var(--pp-radius-sm);
+  color: var(--pp-text-muted);
+  cursor: pointer;
+}
+
+.pp-control__button:hover {
+  background-color: var(--pp-surface-hover);
+  color: var(--pp-text);
+}
+
+/*
+ * The native date picker's own button, made invisible and stretched over the
+ * calendar glyph we draw.
+ *
+ * Chrome puts an indicator inside <input type="date"> whether you want one or
+ * not, so drawing the design's calendar icon on top produced two. Hiding the
+ * native one outright would leave a glyph that looks pressable and is not
+ * (.pp-control__icon has pointer-events: none), so instead it is made
+ * transparent and given the whole right-hand end of the field: the icon a
+ * person sees is ours, the control they click is the browser's.
+ */
+.pp-control--icon input[type='date']::-webkit-calendar-picker-indicator {
+  position: absolute;
+  inset: 0 0 0 auto;
+  width: var(--pp-space-8);
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/*
+ * An empty native <select> renders its placeholder option in full black,
+ * which reads as a filled field. Greying it until something is chosen keeps
+ * it honest against the text inputs beside it.
+ *
+ * --pp-text-muted, NOT --pp-text-faint. The faint grey is the right weight
+ * next to a filled field and the wrong one for a screen reader's sighted
+ * counterpart: "Select Schedule" is real text a person has to read to know
+ * what the control wants, and at #9aa4b0 on white it measures 2.52:1. The
+ * ::placeholder rule above can stay faint — a placeholder inside a text field
+ * repeats its label; this is the field's only visible value.
+ */
+.pp-select[data-empty='true'] {
+  color: var(--pp-text-muted);
+}
+
+.pp-field__error {
+  font-size: var(--pp-size-xs);
+  color: var(--pp-red-fg);
+}
+
+/* The select and the textarea carry aria-invalid too. The rule used to name
+   only .pp-input, so a required dropdown announced itself as invalid to a
+   screen reader and looked untouched to everyone else. */
+.pp-input[aria-invalid='true'],
+.pp-select[aria-invalid='true'],
+.pp-textarea[aria-invalid='true'] {
+  border-color: var(--pp-red-fg);
+}
+
+/* --- Checkbox and radio ---------------------------------------------------------
+   The row that holds one. The box itself is painted further down this file,
+   on the bare input, so any portal markup gets it without a wrapper class.
+   --pp-choice-size to match the provider portal — one control, two products. */
+.pp-check {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pp-space-2);
+  font-size: var(--pp-size-sm);
+  color: var(--pp-text);
+  cursor: pointer;
+}
+
+.pp-check input {
+  width: var(--pp-choice-size);
+  height: var(--pp-choice-size);
+  margin: 0;
+  cursor: pointer;
+}
+
+/* ============================================================================
+   BADGE
+   ========================================================================= */
+
+.pp-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pp-space-1);
+  padding: 0.125rem var(--pp-space-3);
+  /* A status pill, not a status box. The reference rounds these fully and
+     that is what separates "Completed" as a STATE from a bordered chip you
+     could click. */
+  border-radius: var(--pp-radius-pill);
+  background-color: var(--pp-grey-100);
+  color: var(--pp-text);
+  font-size: var(--pp-size-xs);
+  font-weight: var(--pp-weight-medium);
+  line-height: var(--pp-leading-meta);
+  white-space: nowrap;
+}
+
+.pp-badge--ok {
+  background-color: var(--pp-green-bg);
+  color: var(--pp-green-fg);
+}
+
+.pp-badge--bad {
+  background-color: var(--pp-red-bg);
+  color: var(--pp-red-fg);
+}
+
+.pp-badge--info {
+  background-color: var(--pp-info-bg);
+  color: var(--pp-info-fg);
+}
+
+.pp-badge--purple {
+  background-color: var(--pp-purple-bg);
+  color: var(--pp-purple-fg);
+}
+
+.pp-badge--warn {
+  background-color: var(--pp-amber-bg);
+  color: var(--pp-amber-fg);
+}
+
+/* Outlined, with a leading glyph — the "Virtual" marker on an appointment. */
+.pp-badge--outline {
+  background-color: var(--pp-surface);
+  border: 1px solid var(--pp-line-tint);
+  color: var(--pp-info-fg);
+}
+
+/* ============================================================================
+   AVATAR
+
+   The design uses photographs. A prototype has none, and inventing stock
+   faces for named "patients" and "providers" is a worse answer than saying so
+   plainly — so these are initials on a tinted disc. The shape, size and
+   position are the design; only the fill is a stand-in.
+   ========================================================================= */
+
+.pp-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--pp-radius-pill);
+  background-color: var(--pp-brand-100);
+  color: var(--pp-brand-800);
+  font-size: var(--pp-size-xs);
+  font-weight: var(--pp-weight-semibold);
+  letter-spacing: var(--pp-tracking-caps);
+  text-transform: uppercase;
+  user-select: none;
+}
+
+.pp-avatar--sm {
+  width: 1.75rem;
+  height: 1.75rem;
+  font-size: var(--pp-size-xxs);
+}
+
+.pp-avatar--lg {
+  width: 3rem;
+  height: 3rem;
+  font-size: var(--pp-size-body);
+}
+
+/* The provider portrait on an appointment card is a rounded rectangle, not a
+   disc — big enough to read as a photograph slot. */
+.pp-avatar--tile {
+  width: 4.25rem;
+  height: 4.25rem;
+  border-radius: var(--pp-radius);
+  font-size: var(--pp-size-h2);
+}
+
+/* A group thread has no one face. */
+.pp-avatar--group {
+  background-color: var(--pp-brand-050);
+  color: var(--pp-brand-700);
+}
+
+/* ============================================================================
+   CARD
+   ========================================================================= */
+
+.pp-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 1px solid var(--pp-line);
+  border-radius: var(--pp-radius);
+  background-color: var(--pp-surface);
+  box-shadow: var(--pp-shadow-card);
+}
+
+/*
+ * The head is WHITE, and a hairline is all that divides it from the body.
+ *
+ * It used to carry --pp-surface-sunk. A filled band works when a card is a
+ * window onto something else, but the portal's cards are lists with a name on
+ * top, and on a screen showing three of them side by side the three grey
+ * bands read as the content and the rows beneath them as the background. The
+ * reference draws the same cards with a white head and a rule, so the eye
+ * lands on the row it came to read. The head is still a distinct region — it
+ * just says so with a line instead of a fill.
+ */
+.pp-card__head {
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-3);
+  padding: var(--pp-pad-row) var(--pp-pad-card);
+  border-bottom: 1px solid var(--pp-line);
+  border-radius: var(--pp-radius) var(--pp-radius) 0 0;
+  background-color: var(--pp-surface);
+}
+
+.pp-card__title {
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-2);
+  font-size: var(--pp-size-h3);
+  font-weight: var(--pp-weight-semibold);
+  line-height: var(--pp-leading-h3);
+  color: var(--pp-text-strong);
+}
+
+.pp-card__body {
+  flex: 1;
+  min-height: 0;
+  padding: var(--pp-pad-card);
+}
+
+.pp-card__body--flush {
+  padding: 0;
+}
+
+/*
+ * Actions sit at the RIGHT edge of the foot.
+ *
+ * The reference is consistent about it on every card that ends in one — the
+ * eye finishes the card at the bottom-right and that is where the control
+ * should already be. Anything that genuinely needs a left-hand item puts it
+ * in the foot and pushes the rest over with .pp-push.
+ */
+.pp-card__foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--pp-space-2);
+  padding: var(--pp-pad-row) var(--pp-pad-card);
+}
+
+/* ============================================================================
+   DEFINITION ROWS — "Provider Name … Jane Cooper"
+
+   A real <dl>. The label/value pairing is the content, not a layout accident,
+   and a screen reader that knows it is reading a description list will say so.
+   ========================================================================= */
+
+.pp-defs {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--pp-space-2) var(--pp-space-5);
+  align-items: baseline;
+  margin: 0;
+  font-size: var(--pp-size-sm);
+}
+
+/* The label half of the pair, so level 3 — matching .pp-facts dt and
+   .pp-appt-fact--wide dt. All three used to disagree with each other. */
+.pp-defs dt {
+  color: var(--pp-text-muted);
+}
+
+.pp-defs dd {
+  margin: 0;
+  color: var(--pp-text-strong);
+  font-weight: var(--pp-weight-medium);
+}
+
+/* Wide screens: two label/value pairs per row (Profile Details, Insurance). */
+.pp-defs--two-up {
+  grid-template-columns: max-content 1fr max-content 1fr;
+  gap: var(--pp-space-3) var(--pp-space-5);
+}
+
+@media (width < 60rem) {
+  .pp-defs--two-up {
+    grid-template-columns: max-content 1fr;
+  }
+}
+
+/* ============================================================================
+   APPOINTMENT FACTS — how a visit is described, wherever it is drawn
+
+   Moved here from screen-appointment.css when Home started drawing the same
+   thing. Two screens now describe an appointment: the rail of cards on
+   Appointment, and the Upcoming Appointment card on the dashboard. They sit
+   in different containers — an .pp-appt-card there, a .pp-card body here —
+   but the DESCRIPTION is one component: a headline saying when, and a short
+   <dl> of icon'd facts saying who, where, how and why.
+
+   The names lost their `-card` segment in the move (.pp-appt-card__facts is
+   now .pp-appt-facts) precisely because they no longer belong to that card.
+
+   The narrow-card rule at the end is a CONTAINER query, so whatever holds
+   these facts has to declare `container-type: inline-size` itself — the rail
+   card does, and so does Home's card body. A block with no container falls
+   back to the two-column layout, which is the right answer for a wide one.
+   ========================================================================= */
+
+/* When the visit is — the one line the card is read for, so it is the only
+   thing on it set above body size. */
+.pp-appt-when {
+  font-size: var(--pp-size-h3);
+  font-weight: var(--pp-weight-semibold);
+  color: var(--pp-text-strong);
+  line-height: var(--pp-leading-h3);
+}
+
+/*
+ * The facts.
+ *
+ * Two columns where the card is wide enough — location and visit mode read as
+ * a pair, "where" and "how" — with the provider and the reason on lines of
+ * their own. Provider is first because it is what a patient looks for, and
+ * reason is last because it is the longest and the least fixed in length.
+ */
+.pp-appt-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--pp-space-2) var(--pp-pad-card);
+  margin: 0;
+  font-size: var(--pp-size-sm);
+}
+
+.pp-appt-fact--wide {
+  grid-column: 1 / -1;
+}
+
+.pp-appt-fact dd {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--pp-space-2);
+  margin: 0;
+  color: var(--pp-text-strong);
+  min-width: 0;
+}
+
+/* The glyph is a marker, not content: quiet, and it holds its size when the
+   line beside it wraps to two. */
+.pp-appt-fact .pp-icon {
+  flex: none;
+  margin-top: 0.15em;
+  color: var(--pp-text-faint);
+}
+
+/* "— Internal Medicine" after the provider's name. The specialty is how you
+   tell two visits apart; the name is how you recognise one. */
+.pp-appt-fact__sub {
+  color: var(--pp-text-muted);
+}
+
+/* The one visible label — Reason for Visit. Set like the muted facts around
+   it so it reads as the caption to the answer, not as a heading. */
+.pp-appt-fact--wide dt:not(.pp-sr-only) {
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-2);
+  color: var(--pp-text-muted);
+}
+
+/*
+ * Label and answer on one line: "Reason for Visit — Left knee pain after a
+ * fall". Stacked, the label spent a whole row of card height saying four
+ * words that fit beside the answer, and the card is the tallest thing on the
+ * screen. The answer still wraps onto its own line when it is long, which is
+ * why the dash belongs to it rather than to the label.
+ */
+.pp-appt-fact--inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--pp-space-2);
+}
+
+.pp-appt-fact--inline dd {
+  flex: 1;
+  align-items: baseline;
+  min-width: 14rem;
+}
+
+.pp-appt-fact--inline dd::before {
+  content: '—';
+  color: var(--pp-text-faint);
+}
+
+/* Two fact columns need about 28rem; below that they are one, whether the
+   width was lost to a narrow window or to a card that only gets a third of
+   the dashboard. */
+@container (width < 28rem) {
+  .pp-appt-facts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* ============================================================================
+   NUMBERED LIST — Current Medication, Latest Reports
+   ========================================================================= */
+
+.pp-list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pp-list__item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--pp-space-3);
+  padding: var(--pp-pad-row) var(--pp-pad-card);
+  border-bottom: 1px solid var(--pp-line);
+}
+
+.pp-list__item:last-child {
+  border-bottom: none;
+}
+
+/* The ordinal, not the entry. It shared the name's heading ink, which put two
+   things on one row at the same level and made the number compete with the
+   thing it was numbering. */
+.pp-list__index {
+  color: var(--pp-text-muted);
+  font-size: var(--pp-size-body);
+  font-weight: var(--pp-weight-medium);
+  font-variant-numeric: tabular-nums;
+}
+
+.pp-list__main {
+  flex: 1;
+  min-width: 0;
+}
+
+.pp-list__name {
+  color: var(--pp-text-strong);
+  font-size: var(--pp-size-body);
+  font-weight: var(--pp-weight-medium);
+}
+
+.pp-list__meta {
+  margin-top: 0.125rem;
+  color: var(--pp-text-muted);
+  font-size: var(--pp-size-xs);
+}
+
+.pp-list__tags {
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-2);
+  flex: none;
+}
+
+/* ============================================================================
+   TABLE
+   ========================================================================= */
+
+.pp-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--pp-line);
+  border-radius: var(--pp-radius);
+  background-color: var(--pp-surface);
+}
+
+.pp-table {
+  width: 100%;
+  min-width: 44rem;
+  font-size: var(--pp-size-sm);
+}
+
+/* The column head NAMES the data; it is not the data. That makes it a level-3
+   label like every other label in the portal, and it is the reason the head is
+   lighter than the rows under it despite being the semibold one — weight marks
+   it as a heading, ink marks it as secondary. It ran at --pp-text before, one
+   step too dark, which set it level with the cells and made the whole table
+   read as an undifferentiated block. Muted on --pp-brand-050 measures 4.78. */
+.pp-table thead th {
+  padding: var(--pp-pad-row) var(--pp-pad-card);
+  background-color: var(--pp-brand-050);
+  color: var(--pp-text-muted);
+  font-size: var(--pp-size-xs);
+  font-weight: var(--pp-weight-semibold);
+  text-align: left;
+  white-space: nowrap;
+}
+
+/* td AND th, because a row can be headed by its first cell — Forms names the
+   form there as a <th scope="row"> so a reader hearing "02/12/2026 …
+   Completed … View" is told which form it is hearing about. A row header is
+   still a cell in the row and is padded and ruled like one; only thead's
+   header band is styled apart. */
+/* Body cells are BODY ink, not heading ink. They were --pp-text-strong, which
+   meant that on a screen like Medications or Statements several hundred words
+   of tabular data arrived in the same near-black as the h2 above them — the
+   single biggest reason the portal read as flat. Level 2 at 7.99:1 is darker
+   than the old body ink was, so nothing here got harder to read; what changed
+   is that the heading now has somewhere to stand above it. Cells that need to
+   stand out still do it with a link colour or a badge, not with black. */
+.pp-table tbody :is(td, th) {
+  padding: var(--pp-pad-row) var(--pp-pad-card);
+  border-top: 1px solid var(--pp-line);
+  color: var(--pp-text);
+  vertical-align: middle;
+}
+
+.pp-table tbody tr:hover {
+  background-color: var(--pp-surface-hover);
+}
+
+.pp-table__num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.pp-table__action {
+  width: 1%;
+  white-space: nowrap;
+}
+
+/*
+ * A table with nothing in it — one row spanning every column, rather than a
+ * .pp-empty block instead of the table. The head still says what the columns
+ * would have been, which is the difference between "empty" and "broken".
+ *
+ * Here rather than on a screen sheet because .pp-table is shared and so is
+ * this row: it lived in screen-medications.css, which meant Reports drew the
+ * same markup on a screen that never loaded the rule for it.
+ */
+.pp-table__empty {
+  padding: var(--pp-space-7) var(--pp-pad-card);
+  color: var(--pp-text-muted);
+  text-align: center;
+}
+
+/* Nothing to hover when there is nothing there. */
+.pp-table tbody tr:has(.pp-table__empty):hover {
+  background-color: transparent;
+}
+
+/*
+ * The em dash a cell nobody filled in carries.
+ *
+ * Faint, because it is the absence of a value and not a value. A blank cell
+ * would do the same job typographically and a worse one clinically: on a
+ * medication list the reader has to be able to tell "nobody recorded this"
+ * from "the page failed to draw it".
+ */
+.pp-table__none {
+  color: var(--pp-text-faint);
+}
+
+/* ============================================================================
+   TABS — one boxed group, and the sub-tabs that sit under it
+
+   THE SHAPE, AND WHY IT IS THE SAME EVERYWHERE
+
+   The portal used to draw three different tab strips: an underlined row on
+   Billing, Medications and Forms, a bordered segmented group on Profile, and
+   a sunk pill for Current / Past. Three shapes for one idea, and a reader
+   moving between the screens had to work out each time whether the row in
+   front of them was a set of tabs or a filter.
+
+   There is one shape now, at two levels, and the level is the only thing that
+   changes:
+
+     .pp-tabs      THE SECTIONS OF A SCREEN. A joined group inside one border,
+                   hairlines between the tabs, the open one filled with the
+                   brand tint. It reads as a switch with the current position
+                   lit, which an underline never quite does when it shares a
+                   line with a button.
+
+     .pp-seg       A SLICE OF THE OPEN SECTION — Current / Past inside
+                   Medications. A raised white pill on a sunk grey track: a
+                   different SHAPE, not a smaller copy of the strip above it,
+                   because two identical strips stacked is two strips nobody
+                   can tell apart.
+
+   Both are drawn as LINKS on every screen that uses them, so each tab keeps
+   its own address and works with JavaScript broken. See lib/billing-tabs.js
+   for the reasoning, and lib/meds-tabs.js for the nested pair.
+   ========================================================================= */
+
+.pp-tabs {
+  display: inline-flex;
+  align-items: stretch;
+  /*
+   * `overflow: hidden` is what lets the open tab be a plain fill: clipped to
+   * the group's radius, its corners follow the border without either tab end
+   * needing a radius of its own — and without the fill spilling a square
+   * corner over a rounded one.
+   */
+  overflow: hidden;
+  max-width: 100%;
+  margin-bottom: var(--pp-gap-block);
+  border: 1px solid var(--pp-line);
+  border-radius: var(--pp-radius-ctl);
+  background-color: var(--pp-surface);
+}
+
+.pp-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pp-space-1);
+  height: var(--pp-btn-h);
+  padding: 0 var(--pp-space-4);
+  color: var(--pp-text);
+  font-size: var(--pp-size-sm);
+  font-weight: var(--pp-weight-medium);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+/* The hairlines between tabs. A border rather than a gap, so the group reads
+   as one control that has been divided rather than as a row of buttons that
+   happen to touch. */
+.pp-tab + .pp-tab {
+  border-left: 1px solid var(--pp-line);
+}
+
+.pp-tab:hover {
+  background-color: var(--pp-surface-hover);
+  color: var(--pp-text-strong);
+  text-decoration: none;
+}
+
+/*
+ * The fill and the ink say which one is open — NOT the weight.
+ *
+ * Bolding the open tab is the obvious third signal and it costs more than it
+ * gives: the tabs are sized by their labels, so a heavier word is a wider tab,
+ * and Medications repaints its strip in place. Every switch would nudge the
+ * whole group sideways under the pointer that just clicked it.
+ */
+.pp-tab[aria-selected='true'],
+.pp-tab[aria-current='page'] {
+  background-color: var(--pp-surface-tint);
+  color: var(--pp-action);
+}
+
+.pp-tab[aria-selected='true']:hover,
+.pp-tab[aria-current='page']:hover {
+  background-color: var(--pp-surface-tint);
+  color: var(--pp-action);
+}
+
+/* The fill owns both of its edges: a hairline against a tinted block reads as
+   a seam through it, so the dividers either side of the open tab go. */
+.pp-tab[aria-current='page'],
+.pp-tab[aria-selected='true'],
+.pp-tab[aria-current='page'] + .pp-tab,
+.pp-tab[aria-selected='true'] + .pp-tab {
+  border-left-color: transparent;
+}
+
+/* ----------------------------------------------------------------------------
+   THE SUB-TABS — a slice of whatever section is open
+
+   Medications draws Current / Past with it. Anything that later needs to cut
+   one section into named views should use this and not a second .pp-tabs, so
+   the nesting stays visible in the shape.
+   ------------------------------------------------------------------------- */
+
+.pp-seg {
+  display: inline-flex;
+  gap: var(--pp-space-1);
+  max-width: 100%;
+  margin-bottom: var(--pp-space-4);
+  padding: 0.1875rem; /* 3 — the lip the white pill sits inside */
+  border-radius: var(--pp-radius-ctl);
+  background-color: var(--pp-surface-sunk);
+}
+
+.pp-seg__item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pp-space-1);
+  height: 1.75rem; /* 28 — the track comes to 34, just under a small button */
+  padding: 0 var(--pp-space-4);
+  border-radius: var(--pp-radius-sm);
+  color: var(--pp-text-muted);
+  font-size: var(--pp-size-sm);
+  font-weight: var(--pp-weight-medium);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.pp-seg__item:hover {
+  color: var(--pp-text-strong);
+  text-decoration: none;
+}
+
+/*
+ * The chosen one is a raised white pill on the sunk track.
+ *
+ * The shadow is what does the work: colour alone would leave the pair reading
+ * as two links, one of which happens to be green. Lifted, it reads as a
+ * physical switch that has been thrown, which is the whole point of borrowing
+ * this shape from iOS and every settings panel since.
+ */
+.pp-seg__item[aria-current='page'] {
+  background-color: var(--pp-surface);
+  box-shadow: var(--pp-shadow-card);
+  color: var(--pp-action);
+}
+
+/* ----------------------------------------------------------------------------
+   THE TAB BAR — the strip and the screen's buttons, one row
+
+   Profile drew these as two stacked rows: .pp-tabs, then .pp-actions beneath
+   it. That is a band of height on every tab spent on nothing, and the
+   reference puts them on one line. The buttons are passed in by the screen —
+   see lib/profile-tabs.js.
+
+   The bar has no visible title. The reference sets the section name at the
+   left of this row; it is drawn as a visually-hidden <h1> instead, because the
+   sidebar and the open tab both already say it. See SECTION in
+   lib/profile-tabs.js.
+   ------------------------------------------------------------------------- */
+
+/*
+ * The strip inside the bar drops its own bottom margin.
+ *
+ * .pp-tabs carries one for the screens where it stands alone above a panel.
+ * In here the BAR carries the gap, and a margin left on the group would push
+ * its centre 8px above the title and buttons it shares the line with — flex
+ * centres the margin box, not the border box.
+ */
+.pp-tabbar .pp-tabs {
+  margin-bottom: 0;
+}
+
+.pp-tabbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pp-space-3) var(--pp-space-4);
+  min-height: var(--pp-btn-h);
+  margin-bottom: var(--pp-gap-block);
+}
+
+/* Pushed to the right edge, and it stays there when the bar wraps: on a narrow
+   screen the buttons drop to their own line rather than squeezing the tabs. */
+.pp-tabbar__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pp-space-2);
+  margin-left: auto;
+}
+
+/* ============================================================================
+   MODAL
+   ========================================================================= */
+
+.pp-modal {
+  width: min(56rem, calc(100vw - 3rem));
+  max-height: calc(100vh - 4rem);
+  padding: 0;
+  border: none;
+  border-radius: var(--pp-radius);
+  background-color: var(--pp-surface);
+  color: var(--pp-text);
+  box-shadow: var(--pp-shadow-modal);
+}
+
+.pp-modal::backdrop {
+  background-color: rgb(16 24 40 / 45%);
+}
+
+/* A short two-up form — Cancel Appointment is a reason and a note. At the full
+   56rem the pairs sit a hand's width apart and the box reads as a page that
+   happens to float, which is the shape a drawer is for. */
+.pp-modal--form {
+  width: min(38rem, calc(100vw - 3rem));
+}
+
+.pp-modal__head {
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-4);
+  padding: var(--pp-pad-row) var(--pp-space-5);
+  border-bottom: 1px solid var(--pp-line);
+}
+
+.pp-modal__title {
+  font-size: var(--pp-size-h3);
+  font-weight: var(--pp-weight-semibold);
+  line-height: var(--pp-leading-h3);
+  color: var(--pp-text-strong);
+}
+
+.pp-modal__close {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--pp-radius-sm);
+  color: var(--pp-text);
+  cursor: pointer;
+}
+
+.pp-modal__close:hover {
+  background-color: var(--pp-surface-hover);
+}
+
+.pp-modal__body {
+  padding: var(--pp-space-5);
+  overflow-y: auto;
+}
+
+.pp-modal__foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--pp-space-2);
+  padding: var(--pp-pad-row) var(--pp-space-5);
+  border-top: 1px solid var(--pp-line);
+}
+
+/* --- A tall form in a centred box ------------------------------------------
+ * The same <dialog>, sized and stacked for a form that is longer than its box.
+ *
+ * WHAT THIS REPLACED. Add Insurance opened as a right-hand drawer — .pp-drawer,
+ * pinned to the edge at 34rem and run full height — on the argument that a
+ * sixteen-field form centred is taller than a laptop viewport. It is, and the
+ * drawer paid for that height with width: two fields to a row for the whole
+ * form, and card slots that were always below the fold. Centred at 52rem the
+ * fields go three to a row and the two slots sit side by side, which halves
+ * the scroll the drawer was introduced to avoid.
+ *
+ * The mechanic that made the drawer work is what is kept: head and foot hold
+ * their height and only the field list scrolls. A form whose Cancel scrolls
+ * off the bottom is a form people close with Escape.
+ *
+ * ⚠ THE FLEX COLUMN IS ON [open], NOT ON THE CLASS. A closed <dialog> is
+ * hidden by `display: none` in the UA sheet; setting `display: flex` on the
+ * element itself overrides that and the form sits on the page with no dialog
+ * around it. Only the open state may set a display.
+ */
+.pp-modal--form-lg {
+  width: min(52rem, calc(100vw - 3rem));
+}
+
+.pp-modal--form-lg[open] {
+  display: flex;
+  flex-direction: column;
+  animation: pp-modal-in 0.16s ease-out;
+}
+
+.pp-modal--form-lg[open]::backdrop {
+  animation: pp-backdrop-in 0.2s ease-out;
+}
+
+.pp-modal__form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* min-height:0 as well as flex:1 — without it the body refuses to shrink below
+   its content and the whole box grows past the viewport instead of scrolling. */
+.pp-modal__form .pp-modal__body {
+  flex: 1;
+  min-height: 0;
+}
+
+@keyframes pp-modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem) scale(0.98);
+  }
+}
+
+@keyframes pp-backdrop-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pp-modal--form-lg[open],
+  .pp-modal--form-lg[open]::backdrop {
+    animation: none;
+  }
+}
+
+/* On a phone the popup stops pretending to be a box and takes the screen. At
+   this width a centred dialog is a full-height panel with a 24px margin around
+   it, which is a border, not breathing room. */
+@media (width < 36rem) {
+  .pp-modal--form-lg {
+    width: 100vw;
+    max-width: none;
+    height: 100dvh;
+    max-height: none;
+    border-radius: 0;
+  }
+}
+
+/* --- Form layout -----------------------------------------------------------------
+   Two fields to a row, one for anything that needs the width. Used by the
+   dialogs; the screens themselves lay their own content out. */
+
+.pp-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--pp-space-4);
+}
+
+.pp-field--wide {
+  grid-column: 1 / -1;
+}
+
+/* The required marker. Red, and NOT the only signal — the control carries
+   `required` too, so a screen reader announces it without reading the glyph. */
+.pp-label__req {
+  color: var(--pp-red-fg);
+}
+
+.pp-eyebrow {
+  margin: var(--pp-gap-block) 0 var(--pp-space-2);
+  font-size: var(--pp-size-xs);
+  font-weight: var(--pp-weight-semibold);
+  letter-spacing: var(--pp-tracking-caps);
+  text-transform: uppercase;
+  color: var(--pp-text-muted);
+}
+
+@media (width < 36rem) {
+  .pp-form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Three to a row, for the wide popup. Steps down with the viewport rather than
+   with the box, which is close enough while the box is a viewport-relative
+   width: below 60rem the dialog is already the screen less its margin.
+
+   These sit AFTER the plain .pp-form-grid rules on purpose — same specificity,
+   so the last one written is the one that wins, and the single-column phone
+   case has to be restated here or the three-column rule would outlive it. */
+.pp-form-grid--three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (width < 60rem) {
+  .pp-form-grid--three {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (width < 36rem) {
+  .pp-form-grid--three {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* --- Drop zone ------------------------------------------------------------------ */
+
+.pp-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--pp-space-3);
+  min-height: 12rem;
+  padding: var(--pp-space-5);
+  border: 1px solid var(--pp-line-strong);
+  border-radius: var(--pp-radius);
+  background-color: var(--pp-surface);
+  color: var(--pp-text-muted);
+  font-size: var(--pp-size-sm);
+  text-align: center;
+  cursor: pointer;
+}
+
+.pp-drop:hover,
+.pp-drop[data-dragging='true'] {
+  border-color: var(--pp-action);
+  background-color: var(--pp-brand-025);
+}
+
+.pp-drop svg {
+  width: 2.5rem;
+  height: 2.5rem;
+  color: var(--pp-text-faint);
+}
+
+.pp-drop__files {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pp-space-2);
+  width: 100%;
+  margin-top: var(--pp-space-2);
+  font-size: var(--pp-size-xs);
+  color: var(--pp-text);
+}
+
+/* Two of these sit side by side in the insurance drawer — front and back of
+   one card. At the full 14rem they would own the drawer; this is the same
+   control at a size that reads as a slot rather than a landing pad. */
+.pp-drop--sm {
+  min-height: 7rem;
+  padding: var(--pp-space-4);
+  gap: var(--pp-space-2);
+  border-style: dashed;
+  font-size: var(--pp-size-xs);
+}
+
+.pp-drop--sm svg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+/* ============================================================================
+   EMPTY STATE
+   ========================================================================= */
+
+.pp-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--pp-space-3);
+  max-width: 32rem;
+  margin: 4rem auto;
+  text-align: center;
+}
+
+.pp-empty__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: var(--pp-radius-pill);
+  background-color: var(--pp-brand-050);
+  color: var(--pp-brand-700);
+}
+
+.pp-empty__title {
+  font-size: var(--pp-size-h2);
+  font-weight: var(--pp-weight-semibold);
+  line-height: var(--pp-leading-h2);
+  color: var(--pp-text-strong);
+}
+
+/* ============================================================================
+   ALERT — sign-in failures, and any other banner the flows need
+   ========================================================================= */
+
+.pp-alert {
+  display: flex;
+  gap: var(--pp-space-3);
+  padding: var(--pp-space-4);
+  border: 1px solid var(--pp-line);
+  border-radius: var(--pp-radius);
+  background-color: var(--pp-grey-050);
+  font-size: var(--pp-size-sm);
+}
+
+.pp-alert--critical {
+  border-color: #f0c4c4;
+  background-color: var(--pp-red-bg);
+  color: #8f2b2d;
+}
+
+.pp-alert--warning {
+  border-color: #f2ddb8;
+  background-color: var(--pp-amber-bg);
+  color: #7d4708;
+}
+
+.pp-alert--info {
+  border-color: var(--pp-line-tint);
+  background-color: var(--pp-info-bg);
+  color: #143f7d;
+}
+
+.pp-alert__heading {
+  font-weight: var(--pp-weight-semibold);
+}
+
+.pp-alert__body {
+  margin-top: var(--pp-space-1);
+}
+
+/* ============================================================================
+   TOASTS — see js/lib/toast.js for what they are for
+
+   Every reply the portal makes to something the patient just did lands here:
+   confirmations, warnings, rejected sign-ins, failed validation. Nothing of
+   that kind is drawn into the document any more, so this stack has to be
+   findable without hunting — hence TOP RIGHT, the corner an eye already goes
+   to for system chrome, and fixed, so a reply to a control at the bottom of a
+   long form is still on screen.
+   ========================================================================= */
+
+.pp-toasts {
+  position: fixed;
+  top: var(--pp-space-4);
+  right: var(--pp-space-4);
+  /* Narrower than the window on a phone, capped on a desktop: a toast that
+     stretches the full width of a monitor reads as a page banner again. */
+  width: min(24rem, calc(100vw - var(--pp-space-4) * 2));
+  /* Above the topbar (40) and the mobile drawer (30); the select menu at 80
+     still wins, because a message must not cover a list the patient has open. */
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pp-space-2);
+  align-items: stretch;
+  /* The stack must never swallow clicks on the page behind it. The toasts
+     themselves take the pointer back for their dismiss button. */
+  pointer-events: none;
+}
+
+/*
+ * Two live regions, one polite and one assertive — see lib/toast.js. They lay
+ * out as if they were not there, so the stack stays a single column.
+ */
+.pp-toasts__region {
+  display: contents;
+}
+
+.pp-toast {
+  display: flex;
+  gap: var(--pp-space-3);
+  align-items: flex-start;
+  padding: var(--pp-space-3) var(--pp-space-4);
+  border: 1px solid transparent;
+  border-radius: var(--pp-radius);
+  background-color: var(--pp-surface-inverse);
+  color: var(--pp-white);
+  font-size: var(--pp-size-sm);
+  box-shadow: var(--pp-shadow-pop);
+  pointer-events: auto;
+  animation: pp-toast-in 0.18s ease-out;
+}
+
+.pp-toast__icon {
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  /* Optically centred on the first line of text rather than on the box: with
+     a heading and a body the icon would otherwise drift to the middle. */
+  margin-top: 0.0625rem;
+}
+
+.pp-toast__text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.pp-toast__heading {
+  font-weight: var(--pp-weight-semibold);
+}
+
+.pp-toast__heading + .pp-toast__body {
+  margin-top: var(--pp-space-1);
+  /* The explanation under a headline is the quieter half of the message. */
+  opacity: 0.85;
+}
+
+.pp-toast__close {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  padding: 0;
+  border: 0;
+  border-radius: var(--pp-radius-sm);
+  background: none;
+  color: inherit;
+  opacity: 0.7;
+  cursor: pointer;
+}
+
+.pp-toast__close:hover {
+  opacity: 1;
+}
+
+.pp-toast__close svg {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+/*
+ * Tones.
+ *
+ * 'info' and 'ok' keep the dark slab the portal already used — a confirmation
+ * is glanced at, and a solid dark block is the fastest thing to spot. The two
+ * failure tones instead borrow the ALERT palette, so that a message about
+ * something going wrong is the same colour here as the standing warning
+ * panels elsewhere in the portal, and reads as the same class of thing.
+ */
+.pp-toast--ok {
+  background-color: #12674a;
+}
+
+.pp-toast--warn {
+  border-color: var(--pp-amber-line);
+  background-color: var(--pp-amber-bg);
+  color: #7d4708;
+}
+
+.pp-toast--error {
+  border-color: #f0c4c4;
+  background-color: var(--pp-red-bg);
+  color: #8f2b2d;
+}
+
+@keyframes pp-toast-in {
+  from {
+    opacity: 0;
+    /* Slides down out of the top edge it is pinned to, not up from below. */
+    transform: translateY(-0.5rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pp-toast {
+    animation: none;
+  }
+}
+
+/* --- Checkbox and radio, drawn with the Phosphor tick ------------------------
+ * This used to be `accent-color` alone: keep the platform control, tint it
+ * brand. That kept native keyboard behaviour and the Windows high-contrast
+ * treatment, at the price of the platform's OWN tick — a glyph from neither
+ * this portal nor the icon set every other mark on the page comes from.
+ *
+ * Now the box is painted here and the tick is Phosphor's check, the same one
+ * the sprite carries. `appearance: none` changes only the PAINTING: the input
+ * is still a real checkbox, so Space still toggles it, Tab still reaches it and
+ * the label still targets it. What is genuinely given up is the forced-colours
+ * treatment, so that is restored explicitly in the block below.
+ *
+ * :where() keeps the specificity at zero — .pp-check input still sets its own
+ * box size, and nothing here re-lays-out a form.
+ * -------------------------------------------------------------------------- */
+
+:where(input[type='checkbox'], input[type='radio']) {
+  appearance: none;
+  width: var(--pp-choice-size);
+  height: var(--pp-choice-size);
+  flex: none;
+  margin: 0;
+  cursor: pointer;
+  border: 2px solid var(--pp-line-strong);
+  border-radius: var(--pp-radius-sm);
+  background-color: var(--pp-surface);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 62%;
+}
+
+:where(input[type='radio']) { border-radius: 50%; }
+
+/* A checkbox FILLS. A radio does not: it keeps its ring and grows a dot at
+   the centre, because the ring still being there is what says the other
+   options in the group are available to pick instead. Filling it turned the
+   radio into a checkbox that happened to be round. */
+:where(input[type='checkbox']:checked, input[type='checkbox']:indeterminate) {
+  background-color: var(--pp-action);
+  border-color: var(--pp-action);
+}
+
+:where(input[type='radio']:checked) {
+  border-color: var(--pp-action);
+}
+
+:where(input[type='checkbox']:checked) {
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256' fill='white'><path d='M232.49%2C80.49l-128%2C128a12%2C12%2C0%2C0%2C1-17%2C0l-56-56a12%2C12%2C0%2C1%2C1%2C17-17L96%2C183.51%2C215.51%2C63.51a12%2C12%2C0%2C0%2C1%2C17%2C17Z'/></svg>");
+}
+
+:where(input[type='checkbox']:indeterminate) {
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256' fill='white'><path d='M228%2C128a12%2C12%2C0%2C0%2C1-12%2C12H40a12%2C12%2C0%2C0%2C1%2C0-24H216A12%2C12%2C0%2C0%2C1%2C228%2C128Z'/></svg>");
+}
+
+/* The dot is drawn as a gradient, so it has to opt out of the 62%
+   background-size the glyph boxes want — otherwise the "circle" is sized for a
+   tick and the dot comes out a third too small. At 100% the painting area is
+   the content box inside the 2px ring, and a 25% radius puts the dot at half
+   of it, which is what keeps the ring reading as a ring at any size. */
+:where(input[type='radio']:checked) {
+  background-size: 100%;
+  background-image: radial-gradient(
+    circle,
+    var(--pp-action) 0 25%,
+    transparent 27%
+  );
+}
+
+:where(input[type='checkbox']:focus-visible, input[type='radio']:focus-visible) {
+  outline: 2px solid var(--pp-action);
+  outline-offset: 2px;
+}
+
+:where(input[type='checkbox']:disabled, input[type='radio']:disabled) {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+/* Forced colours was the one real thing `accent-color` gave us. A painted
+   background is ignored in that mode, so the tick would vanish — this puts the
+   platform control back for exactly the people who need it. */
+@media (forced-colors: active) {
+  :where(input[type='checkbox'], input[type='radio']) {
+    appearance: auto;
+    background-image: none;
+  }
+}
+
+/* --- Native date and time pickers --------------------------------------------
+ * `.pp-control--icon` above handles the fields the DESIGN draws an icon beside:
+ * it makes Chrome's indicator transparent and stretches it over our sprite
+ * calendar, so the icon you see is ours and the button you press is the
+ * browser's. That rule is more specific than this one and still wins there.
+ *
+ * Everywhere else — a bare .pp-input of type date or time — Chrome drew its own
+ * calendar, which is the one glyph on the page from neither the sprite nor the
+ * design. The indicator cannot hold a <use>, so it takes the same Phosphor
+ * calendar-blank and clock as a MASK, painted with a token colour.
+ * -------------------------------------------------------------------------- */
+
+input[type='date']::-webkit-calendar-picker-indicator,
+input[type='month']::-webkit-calendar-picker-indicator,
+input[type='week']::-webkit-calendar-picker-indicator,
+input[type='time']::-webkit-calendar-picker-indicator,
+input[type='datetime-local']::-webkit-calendar-picker-indicator {
+  appearance: none;
+  width: 1.125rem;
+  height: 1.125rem;
+  padding: 0;
+  cursor: pointer;
+  opacity: 1;
+  background-color: var(--pp-text-muted);
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'><path d='M208%2C32H184V24a8%2C8%2C0%2C0%2C0-16%2C0v8H88V24a8%2C8%2C0%2C0%2C0-16%2C0v8H48A16%2C16%2C0%2C0%2C0%2C32%2C48V208a16%2C16%2C0%2C0%2C0%2C16%2C16H208a16%2C16%2C0%2C0%2C0%2C16-16V48A16%2C16%2C0%2C0%2C0%2C208%2C32ZM72%2C48v8a8%2C8%2C0%2C0%2C0%2C16%2C0V48h80v8a8%2C8%2C0%2C0%2C0%2C16%2C0V48h24V80H48V48ZM208%2C208H48V96H208V208Z'/></svg>");
+  mask-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'><path d='M208%2C32H184V24a8%2C8%2C0%2C0%2C0-16%2C0v8H88V24a8%2C8%2C0%2C0%2C0-16%2C0v8H48A16%2C16%2C0%2C0%2C0%2C32%2C48V208a16%2C16%2C0%2C0%2C0%2C16%2C16H208a16%2C16%2C0%2C0%2C0%2C16-16V48A16%2C16%2C0%2C0%2C0%2C208%2C32ZM72%2C48v8a8%2C8%2C0%2C0%2C0%2C16%2C0V48h80v8a8%2C8%2C0%2C0%2C0%2C16%2C0V48h24V80H48V48ZM208%2C208H48V96H208V208Z'/></svg>");
+}
+
+input[type='time']::-webkit-calendar-picker-indicator {
+  -webkit-mask-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'><path d='M128%2C24A104%2C104%2C0%2C1%2C0%2C232%2C128%2C104.11%2C104.11%2C0%2C0%2C0%2C128%2C24Zm0%2C192a88%2C88%2C0%2C1%2C1%2C88-88A88.1%2C88.1%2C0%2C0%2C1%2C128%2C216Zm64-88a8%2C8%2C0%2C0%2C1-8%2C8H128a8%2C8%2C0%2C0%2C1-8-8V72a8%2C8%2C0%2C0%2C1%2C16%2C0v48h48A8%2C8%2C0%2C0%2C1%2C192%2C128Z'/></svg>");
+  mask-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'><path d='M128%2C24A104%2C104%2C0%2C1%2C0%2C232%2C128%2C104.11%2C104.11%2C0%2C0%2C0%2C128%2C24Zm0%2C192a88%2C88%2C0%2C1%2C1%2C88-88A88.1%2C88.1%2C0%2C0%2C1%2C128%2C216Zm64-88a8%2C8%2C0%2C0%2C1-8%2C8H128a8%2C8%2C0%2C0%2C1-8-8V72a8%2C8%2C0%2C0%2C1%2C16%2C0v48h48A8%2C8%2C0%2C0%2C1%2C192%2C128Z'/></svg>");
+}
+
+input[type='date']:hover::-webkit-calendar-picker-indicator,
+input[type='time']:hover::-webkit-calendar-picker-indicator {
+  background-color: var(--pp-text);
+}
+
+/* ============================================================================
+   PAGER — the footer under a paged table.
+
+   IT IS THE BOTTOM OF THE TABLE'S CARD, NOT A STRIP FLOATING UNDER IT.
+   Same surface, same hairline, the table's border-top continued and the card's
+   bottom corners rounded here instead of on .pp-table-wrap. A paged table has
+   to read as one object, or the reader has to work out for themselves that the
+   numbers down there belong to the rows up here.
+
+   The order across the bar answers the two questions in the order they are
+   asked: how much of this is there (the range, hard left), how much do I want
+   at a time (rows per page), and where do I go next (the pages, hard right,
+   under the thumb). See js/lib/pagination.js for the markup it expects.
+   ========================================================================= */
+
+.pp-pager {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-4);
+  padding: var(--pp-space-3) var(--pp-pad-card);
+  border: 1px solid var(--pp-line);
+  border-top: none;
+  border-radius: 0 0 var(--pp-radius) var(--pp-radius);
+  background-color: var(--pp-surface);
+  font-size: var(--pp-size-sm);
+  color: var(--pp-text-muted);
+}
+
+/* "1–10 of 23 statements". Tabular figures, so the number does not jitter
+   under the eye as the pages change. */
+.pp-pager__range {
+  font-variant-numeric: tabular-nums;
+}
+
+/* The label and its field travel together at the centre-right; margin-left on
+   the label is what pushes the pair off the range and leaves the pages to be
+   shoved to the far end by the nav's own auto margin. */
+.pp-pager__rows-label {
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+/* Narrower than a form field and no taller than the buttons beside it: this is
+   a footer control, not something anybody came to the screen to fill in. */
+.pp-pager__rows {
+  width: 5.5rem;
+}
+
+.pp-pager__rows .pp-select {
+  min-height: var(--pp-btn-h);
+  padding-right: var(--pp-space-7);
+  font-size: var(--pp-size-sm);
+  appearance: none;
+}
+
+.pp-pager__rows .pp-control__icon {
+  right: var(--pp-space-3);
+}
+
+.pp-pager__pages {
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-1);
+}
+
+/* Square-ish and at least a finger wide. The portal is a consumer surface, so
+   the page numbers are the one control here that has to survive being pressed
+   with a thumb on a phone. */
+.pp-pager__page {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--pp-btn-h);
+  height: var(--pp-btn-h);
+  padding: 0 var(--pp-space-2);
+  border-radius: var(--pp-radius-ctl);
+  color: var(--pp-text-muted);
+  font-size: var(--pp-size-sm);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.pp-pager__page:hover:not([disabled]) {
+  background-color: var(--pp-surface-hover);
+  color: var(--pp-text-strong);
+}
+
+.pp-pager__page:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--pp-brand-200);
+}
+
+/* The arrows at the ends of the run go faint, not away, when there is nowhere
+   further to go: a control that vanishes at the first and last page moves
+   every number under it by one button width as you reach the ends. */
+.pp-pager__page[disabled] {
+  color: var(--pp-text-faint);
+  cursor: not-allowed;
+}
+
+.pp-pager__page--current {
+  background-color: var(--pp-action);
+  color: var(--pp-text-on-brand);
+  font-weight: var(--pp-weight-semibold);
+}
+
+.pp-pager__page--current:hover {
+  background-color: var(--pp-action-hover);
+  color: var(--pp-text-on-brand);
+}
+
+/* The gap in a windowed run. Not a button — there is nothing to press — so it
+   is inert text, at the width of one so the run does not close up around it. */
+.pp-pager__gap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--pp-btn-h);
+  height: var(--pp-btn-h);
+  color: var(--pp-text-faint);
+  user-select: none;
+}
+
+/* Under the phone-landscape breakpoint the rows-per-page control is the first
+   thing to go. The page numbers are what anybody actually reaches for, and on
+   a phone "how many at a time" is a question the screen height has already
+   answered. */
+@media (width < 48rem) {
+  .pp-pager {
+    gap: var(--pp-space-2);
+    padding: var(--pp-space-2) var(--pp-space-3);
+  }
+
+  .pp-pager__rows-label,
+  .pp-pager__rows {
+    display: none;
+  }
+
+  .pp-pager__pages {
+    margin-left: auto;
+  }
+}

@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MediNova EHR — Settings</title>
+    <link rel="icon" type="image/svg+xml" href="../assets/img/favicon.svg" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="../css/reset.css" />
+    <link rel="stylesheet" href="../css/tokens.css" />
+    <link rel="stylesheet" href="../css/base.css" />
+    <link rel="stylesheet" href="../css/ui-kit.css" />
+    <link rel="stylesheet" href="../css/components/hub.css" />
+    <link rel="stylesheet" href="../css/screen-patient.css" />
+    <link rel="stylesheet" href="../css/screen-leads.css" />
+    <link rel="stylesheet" href="../css/screen-settings.css" />
+
+    <script type="module" src="../js/main.js"></script>
+    <script src="../js/open-me-properly.js"></script>
+  </head>
+
+  <body class="pt">
+    <header class="pt__bar">
+      <img class="pt__logo" src="../assets/img/medinova-logo.svg" width="158" height="32"
+        alt="MediNova Gastroenterology Clinic" />
+      <ui-main-nav active="settings"></ui-main-nav>
+      <div class="pt__bar-actions">
+        <ui-time-clock></ui-time-clock>
+        <button type="button" class="pt__icon-action" aria-label="Notifications">
+          <svg class="ui-icon" aria-hidden="true"><use href="#i-bell"></use></svg>
+        </button>
+        <ui-avatar name="Amara Mensah" size="sm"></ui-avatar>
+      </div>
+    </header>
+
+    <div class="ui-page-head ui-page-head--flush set__head">
+      <div class="ui-page-head__lead">
+        <h1 class="ui-page-head__title">Settings</h1>
+      </div>
+    </div>
+
+    <main class="ui-hub">
+      <!--
+        Each card is a <section>, not an <a>. A card that contains links
+        cannot itself be a link — nesting anchors is invalid HTML and leaves
+        assistive tech with no way to reach the inner ones. The heading is the
+        link to the module; the list below jumps straight to a section.
+      -->
+      <div class="ui-hub__grid">
+        <section class="ui-hub__card" data-testid="settings--appointment-card">
+          <div class="ui-hub__head">
+            <span class="ui-hub__icon" aria-hidden="true">
+              <svg class="ui-icon"><use href="#i-calendar"></use></svg>
+            </span>
+            <h2 class="ui-hub__title">
+              <a href="appointment-settings.html" data-testid="settings--appointment">Appointment</a>
+            </h2>
+          </div>
+          <ul class="ui-hub__links">
+            <li>
+              <a href="appointment-settings.html?tab=availability"
+                 data-testid="settings--apt-availability">
+                Availability
+                <svg class="ui-icon" aria-hidden="true"><use href="#i-caret-right"></use></svg>
+              </a>
+            </li>
+            <li>
+              <a href="appointment-settings.html?tab=types"
+                 data-testid="settings--apt-types">
+                Appointment Types
+                <svg class="ui-icon" aria-hidden="true"><use href="#i-caret-right"></use></svg>
+              </a>
+            </li>
+            <li>
+              <a href="appointment-settings.html?tab=colors"
+                 data-testid="settings--apt-colors">
+                Appointment Status
+                <svg class="ui-icon" aria-hidden="true"><use href="#i-caret-right"></use></svg>
+              </a>
+            </li>
+            <li>
+              <a href="appointment-settings.html?tab=cancellation"
+                 data-testid="settings--apt-cancellation">
+                Cancellation Policy
+                <svg class="ui-icon" aria-hidden="true"><use href="#i-caret-right"></use></svg>
+              </a>
+            </li>
+          </ul>
+        </section>
+
+        <section class="ui-hub__card" data-testid="settings--practice-card">
+          <div class="ui-hub__head">
+            <span class="ui-hub__icon" aria-hidden="true">
+              <svg class="ui-icon"><use href="#i-document"></use></svg>
+            </span>
+            <h2 class="ui-hub__title">
+              <a href="practice-settings.html" data-testid="settings--practice">Practice</a>
+            </h2>
+          </div>
+          <ul class="ui-hub__links">
+            <li>
+              <a href="practice-settings.html?tab=profile"
+                 data-testid="settings--prc-profile">
+                Profile
+                <svg class="ui-icon" aria-hidden="true"><use href="#i-caret-right"></use></svg>
+              </a>
+            </li>
+            <li>
+              <a href="practice-settings.html?tab=locations"
+                 data-testid="settings--prc-locations">
+                Locations
+                <svg class="ui-icon" aria-hidden="true"><use href="#i-caret-right"></use></svg>
+              </a>
+            </li>
+            <li>
+              <a href="practice-settings.html?tab=users"
+                 data-testid="settings--prc-users">
+                Users
+                <svg class="ui-icon" aria-hidden="true"><use href="#i-caret-right"></use></svg>
+              </a>
+            </li>
+            <li>
+              <a href="practice-settings.html?tab=roles"
+                 data-testid="settings--prc-roles">
+                Roles &amp; Responsibility
+                <svg class="ui-icon" aria-hidden="true"><use href="#i-caret-right"></use></svg>
+              </a>
+            </li>
+            <li>
+              <a href="practice-settings.html?tab=print"
+                 data-testid="settings--prc-print">
+                Print Configuration
+                <svg class="ui-icon" aria-hidden="true"><use href="#i-caret-right"></use></svg>
+              </a>
+            </li>
+          </ul>
+        </section>
+
+        <!-- The signed-in provider's OWN settings, as distinct from the
+             practice's. Sits beside Practice rather than inside it: "my
+             notification preferences" and "the practice's locations" are
+             not the same decision, and not always the same person's. -->
+        <section class="ui-hub__card" data-testid="settings--provider-card">
+          <div class="ui-hub__head">
+            <span class="ui-hub__icon" aria-hidden="true">
+              <svg class="ui-icon"><use href="#i-user"></use></svg>
+            </span>
+            <h2 class="ui-hub__title">
+              <a href="provider-settings.html" data-testid="settings--provider">Provider</a>
+            </h2>
+          </div>
+          <ul class="ui-hub__links">
+            <li>
+              <a href="provider-settings.html?tab=profile"
+                 data-testid="settings--pvs-profile">
+                Profile
+                <svg class="ui-icon" aria-hidden="true"><use href="#i-caret-right"></use></svg>
+              </a>
+            </li>
+            <li>
+              <a href="provider-settings.html?tab=practice"
+                 data-testid="settings--pvs-practice">
+                Practice
+                <svg class="ui-icon" aria-hidden="true"><use href="#i-caret-right"></use></svg>
+              </a>
+            </li>
+            <li>
+              <a href="provider-settings.html?tab=notification"
+                 data-testid="settings--pvs-notification">
+                Notification
+                <svg class="ui-icon" aria-hidden="true"><use href="#i-caret-right"></use></svg>
+              </a>
+            </li>
+            <li>
+              <a href="provider-settings.html?tab=flags"
+                 data-testid="settings--pvs-flags">
+                Patient Flag
+                <svg class="ui-icon" aria-hidden="true"><use href="#i-caret-right"></use></svg>
+              </a>
+            </li>
+          </ul>
+        </section>
+
+        <section class="ui-hub__card" data-testid="settings--master-card">
+          <div class="ui-hub__head">
+            <span class="ui-hub__icon" aria-hidden="true">
+              <svg class="ui-icon"><use href="#i-layers"></use></svg>
+            </span>
+            <h2 class="ui-hub__title">
+              <a href="master.html" data-testid="settings--master">Master</a>
+            </h2>
+          </div>
+          <ul class="ui-hub__links">
+            <!-- Data Import leads here as it does on the screen itself: "what
+                 did we last load, and did it pass?" is the first question
+                 asked when one of these lists looks wrong. -->
+            <li>
+              <a href="master.html?tab=import" data-testid="settings--mst-import">
+                Data Import
+                <svg class="ui-icon" aria-hidden="true"><use href="#i-caret-right"></use></svg>
+              </a>
+            </li>
+            <li>
+              <a href="master.html?tab=icd" data-testid="settings--mst-icd">
+                ICD-10 Codes
+                <svg class="ui-icon" aria-hidden="true"><use href="#i-caret-right"></use></svg>
+              </a>
+            </li>
+            <li>
+              <a href="master.html?tab=cpt" data-testid="settings--mst-cpt">
+                Procedure
+                <svg class="ui-icon" aria-hidden="true"><use href="#i-caret-right"></use></svg>
+              </a>
+            </li>
+            <li>
+              <a href="master.html?tab=payer" data-testid="settings--mst-payer">
+                Payer
+                <svg class="ui-icon" aria-hidden="true"><use href="#i-caret-right"></use></svg>
+              </a>
+            </li>
+            <li>
+              <a href="master.html?tab=instrument" data-testid="settings--mst-instrument">
+                Instrument
+                <svg class="ui-icon" aria-hidden="true"><use href="#i-caret-right"></use></svg>
+              </a>
+            </li>
+            <li>
+              <a href="master.html?tab=clinician" data-testid="settings--mst-clinician">
+                Clinician Directory
+                <svg class="ui-icon" aria-hidden="true"><use href="#i-caret-right"></use></svg>
+              </a>
+            </li>
+            <li>
+              <a href="master.html?tab=pharmacy" data-testid="settings--mst-pharmacy">
+                Pharmacy
+                <svg class="ui-icon" aria-hidden="true"><use href="#i-caret-right"></use></svg>
+              </a>
+            </li>
+            <li>
+              <a href="master.html?tab=recall" data-testid="settings--mst-recall">
+                Recall Type
+                <svg class="ui-icon" aria-hidden="true"><use href="#i-caret-right"></use></svg>
+              </a>
+            </li>
+          </ul>
+        </section>
+
+        <!-- Billing ▸ Fee Schedule has left this hub. A code's price is part
+             of the code now — the Procedure list above carries a dated
+             schedule per code, professional and facility side by side — so a
+             separate screen for the same numbers was a second place to look
+             and a second place for them to disagree. Whoever is pricing a
+             procedure is already standing on it. -->
+
+        <section class="ui-hub__card" data-testid="settings--templates-card">
+          <div class="ui-hub__head">
+            <span class="ui-hub__icon" aria-hidden="true">
+              <svg class="ui-icon"><use href="#i-document"></use></svg>
+            </span>
+            <h2 class="ui-hub__title">
+              <a href="templates.html" data-testid="settings--templates">Templates</a>
+            </h2>
+          </div>
+          <ul class="ui-hub__links">
+            <li>
+              <a href="templates.html?tab=visit-notes" data-testid="settings--tpl-visit-notes">
+                Note Templates
+                <svg class="ui-icon" aria-hidden="true"><use href="#i-caret-right"></use></svg>
+              </a>
+            </li>
+            <li>
+              <a href="templates.html?tab=macros" data-testid="settings--tpl-macros">
+                Macros
+                <svg class="ui-icon" aria-hidden="true"><use href="#i-caret-right"></use></svg>
+              </a>
+            </li>
+          </ul>
+        </section>
+
+        <!-- Medication Inventory has left this hub for its own top-level
+             Inventory section. Stock is work, not configuration — a nurse
+             checks it before a clinic list and a coordinator reorders from
+             it — and two clicks inside Settings made a daily job feel like an
+             administrative one. -->
+
+        <!-- Audit Log. A Settings module rather than a section of its own: it
+             is opened when something is being investigated — a complaint, a
+             breach review, an access question — not as part of the day's
+             work, and it configures nothing, so it sits with the other
+             practice-wide records instead of in the main nav. -->
+        <section class="ui-hub__card" data-testid="settings--audit-card">
+          <div class="ui-hub__head">
+            <span class="ui-hub__icon" aria-hidden="true">
+              <svg class="ui-icon"><use href="#i-shield"></use></svg>
+            </span>
+            <h2 class="ui-hub__title">
+              <a href="audit-log.html" data-testid="settings--audit">Audit Log</a>
+            </h2>
+          </div>
+          <ul class="ui-hub__links">
+            <li>
+              <a href="audit-log.html" data-testid="settings--aud-all">
+                All Activity
+                <svg class="ui-icon" aria-hidden="true"><use href="#i-caret-right"></use></svg>
+              </a>
+            </li>
+          </ul>
+        </section>
+      </div>
+    </main>
+  </body>
+</html>

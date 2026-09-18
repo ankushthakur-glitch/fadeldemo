@@ -1,0 +1,452 @@
+/* ============================================================================
+   PATIENT PORTAL — DESIGN TOKENS
+
+   Read off the supplied design screenshots, then re-pointed to the practice's
+   own brand. Two tiers, and the order matters:
+
+     1. PRIMITIVES — raw values (--pp-brand-700). They say WHAT a colour is.
+     2. SEMANTICS  — role names (--pp-text, --pp-action). They say WHAT IT IS
+                     FOR. Everything below tokens.css uses only these.
+
+   PROVENANCE
+     [BRIEF]   given by the practice. Not to be changed here.
+     [DESIGN]  sampled from the supplied screenshots.
+     [DERIVED] neither. Built from a [BRIEF] or [DESIGN] anchor to fill a gap
+               the build cannot ship without — hover states, focus rings,
+               tints. All flagged so a designer can rule on them.
+
+   ── WHY THIS IS NO LONGER BLUE ───────────────────────────────────────────────
+
+   The screenshots are drawn in blue, with a saturated blue top bar. The
+   portal is MediNova Clinic's, its primary is #1e3a6e, and its wordmark is
+   drawn in near-black on a warm stone mark — a mark that disappears on a
+   saturated ground of any hue. So the brand ramp below is green and the top
+   bar is a warm neutral: the logo needs a light ground, and the one strong
+   colour on screen should be the thing you can act on, not the furniture.
+
+   The portal and the EHR now share a primary. They are still told apart by
+   their shells — the EHR's dense white app bar against this one's stone bar
+   and tinted rail — and by their addresses.
+   ========================================================================= */
+
+:root {
+  /* ==========================================================================
+     1. PRIMITIVES — COLOUR
+     ====================================================================== */
+
+  /*
+   * --- Brand green ---------------------------------------------------------
+   *
+   * One step does the work of the three the blue ramp needed. #1e3a6e is dark
+   * enough to carry white text on a button (6.31:1) AND to be read as text on
+   * white (6.31:1) or on its own lightest tint (5.22:1) — so links, active nav
+   * labels, icon accents and button fills are all the same value. The blue it
+   * replaced needed a lighter step for text and a darker one for fills.
+   */
+  --pp-brand-900: #0f1f3d; /* [DERIVED] pressed */
+  --pp-brand-800: #182f5a; /* [DERIVED] hover */
+  --pp-brand-700: #1e3a6e; /* [BRIEF]   the practice's primary */
+  --pp-brand-200: #bccbe6; /* [DERIVED] focus ring */
+  --pp-brand-150: #cdd9ee; /* [DERIVED] selected side-nav row */
+  --pp-brand-100: #dde6f4; /* [DERIVED] active sub-nav pill, outgoing bubble */
+  --pp-brand-050: #eaf0f9; /* [DERIVED] table head, tinted panels */
+  --pp-brand-025: #f5f8fc; /* [DERIVED] sidebar ground */
+
+  /*
+   * --- Stone: the top bar --------------------------------------------------
+   *
+   * Sampled from the logo's own mark (#d2d0c9) and lightened until the black
+   * wordmark sits comfortably on it. Warm, where the greys below are cool —
+   * that is what stops the bar reading as a rendering fault rather than a
+   * deliberate band.
+   */
+  --pp-stone-050: #f2f1ec; /* [DERIVED] top bar ground */
+  --pp-stone-200: #e2e0d8; /* [DERIVED] its lower edge */
+
+  /* --- Neutral: chrome, strokes and body copy ---------------------------- */
+  --pp-white: #ffffff;
+  --pp-grey-025: #fafbfc; /* [DERIVED] quiet ground — no longer a hover */
+  --pp-grey-050: #f4f5f6; /* [DESIGN]  breadcrumb bar, card head */
+  --pp-grey-100: #eceef1; /* [DESIGN]  incoming chat bubble, quiet control rest */
+  --pp-grey-200: #e3e7ec; /* [DESIGN]  hairlines */
+  --pp-grey-300: #cfd5dc; /* [DESIGN]  input borders */
+
+  /*
+   * --- The ink ramp: four steps, evenly spaced -----------------------------
+   *
+   * These five values are the portal's TEXT hierarchy, and nothing outside
+   * the semantic block below may name them. They were re-cut because the
+   * previous ramp had four tokens but only three visible steps.
+   *
+   * WHAT WAS WRONG. Contrast on white, and the ratio between each step and
+   * the next — which is what the eye actually reads as "one level down":
+   *
+   *     grey-900  #1c2530   15.48:1  ─┐ 2.10  a chasm
+   *     grey-600  #4d5761    7.36:1  ─┤ 1.19  no step at all
+   *     grey-500  #59626d    6.19:1  ─┤ 2.45  a cliff
+   *     grey-400  #9aa4b0    2.53:1  ─┘       and illegible at the bottom
+   *
+   * --pp-text and --pp-text-muted were 1.19 apart. That is below the
+   * threshold at which anyone can tell two greys on a page apart, and those
+   * two tokens carry 92 of the portal's ~180 colour declarations — so half
+   * the text on screen was drawn in two inks that read as one. The hierarchy
+   * was doing its work through font-size and weight alone; colour was
+   * contributing nothing, while still being spent on four tokens.
+   *
+   * At the same time --pp-text-strong was a near-black used for whole table
+   * bodies, so level 1 and level 3 of the hierarchy both arrived as black,
+   * and --pp-text-faint sat at 2.53:1, which is not a legible step but an
+   * unreadable one.
+   *
+   * WHAT IT IS NOW. Same hue family, re-spaced so every step is ~1.5 from
+   * its neighbour — the smallest gap that reads as deliberate — and so the
+   * bottom of the ramp is still a colour rather than a smudge:
+   *
+   *     grey-900  #273444   12.64:1  ─┐ 1.58
+   *     grey-600  #455260    7.99:1  ─┤ 1.45
+   *     grey-500  #5f6a76    5.50:1  ─┤ 1.60
+   *     grey-400  #7d8c9b    3.44:1  ─┘
+   *
+   * The heading ink comes DOWN (15.48 → 12.64): off-black rather than black,
+   * which is what lets the step below it still read as dark. Body copy goes
+   * UP (7.36 → 7.99), because it now has to carry the table and definition
+   * values that used to be set in the heading ink. Muted was then cut the way
+   * the old --pp-grey-500 was: darkened until the WORST ground it actually
+   * lands on clears 4.5. That ground is not the grey chat bubble the previous
+   * note was measured against but --pp-brand-100 (#dde6f4), the outgoing
+   * bubble and the hovered unread notification, where .pp-bubble__meta and
+   * .pp-note__text sit at 13px. 4.55 there, 4.73 on the grey bubble, 5.50 on
+   * white.
+   *
+   * Faint improves from 2.53 to 3.44. That clears 3:1 — the threshold for
+   * icons and other non-text — but NOT the 4.5:1 that body text needs, and
+   * that is deliberate: faint is for placeholders, disabled controls, icon
+   * glyphs and separators only. Everything that a person actually READS was
+   * moved off it (see the reassignments in shell.css, components.css,
+   * screen-profile.css, screen-forms.css and screen-notifications.css).
+   */
+  --pp-grey-400: #7d8c9b; /* [DERIVED] placeholders, icons, disabled — never prose */
+  --pp-grey-500: #5f6a76; /* [DERIVED] labels, metadata, timestamps */
+  --pp-grey-600: #455260; /* [DERIVED] body copy, table cells, values */
+  --pp-grey-700: #343d47; /* [DESIGN]  spare emphasis step, between 600 and 900 */
+  --pp-grey-900: #273444; /* [DERIVED] headings and card titles */
+
+  /*
+   * [DERIVED] The old heading black, kept for the one thing that wants a
+   * genuinely dark SLAB rather than dark ink: the toast. Softening the
+   * heading ink would otherwise have lightened the toast with it, and a
+   * notification that fades into the page is a notification nobody sees.
+   */
+  --pp-grey-950: #1c2530;
+
+  /* --- Status ------------------------------------------------------------
+     Every one of these is a soft fill with a darker text colour on top; the
+     design never uses a saturated status block with white text, which is the
+     pairing that usually fails contrast. */
+  --pp-green-bg: #e7f6ee; /* [DESIGN] Normal, Paid, Completed, Active */
+  --pp-green-fg: #0f7a4f;
+  --pp-red-bg: #fdeaea; /* [DESIGN] Abnormal, Failed, Cancelled, Inactive */
+  --pp-red-fg: #c2373a;
+  /*
+   * [DERIVED] Red as TEXT on a tinted ground, and red as a SOLID behind
+   * white. The design uses roughly #d93a3d for both; that reaches 3.61
+   * against an active nav pill and 4.35 behind the bell's white count, so
+   * each needs its own darker step rather than one value that fails twice.
+   */
+  --pp-red-strong: #b3282b; /* the "2 New" tag, the urgent marker */
+  --pp-red-solid: #c92a2e; /* solid fills carrying white text */
+  --pp-info-bg: #e8f0fe; /* [DESIGN] "Once a day", "Alternate", Virtual */
+  --pp-info-fg: #1a5fb4;
+  --pp-purple-bg: #efe9fd; /* [DESIGN] "Refill" */
+  --pp-purple-fg: #6437c9;
+  --pp-amber-bg: #fff4e5; /* [DERIVED] warnings the screenshots do not cover */
+  /*
+   * [DERIVED] Darkened from #a9600d, the same call --pp-grey-500 gets above.
+   *
+   * The pair was never measured because nothing used it. The first thing that
+   * did — the "To do" and "Due by" chips on Forms — put 13px of it on the
+   * amber wash, where it measured 4.42:1 and missed AA by a hair. 4.75:1 now,
+   * and 5.2:1 on white.
+   */
+  --pp-amber-fg: #a25c0b;
+  /*
+   * [DERIVED] The amber wash needs an edge as well as a fill: the balance
+   * strip on Home is a panel, not a chip, and a tint that large with no
+   * boundary reads as a rendering artefact next to the white cards below it.
+   * Sampled between --pp-amber-bg and --pp-amber-fg, closer to the wash.
+   */
+  --pp-amber-line: #f0dcbc;
+
+  /* ==========================================================================
+     2. SEMANTICS — the only names anything below this file may use
+     ====================================================================== */
+
+  /* --- Text -----------------------------------------------------------------
+     FOUR LEVELS, AND WHAT BELONGS AT EACH. The ramp above only makes the
+     steps visible; this is the rule that decides which one a thing gets.
+     Picking by eye is how the portal ended up with three different inks for
+     a definition-list label and a near-black table body.
+
+       1  --pp-text-strong   The one thing you read first in its container:
+                             page and section headings, card titles, a name
+                             in a list, the VALUE half of a label/value pair,
+                             the text you have typed into a field.
+       2  --pp-text          Running prose and bulk data: paragraphs, message
+                             bodies, table cells, control labels on buttons.
+       3  --pp-text-muted    Anything that describes other content rather
+                             than being it: field and column labels, the
+                             LABEL half of a pair, metadata, timestamps,
+                             captions, quiet controls and icon buttons at
+                             rest, inactive nav.
+       4  --pp-text-faint    NOT PROSE. Placeholders, disabled controls,
+                             decorative icons, list markers, separator
+                             glyphs, and the em dash that stands for a value
+                             nobody recorded. It sits at 3.44:1 — enough for
+                             a glyph, deliberately not enough for a sentence.
+                             If a person has to read it, it is level 3. */
+  --pp-text-strong: var(--pp-grey-900);
+  --pp-text: var(--pp-grey-600);
+  --pp-text-muted: var(--pp-grey-500);
+  --pp-text-faint: var(--pp-grey-400);
+  --pp-text-link: var(--pp-brand-700);
+  --pp-text-on-brand: var(--pp-white);
+
+  /* --- Surfaces ------------------------------------------------------------ */
+  --pp-canvas: var(--pp-white);
+  --pp-surface: var(--pp-white);
+  --pp-surface-sunk: var(--pp-grey-050);
+  /* A HOVER IN THE PORTAL IS GREEN, not grey. The side nav already hovered to
+     --pp-brand-050 (see the note under --pp-sidebar-selected); everywhere else
+     the pointer landed on a cool grey wash, so the same gesture had two
+     different colours depending on which half of the page it happened in.
+     One tint now, and it is the practice's own. */
+  --pp-surface-hover: var(--pp-brand-050);
+  --pp-surface-tint: var(--pp-brand-050);
+  --pp-sidebar: var(--pp-brand-025);
+  /*
+   * The selected row in the side nav.
+   *
+   * The nav sits on --pp-brand-025 and hovers to --pp-brand-050, so the
+   * selection has to clear BOTH: --pp-brand-100 landed only one visible step
+   * above a hover on a ground that is already tinted green, and the row a
+   * person was actually on read as a row the pointer happened to be over.
+   * --pp-brand-200 cleared them but sat heavy — a slab of colour running the
+   * full width of the rail. --pp-brand-150 is the half step between the two:
+   * still clearly above the hover tint, but light enough that the left bar and
+   * the semibold label carry the "you are here" rather than the fill.
+   */
+  --pp-sidebar-selected: var(--pp-brand-150);
+  /* The one dark slab in the portal — the toast. Named separately so the
+     heading ink can be softened without dimming it. */
+  --pp-surface-inverse: var(--pp-grey-950);
+
+  /* --- Lines --------------------------------------------------------------- */
+  --pp-line: var(--pp-grey-200);
+  --pp-line-strong: var(--pp-grey-300);
+  --pp-line-tint: var(--pp-brand-200);
+
+  /* --- The top bar -----------------------------------------------------------
+     Neutral, and its own three tokens rather than borrowed greys: the bar is
+     the one band on screen that is not white, and whoever re-themes it should
+     find the ground, the ink and the edge named together. */
+  --pp-topbar: var(--pp-stone-050);
+  --pp-topbar-ink: var(--pp-grey-900);
+  --pp-topbar-line: var(--pp-stone-200);
+
+  /* --- Actions --------------------------------------------------------------- */
+  --pp-action: var(--pp-brand-700); /* every primary button */
+  --pp-action-hover: var(--pp-brand-800);
+  --pp-action-active: var(--pp-brand-900);
+  --pp-focus: var(--pp-brand-700);
+
+  /* ==========================================================================
+     3. TYPE
+     ====================================================================== */
+  --pp-font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    Helvetica, Arial, sans-serif;
+
+  /*
+   * [DERIVED] A typed electronic signature. This used to be a serif, on the
+   * reasoning that a signature has to read as a signature rather than as one
+   * more form field, and that every platform already ships one. The portal is
+   * now set in a SINGLE typeface — Inter and nothing else — so the token stays
+   * as a role name and resolves to the same face as the rest of the screen.
+   * Italic and the larger size carry the distinction that the serif used to.
+   *
+   * Used by the read-back view and the printed sheet, for the versions that
+   * carry a signer's NAME and no image — the completions seeded from before
+   * the portal could take a signature, which stand for paper the practice
+   * holds. A signature given here is always an image now: drawn on the pad,
+   * or uploaded. See lib/signature-pad.js.
+   */
+  --pp-font-signature: var(--pp-font);
+
+  /*
+   * THE SIZE RAMP — re-spaced for the same reason the grey ramp was.
+   *
+   * WHAT WAS WRONG. A sweep of every text node the portal renders (949 of
+   * them, across all 17 screens) found 918 — ninety-seven percent — sitting
+   * at 13px, 14px or 15px. The steps between them:
+   *
+   *     h2     18px  ─┐ 1.20
+   *     h3     15px  ─┤ 1.00  the same size as body: no step at all
+   *     body   15px  ─┤ 1.07  below the threshold anyone can see
+   *     sm     14px  ─┤ 1.08  below it again
+   *     xs     13px  ─┘
+   *
+   * This is the grey-ramp problem in the other axis, and worse: the greys
+   * were 1.19 apart and unreadable as a hierarchy; these are 1.07. A card
+   * title and the prose inside it were the SAME SIZE, so the whole
+   * distinction rested on 400-vs-500 weight — one step of Inter's axis,
+   * which at 15px is not a distinction either. Size and weight were both
+   * being spent in their smallest possible increment, which left colour
+   * carrying the hierarchy on its own.
+   *
+   * Above the crush the ramp was hollow — 18px, then a 1.56 chasm to 28px,
+   * with fourteen elements total up there. That gap is why screen-home.css
+   * had to hard-code a raw 22px for the greeting: it needed a step the ramp
+   * did not have.
+   *
+   * WHAT IT IS NOW. Anchored on 14px, which is where the table cells and the
+   * nav already were and is the right density for tabular clinical data, and
+   * re-spaced so no neighbour is closer than 1.12 — the point at which a size
+   * step starts to read as deliberate rather than as a rendering accident:
+   *
+   *     display  30px  ─┐ 1.30
+   *     h1       23px  ─┤ 1.21   absorbs screen-home's raw 22px
+   *     h2       19px  ─┤ 1.19
+   *     h3       16px  ─┤ 1.14   finally clear of body
+   *     body     14px  ─┤ 1.12
+   *     xs      12.5px ─┘
+   *
+   * body and sm are deliberately the same value now. They were never two
+   * levels — prose and a table cell are both running content — and pretending
+   * otherwise is what produced the 1.07 step. Keeping both names lets the
+   * hundred-odd existing declarations stand while meaning one thing.
+   */
+  --pp-size-display: 1.875rem; /* 30px — login carousel caption */
+  --pp-size-h1: 1.4375rem; /* 23px — page titles, login "Login" */
+  --pp-size-h2: 1.1875rem; /* 19px — section headings */
+  --pp-size-h3: 1rem; /* 16px — card titles */
+  --pp-size-body: 0.875rem; /* 14px — the workhorse */
+  --pp-size-sm: 0.875rem; /* 14px — table cells, nav; same level as body */
+  --pp-size-xs: 0.78125rem; /* 12.5px — badges, timestamps */
+  --pp-size-xxs: 0.6875rem; /* 11px — the bell's unread count */
+
+  /*
+   * Display sizes for glyphs that are not text: the profile monogram and the
+   * card-network mark. They are ornament sized to a box, so they sit outside
+   * the reading ramp rather than distorting it — but they are tokens, because
+   * a raw 2.5rem in a screen file is a value nobody can audit.
+   */
+  --pp-size-monogram: 2.5rem; /* 40px — profile avatar initials */
+  --pp-size-mark: 0.625rem; /* 10px — the card-network mark */
+
+  --pp-weight-regular: 400;
+  --pp-weight-medium: 500;
+  --pp-weight-semibold: 600;
+  --pp-weight-bold: 700;
+
+  /*
+   * LEADING FALLS AS SIZE RISES. Long lines of small text need the extra
+   * space between them to stop the eye returning to the wrong line; a
+   * heading is short, sits alone, and the same 1.5 just makes it look
+   * unglued from itself.
+   *
+   * The portal had one --pp-leading-tight at 1.25 doing duty from 34px down
+   * to 13px, and 1.5 landing on 40px, 28px and 18px headings where it is far
+   * too loose. Thirteen-pixel text was carrying four different leadings —
+   * 1.00, 1.25, 1.40 and 1.50 — depending on which file drew it. These pair
+   * one leading to each step of the ramp so the question stops being asked
+   * per-component.
+   */
+  --pp-leading-display: 1.15;
+  --pp-leading-h1: 1.2;
+  --pp-leading-h2: 1.3;
+  --pp-leading-h3: 1.35;
+  --pp-leading-body: 1.5;
+  --pp-leading-meta: 1.45;
+
+  /* The originals. --pp-leading-normal is the body leading under its old
+     name; tight and loose stay for the places that genuinely want them. */
+  --pp-leading-tight: 1.25;
+  --pp-leading-normal: 1.5;
+  --pp-leading-loose: 1.65;
+
+  /*
+   * TRACKING. Letter-spacing was hard-coded in six places with five different
+   * values. Two roles are real: small uppercase runs need opening up, and
+   * large display text needs pulling in.
+   */
+  --pp-tracking-caps: 0.04em; /* uppercase labels, marks, monograms */
+  --pp-tracking-display: -0.015em; /* 23px and up */
+
+  /* ==========================================================================
+     4. SPACE, GEOMETRY, DEPTH
+     ====================================================================== */
+  --pp-space-1: 0.25rem; /* 4  */
+  --pp-space-2: 0.5rem; /* 8  */
+  --pp-space-3: 0.75rem; /* 12 */
+  --pp-space-4: 1rem; /* 16 */
+  --pp-space-5: 1.25rem; /* 20 */
+  --pp-space-6: 1.5rem; /* 24 */
+  --pp-space-7: 2rem; /* 32 */
+  --pp-space-8: 2.5rem; /* 40 */
+
+  /* The checkbox and the radio. 18px, matching --choice-size in the provider
+     portal's tokens — the two products draw one control, and at 20px it read
+     as heavy against 14px body text. [DERIVED] */
+  --pp-choice-size: 1.125rem; /* 18 */
+
+  --pp-radius-sm: 0.25rem; /* 4  */
+  /*
+   * [DESIGN] Controls are drawn a step tighter than panels.
+   *
+   * The reference sets buttons, inputs and chips on 6px and reserves 8px for
+   * the panels that hold them. At one shared radius the two read as the same
+   * object at different sizes; the half-step is what makes a button look like
+   * something sitting ON a card rather than a small card of its own.
+   */
+  --pp-radius-ctl: 0.375rem; /* 6  — buttons, inputs, chips */
+  --pp-radius: 0.5rem; /* 8  — cards and panels */
+  --pp-radius-lg: 0.75rem; /* 12 — the login promo panel */
+  --pp-radius-pill: 62.4375rem;
+
+  --pp-topbar-h: 3.5rem; /* 56 */
+  --pp-sidebar-w: 16rem; /* 256 */
+  --pp-control-h: 2.5rem; /* 40 — inputs */
+
+  /*
+   * [DESIGN] Buttons are SHORTER than inputs, by 4px.
+   *
+   * They used to share --pp-control-h on the reasoning that a button beside a
+   * field should match it. The reference disagrees, and it is right: a field
+   * is a box you type into and wants the height, while a button is a target
+   * and reads as bloated at 40. They still align because a button in a form
+   * row is centred against the field, not stretched to it.
+   */
+  --pp-btn-h: 2.25rem; /* 36 */
+  --pp-btn-h-sm: 2rem; /* 32 — was --pp-control-h-sm, which nothing else used */
+
+  /* ==========================================================================
+     5. THE SPACING RHYTHM
+
+     Four numbers, and every screen in the portal is built from them. They are
+     named for the JOB rather than the size, so tightening the portal later is
+     an edit here instead of a search for every literal 20px.
+
+     The reference is drawn on a 1440 frame with 20px of screen margin, 16px
+     between blocks, 16px inside a panel and 12px down a list row. The portal
+     was running 32 / 24 / 20 / 16 — one step looser at every level, which
+     across four stacked bands cost roughly a card's worth of height on every
+     screen.
+     ====================================================================== */
+  --pp-pad-screen: 1.25rem; /* 20 — the content well's own margin */
+  --pp-gap-block: 1rem; /* 16 — between cards, and between bands */
+  --pp-pad-card: 1rem; /* 16 — inside a card body, head and foot */
+  --pp-pad-row: 0.75rem; /* 12 — the vertical half of a list or table row */
+
+  --pp-shadow-card: 0 1px 2px rgb(16 24 40 / 4%);
+  --pp-shadow-pop: 0 8px 24px rgb(16 24 40 / 12%);
+  --pp-shadow-modal: 0 24px 48px rgb(16 24 40 / 18%);
+}

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Reports — MediNova Clinic Patient Portal</title>
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="css/reset.css" />
+    <link rel="stylesheet" href="css/tokens.css" />
+    <link rel="stylesheet" href="css/base.css" />
+    <link rel="stylesheet" href="css/components.css" />
+    <link rel="stylesheet" href="css/shell.css" />
+    <link rel="stylesheet" href="css/screen-reports.css" />
+    <link rel="stylesheet" href="css/select-menu.css" />
+
+    <!-- ⚠ NOT IN THE SUPPLIED DESIGN. Where Home's "Latest Reports — More ↗"
+         lands. Same reasoning as health-medications.html. -->
+    <script src="js/guard.js"></script>
+    <script type="module" src="js/screens/health-reports.js"></script>
+    <script type="module" src="js/lib/select-menu.js"></script>
+    <script type="module" src="js/comments.js"></script>
+    <script src="js/open-me-properly.js"></script>
+  </head>
+
+  <body class="pp-app">
+    <header class="pp-topbar" id="topbar"></header>
+
+    <div class="pp-body">
+      <nav class="pp-side pp-scroll" id="sidenav" aria-label="Portal sections"></nav>
+
+      <main class="pp-main">
+        <div class="pp-content pp-scroll">
+          <h1 class="pp-sr-only">Reports</h1>
+
+          <!-- The same search the magnifier in the top bar runs, exposed on
+               the screen it searches. Drawn by js/screens/health-reports.js so
+               the matcher and the controls stay in one place. -->
+          <div id="filters"></div>
+
+          <div class="pp-table-wrap">
+            <table class="pp-table" data-testid="reports--table">
+              <caption class="pp-sr-only">Your laboratory and diagnostic reports</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Report</th>
+                  <th scope="col">Date</th>
+                  <th scope="col">Ordered by</th>
+                  <th scope="col">Result</th>
+                </tr>
+              </thead>
+              <tbody id="rows"></tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Documents — MediNova Clinic Patient Portal</title>
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="css/reset.css" />
+    <link rel="stylesheet" href="css/tokens.css" />
+    <link rel="stylesheet" href="css/base.css" />
+    <link rel="stylesheet" href="css/components.css" />
+    <link rel="stylesheet" href="css/shell.css" />
+    <link rel="stylesheet" href="css/select-menu.css" />
+
+    <script src="js/guard.js"></script>
+    <script type="module" src="js/screens/documents.js"></script>
+    <script type="module" src="js/lib/select-menu.js"></script>
+    <script type="module" src="js/comments.js"></script>
+    <script src="js/open-me-properly.js"></script>
+  </head>
+
+  <body class="pp-app">
+    <header class="pp-topbar" id="topbar"></header>
+
+    <div class="pp-body">
+      <nav class="pp-side pp-scroll" id="sidenav" aria-label="Portal sections"></nav>
+
+      <main class="pp-main">
+        <div class="pp-content pp-scroll">
+          <div class="pp-actions pp-actions--split">
+            <h1 class="pp-section-title">Documents</h1>
+            <button
+              type="button"
+              class="pp-btn pp-btn--primary"
+              id="openUpload"
+              data-testid="docs--upload-open"
+            >
+              <svg class="pp-icon pp-icon--sm" aria-hidden="true"><use href="#pi-plus"></use></svg>
+              <span>Upload Documents</span>
+            </button>
+          </div>
+
+          <div class="pp-table-wrap">
+            <table class="pp-table" data-testid="docs--table">
+              <caption class="pp-sr-only">
+                Documents shared with you and documents you have uploaded
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Name</th>
+                  <th scope="col">Category</th>
+                  <th scope="col">Provider</th>
+                  <th scope="col">Receive Date</th>
+                  <th scope="col">End Date</th>
+                </tr>
+              </thead>
+              <tbody id="documentRows"></tbody>
+            </table>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!--
+      UPLOAD DOCUMENT
+
+      A native <dialog>. It brings the modal behaviours with it — the top
+      layer, the backdrop, Escape to close, focus held inside — which are
+      exactly the parts a hand-rolled overlay gets wrong. The design's layout
+      is the two-up first row, the description, and the drop zone.
+    -->
+    <dialog class="pp-modal" id="uploadModal" aria-labelledby="uploadTitle">
+      <form method="dialog" id="uploadForm" novalidate>
+        <div class="pp-modal__head">
+          <h2 class="pp-modal__title" id="uploadTitle">Upload Document</h2>
+          <button
+            type="button"
+            class="pp-modal__close"
+            id="closeUpload"
+            aria-label="Close"
+            data-testid="docs--upload-close"
+          >
+            <svg class="pp-icon" aria-hidden="true"><use href="#pi-close"></use></svg>
+          </button>
+        </div>
+
+        <div class="pp-modal__body">
+          <div
+            style="
+              display: grid;
+              grid-template-columns: repeat(2, minmax(0, 1fr));
+              gap: var(--pp-space-5);
+            "
+          >
+            <div class="pp-field">
+              <label class="pp-label" for="docType">Document Type</label>
+              <div class="pp-control pp-control--icon">
+                <select class="pp-select" id="docType" data-empty="true" data-testid="docs--type">
+                  <option value="" disabled hidden selected>Select Document Type</option>
+                </select>
+                <span class="pp-control__icon">
+                  <svg class="pp-icon" aria-hidden="true">
+                    <use href="#pi-chevron-down"></use>
+                  </svg>
+                </span>
+              </div>
+              <p class="pp-field__error" id="docTypeError" hidden></p>
+            </div>
+
+            <div class="pp-field">
+              <label class="pp-label" for="docDate">Date</label>
+              <div class="pp-control pp-control--icon">
+                <!--
+                  type="date" rather than a text field with a picker icon.
+                  The design draws a calendar glyph; the native control gives
+                  the same affordance plus a keyboard-operable picker and the
+                  device's own date format, which is not worth reimplementing.
+                -->
+                <input class="pp-input" id="docDate" type="date" data-testid="docs--date" />
+                <span class="pp-control__icon">
+                  <svg class="pp-icon" aria-hidden="true"><use href="#pi-calendar"></use></svg>
+                </span>
+              </div>
+              <p class="pp-field__error" id="docDateError" hidden></p>
+            </div>
+          </div>
+
+          <div class="pp-field" style="margin-top: var(--pp-space-5)">
+            <label class="pp-label" for="docDescription">Document Description</label>
+            <textarea
+              class="pp-textarea"
+              id="docDescription"
+              placeholder="Enter Document Description"
+              data-testid="docs--description"
+            ></textarea>
+          </div>
+
+          <div class="pp-field" style="margin-top: var(--pp-space-5)">
+            <span class="pp-label" id="uploadFileLabel">Upload File</span>
+            <button
+              type="button"
+              class="pp-drop"
+              id="dropZone"
+              aria-describedby="uploadFileLabel"
+              data-testid="docs--drop"
+            >
+              <svg class="pp-icon" aria-hidden="true"><use href="#pi-upload"></use></svg>
+              <span>
+                Click here to add files, Drag &amp; drop<br />
+                or <span class="pp-link">browse Files</span>
+              </span>
+              <span class="pp-drop__files" id="chosenFiles"></span>
+            </button>
+            <!-- The real control. Visually hidden rather than display:none so
+                 it stays focusable and keeps its label association. -->
+            <input
+              class="pp-sr-only"
+              type="file"
+              id="docFile"
+              multiple
+              aria-labelledby="uploadFileLabel"
+              data-testid="docs--file"
+            />
+            <p class="pp-field__error" id="docFileError" hidden></p>
+          </div>
+        </div>
+
+        <div class="pp-modal__foot">
+          <button type="button" class="pp-btn pp-btn--neutral" id="cancelUpload">Cancel</button>
+          <button type="submit" class="pp-btn pp-btn--primary" data-testid="docs--upload-submit">
+            Upload
+          </button>
+        </div>
+      </form>
+    </dialog>
+  </body>
+</html>

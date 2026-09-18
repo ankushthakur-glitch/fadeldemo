@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Not in this design cut — MediNova Clinic Patient Portal</title>
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="css/reset.css" />
+    <link rel="stylesheet" href="css/tokens.css" />
+    <link rel="stylesheet" href="css/base.css" />
+    <link rel="stylesheet" href="css/components.css" />
+    <link rel="stylesheet" href="css/shell.css" />
+    <link rel="stylesheet" href="css/select-menu.css" />
+
+    <!--
+      THE HONEST DEAD END.
+
+      One section is named in the navigation but never drawn: Notification
+      Setting. There were three ways to handle that and this is the least bad
+      one.
+
+      Emails and Education Material were the others, until each was dropped
+      from the nav altogether — a placeholder is for a section that is still
+      on the menu, not for one that is gone. This page still answers their
+      old ?section= addresses; it just highlights nothing in the nav.
+
+        - Leave the links pointing nowhere: reads as a broken build, and a
+          reviewer spends their attention filing a bug that is not one.
+        - Disable them: removes them from the navigation, which is part of
+          what is under review.
+        - Invent the screens: puts design decisions nobody made in front of
+          people who will assume somebody made them.
+
+      So the link works, the shell is intact, the section is highlighted in
+      the nav where it should be, and the page says exactly why there is
+      nothing here.
+    -->
+    <script src="js/guard.js"></script>
+    <script type="module" src="js/screens/placeholder.js"></script>
+    <script type="module" src="js/lib/select-menu.js"></script>
+    <script type="module" src="js/comments.js"></script>
+    <script src="js/open-me-properly.js"></script>
+  </head>
+
+  <body class="pp-app">
+    <header class="pp-topbar" id="topbar"></header>
+
+    <div class="pp-body">
+      <nav class="pp-side pp-scroll" id="sidenav" aria-label="Portal sections"></nav>
+
+      <main class="pp-main">
+        <div class="pp-content pp-scroll">
+          <div class="pp-empty" data-testid="placeholder">
+            <span class="pp-empty__icon">
+              <svg class="pp-icon pp-icon--lg" aria-hidden="true">
+                <use href="#pi-book"></use>
+              </svg>
+            </span>
+            <h1 class="pp-empty__title" id="placeholderTitle">Not in this design cut</h1>
+            <p id="placeholderBody"></p>
+            <p style="margin-top: var(--pp-space-3)">
+              <a class="pp-btn pp-btn--outline" href="home.html">Back to Home</a>
+            </p>
+          </div>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

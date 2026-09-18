@@ -1,0 +1,582 @@
+/* ============================================================================
+   APP SHELL — the blue top bar, the side navigation, and the content well.
+
+   Every signed-in screen is this frame plus a content block. The frame is
+   painted by js/lib/shell.js from one nav definition, so a section can be
+   renamed or moved in a single place instead of in eleven HTML files.
+
+   The page itself never scrolls. The sidebar and the content well scroll
+   independently, which is what keeps the top bar and the nav in place while a
+   long statements table runs past the fold.
+   ========================================================================= */
+
+.pp-app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background-color: var(--pp-canvas);
+}
+
+/* ============================================================================
+   TOP BAR
+   ========================================================================= */
+
+.pp-topbar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-4);
+  height: var(--pp-topbar-h);
+  padding: 0 var(--pp-space-6);
+  background-color: var(--pp-topbar);
+  color: var(--pp-topbar-ink);
+  /* The bar and the content well are both pale. Without this edge they read
+     as one surface and the logo appears to float in the page. */
+  border-bottom: 1px solid var(--pp-topbar-line);
+}
+
+.pp-topbar__logo {
+  display: flex;
+  align-items: center;
+}
+
+/*
+ * The wordmark, sized by HEIGHT with width:auto.
+ *
+ * The file is 335 × 68. Constraining the height is what keeps it aligned with
+ * the icons beside it whatever the artwork's aspect ratio does later — a
+ * fixed width would let a redrawn logo change the height of the bar.
+ */
+.pp-topbar__logo img {
+  /* 32px in a 56px bar. The lockup carries a second line — "Gastroenterology
+     Clinic" — at roughly a fifth of its height, so anything under this leaves
+     that line too small to read. A compact mark-only variant would let the
+     bar go shorter; there isn't one yet. */
+  height: 2rem;
+  width: auto;
+}
+
+.pp-topbar__tools {
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-2);
+  margin-left: auto;
+}
+
+.pp-topbar__button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: var(--pp-radius-pill);
+  color: var(--pp-topbar-ink);
+  cursor: pointer;
+}
+
+.pp-topbar__button:hover {
+  background-color: rgb(0 0 0 / 6%);
+}
+
+/*
+ * The unread count on the bell.
+ *
+ * Positioned over the glyph's top-right rather than beside it: the design
+ * puts it there, and a mark that pushes the icon sideways makes the whole
+ * tool cluster jump every time a message arrives. It was a two-digit counter
+ * until the portal stopped stating counts on its chrome; the dot says the one
+ * thing the bell has to say at that size. How many is read out by the
+ * button's own aria-label, so this is decoration and is hidden from it.
+ */
+.pp-topbar__dot {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: var(--pp-radius-pill);
+  background-color: var(--pp-red-solid);
+}
+
+/* --- Account menu -------------------------------------------------------------- */
+
+.pp-account {
+  position: relative;
+}
+
+.pp-account__trigger {
+  display: flex;
+  align-items: center;
+  border-radius: var(--pp-radius-pill);
+  cursor: pointer;
+}
+
+.pp-account__trigger .pp-avatar {
+  border: 2px solid var(--pp-topbar-line);
+  background-color: var(--pp-brand-100);
+}
+
+.pp-account__menu {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  z-index: 40;
+  min-width: 13rem;
+  padding: var(--pp-space-2);
+  border: 1px solid var(--pp-line);
+  border-radius: var(--pp-radius);
+  background-color: var(--pp-surface);
+  box-shadow: var(--pp-shadow-pop);
+}
+
+.pp-account__menu[hidden] {
+  display: none;
+}
+
+.pp-account__who {
+  padding: var(--pp-space-2) var(--pp-space-3) var(--pp-space-3);
+  border-bottom: 1px solid var(--pp-line);
+  margin-bottom: var(--pp-space-2);
+}
+
+.pp-account__name {
+  color: var(--pp-text-strong);
+  font-size: var(--pp-size-sm);
+  font-weight: var(--pp-weight-semibold);
+}
+
+.pp-account__email {
+  color: var(--pp-text-muted);
+  font-size: var(--pp-size-xs);
+  word-break: break-all;
+}
+
+.pp-account__item {
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-3);
+  width: 100%;
+  padding: var(--pp-space-2) var(--pp-space-3);
+  border-radius: var(--pp-radius-sm);
+  color: var(--pp-text);
+  font-size: var(--pp-size-sm);
+  text-align: left;
+  cursor: pointer;
+}
+
+.pp-account__item:hover {
+  background-color: var(--pp-surface-hover);
+  color: var(--pp-text-strong);
+  text-decoration: none;
+}
+
+/* ============================================================================
+   BODY SPLIT
+   ========================================================================= */
+
+.pp-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+/* ============================================================================
+   SIDE NAVIGATION
+   ========================================================================= */
+
+.pp-side {
+  flex: none;
+  width: var(--pp-sidebar-w);
+  padding: var(--pp-space-4) 0;
+  border-right: 1px solid var(--pp-line);
+  background-color: var(--pp-sidebar);
+}
+
+.pp-side__list {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/*
+ * One row of the nav, whether it is a link or a group toggle.
+ *
+ * The left indicator is a border on the element itself rather than a
+ * pseudo-element, and EVERY row carries it in transparent. Painting it only
+ * on the active row would shift all the other labels 3px sideways as the
+ * selection moves, which is visible as a twitch on every navigation.
+ */
+.pp-side__item {
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-3);
+  width: 100%;
+  min-height: 3rem;
+  padding: 0 var(--pp-space-6);
+  border-left: 3px solid transparent;
+  color: var(--pp-text-muted);
+  font-size: var(--pp-size-body);
+  font-weight: var(--pp-weight-medium);
+  text-align: left;
+  cursor: pointer;
+}
+
+.pp-side__item:hover {
+  background-color: var(--pp-brand-050);
+  color: var(--pp-text-strong);
+  text-decoration: none;
+}
+
+/*
+ * The selected row.
+ *
+ * It carries a filled ground as well as the left bar. Colour-and-a-bar alone
+ * put the whole weight of "you are here" on a 3px edge, and against a sidebar
+ * that is itself tinted green the label barely separated from the rows above
+ * and below it.
+ */
+.pp-side__item--active {
+  border-left-color: var(--pp-action);
+  background-color: var(--pp-sidebar-selected);
+  color: var(--pp-brand-800);
+  font-weight: var(--pp-weight-semibold);
+}
+
+/* Hover on the selected row must not go LIGHTER than the row already is —
+   .pp-side__item:hover paints --pp-brand-050 over it otherwise, so the ground
+   is restated here rather than only the ink. */
+.pp-side__item--active:hover {
+  background-color: var(--pp-sidebar-selected);
+  color: var(--pp-brand-900);
+}
+
+.pp-side__label {
+  flex: 1;
+  min-width: 0;
+}
+
+/* The group chevron. Rotating one glyph rather than swapping two means the
+   open/close reads as a single movement. */
+.pp-side__chevron {
+  transition: transform 0.18s ease;
+}
+
+.pp-side__item[aria-expanded='true'] .pp-side__chevron {
+  transform: rotate(180deg);
+}
+
+/* --- Sub-items ------------------------------------------------------------------ */
+
+.pp-side__sub {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  margin: 0 var(--pp-space-3) var(--pp-space-2);
+  padding: 0;
+  list-style: none;
+}
+
+.pp-side__sub[hidden] {
+  display: none;
+}
+
+.pp-side__subitem {
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-2);
+  min-height: 2.5rem;
+  padding: 0 var(--pp-space-4) 0 2.5rem;
+  border-radius: var(--pp-radius);
+  color: var(--pp-text-muted);
+  font-size: var(--pp-size-body);
+}
+
+.pp-side__subitem:hover {
+  background-color: var(--pp-brand-050);
+  color: var(--pp-text-strong);
+  text-decoration: none;
+}
+
+.pp-side__subitem--active,
+.pp-side__subitem--active:hover {
+  background-color: var(--pp-sidebar-selected);
+  color: var(--pp-brand-800);
+  font-weight: var(--pp-weight-semibold);
+}
+
+/* "1 New" beside Messages. Red text, no pill — it is a count, not a status. */
+/* ============================================================================
+   MAIN REGION
+   ========================================================================= */
+
+.pp-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* --- Content well -----------------------------------------------------------------
+   A grey breadcrumb strip used to sit between the top bar and this well on
+   every screen but Home. It is gone portal-wide — see the header of
+   js/lib/shell.js — and the well now starts directly under the top bar. */
+
+.pp-content {
+  flex: 1;
+  min-height: 0;
+  padding: var(--pp-pad-screen);
+}
+
+/*
+ * For screens that manage their own scrolling.
+ *
+ * One screen uses it. On Messages the conversation list and the transcript
+ * scroll separately, and the composer has to stay pinned at the bottom of the
+ * viewport — a well that scrolled as a whole would carry the composer off the
+ * page as soon as the transcript got long. Appointment used it too, for a tab
+ * strip that had to hold still; the tabs are gone and it scrolls normally now.
+ */
+.pp-content--fill {
+  display: flex;
+  overflow: hidden;
+}
+
+/* The right-aligned action above a table or a list. Reserves its own height
+   so the content below does not jump between screens that have one and
+   screens that do not. */
+.pp-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--pp-space-2);
+  min-height: var(--pp-btn-h);
+  margin-bottom: var(--pp-gap-block);
+}
+
+.pp-actions--split {
+  justify-content: space-between;
+}
+
+.pp-section-title {
+  font-size: var(--pp-size-h2);
+  font-weight: var(--pp-weight-semibold);
+  line-height: var(--pp-leading-h2);
+  color: var(--pp-text-strong);
+}
+
+.pp-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pp-space-4);
+  margin-bottom: var(--pp-space-3);
+}
+
+/* ============================================================================
+   NARROW SCREENS
+
+   The portal is a consumer surface, so unlike the EHR it cannot assume a
+   1440px clinical workstation. Below 60rem the sidebar collapses to an icon
+   rail; below 48rem it goes away entirely and the top bar carries a menu
+   button that shows it as an overlay.
+   ========================================================================= */
+
+@media (width < 60rem) {
+  .pp-content {
+    padding: var(--pp-space-4);
+  }
+}
+
+@media (width < 48rem) {
+  .pp-side {
+    position: fixed;
+    top: var(--pp-topbar-h);
+    bottom: 0;
+    left: 0;
+    z-index: 30;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+    box-shadow: var(--pp-shadow-pop);
+  }
+
+  .pp-side[data-open='true'] {
+    transform: translateX(0);
+  }
+}
+
+/* The menu button only exists on narrow screens. */
+.pp-topbar__menu {
+  display: none;
+}
+
+@media (width < 48rem) {
+  .pp-topbar__menu {
+    display: flex;
+  }
+}
+
+/* ============================================================================
+   THE NOTIFICATIONS PANEL
+
+   A dropdown anchored to the bell, built on the same bones as the account
+   menu beside it — see lib/notifications-panel.js for why it is not a drawer.
+   ========================================================================= */
+
+.pp-notes__anchor {
+  position: relative;
+  display: flex;
+}
+
+.pp-notes {
+  position: absolute;
+  top: calc(100% + var(--pp-space-3));
+  right: 0;
+  z-index: 60;
+  width: min(23rem, calc(100vw - 2rem));
+  border: 1px solid var(--pp-line);
+  border-radius: var(--pp-radius);
+  background-color: var(--pp-surface);
+  box-shadow: var(--pp-shadow-pop);
+  color: var(--pp-text);
+  overflow: hidden;
+}
+
+.pp-notes__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pp-space-4);
+  padding: var(--pp-space-4) var(--pp-space-5);
+  border-bottom: 1px solid var(--pp-line);
+}
+
+.pp-notes__title {
+  margin: 0;
+  color: var(--pp-text-strong);
+  font-size: var(--pp-size-h3);
+  font-weight: var(--pp-weight-semibold);
+  line-height: var(--pp-leading-h3);
+}
+
+.pp-notes__clear {
+  color: var(--pp-text-muted);
+  font-size: var(--pp-size-xs);
+}
+
+/* The list scrolls rather than the panel growing past the viewport — five
+   rows today, and no reason to assume five tomorrow. */
+.pp-notes__list {
+  max-height: min(24rem, 60vh);
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.pp-notes__foot {
+  padding: var(--pp-space-3) var(--pp-space-5);
+  border-top: 1px solid var(--pp-line);
+  text-align: center;
+}
+
+/* --- One notification ------------------------------------------------------ */
+
+.pp-note {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--pp-space-3);
+  padding: var(--pp-space-4) var(--pp-space-5);
+  border-bottom: 1px solid var(--pp-line);
+  color: inherit;
+  text-decoration: none;
+}
+
+.pp-note:last-child {
+  border-bottom: none;
+}
+
+.pp-note:hover {
+  background-color: var(--pp-surface-hover);
+}
+
+.pp-note:focus-visible {
+  outline: 2px solid var(--pp-focus);
+  outline-offset: -2px;
+}
+
+/* Unread carries a tint AND a dot. The tint is what you see from across the
+   list; the dot is what survives being printed, screenshotted in greyscale,
+   or looked at by someone who cannot distinguish the tint from white. */
+.pp-note--unread {
+  background-color: var(--pp-surface-tint);
+}
+
+.pp-note--unread:hover {
+  background-color: var(--pp-brand-100);
+}
+
+.pp-note__mark {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--pp-radius-pill);
+  background-color: var(--pp-surface-sunk);
+  color: var(--pp-text-muted);
+}
+
+.pp-note--unread .pp-note__mark {
+  background-color: var(--pp-white);
+  color: var(--pp-action);
+}
+
+.pp-note__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+  min-width: 0;
+}
+
+.pp-note__title {
+  color: var(--pp-text-strong);
+  font-size: var(--pp-size-sm);
+  font-weight: var(--pp-weight-medium);
+}
+
+.pp-note__text {
+  color: var(--pp-text-muted);
+  font-size: var(--pp-size-xs);
+}
+
+.pp-note__when {
+  margin-top: var(--pp-space-1);
+  color: var(--pp-text-muted);
+  font-size: var(--pp-size-xs);
+}
+
+.pp-note__dot {
+  flex: none;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-top: var(--pp-space-2);
+  border-radius: var(--pp-radius-pill);
+  background-color: var(--pp-action);
+}
+
+/* On a phone the panel runs the width of the screen rather than hanging off a
+   button that is itself near the edge. */
+@media (width < 30rem) {
+  .pp-notes {
+    position: fixed;
+    top: var(--pp-topbar-h);
+    right: 0.5rem;
+    left: 0.5rem;
+    width: auto;
+  }
+}

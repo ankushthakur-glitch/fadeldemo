@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MediNova EHR — Audit Log</title>
+    <link rel="icon" type="image/svg+xml" href="../assets/img/favicon.svg" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="../css/reset.css" />
+    <link rel="stylesheet" href="../css/tokens.css" />
+    <link rel="stylesheet" href="../css/base.css" />
+    <link rel="stylesheet" href="../css/ui-kit.css" />
+    <link rel="stylesheet" href="../css/screen-patient.css" />
+    <!-- For .ui-page-head__back — this is a Settings module and wears its chrome. -->
+    <link rel="stylesheet" href="../css/screen-settings.css" />
+    <link rel="stylesheet" href="../css/screen-audit.css" />
+
+    <script type="module" src="../js/main.js"></script>
+    <script type="module" src="../js/screens/audit-log.js"></script>
+    <script src="../js/open-me-properly.js"></script>
+  </head>
+
+  <body class="pt aud">
+    <header class="pt__bar">
+      <img class="pt__logo" src="../assets/img/medinova-logo.svg" width="158" height="32"
+        alt="MediNova Gastroenterology Clinic" />
+      <ui-main-nav active="settings"></ui-main-nav>
+      <div class="pt__bar-actions">
+        <ui-time-clock></ui-time-clock>
+        <button type="button" class="pt__icon-action" aria-label="Notifications">
+          <svg class="ui-icon" aria-hidden="true"><use href="#i-bell"></use></svg>
+        </button>
+        <ui-avatar name="Amara Mensah" size="sm"></ui-avatar>
+      </div>
+    </header>
+
+    <!-- A Settings module, so it carries the same way back the other Settings
+         modules do — the hub is the only route in now that the nav has no
+         Audit Log tab. -->
+    <div class="ui-page-head ui-page-head--flush aud__head">
+      <div class="ui-page-head__lead">
+        <a class="ui-page-head__back" href="settings.html" data-testid="aud--back"
+          aria-label="Back to settings">
+          <svg class="ui-icon" aria-hidden="true"><use href="#i-caret-left"></use></svg>
+        </a>
+        <div>
+          <h1 class="ui-page-head__title">Audit Log</h1>
+        </div>
+      </div>
+
+      <div class="ui-page-head__actions">
+        <!-- Seven filters, behind the button every list in the EHR keeps them
+             behind. They read in the order the question is actually asked:
+             when, then what kind of event, then who, then whose record, then
+             how it ended — which is why they are a panel rather than a row:
+             seven controls permanently open over a ten-column table is a
+             screen where the entries start below the fold. -->
+        <ui-filter id="audFilter" label="Filters" panel-label="Filter the audit log"
+          width="19rem" data-testid="aud--filter">
+          <!-- When, first: an audit question almost always starts with a date. -->
+          <ui-filter-fields name="when" label="Date range">
+            <div class="ui-filter-group__fields--pair">
+              <ui-input id="fFrom" type="date" label="From" size="sm"
+                data-testid="aud--from"></ui-input>
+              <ui-input id="fTo" type="date" label="To" size="sm"
+                data-testid="aud--to"></ui-input>
+            </div>
+          </ui-filter-fields>
+
+          <ui-filter-group name="category" label="Category"></ui-filter-group>
+          <!-- Narrowed by the category above it: offering "Claim Submitted"
+               under Auth would be offering a filter that can only ever return
+               nothing. See paintEventOptions(). -->
+          <ui-filter-group name="event" label="Event type"></ui-filter-group>
+          <ui-filter-group name="user" label="User"></ui-filter-group>
+
+          <!-- A practice has a bounded roster but thousands of patients, so
+               this one is a search box rather than a list of ticks. -->
+          <ui-filter-fields name="who" label="Patient">
+            <ui-input id="fPatient" label="Name or MRN" label-hidden icon="search"
+              placeholder="Name or MRN" size="sm" data-testid="aud--patient"></ui-input>
+          </ui-filter-fields>
+
+          <ui-filter-group name="outcome" label="Outcome"></ui-filter-group>
+        </ui-filter>
+
+        <ui-button variant="outline" icon="download"
+          data-testid="aud--export">Export</ui-button>
+      </div>
+    </div>
+
+    <main class="ui-page-body aud__body">
+      <section class="ui-table-card" aria-label="Audit entries">
+        <div class="ui-table-wrap aud__table-wrap">
+          <table class="ui-table" data-testid="aud--table">
+            <thead>
+              <tr>
+                <th scope="col">Timestamp</th>
+                <th scope="col">User</th>
+                <th scope="col">Role</th>
+                <th scope="col">Event</th>
+                <th scope="col">Category</th>
+                <th scope="col">Patient Name (MRN)</th>
+                <th scope="col">Resource</th>
+                <th scope="col">Outcome</th>
+                <!-- The reference screen had "Created By" here, holding a
+                     second person's name. One act has one actor, so this
+                     column carries where the act came from instead. -->
+                <th scope="col">Source</th>
+                <th scope="col"><span class="u-sr-only">Action</span></th>
+              </tr>
+            </thead>
+            <tbody data-rows></tbody>
+          </table>
+        </div>
+        <p class="aud__empty" data-empty hidden data-testid="aud--empty">
+          No audit entries match these filters.
+        </p>
+        <div data-foot="audit"></div>
+      </section>
+    </main>
+
+    <!-- ================= ENTRY DETAIL =================
+         The row is the summary; this is the record. Read-only, deliberately:
+         there is nothing on this dialog anybody can change, because there is
+         nothing about a recorded event that is anybody's to change. -->
+    <ui-modal id="auditDetail" heading="Audit entry" size="md">
+      <div id="auditDetailBody" class="aud__detail" data-testid="aud--detail"></div>
+      <div class="ui-modal__actions">
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="tertiary" data-detail-close data-testid="aud--detail-close"
+          >Close</ui-button>
+      </div>
+    </ui-modal>
+  </body>
+</html>

@@ -1,0 +1,40 @@
+/* ============================================================================
+   ui-section-label — a tinted band that titles a run of fields or rows.
+
+   It is not a heading in the document-outline sense; it is a coloured strip
+   that says "everything below this until the next strip belongs together".
+   Give it an id and point the section's aria-labelledby at it and it becomes
+   the accessible name for that region too.
+   ========================================================================= */
+
+ui-section-label { display: block; }
+
+.ui-section-label {
+  width: 100%;
+  padding: var(--space-3) var(--space-7);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-snug);
+}
+
+.ui-section-label--brand {
+  background-color: var(--color-brand-surface);
+  color: var(--color-brand-text);
+}
+.ui-section-label--neutral {
+  background-color: var(--color-status-neutral-surface);
+  color: var(--color-status-neutral-text);
+}
+.ui-section-label--success {
+  background-color: var(--color-status-success-surface);
+  color: var(--color-status-success-text);
+}
+.ui-section-label--warning {
+  background-color: var(--color-status-warning-surface);
+  color: var(--color-status-warning-text);
+}
+.ui-section-label--critical {
+  background-color: var(--color-status-critical-surface);
+  color: var(--color-status-critical-text);
+}

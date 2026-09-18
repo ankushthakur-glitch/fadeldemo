@@ -1,0 +1,399 @@
+/* ============================================================================
+   ENCOUNTER SUMMARY — the note read rather than written.
+
+   One rail carrying who the note is about and who signed it, one column of
+   document beside it, one commit bar along the bottom.
+
+   Two measures, not one. 16px is structural — the gap between cards, the
+   gutter round the page, the horizontal inset of a card — so the frame of the
+   screen still sits on a single grid. 12px is the rhythm INSIDE a card: the
+   space between a heading and its facts, between one fact and the next, and
+   the card's own top and bottom inset. A note is a dozen labelled lines under
+   five headings, and at 16px between every one of them the page spent more
+   height on the air than on the note; a clinician reading it scrolled past
+   two thirds of a screen of nothing to reach the Plan.
+   ========================================================================= */
+
+.es {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-bg-surface-sunken);
+  overflow: hidden;
+}
+
+/* --- The patient card ------------------------------------------------------
+   The encounter rail's card, brought over whole: identity across the top with
+   the allergy badge, then Mobile / Insurance / Provider under a rule. It was a
+   tinted payer block with a caret folding it away; the fold saved height this
+   rail already had, and the two screens disagreeing about where a patient's
+   MRN sits cost more than the fold ever saved.
+   -------------------------------------------------------------------------- */
+
+.es__patient-card {
+  padding: var(--space-6) var(--card-padding);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+}
+
+/* Top-aligned, not centred: the badge belongs against the name it qualifies,
+   and with a two-line id block under the name centring drags it half a line
+   down and leaves the avatar floating. */
+.es__pc-top {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+.es__avatar {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-10);
+  height: var(--space-10);
+  border-radius: var(--radius-full);
+  background-color: var(--color-brand-surface);
+  color: var(--color-brand-text);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-semibold);
+}
+
+.es__pc-heading { flex: 1; min-width: 0; }
+
+/* Link blue here, unlike the encounter's card: this name DOES go somewhere —
+   the chart — so the colour is promising a navigation it can honour. */
+.es__pc-name {
+  font-size: var(--font-size-heading-sm);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  color: var(--color-text-link);
+  text-decoration: none;
+}
+.es__pc-name:hover { text-decoration: underline; }
+
+.es__pc-idline {
+  margin-top: var(--space-1);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-tertiary);
+}
+
+/* --- The three looked-up facts ---------------------------------------------
+   A label column and a value column, so Mobile, Insurance and Provider read
+   down one edge. 5.5rem matches the encounter rail exactly — the same three
+   labels stopping at the same place on both screens is the point of moving
+   this card over.
+   -------------------------------------------------------------------------- */
+
+.es__pc-facts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+  padding-top: var(--space-5);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.es__pc-fact {
+  display: grid;
+  grid-template-columns: 5.5rem minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: baseline;
+}
+.es__pc-fact dt {
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-tertiary);
+}
+.es__pc-fact dd {
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-primary);
+  overflow-wrap: anywhere;
+}
+
+
+/* --- Layout ---------------------------------------------------------------- */
+
+/* The rail leads and the note follows, because that is the order the note is
+   read in: who this is about, then what was recorded about them. */
+.es__cols {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: var(--layout-gap);
+  padding: var(--layout-gutter);
+  overflow: hidden;
+}
+
+.es__main { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+
+.es__doc {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+  overflow: hidden;
+}
+
+/* The way back, the screen's name and the note's state are in the page head
+   (base.css) now, not in a head of the document's own. */
+
+.es__doc-title {
+  flex: none;
+  padding: var(--space-6) var(--space-7) 0;
+  font-size: var(--font-size-heading-lg);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  color: var(--color-text-primary);
+}
+
+.es__doc-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-6) var(--space-7) var(--space-7);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+/* --- Sections -------------------------------------------------------------- */
+
+/* A section is one card: its heading and everything under it inside the same
+   border. The heading used to carry a tinted band and the body a border of its
+   own, which drew two boxes for one thing and made a five-section note read as
+   ten. The band is now a short brand rule beside the heading — enough to find
+   SUBJECTIVE / OBJECTIVE when scrolling, without a full-width fill on every
+   heading down the page. */
+.es__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: var(--space-6) var(--card-padding);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.es__section-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  font-size: var(--font-size-title-card);
+  line-height: var(--line-height-tight);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.es__section-title::before {
+  content: '';
+  flex: none;
+  width: var(--border-width-thick);
+  align-self: stretch;
+  min-height: 1rem;
+  border-radius: var(--radius-full);
+  background-color: var(--color-border-brand);
+}
+
+.es__section-body { display: flex; flex-direction: column; gap: var(--space-6); }
+
+.es__section-sub { font-size: var(--font-size-body); font-weight: var(--font-weight-semibold); }
+
+/* Every labelled fact in the note is a cell in one band of columns — short
+   ones packed several across, sentences given a wider column. It used to be
+   two mechanisms: a flowsheet grid for short values and a stack of full-width
+   blocks for long ones, which meant six one-line facts ate six rows of a
+   fifteen-hundred-pixel column and the eye tracked back to the left margin for
+   every one of them. One grid at two column widths reads the same and costs a
+   third of the height.
+
+   The wrapper clips the leftmost cell's own left border, so the rules fall
+   between the columns and never against the card's edge, on the first row and
+   on every row the grid wraps to. */
+.es__grid-wrap { overflow: hidden; }
+
+.es__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  row-gap: var(--space-6);
+  margin-left: calc(-1 * var(--space-7));
+}
+
+/* The wide track. A history or an examination finding is a sentence, and in a
+   quarter-width column it wraps to four lines and stops being scannable — but
+   it does not need the whole measure either. 19rem is about fifty characters
+   of MediNova's caption size: two of them across a laptop, four across a wide
+   monitor. */
+.es__grid--wide { grid-template-columns: repeat(auto-fit, minmax(19rem, 1fr)); }
+
+/* Pulled left by its own padding, so the first column's text starts flush with
+   the card's other content and only the rule hangs outside, into the clip. */
+.es__cell {
+  padding: 0 var(--space-7);
+  border-left: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+/* The one fact in a band that has to have the whole width: the reason for
+   visit, which is prose sitting under five short appointment facts. */
+.es__cell--full { grid-column: 1 / -1; }
+
+.es__cell dt {
+  font-size: var(--font-size-fact-label);
+  color: var(--color-fact-label);
+  font-weight: var(--font-weight-regular);
+}
+.es__cell dd {
+  margin-top: var(--space-2);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+}
+
+/* A value that is a sentence is read, not scanned: regular weight and the
+   looser leading, wherever it lands. */
+.es__grid--wide dd,
+.es__cell--full dd {
+  font-weight: var(--font-weight-regular);
+  line-height: var(--line-height-relaxed);
+}
+
+.es__para { font-size: var(--font-size-caption); line-height: var(--line-height-relaxed); }
+
+
+/* --- Signatures rail ------------------------------------------------------- */
+
+/* 18rem, not 20. The rail carries an identity line and a signature, neither
+   of which is wider than that, and the two rem it gives back go to the note —
+   which is where the wrapping happens. */
+.es__rail {
+  flex: none;
+  width: 18rem;
+  min-width: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--layout-gap);
+}
+
+.es__card {
+  padding: var(--space-6) var(--card-padding);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+}
+
+.es__card-title {
+  margin-bottom: var(--space-6);
+  font-size: var(--font-size-title-card);
+  line-height: var(--line-height-tight);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.es__signature {
+  padding: var(--space-6);
+  border: var(--border-width-thin) solid var(--color-border-brand);
+  border-radius: var(--radius-md);
+  background-color: var(--color-brand-surface);
+}
+
+/* The signature itself. Typed rather than an image: it has to render from the
+   name that was typed, and this prototype ships no font files. */
+.es__signature-ink,
+.es__sign-ink {
+  display: block;
+  /* The product is set in one typeface, so this is Inter like everything
+     else. Italic and the 24px size do the work the script face used to. */
+  font-family: var(--font-family-signature);
+  font-style: italic;
+  font-size: var(--font-size-24);
+  line-height: var(--line-height-relaxed);
+  color: var(--color-text-primary);
+}
+
+.es__signature-by {
+  margin-top: var(--space-4);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+}
+.es__signature-when {
+  margin-top: var(--space-2);
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+}
+
+.es__signature-none {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-tertiary);
+  line-height: var(--line-height-relaxed);
+}
+
+/* --- The commit bar -------------------------------------------------------- */
+
+.es__foot {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-7);
+  padding: var(--space-6) var(--space-7);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+  background-color: var(--color-bg-surface);
+}
+
+.es__foot-hint { flex: 1; font-size: var(--font-size-caption); color: var(--color-text-secondary); }
+.es__foot-actions { display: flex; align-items: center; gap: var(--space-6); }
+
+/* --- Sign & Lock dialog ---------------------------------------------------- */
+
+.es__sign { display: flex; flex-direction: column; gap: var(--space-7); }
+
+.es__sign-lead { font-size: var(--font-size-caption); color: var(--color-text-secondary); }
+
+.es__sign-preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-7);
+  border: var(--border-width-thin) dashed var(--color-border-default);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+}
+
+.es__sign-label {
+  font-size: var(--font-size-2xs);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wide);
+  color: var(--color-text-tertiary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.es__sign-ink--empty { color: var(--color-text-tertiary); }
+
+.es__sign-warn { font-size: var(--font-size-2xs); color: var(--color-text-tertiary); }
+
+/* --- Print: the note, and nothing that acts on it -------------------------- */
+
+@media print {
+  @page { margin: 14mm; }
+
+  /* The header band goes with the footer: on paper the note needs its own
+     title, not the screen's chrome and a way back to a list. */
+  .es__foot,
+  .ui-page-head,
+  .ui-modal { display: none !important; }
+
+  html, body, .es, .es__cols, .es__main, .es__doc, .es__doc-body, .es__rail {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+
+  .es__doc, .es__card, .es__patient-card { border: none !important; }
+  .es__section { break-inside: avoid; }
+}

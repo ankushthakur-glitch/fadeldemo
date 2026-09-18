@@ -1,0 +1,268 @@
+/* ============================================================================
+   PRINT
+
+   Two jobs, and they are opposites:
+
+     ON SCREEN   hide the print containers completely.
+     ON PAPER    hide everything else, and show only them.
+
+   Loaded by the screens that can print — Health Records, and the completed
+   form view. Nothing here affects a screen that does not.
+
+   On Health Records the container holds ONE RECORD: the medications, both
+   current and past, or the allergies. Which one is whichever record was open
+   when Download was pressed. The rules below hide the live table and put the
+   printed one in its place — they are two different tables, because the
+   printed one owes nothing to the screen's scroll wrap. See
+   js/lib/med-print.js.
+
+   WHY NOT media="print" ON THE <link>
+     Because the first rule below has to apply on SCREEN: the print container
+     is real markup sitting in the document, and something has to hide it
+     while you are looking at the page. A print-only stylesheet cannot.
+
+   BLACK ON WHITE, PORTRAIT, NO CHROME
+     A printed clinical list is read under whatever light is in the room,
+     photocopied, faxed and scanned. Every one of those steps degrades colour
+     and none of them degrades black text on white paper. So the print rules
+     take the portal's palette off entirely rather than trying to reproduce it
+     — the green would arrive as grey on a mono printer, and a grey chip that
+     was carrying meaning on screen carries none once it prints.
+   ========================================================================= */
+
+/* ============================================================================
+   ON SCREEN
+   ========================================================================= */
+
+/*
+ * Not `display: none`.
+ *
+ * A display:none element is not rendered at all in some engines' print paths
+ * when it is toggled in the same frame as print(), and it also drops out of
+ * the accessibility tree in a way that varies. Taking it out of flow and
+ * clipping it to nothing keeps it a real, laid-out element that print rules
+ * can simply put back — the same trick .pp-sr-only uses, for a similar
+ * reason. aria-hidden on the container keeps it out of the screen reader's
+ * way, since the live tables above it say the same things.
+ */
+.pp-print {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ============================================================================
+   ON PAPER
+   ========================================================================= */
+
+@media print {
+  /*
+   * Portrait, and a margin wide enough to survive a hole punch on the left
+   * and a staple at the top. `auto` on the size lets the printer use Letter
+   * or A4 as configured — the layout below is fluid and fits either, which is
+   * the reason nothing here is measured in absolute page units.
+   */
+  @page {
+    size: auto portrait;
+    margin: 16mm 14mm;
+  }
+
+  /*
+   * The whole app goes. The sidebar, the top bar, every button, the toasts,
+   * the dialogs — none of it is part of the document, and a printed page with
+   * a navigation column down the left is the single clearest sign that
+   * nobody tried printing it.
+   */
+  .pp-topbar,
+  .pp-side,
+  .pp-toasts,
+  .pp-modal,
+  .pp-meds__bar,
+  .pp-meds__panel,
+  .pp-table-wrap,
+  .pp-form__actions,
+  .pp-btn {
+    display: none !important;
+  }
+
+  /*
+   * The shell is a full-height flex/grid frame with its own scroll panes.
+   * Printing inside that gives one page and a scrollbar's worth of content,
+   * because an element that scrolls on screen prints only what is in view.
+   * Unwinding it to plain static blocks is what lets the content paginate.
+   */
+  html,
+  body,
+  .pp-app,
+  .pp-body,
+  .pp-main,
+  .pp-content {
+    display: block !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  /* And the container we actually want, put back. */
+  .pp-print {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip-path: none;
+    white-space: normal;
+    color: #000;
+    font-size: 10pt;
+    line-height: 1.4;
+  }
+
+  /* ==========================================================================
+     THE HEADER
+     ====================================================================== */
+
+  .pp-print__head {
+    margin-bottom: 6mm;
+    padding-bottom: 3mm;
+    border-bottom: 1.5pt solid #000;
+  }
+
+  .pp-print__brand {
+    display: flex;
+    align-items: center;
+    gap: 4mm;
+  }
+
+  /*
+   * The mark prints because it is an <img>, not a CSS background — browsers
+   * suppress background images by default and print <img> regardless, which
+   * is exactly why the logo is markup here and a background elsewhere.
+   */
+  .pp-print__logo {
+    width: auto;
+    height: 12mm;
+  }
+
+  .pp-print__clinic {
+    margin: 0;
+    font-size: 13pt;
+    font-weight: 700;
+  }
+
+  .pp-print__title {
+    margin: 3mm 0 3mm;
+    font-size: 15pt;
+    font-weight: 700;
+  }
+
+  /* Name, DOB, MRN and the generation stamp across one band. */
+  .pp-print__facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2mm 8mm;
+    margin: 0;
+  }
+
+  .pp-print__facts dt {
+    font-size: 8pt;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .pp-print__facts dd {
+    margin: 0;
+    font-size: 10pt;
+    font-weight: 600;
+  }
+
+  /* ==========================================================================
+     SECTIONS AND TABLES
+     ====================================================================== */
+
+  .pp-print__section {
+    margin-bottom: 6mm;
+  }
+
+  .pp-print__heading {
+    /* A heading stranded at the foot of a page with its table overleaf is the
+       classic print bug. Keeping it with what follows costs nothing when
+       there is room and fixes it when there is not. */
+    break-after: avoid;
+    page-break-after: avoid;
+    margin: 0 0 2mm;
+    font-size: 11pt;
+    font-weight: 700;
+  }
+
+  .pp-print__count {
+    font-weight: 400;
+  }
+
+  .pp-print__table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .pp-print__table th,
+  .pp-print__table td {
+    padding: 1.6mm 2mm;
+    border: 0.5pt solid #666;
+    font-size: 9pt;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .pp-print__table th {
+    font-weight: 700;
+    /* A tint rather than a fill: `print-color-adjust: exact` would force the
+       printer to lay down ink for it, and a header band is not worth a
+       cartridge. Left as a hint, it simply does not print on mono. */
+    background: #eee;
+  }
+
+  /* The requirement, and the reason for it: a medication split across a page
+     break can be read as two medications, or as one with the wrong dose. */
+  .pp-print__table tr,
+  .pp-print__table thead {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* The header row repeats at the top of each page a long table runs onto,
+     so page three is not a grid of unlabelled columns. */
+  .pp-print__table thead {
+    display: table-header-group;
+  }
+
+  .pp-print__empty {
+    margin: 0;
+    font-style: italic;
+  }
+
+  /* ==========================================================================
+     THE FOOTER
+     ====================================================================== */
+
+  .pp-print__foot {
+    margin-top: 8mm;
+    padding-top: 3mm;
+    border-top: 0.5pt solid #666;
+    font-size: 8.5pt;
+  }
+
+  .pp-print__foot p {
+    margin: 0;
+  }
+
+  /* A link's href is meaningless on paper and the underline is noise. */
+  .pp-print a {
+    color: #000;
+    text-decoration: none;
+  }
+}

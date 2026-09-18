@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MediNova EHR — Patient Check-in</title>
+    <link rel="icon" type="image/svg+xml" href="../assets/img/favicon.svg" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="../css/reset.css" />
+    <link rel="stylesheet" href="../css/tokens.css" />
+    <link rel="stylesheet" href="../css/base.css" />
+    <link rel="stylesheet" href="../css/ui-kit.css" />
+    <link rel="stylesheet" href="../css/screen-patient.css" />
+    <link rel="stylesheet" href="../css/screen-leads.css" />
+    <link rel="stylesheet" href="../css/components/sign-pad.css" />
+    <link rel="stylesheet" href="../css/screen-checkin.css" />
+
+    <script type="module" src="../js/main.js"></script>
+    <script type="module" src="../js/screens/check-in.js"></script>
+    <script src="../js/open-me-properly.js"></script>
+  </head>
+
+  <body class="pt cin">
+    <header class="pt__bar">
+      <img class="pt__logo" src="../assets/img/medinova-logo.svg" width="158" height="32"
+        alt="MediNova Gastroenterology Clinic" />
+      <ui-main-nav active="schedule"></ui-main-nav>
+      <div class="pt__bar-actions">
+        <ui-time-clock></ui-time-clock>
+        <button type="button" class="pt__icon-action" aria-label="Notifications">
+          <svg class="ui-icon" aria-hidden="true"><use href="#i-bell"></use></svg>
+        </button>
+        <ui-avatar name="Amara Mensah" size="sm"></ui-avatar>
+      </div>
+    </header>
+
+    <!-- --flush because the work area below brings its own top edge. Left to
+         itself the head draws a rule that lands a gutter above the rail's own
+         border — two lines with a strip of nothing between them. -->
+    <div class="ui-page-head ui-page-head--flush cin__head">
+      <div class="ui-page-head__lead">
+        <a class="ui-page-head__back" href="scheduler.html" data-testid="cin--back"
+           aria-label="Back to the scheduler">
+          <svg class="ui-icon" aria-hidden="true"><use href="#i-caret-left"></use></svg>
+        </a>
+        <h1 class="ui-page-head__title">Patient Check-in</h1>
+      </div>
+    </div>
+
+    <!-- The band that named the patient and their booking stood here — the
+         avatar, the MRN and date of birth, then the procedure, doctor, date,
+         time and room. It has gone: check-in is reached from a booking that
+         already settled all of it, and restating it cost a band across the
+         top of every step to tell the desk what it had just clicked. The
+         paperwork is the only thing left to work, so the work starts here. -->
+
+    <div class="cin__work">
+      <!-- THE RAIL. Every document and section of check-in down one side, each
+           with its own state, so "what is left" is answered by looking rather
+           than by scrolling to the end of a long form. Rendered from
+           CHECKIN_SECTIONS in data/checkin.js — the same list Previous and
+           Next walk. -->
+      <nav class="cin__rail" id="rail" aria-label="Check-in steps"
+        data-testid="cin--rail"></nav>
+
+      <main class="cin__pane">
+        <div class="cin__pane-head">
+          <div class="cin__pane-heading">
+            <h2 class="cin__pane-title" id="paneTitle"></h2>
+          </div>
+          <!-- Print and Download for the document being worked. Filled by
+               paintPaneHead on every step, and empty on the steps that are not
+               a document, so the pair sits on the heading's own line rather
+               than on a bar of its own above the prose. -->
+          <div id="paneActions"></div>
+        </div>
+
+        <div class="cin__views" id="views">
+          <div id="notice" class="cin__notice" aria-live="polite"></div>
+
+          <!-- The consent documents are built here from data/checkin.js. Each
+               one is its own pane, and each pane keeps its own signature block
+               — the pad holds the only copy of whatever has been drawn on it,
+               so panes are hidden and shown rather than rebuilt. A re-render
+               would take the mark with it, mid-signing. -->
+          <div id="docViews"></div>
+
+          <section class="cin__view" data-view="directives" hidden>
+            <!-- Four questions, not two, and each one is a separate fact the
+                 record has to be able to answer:
+
+                   HAS      a directive exists somewhere
+                   ON FILE  a copy is in the chart HERE — the two come apart
+                            all the time, and only the second means we can
+                            read it
+                   OFFERED  written information was put in front of the patient
+                   OUTCOME  they took it, or they turned it down
+
+                 Only the first is asked outright. The other three follow from
+                 it and appear as it is answered, which is how the same section
+                 behaves in the live app:
+
+                   HAS = Yes  ->  ON FILE   (where the copy is only matters if
+                                             there is one)
+                   HAS = No   ->  OFFERED   (nothing to record, so offer them
+                                             the information instead)
+                   OFFERED = Yes -> OUTCOME (they took it, or turned it down)
+
+                 This replaced showing all four at once with the last one
+                 greyed out. A dimmed question still reads as one that has to
+                 be dealt with, and the desk was answering questions that did
+                 not apply.
+
+                 HAS carries no preset answer either. It used to open on "No",
+                 which put OFFERED on screen before anyone had said anything —
+                 two questions where the desk had answered neither, and a
+                 filed "No" for a patient nobody had asked yet. The pane now
+                 opens with the single question, and the rest arrive as it is
+                 answered. -->
+            <div class="cin__q-grid" id="directives">
+              <div class="cin__q">
+                <span class="cin__q-text">
+                  <strong>Patient has advance directives</strong>
+                </span>
+                <ui-radio-group id="hasDirectives" label="Patient has advance directives"
+                  label-hidden inline options="Yes,No"
+                  data-testid="cin--has-directives"></ui-radio-group>
+              </div>
+
+              <div class="cin__q" id="directivesOnFileAsk" hidden>
+                <span class="cin__q-text">
+                  <strong>Does the patient have advance directives on file?</strong>
+                </span>
+                <ui-radio-group id="directivesOnFile" label="Advance directives on file"
+                  label-hidden inline options="Yes,No"
+                  data-testid="cin--directives-on-file"></ui-radio-group>
+              </div>
+
+              <div class="cin__q" id="offeredDirectivesAsk" hidden>
+                <span class="cin__q-text">
+                  <strong>Advance directive information offered?</strong>
+                </span>
+                <ui-radio-group id="offeredDirectives" label="Advance directive information offered"
+                  label-hidden inline options="Yes,No"
+                  data-testid="cin--offered-directives"></ui-radio-group>
+              </div>
+
+              <!-- "Received" with nothing offered is not a state anyone can be
+                   in, so this does not exist until the offer is recorded, and
+                   a default here would record an outcome the desk never
+                   witnessed. -->
+              <div class="cin__q" id="directiveOutcomeAsk" hidden>
+                <span class="cin__q-text">
+                  <strong>Patient response</strong>
+                </span>
+                <ui-radio-group id="directiveOutcome" label="Advance directive information outcome"
+                  label-hidden inline options="Received,Declined"
+                  data-testid="cin--directive-outcome"></ui-radio-group>
+              </div>
+            </div>
+
+          </section>
+
+          <section class="cin__view" data-view="arrival" hidden>
+            <div class="cin__grid">
+              <ui-select id="arrival" label="Arrival mode" placeholder="How did the patient arrive?"
+                data-testid="cin--arrival"></ui-select>
+              <ui-select id="discharge" label="Discharge arrangement"
+                placeholder="How will the patient leave?" data-testid="cin--discharge"></ui-select>
+            </div>
+
+            <!-- Sedation means someone has to take them home, so the escort's
+                 details are asked for only when the arrangement needs them. -->
+            <div class="cin__grid" id="driverFields" hidden data-testid="cin--driver">
+              <ui-input id="driverName" label="Driver name" placeholder="Full name of driver"
+                data-testid="cin--driver-name"></ui-input>
+              <ui-input id="driverPhone" label="Driver phone" type="tel"
+                placeholder="(555) 555-5555" data-testid="cin--driver-phone"></ui-input>
+            </div>
+
+          </section>
+
+          <section class="cin__view" data-view="notes" hidden>
+            <ui-textarea id="notes" label="Check-in notes" rows="6"
+              placeholder="Anything the clinical team should see"
+              data-testid="cin--notes"></ui-textarea>
+          </section>
+        </div>
+
+        <!-- THE WAY OUT OF THE STEP, UNDERNEATH THE WORK.
+
+             This used to sit up in the pane head, level with the title. That
+             put Next above the consent it was meant to follow: the desk read
+             down a long document, signed at the bottom, and then had to travel
+             back up past everything they had just read to move on. The order
+             on screen now matches the order of the work — read the document,
+             sign it, then step forward from the place the signing left you.
+
+             It stays pinned below the scrolling document rather than riding
+             inside it, so on a short pane and a long one alike the control is
+             in the same place, and a half-read consent never hides it.
+
+             THE END OF THE RUN LIVES HERE TOO. There used to be a second bar
+             beneath this one carrying Cancel and Confirm, pinned across the
+             whole window for the length of the visit. It offered to finish
+             check-in from every step, including the five where finishing is
+             not the next thing anybody is going to do, and it spent a band of
+             the screen saying so on all six. Confirm now takes the place of
+             Next on the last step and only there, so the primary button in
+             this bar is always the one action the step in front of you calls
+             for. Cancel has gone with it: the back arrow beside the title has
+             always returned to the scheduler, and a second way out earned
+             none of the room it took.
+
+             The hint between the two buttons is what keeps Confirm honest —
+             it names what is still outstanding, so a disabled Confirm on the
+             last step says which steps to go back for rather than simply
+             refusing. -->
+        <div class="cin__pane-foot">
+          <ui-button variant="tertiary" id="prev" data-testid="cin--prev">Previous</ui-button>
+          <ui-button variant="primary" id="next" data-testid="cin--next">Next</ui-button>
+          <ui-button variant="primary" id="confirm" data-testid="cin--confirm" hidden>
+            Save and open note
+          </ui-button>
+        </div>
+      </main>
+    </div>
+
+    <!-- THE CHECK-IN RECORD, FOR PAPER ONLY.
+
+         Filled when check-in is saved and shown by @media print alone, because
+         window.print() is synchronous: anything built inside a beforeprint
+         handler is racing the browser's own snapshot of the page. What prints
+         from the dialog is this, not the pane behind it — the last step of the
+         run is Additional Notes, and a desk that asks for the record on paper
+         and gets a printout of the notes box has been handed the wrong sheet.
+         -->
+    <section class="cin__record" id="printRecord" aria-hidden="true"></section>
+
+    <!-- CHECK-IN COMPLETE.
+
+         Saving used to walk straight out of this screen into the encounter,
+         which meant the one moment the desk had to confirm anything — the
+         paperwork is filed, the visit has started — went past at the speed of
+         a page load. The patient is still standing there, and what they ask
+         for is a copy: on paper, or as a file.
+
+         So the run ends on a dialog that says it is done, shows what was
+         filed, and carries the two ways of handing that over. Open note is the
+         primary because it is what happens next in the clinic; it is also what
+         the button behind this one promised, and the promise is kept, just one
+         step later. -->
+    <ui-modal id="doneModal" heading="Check-In Complete" tone="success" size="md"
+      data-testid="cin--done">
+      <p class="cin__done-lead" id="doneLead"></p>
+      <div id="doneSummary"></div>
+
+      <div class="ui-modal__actions ui-modal__actions--split">
+        <ui-button variant="tertiary" icon="printer" id="donePrint"
+          data-testid="cin--done-print">Print record</ui-button>
+        <ui-button variant="tertiary" icon="download" id="doneDownload"
+          data-testid="cin--done-download">Download</ui-button>
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="primary" id="doneOpen"
+          data-testid="cin--done-open">Open note</ui-button>
+      </div>
+    </ui-modal>
+  </body>
+</html>

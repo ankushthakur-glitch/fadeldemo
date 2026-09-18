@@ -1,0 +1,133 @@
+/* ============================================================================
+   ui-command-bar — the command palette.
+
+   The search field is an ARIA combobox pointed at the results list, which is
+   what lets the highlighted command be announced while DOM focus stays in the
+   input. Moving real focus into the list on every arrow key would take the
+   caret out of the field the user is still typing in.
+   ========================================================================= */
+
+ui-command-bar { display: block; }
+
+.ui-command-bar {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 32rem;
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface-raised);
+  box-shadow: var(--elevation-overlay);
+  overflow: hidden;
+}
+
+.ui-command-bar__search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-6) var(--space-7);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.ui-command-bar__search-icon {
+  flex-shrink: 0;
+  width: var(--icon-size-md);
+  height: var(--icon-size-md);
+  color: var(--color-text-tertiary);
+}
+
+.ui-command-bar__input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: var(--font-size-md);
+}
+.ui-command-bar__input::placeholder { color: var(--color-text-disabled); }
+
+.ui-command-bar__list {
+  padding: var(--space-4);
+  max-height: 20rem;
+  overflow-y: auto;
+}
+
+.ui-command-bar__group + .ui-command-bar__group { margin-top: var(--space-4); }
+
+.ui-command-bar__heading {
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--font-size-title-eyebrow);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wide);
+  color: var(--color-text-tertiary);
+}
+
+.ui-command-bar__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  width: 100%;
+  padding: var(--space-4) var(--space-6);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-text-primary);
+  font-family: inherit;
+  font-size: var(--font-size-md);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+.ui-command-bar__item:hover,
+.ui-command-bar__item:focus-visible,
+.ui-command-bar__item--active {
+  outline: none;
+  background-color: var(--color-bg-surface-hover);
+}
+
+.ui-command-bar__empty {
+  padding: var(--space-7) var(--space-6);
+  text-align: center;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-md);
+}
+
+.ui-command-bar__icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--color-text-tertiary);
+}
+.ui-command-bar__icon .ui-icon {
+  width: var(--icon-size-md);
+  height: var(--icon-size-md);
+}
+
+.ui-command-bar__label {
+  flex: 1;
+  min-width: 0;
+  font-weight: var(--font-weight-medium);
+}
+
+.ui-command-bar__shortcut {
+  display: inline-flex;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.ui-command-bar__kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--icon-size-md);
+  height: var(--icon-size-md);
+  padding: 0 var(--space-2);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-bg-surface-sunken);
+  color: var(--color-text-tertiary);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-xs);
+}

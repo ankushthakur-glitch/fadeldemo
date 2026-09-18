@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MediNova EHR — Leads</title>
+    <link rel="icon" type="image/svg+xml" href="../assets/img/favicon.svg" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="../css/reset.css" />
+    <link rel="stylesheet" href="../css/tokens.css" />
+    <link rel="stylesheet" href="../css/base.css" />
+    <link rel="stylesheet" href="../css/ui-kit.css" />
+    <link rel="stylesheet" href="../css/screen-patient.css" />
+    <link rel="stylesheet" href="../css/screen-leads.css" />
+
+    <script type="module" src="../js/main.js"></script>
+    <script type="module" src="../js/screens/leads.js"></script>
+    <script src="../js/open-me-properly.js"></script>
+  </head>
+
+  <body class="pt lead">
+    <header class="pt__bar">
+      <img class="pt__logo" src="../assets/img/medinova-logo.svg" width="158" height="32"
+        alt="MediNova Gastroenterology Clinic" />
+      <ui-main-nav active="leads"></ui-main-nav>
+      <div class="pt__bar-actions">
+        <ui-time-clock></ui-time-clock>
+        <button type="button" class="pt__icon-action" aria-label="Notifications">
+          <svg class="ui-icon" aria-hidden="true"><use href="#i-bell"></use></svg>
+        </button>
+        <ui-avatar name="Amara Mensah" size="sm"></ui-avatar>
+      </div>
+    </header>
+
+    <!-- The standard list header, the same two slots as the patient
+         directory: the lead slot on the left saying where you are, the action
+         slot on the right in the fixed order search -> filters -> the
+         screen's own button. Export sits last because it is the only control
+         there that does not narrow what is on screen.
+
+         The filters are behind the filter button rather than laid out under
+         the header — four controls the desk sets once and then works for an
+         hour do not need to hold a row of the screen open all day. -->
+    <div class="ui-page-head ui-page-head--flush lead__head">
+      <!-- TWO LISTS, NOT ONE LIST WITH A FILTER.
+           Rejected leads used to sit among the live ones, reachable only by
+           ticking Rejected in the filter panel — so the pile the desk works
+           through every morning was padded with enquiries somebody had already
+           decided against, and the rejected ones themselves were effectively
+           filed nowhere. They are a different job: the inbox is worked, the
+           rejected list is looked back at when somebody rings again. A tab is
+           what says that, and it says it without anybody opening a panel.
+
+           The heading goes to screen readers only, the way every tabbed screen
+           here does it — the strip is the visible title, and a screen with a
+           tablist and no heading at all is one a screen reader cannot place. -->
+      <div class="ui-page-head__lead">
+        <h1 class="u-sr-only">Leads</h1>
+        <ui-tabs id="leadTabs" selected="inbox" primary data-testid="lead--tabs">
+          <ui-tab value="inbox" label="Active Leads"></ui-tab>
+          <ui-tab value="rejected" label="Rejected Leads"></ui-tab>
+        </ui-tabs>
+      </div>
+
+      <div class="ui-page-head__actions">
+        <ui-input class="lead__search" icon="search" label="Search leads"
+          label-hidden placeholder="Search leads by name, phone, or email"
+          data-testid="lead--search"></ui-input>
+
+        <!-- The standard filter control (js/components/ui-filter.js). Status,
+             Source and Date submitted are three questions with a handful of
+             answers each, so the panel shows the answers rather than three
+             dropdowns that hide them. The custom range only appears once
+             Custom is the answer to the third question. -->
+        <ui-filter id="leadFilter" label="Filters" panel-label="Filter leads"
+          data-testid="lead--filter">
+          <ui-filter-group id="leadStatusGroup" name="status" label="Status"></ui-filter-group>
+          <ui-filter-group name="source" label="Source"></ui-filter-group>
+          <ui-filter-group name="date" label="Date submitted" single></ui-filter-group>
+          <ui-filter-fields id="leadRange" name="range" label="Custom range" hidden>
+            <div class="ui-filter-group__fields--pair">
+              <ui-input id="fFrom" type="date" label="From" size="sm"
+                data-testid="lead--f-from"></ui-input>
+              <ui-input id="fTo" type="date" label="To" size="sm"
+                data-testid="lead--f-to"></ui-input>
+            </div>
+          </ui-filter-fields>
+        </ui-filter>
+
+        <ui-button variant="outline" icon="download" id="export"
+          data-testid="lead--export">Export</ui-button>
+      </div>
+    </div>
+
+
+    <main class="ui-list-body lead__body">
+      <!-- No bulk bar. It only ever offered Export, which the header's own
+           Export already does for exactly the list on screen, and the row
+           checkboxes that fed it have gone with it. -->
+
+      <!-- Table and footer are one card — see .ui-table-card in base.css.
+           The footer is the shared pager, the same control the patient
+           directory carries: an inbox that runs to three screens of rows had
+           a footer that could only say how many there were. What it used to
+           add beyond the count — how many are still open — travels with it as
+           the pager's suffix. -->
+      <div class="ui-table-card">
+        <section class="lead__table-wrap">
+          <ui-data-table id="leadTable" data-testid="lead--table"></ui-data-table>
+
+          <div id="empty" class="lead__empty" hidden data-testid="lead--empty">
+            <svg class="ui-icon" aria-hidden="true"><use href="#i-users"></use></svg>
+            <h2>No Leads Yet</h2>
+            <p>Website submissions from potential patients will appear here.</p>
+          </div>
+
+          <!-- An empty rejected list is good news, not a fault, and it is
+               not the same sentence as an empty inbox. -->
+          <div id="noneRejected" class="lead__empty" hidden data-testid="lead--none-rejected">
+            <svg class="ui-icon" aria-hidden="true"><use href="#i-check"></use></svg>
+            <h2>Nothing rejected</h2>
+            <p>Leads you turn away are filed here, and can be reopened at any time.</p>
+          </div>
+
+          <div id="noMatch" class="lead__empty" hidden data-testid="lead--no-match">
+            <svg class="ui-icon" aria-hidden="true"><use href="#i-search"></use></svg>
+            <h2>No leads match these filters</h2>
+            <p>Try a wider date range, or clear the filters.</p>
+          </div>
+        </section>
+
+        <!-- Filled by lib/pagination.js, the same way every paged table is. -->
+        <div id="foot"></div>
+      </div>
+    </main>
+
+    <!-- ================= LEAD DETAILS =================
+         A dialog rather than a page: reviewing an inbox means opening one,
+         deciding, and going back to the list. A full page navigation for a
+         five-field record would put the list behind a back button on every
+         single one.
+
+         CENTRED, not a right-hand drawer. A drawer earns its shape when you
+         work in it WHILE reading the page behind — booking against a day's
+         schedule, editing the record you were just looking at. Nothing here
+         does that: you read five fields and press one of two buttons, and the
+         list behind is of no use during that. Anchored to the right edge the
+         panel was also full height by construction, so a lead that fills a
+         third of it left two thirds of empty white below the last fact and
+         put the two buttons that matter at the far bottom-right corner of the
+         screen. Centred, the dialog is as tall as what is in it and the
+         decision sits directly under the facts it is made from.
+
+         The heading stays the constant "Lead Details" — the name is set in
+         the identity row inside, once, next to the status it is in. -->
+    <ui-modal id="leadDrawer" heading="Lead Details" size="md">
+      <div id="drawerBody" data-testid="lead--drawer"></div>
+
+      <div class="ui-modal__actions">
+        <ui-button variant="tertiary" id="dClose" data-testid="lead--d-close">Close</ui-button>
+        <span class="ui-modal__actions-spacer"></span>
+        <div id="drawerActions" class="lead__d-actions"></div>
+      </div>
+    </ui-modal>
+    <!-- ================= REJECT =================
+         Not a delete. A rejected enquiry is still evidence that somebody asked
+         and the practice decided not to take them — which is the record anyone
+         wants when the patient rings back. The reason is chosen rather than
+         typed, because "why" has to be answerable from a report later. -->
+    <ui-modal id="rejectModal" heading="Reject lead" size="sm">
+      <div class="lead__reject">
+        <p class="lead__reject-lead" id="rejectLead" data-testid="lead--reject-lead"></p>
+        <ui-select id="rejectReason" label="Reason" required
+          placeholder="Select a reason" data-testid="lead--reject-reason"></ui-select>
+      </div>
+
+      <div class="ui-modal__actions">
+        <ui-button variant="tertiary" id="rejectCancel"
+          data-testid="lead--reject-cancel">Cancel</ui-button>
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="danger" id="rejectConfirm"
+          data-testid="lead--reject-confirm">Reject Lead</ui-button>
+      </div>
+    </ui-modal>
+
+    <!-- ================= ALREADY A PATIENT =================
+         A returning patient filling in the website form is the ordinary case,
+         not an error. Creating a second chart for them is the one outcome that
+         must not happen, so the match is offered BEFORE onboarding rather than
+         as a duplicate warning at the end of it. -->
+    <ui-modal id="existingModal" heading="This may already be a patient" size="md">
+      <div class="lead__existing">
+        <p class="lead__existing-lead" id="existingLead"
+          data-testid="lead--existing-lead"></p>
+        <div id="existingMatches" data-testid="lead--existing-matches"></div>
+      </div>
+
+      <div class="ui-modal__actions">
+        <ui-button variant="tertiary" id="existingCancel"
+          data-testid="lead--existing-cancel">Cancel</ui-button>
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="outline" id="existingNew"
+          data-testid="lead--existing-new">Not them — onboard as new</ui-button>
+      </div>
+    </ui-modal>
+  </body>
+</html>

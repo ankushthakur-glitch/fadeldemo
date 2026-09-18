@@ -1,0 +1,2926 @@
+/* ============================================================================
+   Scheduler — list and calendar views.
+
+   Shares the app shell with the patient screens (.pt__bar from
+   css/components/app-bar.css, .pt__head and .pt__foot from
+   screen-patient.css) and adds the scheduling furniture here.
+
+   GEOMETRY WITHOUT INLINE STYLES
+   A calendar positions blocks at arbitrary offsets, which normally means a
+   style="" attribute per block. This prototype forbids those, so the screen
+   writes ONE generated stylesheet per repaint that sets four custom
+   properties per block:
+
+     --sch-top    minutes from the top of the grid
+     --sch-len    length in minutes
+     --sch-lane   which lane of a set of overlapping blocks this one takes
+     --sch-lanes  how many lanes that set needs
+
+   The arithmetic below turns those numbers into pixels, so the rules stay
+   here in CSS and the generated sheet carries data only.
+   ========================================================================= */
+
+.sch {
+  /* The visible span of the day grid. 07:00 → 20:00 is the widest window any
+     configured availability block uses, plus an hour of margin either side. */
+  --sch-day-start: 420; /* 07:00 in minutes */
+  --sch-hours: 13;
+  /* How far each further lane of a collision is indented. Clamped by the
+     number of lanes in that cluster, so a four-way clash at ten o'clock does
+     not push the front card off the right-hand edge: the whole cascade is
+     never wider than two thirds of the column, whatever lands in it. */
+  --sch-cascade: 14%;
+  /* The diagonals over hours nothing can be booked in. Deliberately fainter
+     than a border: hatching says "not here", and at border weight over a
+     whole Sunday column it says it loudly enough to be read as content. The
+     surface under it stays plain, so the texture is the only mark. */
+  --sch-hatch: color-mix(in srgb, var(--color-border-subtle) 55%, transparent);
+  /* 4rem/hour is the smallest row that leaves a 20-minute follow-up tall
+     enough to print a name in. Shorter rows fit more of the day on screen and
+     then clip every block's text, which is the wrong trade for a booking
+     screen. */
+  --sch-hour: 5.5rem;
+  --sch-gutter: 3.75rem; /* width of the hour-label column */
+  /* One height for every calendar's column strip. Day heads carry two lines
+     (provider over speciality), week heads one line plus today's disc, and
+     the month head a single caption — left to size themselves each band came
+     out a different depth, so switching Day → Week → Month shifted the whole
+     grid up and down under a header that never moved. 3.5rem is the tallest
+     of the three contents (two 20px lines) plus an 8px inset, so nothing is
+     squeezed and the shorter heads simply centre in the extra room. */
+  --sch-head-h: 3.5rem;
+}
+
+/* --- Tabs: Appointment / Visit Note ---------------------------------------
+   The head IS the tab strip: Appointments / Encounters sit where the page
+   title used to, with the count and the actions on the same line. Geometry —
+   gutter included — is .ui-page-head in base.css, so the tabs start on the
+   same vertical as the card below them and nothing is restated here.
+
+   NO RULE UNDER IT (--flush, set in the markup). The shell below is a card
+   with an edge of its own, and a full-bleed line directly above a card's top
+   border draws two edges where the reader sees one thing. Chats made this
+   trade first; this screen is the same shape and now reads the same way.
+   -------------------------------------------------------------------------- */
+
+/* --- Layout: filter rail beside the panels -------------------------------- */
+
+/*
+ * ONE CARD, THE SHAPE CHATS USES.
+ *
+ * This screen used to run its rail and its table hard into the window on both
+ * sides, so moving between Patients and the Scheduler moved the left edge of
+ * the content — two applications rather than two screens of one. It then
+ * floated the rail and the table as two separate cards, which fixed the edge
+ * and cost a seam: a filter and the list it filters are one object, and two
+ * bordered boxes side by side say they are two.
+ *
+ * So it is Chats' shell (.comm__shell in screen-communications.css): a single
+ * rounded card in the same frame — twenty each side, twenty below, eight on
+ * top, because the header band already ends in its own padding — with the
+ * panes inside divided by a hairline rather than by air. Everything the card
+ * contains gives up its own border and corners further down this file; the
+ * card is the only edge on the screen.
+ */
+.sch__layout {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  margin: var(--space-4) var(--space-8) var(--space-8);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-xl);
+  background-color: var(--color-bg-surface);
+  /* The rail's fill, the sticky table header and the pager all run to the
+     card's edge, so the radius has to clip them; no child needs to know which
+     corner it is sitting in. */
+  overflow: hidden;
+}
+
+.sch__panels { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+.sch__panel { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.sch__panel[hidden] { display: none; }
+
+/* ============================================================================
+   FILTER RAIL
+
+   The filters used to be a horizontal bar between the toolbar and the table,
+   which cost a full row of vertical space on a screen whose whole job is to
+   show as many rows as possible. As a rail they cost width instead — and the
+   width is given back on demand, because the collapse leaves the one control
+   that matters when it is shut: how many filters are on.
+   ========================================================================= */
+
+.sch__rail {
+  flex: none;
+  /* Wide enough for the month grid, which is the one thing in here with a
+     natural width: seven columns and a "September 2026" between two pairs of
+     chevrons. The four filters under it would fit in less, and used to — but
+     a rail sized to its narrowest control would have made the calendar the
+     thing that had to shrink, and a month nobody can read is not a filter,
+     it is a decoration. The width comes out of an eight-column table, so it
+     is given back the moment the rail is shut. */
+  width: 18rem;
+  /* A flex item's automatic minimum size is its min-content width, which here
+     is the widest field plus its padding. Without this the collapsed width is
+     quietly ignored. */
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  /* One hairline down its inner edge, and nothing else: the card around both
+     panes draws the other three sides, exactly as the conversation list does
+     inside the Chats shell. */
+  border-right: var(--border-width-thin) solid var(--color-border-subtle);
+  /* The canvas tone rather than the sunken warm grey. Sunken is a twelve-level
+     step below white and was built to say "a well, dropped into a surface" —
+     which is more than a filter rail is doing. Beside a white table it read as
+     a slab of grey taking up a fifth of the screen, and the white things
+     sitting on it (the month card, the four selects) had to fight their way
+     back out of it. The page's own tone is four levels down instead: enough
+     that the rail is plainly a different plane from the list, light enough
+     that the cards on it stay the brightest thing in the rail, and it keeps
+     the rail in the green-grey family the canvas and the table head already
+     share rather than introducing the neutral ramp as a third tone inside
+     one card. */
+  background-color: var(--color-bg-page);
+  transition: width var(--duration-base) var(--ease-out);
+}
+
+/* display:flex above would otherwise beat the [hidden] default — the rail is
+   hidden outright on the Encounters tab, which has no filters. */
+.sch__rail[hidden] { display: none; }
+.sch__rail--collapsed { width: 3.25rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sch__rail { transition: none; }
+}
+
+/* 10px on top, matching the toolbar across the divider. Both hold a 34px
+   control, so equal top padding is what puts "Filters" and the date navigation
+   on the same line — whatever that measure is, the two have to move together
+   or one sits visibly high against the other. The 8px sides are deliberate:
+   the toggle carries another 8px of its own so its hover surface has room,
+   which lands the label on the same 16px as the fields below it. */
+.sch__rail-head {
+  flex: none;
+  padding: var(--space-5) var(--space-4);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.sch__rail-toggle {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  width: 100%;
+  min-height: var(--control-height-md);
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-md);
+  background: none;
+  font-family: inherit;
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+.sch__rail-toggle:hover { background-color: var(--color-bg-surface-hover); }
+.sch__rail-toggle:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.sch__rail-toggle .ui-icon { flex: none; color: var(--color-text-tertiary); }
+
+.sch__rail-title { flex: 1; min-width: 0; text-align: left; white-space: nowrap; }
+
+/* How many filters are on. A shut rail otherwise makes a filtered list look
+   like a short list, which is how someone concludes a patient is not booked. */
+.sch__rail-count {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.125rem;
+  height: 1.125rem;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-full);
+  background-color: var(--color-brand-solid);
+  color: var(--color-text-inverse);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-semibold);
+}
+.sch__rail-count[hidden] { display: none; }
+
+.sch__rail--collapsed .sch__rail-toggle { justify-content: center; padding: 0; }
+.sch__rail--collapsed .sch__rail-title,
+.sch__rail--collapsed .sch__rail-chevron { display: none; }
+/* Shut, the badge has no row to sit in, so it rides the corner of the icon. */
+.sch__rail--collapsed .sch__rail-count {
+  position: absolute;
+  top: -0.25rem;
+  right: 0.125rem;
+}
+.sch__rail--collapsed .sch__rail-body { display: none; }
+
+.sch__rail-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* --- Rail: the month -------------------------------------------------------
+   <ui-date-picker> is drawn as a raised card because it is usually a panel
+   dropped over a field. Here it is furniture inside a rail that is already a
+   surface of its own, so it gives up the shadow and takes the rail's gutter;
+   the cells stay on the component's own grid.
+   -------------------------------------------------------------------------- */
+
+.sch__picker {
+  display: block;
+  margin: var(--space-7) var(--space-7) 0;
+}
+.sch__picker .ui-datepicker {
+  --datepicker-width: 100%;
+  --datepicker-cell: var(--space-9);
+  display: block;
+  padding: var(--space-5);
+  box-shadow: none;
+  background-color: var(--color-bg-surface);
+}
+.sch__picker .ui-datepicker__title { font-size: var(--font-size-caption); }
+.sch__picker .ui-datepicker__day { font-size: var(--font-size-caption); }
+
+/* The picker rings the machine's date; this prototype's "today" is a seeded
+   one (data/schedule.js, TODAY) and is already the filled cell. Two marks
+   claiming to be today, three days apart, is worse than one. */
+.sch__picker .ui-datepicker__day--today {
+  box-shadow: none;
+  color: inherit;
+  font-weight: inherit;
+}
+
+.sch__rail-fields {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-7);
+  padding: var(--space-7);
+}
+.sch__rail-fields ui-select,
+.sch__rail-fields ui-input { width: 100%; }
+.sch__rail-fields [hidden] { display: none; }
+
+/* The collapse control stays put on a short screen; only the fields scroll. */
+.sch__rail-foot {
+  flex: none;
+  padding: var(--space-7);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+/* The provider filter is not a ui-* component, so it carries its own label. */
+.sch__field { display: flex; flex-direction: column; gap: var(--space-2); }
+
+.sch__field-label {
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+}
+
+/* --- Toolbar: period navigation + view switch ----------------------------- */
+
+/* 16px is the screen's structural rhythm: the gap between major elements and
+   the inset from the card's edge are the same measure, so the toolbar, the
+   rows under it and the rail across the divider all line up on one grid.
+   Component insets (table cells, chips, badges) keep their own smaller
+   design-system values — those are spacing inside a thing, not between
+   things. */
+
+/* The horizontal inset stays on that 16px grid, but the vertical one is cut
+   to 10px: the toolbar is a single row of 34px controls, and a full 16px above
+   and below made the band taller than anything in it needed, pushing the
+   calendar down for no gain. Trimming only the vertical padding keeps the
+   toolbar's left and right edges aligned with the rows beneath it. */
+.sch__toolbar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-7);
+  padding: var(--space-5) var(--space-7);
+}
+
+/* The period, between the two chevrons that move it. The chevrons are
+   borderless: bordered, three boxes in a row read as three equal choices,
+   and the date is not a choice — it is what the other two are for. */
+.sch__stepper { display: flex; align-items: center; gap: var(--space-2); }
+
+.sch__range-title {
+  min-width: 14rem;
+  text-align: center;
+  font-size: var(--font-size-title-card);
+  line-height: var(--line-height-tight);
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+  color: var(--color-text-primary);
+}
+
+.sch__spacer { flex: 1; }
+
+.sch__views { display: flex; align-items: center; gap: var(--space-5); }
+
+/* Segmented switches: Day / Week / Month, and List / Calendar. */
+.sch__seg {
+  display: inline-flex;
+  padding: var(--space-1);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+}
+
+.sch__seg-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  /* The BUTTON is short so the GROUP is the standard height.
+     The strip wraps its buttons in a border and 2px of padding, so a button
+     at the full small-control height made the group 34px — six taller than
+     the Today, the chevrons and the Print beside it, and the only two things
+     on the bar not sharing its top and bottom edge. The group is the control
+     here; the buttons inside it are its parts. */
+  height: calc(
+    var(--control-height-sm) - var(--space-1) * 2 - var(--border-width-thin) * 2
+  );
+  padding: 0 var(--space-6);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.sch__seg-btn:hover { color: var(--color-text-primary); }
+.sch__seg-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.sch__seg-btn[aria-pressed='true'] {
+  background-color: var(--color-bg-surface);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  color: var(--color-text-primary);
+}
+
+/* The period strip is the one the eye should land on first — it changes what
+   the whole grid means, where the view switch only changes its shape. So the
+   pressed period is the brand colour and the pressed view is not. */
+.sch__seg--range .sch__seg-btn[aria-pressed='true'] {
+  border-color: var(--color-border-brand);
+  background-color: var(--color-brand-surface);
+  color: var(--color-brand-text);
+}
+
+.sch__seg-btn--icon { padding: 0 var(--space-5); }
+.sch__seg-btn--icon .ui-icon { flex: none; }
+
+/* --- Body ------------------------------------------------------------------ */
+
+/*
+ * NO PADDING. The shell is the card, so the rows run to its edge the way the
+ * message stream runs to the edge of the Chats card: a table floated inside
+ * with a border of its own would be a card drawn inside a card, and the reader
+ * would have to work out which of the two edges meant something.
+ *
+ * What the tables, the pager, the summary strips and the calendar give up to
+ * make that true is collected below rather than left to each of them.
+ */
+.sch__body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* The scroll behaviour of .ui-table-card is what these keep; the box is what
+   they give up — the same trade .sch__card already makes for the switch it
+   sits over.
+
+   .ui-table-card is in that list for its CORNERS, which the wrap giving up its
+   own did not reach. The card clips to --radius-lg, and the thing sitting in
+   the corner it clips is the sticky header band: the Time cell arrived with a
+   rounded top-left while every other cell in the same band was square, and
+   Actions with a rounded top-right — the exact seam base.css argues against
+   when it takes the radius off the wrap. On a list screen that curve is the
+   card's own outer edge and has to be there. Here the outer edge is
+   .sch__layout, twenty pixels further out and already curved; the inner card
+   draws no edge at all, so its radius was rounding nothing but the one row
+   nobody should have to read around. */
+.sch__body .ui-table-wrap,
+.sch__body .ui-table-card,
+.sch__body .sch__cal,
+.sch__body .sch__card {
+  border: none;
+  border-radius: 0;
+}
+
+/* The pager and the summary strips keep the one rule that matters — the line
+   against the last row — and lose the rest of their box to the card. */
+.sch__body .ui-pager,
+.sch__body .pt__foot {
+  border: none;
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: 0;
+}
+
+
+.sch__view {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.sch__view[hidden] { display: none; }
+
+/* --- The panel card, and the switch inside it -------------------------------
+
+   Encounters and the wait list are each ONE object: a switch between lists, the
+   rows themselves, and the line that counts them. They had been drawn as three
+   — a strip of tabs floating in a band of its own, a bordered table under it,
+   and a bordered footer under that — which put a control over one list on the
+   same footing as the strip in the page header, and drew two edges where the
+   reader sees one thing.
+
+   The card owns the edge now. The tables keep .ui-table-card, because that is
+   where their scroll behaviour comes from; what they give up is the border and
+   the corners, which two nested rounded boxes would only fight over. This is
+   the shape the patient portal's medication panel already uses over its own
+   Current / Past switch — the two products are one system, and a clinician
+   moving between them should not have to work out twice what a sub-tab is.
+   -------------------------------------------------------------------------- */
+
+.sch__card {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  /* The switch, the rows and the footer are clipped to the card's radius, so
+     no child needs to know which corner it is sitting in. */
+  overflow: hidden;
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+}
+
+.sch__card .ui-table-wrap {
+  border: none;
+  border-radius: 0;
+}
+
+/* The count keeps its rule against the last row and loses the rest of its box
+   to the card. */
+.sch__card .pt__foot {
+  border: none;
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: 0;
+}
+
+/* The band the switch sits in. Tighter than the card's own padding would be on
+   all three sides: this is not content inside the panel, it is the panel's own
+   control, and a full gutter around it made it float in a band rather than
+   read as the top of the table. */
+.sch__subtabs {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  margin: var(--space-5) var(--space-6);
+}
+
+/* A PILL ON A SUNK TRACK — the same switch as Day / Week / Month above the
+   calendar, and deliberately NOT the divided box the header strip uses. Two
+   segmented strips of the same shape stacked would read as one level and the
+   eye could not tell which of them moved it further; two different shapes, one
+   of them inside the panel's edge, cannot be confused. */
+.sch__subtabs .ui-tabs {
+  width: fit-content;
+  max-width: 100%;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+}
+
+.sch__subtabs .ui-tabs__tab {
+  /* The BUTTON is short so the GROUP comes to the standard small-control
+     height — the track is the control here, the tabs inside it are its parts.
+     The same sum .sch__seg-btn works from. */
+  min-height: calc(
+    var(--control-height-sm) - var(--space-1) * 2 - var(--border-width-thin) * 2
+  );
+  padding: 0 var(--space-6);
+  /* Transparent on every tab, coloured on the open one: a border that appeared
+     only when a tab was chosen would widen it by two pixels and shove its
+     neighbour sideways under the pointer that just clicked it. */
+  border: var(--border-width-thin) solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
+}
+
+.sch__subtabs .ui-tabs__tab:hover { color: var(--color-text-primary); }
+
+/* The fill and the ink say which one is open — the weight does not, for the
+   reason above: a heavier word is a wider tab. */
+.sch__subtabs .ui-tabs__tab--selected,
+.sch__subtabs .ui-tabs__tab--selected:hover {
+  border-color: var(--color-border-subtle);
+  background-color: var(--color-bg-surface);
+  color: var(--color-brand-text);
+}
+
+
+/* --- List view ------------------------------------------------------------- */
+
+/* The table, the card around it and the join to the pager are .ui-table-card
+   in base.css now; the views that hold a table carry the class. What is left
+   here is the one thing that is particular: the class rules outrank the UA
+   `[hidden]` rule, so it has to be said again for the elements this screen
+   swaps between. */
+.sch__view ui-data-table[hidden] { display: none; }
+.sch__view .ui-table { table-layout: fixed; }
+
+/* Scoped to the appointment list: the Visit Note tables are also .sch__view
+   and have a different column set entirely.
+
+   Proportions rather than rem widths. Fixed widths were fine while the
+   filters were a horizontal bar and the table had the whole window; with the
+   rail beside it they add up to more than there is, and in a fixed table
+   layout the columns left to size themselves then get nothing at all — the
+   patient's name and the appointment type would vanish to a sliver.
+
+   Mind the comment: this block used to close here and reopen mid-sentence,
+   which left a line of prose sitting loose in the stylesheet. CSS recovers
+   from that by swallowing tokens up to and including the next block, so the
+   Time rule below it was eaten whole and that column sized itself while every
+   other one obeyed a percentage — the reason the widths never quite added up
+   on screen. One comment, one closing marker.
+
+   The split below is measured, not guessed: each percentage is the widest
+   real value that column carries, plus a little, and the eight sum to exactly
+   100 so nothing is left over to distribute. Status and Appointment Type gave
+   back the width they were hoarding — a status pill is a short word and a dot,
+   not the 16% it held — and Location took most of it, because at 9% every
+   clinic name on the screen elided to "MediNova Gast…". */
+#listView th:nth-child(1) { width: 12%; }  /* Time — "120 min · ends 12:00" sets it */
+#listView th:nth-child(2) { width: 13%; }  /* Patient — "Henryk Duszynski" */
+#listView th:nth-child(3) { width: 12%; }  /* Provider over speciality */
+#listView th:nth-child(4) { width: 18%; }  /* Appointment Type — "Laboratory Work / Blood Draw" */
+#listView th:nth-child(5) { width: 13%; }  /* Location — full clinic name, not "MediNova Gast…" */
+#listView th:nth-child(6) { width: 13%; }  /* Status — the longest is "Pending Confirmation" */
+#listView th:nth-child(7) { width: 9%; }   /* Care Type — one badge */
+#listView th:nth-child(8) { width: 10%; }  /* Actions — Start beside the ⋮ */
+
+/* The type name clips rather than pushing the row wider; the dot in front of
+   it still carries the colour, and the full name is on the detail drawer. */
+#listView td:nth-child(4),
+#listView .sch__cell-time,
+#listView .sch__cell-sub {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sch__cell-time { font-variant-numeric: tabular-nums; }
+.sch__cell-sub { display: block; color: var(--color-text-tertiary); font-size: var(--font-size-caption); }
+.sch__cell-name { color: var(--color-text-link); text-decoration: none; }
+.sch__cell-name:hover { text-decoration: underline; }
+
+/* A colour set by the clinic, not the design system, arrives on --sch-colour. */
+.sch__dot {
+  display: inline-block;
+  width: var(--space-4);
+  height: var(--space-4);
+  margin-right: var(--space-4);
+  border-radius: var(--radius-full);
+  background-color: var(--sch-colour, var(--color-status-neutral-solid));
+  vertical-align: baseline;
+}
+
+.sch__status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  height: 1.375rem;
+  padding: 0 var(--space-5);
+  border-radius: var(--radius-full);
+  border: var(--border-width-thin) solid var(--sch-colour, var(--color-border-default));
+  color: var(--color-text-primary);
+  font-size: var(--font-size-caption);
+  white-space: nowrap;
+}
+.sch__status::before {
+  content: '';
+  width: var(--space-4);
+  height: var(--space-4);
+  border-radius: var(--radius-full);
+  background-color: var(--sch-colour, var(--color-status-neutral-solid));
+}
+
+.sch__waitlist {
+  margin-left: var(--space-4);
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-full);
+  background-color: var(--color-status-warning-surface);
+  color: var(--color-status-warning-text);
+  font-size: var(--font-size-2xs);
+}
+
+/* ============================================================================
+   VISIT NOTES
+
+   The same shell as the appointment list — one table filling the panel, a
+   footer counting what is in it — with an Unsigned / Signed switch in place of
+   the period navigation, because a note queue has no period.
+   ========================================================================= */
+
+/* Unsigned / Signed used to sit in a band above the table, in the row the
+   "Encounters" title and its subtitle held before that. Both restated the tab
+   already lit in the header, and the rail that carried the two lists cost 11rem
+   of width off an eight-column table — on the one screen whose whole job is to
+   show rows. The switch is inside the panel now: .sch__card and .sch__subtabs,
+   up with the shared body rules, because the wait list is built from the same
+   card without one. */
+
+/* Eight columns across the full width of the screen. Proportions rather than
+   fixed rem widths, so the split holds at every window size instead of being
+   correct at one of them and overflowing at the rest — and so Status and
+   Actions, the two columns the queue exists for, can never be the ones pushed
+   off the right-hand edge. */
+#panel-unsigned th:nth-child(1), #panel-signed th:nth-child(1) { width: 14%; }  /* Appointment Type */
+#panel-unsigned th:nth-child(2), #panel-signed th:nth-child(2) { width: 16%; }  /* Patient Name */
+#panel-unsigned th:nth-child(3), #panel-signed th:nth-child(3) { width: 12%; }  /* Date of Service */
+#panel-unsigned th:nth-child(4), #panel-signed th:nth-child(4) { width: 13%; }  /* Note Type */
+#panel-unsigned th:nth-child(5), #panel-signed th:nth-child(5) { width: 9%; }   /* Updated */
+#panel-unsigned th:nth-child(6), #panel-signed th:nth-child(6) { width: 13%; }  /* Provider Name */
+#panel-unsigned th:nth-child(7), #panel-signed th:nth-child(7) { width: 9%; }   /* Status */
+#panel-unsigned th:nth-child(8), #panel-signed th:nth-child(8) { width: 14%; }  /* Actions */
+
+/* A date split over two lines reads as two dates. */
+#panel-unsigned .sch__cell-time,
+#panel-signed .sch__cell-time { white-space: nowrap; }
+
+/* Name over date of birth, age and sex — the three facts that tell two
+   patients with the same name apart, which is the whole point of showing
+   anything under the name at all. */
+.sch__vn-patient { display: flex; align-items: center; gap: var(--space-4); }
+.sch__vn-patient-text { min-width: 0; }
+.sch__vn-name {
+  display: block;
+  color: var(--color-text-link);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sch__vn-name:hover { text-decoration: underline; }
+
+/* Who is waiting on whom. A co-sign row is meaningless without the name of
+   the person who wrote the note the provider is being asked to countersign. */
+.sch__vn-by { display: block; color: var(--color-text-tertiary); font-size: var(--font-size-caption); }
+
+/* The name/sub-line pairs clip rather than wrap. ui-data-table's own
+   `truncate` cannot be used on these two columns — it clips the cell, which
+   would take the second line with it — so the ellipsis goes on each line. */
+#panel-unsigned .sch__cell-sub,
+#panel-signed .sch__cell-sub,
+.sch__vn-by {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ============================================================================
+   APPOINTMENT DETAILS DRAWER
+
+   Three cards, read top to bottom: who this is, what they are booked for, and
+   the paperwork the front desk works through before the visit starts. The
+   middle one is a grid of label-above-value cells rather than a column of
+   label-beside-value rows — eleven short facts in a stack of nine full-width
+   lines was a screen and a half of scrolling to read a paragraph's worth of
+   information.
+
+   The status is the one thing still set from here. Everything else about the
+   booking is changed on the full form behind Edit.
+   ========================================================================= */
+
+.sch__detail-card {
+  padding: var(--space-6);
+  margin-bottom: var(--space-6);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+}
+.sch__detail-card:last-child { margin-bottom: 0; }
+
+/* --- Who this is ---------------------------------------------------------- */
+
+/* Face, name and status on the first line; the facts under them across the
+   card's full width. Wraps rather than squeezes: below the drawer's narrowest
+   the status drops under the name instead of the select collapsing to a
+   caret. */
+.sch__detail-ident {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  flex-wrap: wrap;
+}
+.sch__detail-ident .sch__detail-name { flex: 1; min-width: 0; }
+
+.sch__detail-name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  font-size: var(--font-size-title-card);
+  line-height: var(--line-height-tight);
+}
+.sch__detail-name strong { font-weight: var(--font-weight-semibold); }
+
+.sch__detail-mrn {
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-full);
+  background-color: var(--color-bg-surface-sunken);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  font-size: var(--font-size-caption);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-secondary);
+}
+
+/* DOB, age, sex, phone — each named, so the eye can go straight to the one it
+   came for instead of working out which value is which. */
+.sch__detail-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-5);
+  margin-top: var(--space-5);
+  font-size: var(--font-size-caption);
+  color: var(--color-text-primary);
+}
+.sch__detail-facts > span { white-space: nowrap; }
+.sch__detail-fact-label {
+  margin-right: var(--space-3);
+  color: var(--color-text-tertiary);
+}
+
+/* The status control and its colour dot — the clinic's own colour for that
+   status, the same one the list and both calendars draw it in. */
+.sch__detail-status {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+.sch__detail-status ui-select { width: 9.5rem; }
+
+/* --- What they are booked for --------------------------------------------- */
+
+/* The card's own padding would double up on the cells' padding, so this one
+   carries none and the grid draws to its edge. The hairlines between cells
+   are the grid's gap showing through, which means they arrive automatically
+   at whatever the cells happen to be, including the two that span the row. */
+.sch__detail-card:has(> .sch__detail-grid) {
+  padding: 0;
+  overflow: hidden;
+}
+
+.sch__detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--border-width-thin);
+  background-color: var(--color-border-subtle);
+}
+
+.sch__detail-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-5) var(--space-6);
+  background-color: var(--color-bg-surface);
+}
+.sch__detail-row--wide { grid-column: 1 / -1; }
+
+.sch__detail-label {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-tertiary);
+}
+
+.sch__detail-value {
+  font-size: var(--font-size-body);
+  color: var(--color-text-primary);
+  overflow-wrap: anywhere;
+}
+
+.sch__detail-sub {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+/* A diagnosis is read as its code and its description together — the code is
+   what is billed and the description is what makes it legible. */
+.sch__detail-code {
+  margin-right: var(--space-3);
+  font-family: var(--font-family-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+}
+
+.sch__detail-link { color: var(--color-text-link); }
+.sch__detail-muted { color: var(--color-text-tertiary); font-size: var(--font-size-caption); }
+
+/* --- Forms, and cover ----------------------------------------------------- */
+
+.sch__detail-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  margin-bottom: var(--space-5);
+  font-size: var(--font-size-title-section);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.sch__detail-action {
+  margin-left: auto;
+  background: none;
+  font-family: inherit;
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-brand);
+  cursor: pointer;
+}
+.sch__detail-action:hover { text-decoration: underline; }
+.sch__detail-action:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.sch__detail-action[disabled] { color: var(--color-text-disabled); cursor: default; text-decoration: none; }
+
+/* --- Payment, in the check-in drawer ----------------------------------------
+   Two or three figures and a total. A definition list rather than the
+   drawer's .sch__detail-grid: those are facts about the booking laid out in
+   labelled cells, and these are amounts that add up — a column of
+   label-and-figure rows with a ruled total under them is how money is read,
+   and putting it in the same grid as Date & Time would have said the copay
+   was another measurement of the appointment.
+   -------------------------------------------------------------------------- */
+
+.sch__pay-lines { display: flex; flex-direction: column; gap: var(--space-4); }
+
+.sch__pay-lines > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-5);
+}
+
+.sch__pay-lines dt {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+}
+
+.sch__pay-lines dd {
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+}
+
+/* Past terms is a firmer prompt, not a different rule — so the row is tinted
+   at the label rather than the whole card being given a warning border. */
+.sch__pay-line--overdue dt { color: var(--color-status-critical-text); }
+
+/* The one figure the desk says out loud. Ruled off above, because a total
+   that looks like the lines it totals gets read as a fourth charge. */
+.sch__pay-total {
+  padding-top: var(--space-4);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+}
+.sch__pay-total dt {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+.sch__pay-total dd { font-weight: var(--font-weight-semibold); }
+
+/* Amount, method, and the button that commits them — one row while there is
+   width for it, stacking on a narrow drawer rather than squeezing a currency
+   box down to four characters. */
+.sch__pay-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-5);
+  margin-top: var(--space-6);
+  padding-top: var(--space-6);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+}
+.sch__pay-form ui-input { flex: 1 1 8rem; }
+.sch__pay-form ui-select { flex: 1 1 11rem; }
+
+/* The forms on one line rather than three, each carrying its state and — only
+   where there is something to do — the one action that moves it. */
+.sch__forms {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3) var(--space-5);
+}
+
+.sch__form {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+  font-size: var(--font-size-caption);
+  color: var(--color-text-primary);
+}
+.sch__form .ui-icon { flex: none; color: var(--color-status-warning-text); }
+.sch__form--done .ui-icon { color: var(--color-status-success-text); }
+.sch__form .sch__detail-action { margin-left: var(--space-2); }
+
+/* ============================================================================
+   TRIAGE (sch__triage) — the drawer for a checked-in Clinical visit's nurse
+   pass: reason for visit, vitals, current medications, a note for the
+   provider. No Assessments/Screening section, by design.
+   ========================================================================= */
+
+/* --- Who it is for --------------------------------------------------------
+   The drawer opens on the patient, not on the booking: name, MRN and status,
+   read in the first second the drawer is on screen and printed before
+   anything that has to be worked through. A four-segment track saying how far
+   through the pass was used to sit under this; the numbered marks running
+   down the sections answer that where the work is, so the strip carries the
+   rule that closes the identity band itself now. */
+
+.sch__triage-patient {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding-bottom: var(--space-5);
+  margin-bottom: var(--space-6);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.sch__triage-avatar {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-10);
+  height: var(--space-10);
+  border-radius: var(--radius-full);
+  background-color: var(--color-brand-surface);
+  color: var(--color-text-brand);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-semibold);
+}
+
+.sch__triage-who { flex: 1; min-width: 0; }
+.sch__triage-who-name {
+  margin: 0;
+  font-size: var(--font-size-title-card);
+  line-height: var(--line-height-tight);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+.sch__triage-who-meta {
+  margin: var(--space-1) 0 0;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+}
+
+/* The booking: which visit this is, and what it is for. The first line is set
+   at the size of a caption and in secondary ink because it is there to be
+   recognised, not read — the nurse checks it is the right visit and moves on.
+   There is no disclosure beside it any more, and no facts grid behind it —
+   the rest of the booking is reference matter the pass never needs, and a
+   control that only reveals reference matter still costs the eye a stop on
+   its way to the first field. */
+.sch__triage-booking {
+  margin-bottom: var(--space-6);
+}
+.sch__triage-booking-line {
+  margin: 0;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+}
+
+/* The reason for the visit, printed rather than typed — see the booking block
+   in renderTriageBody for why it stopped being step one.
+
+   It is the one booking fact set in primary ink at reading size, because it is
+   the only one of them the nurse reads rather than recognises: the vitals they
+   take and the note they leave are both answers to it. Its label is held at
+   caption size in secondary, the same weight as the line above, so the pair
+   reads as one block of booking matter with an emphasis inside it rather than
+   as a heading and its section.
+
+   NOT boxed, NOT sunken, NOT bordered. Every treatment that would set the text
+   off from the line above it is a treatment this app already uses for a field,
+   and a bordered box of grey text under a label is exactly what a disabled
+   textarea looks like — which would leave the nurse hunting for the reason it
+   cannot be typed into. Printed prose is unambiguous: nothing here is a
+   control, so nothing here looks like one. */
+.sch__triage-booking-reason {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: var(--space-3) 0 0;
+}
+.sch__triage-booking-label {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+}
+.sch__triage-booking-value {
+  font-size: var(--font-size-body);
+  color: var(--color-text-primary);
+}
+/* The code half of a coded reason needs nothing here: indicationValue() emits
+   .sch__detail-code, and that class already sets the mono face, the caption
+   size and the secondary ink it wears in the appointment drawer — an
+   identifier, held quieter than the sentence it qualifies. */
+
+/* Separated by air, not by rules. Three numbered marks running down the left
+   edge already say where one step ends and the next begins, so a hairline
+   between every pair of them was a second answer to a question that had been
+   answered — and five rules stacked down a drawer this narrow read as a table
+   the sections were trapped in. */
+/* Air is the only separator, so it has to be spent unevenly: a title that sits
+   the same distance from the block above it as from the block it names belongs
+   to neither. Sixteen above and eight below measured out at eighteen and
+   thirteen once the mark's row and the title's own line box were counted, and
+   at eighteen and SEVENTEEN in the two sections whose header carries an Edit
+   button — a taller row that pushed the title further from its own content.
+   Twenty above and six below lands at roughly twenty-three and nine: the
+   heading is unmistakably attached downwards, and the drawer grows six pixels
+   in total, which the whole-pass-without-scrolling argument can afford. */
+.sch__triage-section { margin-top: var(--space-8); }
+.sch__triage-section:first-of-type { margin-top: 0; }
+
+/* Centred, not top-aligned. The mark is twenty-four tall and the title's line
+   box is nineteen, so flex-start hung the circle four pixels below the word it
+   numbers — and in the two sections with a button in the header, the whole
+   title rode four pixels higher than the gap below it assumed. Centring makes
+   the title→content gap the same in all five sections whatever else the header
+   is carrying. */
+.sch__triage-section-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-3);
+}
+
+.sch__triage-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: var(--space-9);
+  height: var(--space-9);
+  border-radius: var(--radius-full);
+}
+/* Pending carries the step's NUMBER, done carries a tick. A column of
+   identical amber clocks told the reader only that the steps existed; a numbered
+   circle that turns into a tick tells them the order to work in and how far
+   through they are, in the same eighteen pixels. */
+.sch__triage-mark--pending {
+  background-color: var(--color-bg-surface-sunken);
+  color: var(--color-text-secondary);
+  border: var(--border-width-thin) solid var(--color-border-default);
+}
+.sch__triage-mark--done { background-color: var(--color-status-success-surface); color: var(--color-status-success-text); }
+.sch__triage-mark .ui-icon { width: var(--icon-size-sm); height: var(--icon-size-sm); }
+.sch__triage-step { font-size: var(--font-size-caption); font-weight: var(--font-weight-semibold); }
+
+.sch__triage-section-text { flex: 1; min-width: 0; }
+.sch__triage-section-title { margin: 0; font-size: var(--font-size-title-section); font-weight: var(--font-weight-semibold); color: var(--color-text-primary); }
+/* No .sch__triage-section-desc any more. Every section carried a line under
+   its heading explaining what "Vitals" or "Note" meant, which is a row of
+   grey the nurse reads once on their first pass and never again — and which
+   pushed the fields far enough apart that the last step needed a scroll to
+   reach. The headings say it. */
+
+/* The scale a heading's readings are measured in, beside the heading — the
+   same pairing as a unit under a column name in .sch__triage-table, and the
+   same two colours. Held at caption size against a section title so it reads
+   as a qualifier of the name rather than as part of it. */
+.sch__triage-section-unit {
+  margin-left: var(--space-2);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-tertiary);
+  vertical-align: middle;
+}
+
+/* No .sch__triage-required and no .sch__triage-error. Both belonged to Reason
+   For Visit, the one field that used to block Complete Triage — and it is a
+   printed booking fact now rather than a box, so there is no requirement left
+   to label and no answer left to be missing. Every remaining section is a
+   reading that may legitimately not have been taken. */
+
+/* What Vitals and Current Medication hold, on one line, under the heading and
+   in line with the section text rather than the round mark.
+
+   It is the whole of what those two sections show on the drawer now that
+   their fields are captured in windows of their own — so it is always
+   printed, never folded away, and it has something to say before there is an
+   answer as well as after. The waiting wording is tertiary: it is the absence
+   of a reading, and it should not carry the weight of one. */
+/* What a section has recorded, indented to the step's own column. Empty
+   until there is something to show — and empty means no box, no margin and
+   no sentence explaining that nothing has been recorded yet. */
+/* No indent. It lined up under the section TEXT, past the round mark, which
+   gave the drawer three left edges to read down: the marks and the two
+   textareas and the pain ramp at the panel's own edge, the titles a mark's
+   width in, and these two tables in with the titles. Two of the five sections
+   hanging off a different rule than the other three reads as a mistake rather
+   than as a hierarchy, and it cost the flowsheet thirty-two pixels of width in
+   the one place a seven-column table needs all of it. Everything a section
+   ANSWERS now starts where the section starts; only the title is indented, by
+   the mark it shares its row with.
+
+   The old `:not(:empty)` bottom margin went with it. It never applied: the
+   summary is the last child of a section with no padding or border, so its
+   bottom margin collapsed straight through into the next section's top one. */
+.sch__triage-summary { margin-left: 0; }
+
+/* The small tables the drawer and its two windows print answers in: the
+   vitals flowsheet (a column per reading), the medication list (a row per
+   drug). Headings are the caption size in the secondary colour so the values
+   under them are the darkest thing in the block — the table is there to be
+   read down, and a header row that outweighs its values inverts that. */
+.sch__triage-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+.sch__triage-table th,
+.sch__triage-table td {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+  vertical-align: baseline;
+}
+.sch__triage-table thead th {
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+.sch__triage-table tbody th {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+.sch__triage-table tbody td { color: var(--color-text-secondary); }
+.sch__triage-table tbody tr:last-child th,
+.sch__triage-table tbody tr:last-child td { border-bottom: none; }
+
+/* The unit belongs to the column, not to every value in it — said once under
+   the reading's name so seven cells do not each repeat "mmHg". */
+.sch__triage-table-unit { color: var(--color-text-tertiary); }
+
+/* --- The vitals flowsheet, as a table and not as six numbers in a row ------
+
+   The readings were already in a <table>, but the only rule on it was a
+   hairline under the header — so what reached the eye was two lines of text,
+   the names above and the values below, with nothing saying where one column
+   ended and the next began. At six or seven readings that is a row you have
+   to count along: the eye lands on "sdasd" and has to travel up and guess
+   which of two names above it that value belongs to.
+
+   Three things fix it, and all three are structure rather than decoration.
+   The block gets an outline, so it is one object in a drawer of labels and
+   fields instead of loose text. The header row gets the sunken fill, so the
+   names read as the key to the values and not as more values. And every
+   column gets a rule down its left edge, which is the line that actually
+   answers "is this number under Temp or under Resp".
+
+   The outline lives on a wrapper rather than on the table because a collapsed
+   table cannot clip its own corners — the sunken header would square off the
+   two the radius rounds. The wrapper scrolls sideways as well, which the
+   drawer needs: seven readings at 480px is wider than the panel, and a
+   flowsheet that overflows should slide rather than push the drawer out. */
+.sch__triage-table-wrap {
+  overflow-x: auto;
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+}
+
+/* THE WRAPPER CARRIES THE TREATMENT, SO ANY TABLE PUT INSIDE ONE GETS IT.
+
+   Written against the wrapper rather than against each table's own modifier
+   because there is nothing here that is true of the vitals flowsheet and not
+   of the medication list beside it — a heading band and a ruled column are
+   what make a small table readable, whichever way round it is read. The two
+   modifiers below say only what is genuinely particular to one of them. */
+.sch__triage-table-wrap thead th {
+  background-color: var(--color-bg-surface-sunken);
+}
+
+/* A rule to the LEFT of every cell but the first, rather than to the right of
+   every cell but the last: the same lines either way, but written this way a
+   table can gain or lose a column without the rules needing to know which one
+   is now last. */
+.sch__triage-table-wrap th + th,
+.sch__triage-table-wrap td + td {
+  border-left: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+/* The values are the point of a table like this, so they are the darkest thing
+   in it and the heading above them is deliberately the quieter half. Overrides
+   the secondary grey .sch__triage-table gives every cell, which was pitched
+   for a table with no band over it to be read against. */
+.sch__triage-table-wrap tbody td { color: var(--color-text-primary); }
+
+/* A BOX THAT DOES NOT MOVE THE COLUMNS IT IS DRAWN AROUND.
+
+   The medication window's list is measured to land on the three fields above
+   it — see the column-ruler comment further down. An outline around it would
+   normally break that: a 1px border on each side leaves the table 2px narrower
+   than the form, and because the ruler's column widths are percentages of that
+   width, every boundary after the first drifts by a fraction of a pixel more
+   than the last.
+
+   So the border is drawn one pixel OUTSIDE the ruler instead of one pixel
+   inside it. The wrapper is auto-width, so a negative inline margin widens it
+   by exactly the two pixels its own border costs, and the table inside goes
+   back to being precisely as wide as the grid above — same percentages, same
+   column boundaries, same cell padding. The box's edges overhang the form's by
+   a pixel, which is the correct trade: what has to line up is the columns and
+   the fields, not the outline and the fields. */
+.sch__triage-table-wrap--aligned { margin-inline: -1px; }
+
+/* The unit drops under its reading's name, which is what the flowsheet in
+   every chart in this build does and what the column comment here has always
+   claimed. Inline, "Temp °F" is two words competing for the same glance and a
+   column two characters wider than the value it heads. */
+.sch__triage-table--flowsheet .sch__triage-table-unit {
+  display: block;
+  font-weight: var(--font-weight-regular);
+}
+
+/* Lining figures, which is the flowsheet's own business: a column of numbers
+   that does not line up is a column read digit by digit. The medication list
+   beside it is words, and asks for nothing of the sort. */
+.sch__triage-table--flowsheet tbody td { font-variant-numeric: tabular-nums; }
+
+
+/* The control that opens a section's window — a bordered pill with a plus on
+   it, or a pencil once the section holds an answer. It was a caret-and-label
+   disclosure while these sections unfolded in place; the caret went with the
+   fold, because a caret promises something will appear below the press and
+   what appears now is a window in the middle of the screen. */
+.sch__triage-action {
+  flex: none;
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background: none;
+  font-family: inherit;
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-link);
+  cursor: pointer;
+}
+.sch__triage-action:hover { background-color: var(--color-bg-surface-hover); }
+.sch__triage-action:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.sch__triage-action .ui-icon { width: var(--icon-size-xs); height: var(--icon-size-xs); }
+
+/* No indent on either of these any more. They lined up under the section text,
+   past the round mark, while they unfolded inside the drawer; both are the
+   whole content of a window of their own now, and an indent inside a dialog
+   is a margin with nothing to line up with. */
+
+.sch__vital-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-5); }
+@media (max-width: 480px) {
+  .sch__vital-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+.sch__vital-field { display: flex; flex-direction: column; gap: var(--space-2); }
+.sch__vital-label { font-size: var(--font-size-caption); color: var(--color-text-secondary); }
+
+.sch__vital-control {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-4);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+  transition: border-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
+}
+
+/* Hover and focus in the words every other field in the product says them in
+   — see .ui-input in css/components/forms.css, which these boxes are a
+   hand-built copy of because the unit sits inside the shell.
+
+   Focus used to be the whole of --focus-ring: a 1px line in the focus colour
+   plus the halo, laid on TOP of the shell's own 1px border. That is two hard
+   edges where the kit's fields have one, and on a 34px box it read as an
+   error state. The shell's existing border simply changes colour instead, and
+   the halo is the same 3px of pale green the kit uses. */
+.sch__vital-control:hover:not(:focus-within):not(.sch__vital-control--computed) {
+  border-color: var(--color-border-strong);
+  background-color: var(--color-bg-surface-hover);
+}
+.sch__vital-control:focus-within {
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px var(--color-brand-surface);
+}
+
+.sch__vital-input {
+  flex: 1;
+  min-width: 0;
+  height: var(--control-height-md);
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: var(--font-size-body);
+  color: var(--color-text-primary);
+}
+.sch__vital-input:focus { outline: none; }
+
+/* THE SHELL OWNS THE FOCUS TREATMENT, AND NOTHING INSIDE IT DOES.
+
+   Without this line the bare <input> also picked up the global
+   :focus-visible ring from base.css, so a focused field wore two rings: one
+   tight around the input, one around the shell — and because the input stops
+   where the unit begins, the inner ring's right-hand edge drew a line down
+   the middle of the box, just before "mmHg". It read as two controls sharing
+   a border rather than one field with a unit in it. Same fix, and the same
+   reason, as .ui-input__control:focus-visible. */
+.sch__vital-input:focus-visible { box-shadow: none; }
+.sch__vital-input::placeholder { color: var(--color-text-tertiary); }
+.sch__vital-unit { flex: none; font-size: var(--font-size-caption); color: var(--color-text-tertiary); }
+
+/* BMI is worked out from height and weight rather than typed, so its box is
+   read-only and says so — a field that fills itself while looking exactly
+   like the six around it reads as one the nurse forgot to fill in. */
+.sch__vital-control--computed { background-color: var(--color-bg-surface-sunken); }
+.sch__vital-auto {
+  margin-left: var(--space-1);
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-bg-surface-sunken);
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-caption);
+}
+/* --- Pain Level ------------------------------------------------------------
+   A section of the drawer in its own right, under the same header the three
+   steps wear — so no indent past the round mark and no margin of its own
+   above: .sch__triage-section sets the gap, and the header sets the left
+   edge, exactly as they do for Vitals and Current Medication.
+
+   Wider than one grid cell, unlike the dropdown that used to sit here — the
+   control IS the scale, so it needs room to be eleven even steps rather than
+   eleven values hidden behind one box. Capped all the same, because a ramp
+   stretched the full width of the drawer puts a hand's width between 6 and 7
+   and stops reading as a single scale. */
+.sch__triage-pain {
+  max-width: 30rem;
+}
+
+.sch__pain { display: flex; flex-direction: column; gap: var(--space-2); }
+
+/* Clear stands where Check Vitals and Add Medication stand — pushed to the
+   end of the section header — so the one control a section offers is always
+   in the same corner, whichever section is being read. */
+.sch__pain-clear {
+  flex: none;
+  margin-left: auto;
+  align-self: center;
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-sm);
+  background: none;
+  font-family: inherit;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-link);
+  cursor: pointer;
+}
+.sch__pain-clear:hover { text-decoration: underline; }
+.sch__pain-clear:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* Eleven equal columns rather than a flex row: the steps have to be the same
+   width for the ramp to read as evenly spaced, and 1 and 10 are not the same
+   number of characters. */
+.sch__pain-scale {
+  display: grid;
+  grid-template-columns: repeat(11, minmax(0, 1fr));
+  gap: var(--space-1);
+}
+
+.sch__pain-step {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--control-height-md);
+  padding: 0;
+  border: var(--border-width-thin) solid transparent;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: transform 120ms ease;
+}
+.sch__pain-step:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* Unpressed, every step already wears its band's tint, so the ramp answers
+   "where does moderate start" before anything is chosen — which is the whole
+   reason this is a scale on screen and not a list in a box. The tint is the
+   surface step of each status ramp, i.e. the lightest one the product has;
+   the ink is that ramp's AA-checked text colour, not the tint darkened. */
+.sch__pain-step--none,
+.sch__pain-step--mild {
+  background-color: var(--color-status-success-surface);
+  color: var(--color-status-success-text);
+}
+.sch__pain-step--moderate {
+  background-color: var(--color-status-warning-surface);
+  color: var(--color-status-warning-text);
+}
+.sch__pain-step--severe {
+  background-color: var(--color-status-critical-surface);
+  color: var(--color-status-critical-text);
+}
+
+.sch__pain-step:hover { border-color: var(--color-border-strong); }
+
+/* The chosen step goes solid. On an eleven-step ramp where every step is
+   already coloured, only a jump to full saturation is unmistakable at a
+   glance — a border alone gets lost among ten tinted neighbours. */
+.sch__pain-step.is-selected {
+  color: var(--color-text-inverse);
+  border-color: transparent;
+  transform: scale(1.06);
+}
+.sch__pain-step--none.is-selected,
+.sch__pain-step--mild.is-selected { background-color: var(--color-status-success-solid); }
+/* Nothing wears a border until it is chosen. An outline on step 0 — the one
+   the keyboard lands on when the question has not been put — reads as an
+   answer already given, which is the exact confusion the "Not recorded"
+   readout exists to prevent. */
+.sch__pain-step--moderate.is-selected { background-color: var(--color-status-warning-solid); }
+.sch__pain-step--severe.is-selected { background-color: var(--color-status-critical-solid); }
+.sch__pain-step.is-selected:focus-visible { box-shadow: var(--focus-ring-solid); }
+
+@media (prefers-reduced-motion: reduce) {
+  .sch__pain-step { transition: none; }
+  .sch__pain-step.is-selected { transform: none; }
+}
+
+/* Three anchors, not eleven labels: the ends say what the scale is measured
+   in and the middle one keeps "moderate" from being guessed at. They sit
+   under the steps they name — the outer two pulled to the edges, the middle
+   one centred — so the words belong to the ramp rather than float over it. */
+.sch__pain-anchors {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-tertiary);
+}
+
+/* Set apart from the anchor words above it rather than tucked under them: the
+   anchors label the ramp and the readout is the answer taken off it, and at the
+   flex gap alone "1/10 Mild" read as a fourth anchor that had wandered left. */
+.sch__pain-readout {
+  margin: var(--space-3) 0 0;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+}
+.sch__pain-readout-score { font-weight: var(--font-weight-semibold); }
+.sch__pain-readout-score--none,
+.sch__pain-readout-score--mild { color: var(--color-status-success-text); }
+.sch__pain-readout-score--moderate { color: var(--color-status-warning-text); }
+.sch__pain-readout-score--severe { color: var(--color-status-critical-text); }
+
+.sch__vital-note {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-tertiary);
+}
+
+/* ONE COLUMN RULER FOR THE MINI-FORM AND THE LIST IT BUILDS.
+
+   The three fields and the three columns under them are the same three
+   questions asked twice — Medication, Dose, Frequency — and they used to be
+   measured two different ways: the form split the width into three equal
+   tracks, the table sized its columns to whatever the widest cell happened to
+   be. So "Once daily" typed into the third field appeared under the second
+   heading's worth of space, and a row added to the list did not line up with
+   the boxes it was typed into. A nurse checking that what they entered is what
+   was recorded had to read the headings to find out, on a list that is often
+   six rows long.
+
+   Both now measure from the same three numbers. The gap between the fields is
+   a real gap in the grid and half of it on each side of a cell in the table,
+   so a cell's CONTENT box lands exactly on its field's — which is what makes
+   the two read as one column rather than as two lists that nearly agree.
+
+   The action column is a fixed width rather than the button's own, because a
+   track sized to its content cannot be measured out in the table above it.
+   4.5rem takes the small Add button, which is given `full` so it fills the
+   track exactly and its right edge is the edge the remove buttons sit on. */
+.sch__triage-med-form,
+.sch__triage-med-table {
+  --sch-med-gap: var(--space-4);
+  --sch-med-action: 4.5rem;
+  --sch-med-col: calc((100% - (3 * var(--sch-med-gap)) - var(--sch-med-action)) / 3);
+}
+
+.sch__triage-med-form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) var(--sch-med-action);
+  gap: var(--sch-med-gap);
+  align-items: end;
+  margin-bottom: var(--space-5);
+}
+
+/* Fixed, so the columns are the widths asked for here rather than the widths
+   the longest drug name argues for. A name too long for its column wraps —
+   which is the right answer on a list where the name is the one cell that can
+   run to forty characters. */
+.sch__triage-med-table {
+  table-layout: fixed;
+}
+.sch__triage-med-table th,
+.sch__triage-med-table td {
+  padding-inline: calc(var(--sch-med-gap) / 2);
+  overflow-wrap: anywhere;
+}
+.sch__triage-med-table th:first-child,
+.sch__triage-med-table td:first-child {
+  width: calc(var(--sch-med-col) + (var(--sch-med-gap) / 2));
+}
+.sch__triage-med-table th:nth-child(2),
+.sch__triage-med-table td:nth-child(2),
+.sch__triage-med-table th:nth-child(3),
+.sch__triage-med-table td:nth-child(3) {
+  width: calc(var(--sch-med-col) + var(--sch-med-gap));
+}
+.sch__triage-med-table th:last-child,
+.sch__triage-med-table td:last-child {
+  width: calc(var(--sch-med-action) + (var(--sch-med-gap) / 2));
+}
+
+/* Stacked: the fields go under one another, so there is no ruler left to
+   share and the columns go back to sizing themselves. */
+@media (max-width: 640px) {
+  .sch__triage-med-form { grid-template-columns: minmax(0, 1fr); }
+  .sch__triage-med-table { table-layout: auto; }
+  .sch__triage-med-table th,
+  .sch__triage-med-table td { width: auto; padding-inline: var(--space-3); }
+  /* Both edges keep their padding now that there is an outline to sit inside.
+     They used to go flush, which is what a borderless table wants so that its
+     first column starts on the dialog's own margin — inside a box the same
+     declaration puts the drug name hard against the border. */
+  .sch__triage-med-table th:last-child,
+  .sch__triage-med-table td:last-child { width: 1%; }
+}
+
+/* No rule before the action column. Every other line in this table separates
+   one answer from the next, and a column of remove buttons is not an answer —
+   ruled off like the three beside it, the empty band above the × reads as a
+   fourth question the list forgot to fill in. The buttons belong to their row,
+   so they sit inside its last cell without a wall in front of them. */
+.sch__triage-med-table th:last-child,
+.sch__triage-med-table td:last-child { border-left: none; }
+
+.sch__triage-med-remove-cell { text-align: right; }
+
+.sch__triage-med-remove {
+  flex: none;
+  display: inline-flex;
+  padding: var(--space-1);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+}
+.sch__triage-med-remove:hover { background-color: var(--color-bg-surface-hover); color: var(--color-text-primary); }
+.sch__triage-med-remove:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.sch__triage-med-remove .ui-icon { width: var(--icon-size-xs); height: var(--icon-size-xs); }
+
+/* --- Row actions: Start + the ⋮ menu --------------------------------------- */
+
+.sch__row-actions { display: inline-flex; align-items: center; gap: var(--space-3); }
+
+/* --- Calendar: shared shell ------------------------------------------------ */
+
+.sch__cal-host { flex: 1; min-height: 0; display: flex; }
+
+.sch__cal {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+  overflow: hidden;
+}
+
+/* Column headings stay put while the hours scroll. */
+.sch__cal-head {
+  flex: none;
+  display: flex;
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+  background-color: var(--color-bg-surface-sunken);
+}
+
+.sch__cal-head-gutter { flex: none; width: var(--sch-gutter); }
+
+.sch__cal-scroll { flex: 1; min-height: 0; overflow: auto; }
+/* Top padding gives the first hour label room to sit above its line instead
+   of being cut off by the scroll edge. */
+.sch__cal-grid { display: flex; min-height: 100%; padding: var(--space-5) 0 var(--space-8); }
+
+.sch__cols { display: flex; flex: 1; min-width: 0; }
+
+.sch__col-head {
+  flex: 1 1 0;
+  min-width: 0;
+  /* Centre the label block in the fixed band rather than letting the padding
+     set the depth — see --sch-head-h. */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: var(--sch-head-h);
+  padding: var(--space-4) var(--space-5);
+  border-left: var(--border-width-thin) solid var(--color-border-subtle);
+  text-align: center;
+}
+.sch__col-head-name {
+  display: block;
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+.sch__col-head-sub {
+  display: block;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-tertiary);
+}
+
+/* A day head is one line — "Mon 13" — with the weekday in the quieter role,
+   because within a week grid the number is what tells the columns apart. */
+.sch__col-head--day {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-3);
+}
+.sch__col-head--day .sch__col-head-name {
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+}
+.sch__col-head--day .sch__col-head-sub {
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Today wears the same filled disc it wears in both month grids, so "today"
+   is one mark on this screen rather than three shades of green. */
+.sch__col-head--day.sch__col-head--today {
+  background-color: transparent;
+}
+.sch__col-head--day.sch__col-head--today .sch__col-head-sub {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  border-radius: var(--radius-full);
+  background-color: var(--color-brand-solid);
+  color: var(--color-text-inverse);
+}
+.sch__col-head--today .sch__col-head-name { color: var(--color-brand-text); }
+.sch__col-head--today { background-color: var(--color-brand-surface); }
+
+/* --- Calendar: hour gutter and columns ------------------------------------ */
+
+.sch__gutter {
+  flex: none;
+  width: var(--sch-gutter);
+  height: calc(var(--sch-hour) * var(--sch-hours));
+  position: relative;
+}
+
+.sch__hour {
+  position: absolute;
+  left: var(--space-4);
+  white-space: nowrap;
+  top: calc(var(--sch-top) * var(--sch-hour) / 60);
+  transform: translateY(-0.5em);
+  font-size: var(--font-size-caption);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-tertiary);
+}
+
+.sch__col {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  height: calc(var(--sch-hour) * var(--sch-hours));
+  border-left: var(--border-width-thin) solid var(--color-border-subtle);
+  /* Hour lines, drawn rather than nested in 13 empty divs. */
+  background-image: repeating-linear-gradient(
+    to bottom,
+    var(--color-border-subtle) 0 1px,
+    transparent 1px var(--sch-hour)
+  );
+}
+
+/* The default state of a column is "not bookable" — availability is painted
+   on top of it, so a provider with no configured hours reads as closed.
+
+   Hatched rather than filled: a flat grey panel is a colour, and a colour in
+   a grid full of coloured blocks reads as another kind of booking. Hatching
+   reads as "nothing goes here" in any palette, and keeps the hour lines
+   visible underneath so the column is still a column. */
+.sch__col--closed {
+  background-image:
+    repeating-linear-gradient(
+      135deg,
+      transparent 0 7px,
+      var(--sch-hatch) 7px 8px
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      var(--color-border-subtle) 0 1px,
+      transparent 1px var(--sch-hour)
+    );
+}
+
+/* --- Calendar: availability bands ----------------------------------------- */
+
+.sch__band {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(var(--sch-top) * var(--sch-hour) / 60);
+  height: calc(var(--sch-len) * var(--sch-hour) / 60);
+}
+
+/* Hours the column is not open in. The same hatch the whole-day version uses,
+   so "nothing goes here" is one mark on this screen rather than two. */
+.sch__band--closed {
+  background-image: repeating-linear-gradient(
+    135deg,
+    transparent 0 7px,
+    var(--sch-hatch) 7px 8px
+  );
+}
+
+.sch__band-label {
+  position: absolute;
+  top: var(--space-2);
+  left: var(--space-4);
+  max-width: calc(100% - var(--space-7));
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: var(--font-size-2xs);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  color: var(--color-status-success-text);
+}
+
+/* A block day takes hours away that otherwise exist, so it is the one band
+   that still speaks: red, hatched, and carrying the reason. */
+.sch__band--blocked {
+  background-color: var(--color-status-critical-surface);
+  border-top: var(--border-width-thin) solid var(--color-status-critical-border);
+  box-shadow: inset 3px 0 0 0 var(--color-status-critical-solid);
+  background-image: repeating-linear-gradient(
+    135deg,
+    transparent 0 6px,
+    rgb(179 38 30 / 0.08) 6px 12px
+  );
+}
+.sch__band--blocked .sch__band-label { color: var(--color-status-critical-text); }
+
+/* --- Calendar: appointment blocks ----------------------------------------- */
+
+.sch__event {
+  position: absolute;
+  top: calc(var(--sch-top) * var(--sch-hour) / 60);
+  /* Exactly as tall as the booking is long — no shaved pixels. The card used
+     to give three pixels back at the bottom so that two bookings in a row
+     would read as two, but a clinic's day IS back-to-back: 8:00-8:30 followed
+     by 8:30-9:00 showed a white seam where there is no free time at all, and
+     a column of them looked like a column of gaps. Flush cards say the hour
+     is spoken for; the left colour bar and the border radius are what keep
+     one card from reading as the next. */
+  height: calc(var(--sch-len) * var(--sch-hour) / 60);
+  /*
+   * A block runs the width of its column, and two that collide CASCADE rather
+   * than splitting it in half.
+   *
+   * Splitting is what a calendar does when it must show both bookings whole;
+   * at a seventh of a week that is 70px a card, and a 70px card is a colour
+   * with a truncated name on it. Cascading indents each further lane and lets
+   * every one of them run to the right-hand edge, so the front card is full
+   * width, the ones behind it show their colour and the start of their name,
+   * and a click still reaches any of them. It is what a desk does with paper
+   * anyway.
+   */
+  left: calc(var(--sch-lane) * min(var(--sch-cascade), 66% / var(--sch-lanes)) + 1px);
+  right: 2px;
+  z-index: calc(1 + var(--sch-lane));
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  overflow: hidden;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  border-left: 3px solid var(--sch-colour, var(--color-brand-solid));
+  /* Opaque, not tinted-transparent: a cascaded card sits ON the one behind it
+     and has to hide the part it covers. The tint goes on top in ::before. */
+  background-color: var(--color-bg-surface);
+  box-shadow: -1px 0 0 0 var(--color-bg-surface);
+  font-size: var(--font-size-2xs);
+  line-height: var(--line-height-tight);
+  text-align: left;
+  cursor: pointer;
+}
+/* The type colour is a customer choice, so it is used as a tint behind the
+   text rather than as the text colour — legibility cannot depend on it. */
+.sch__event::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-color: var(--sch-colour, var(--color-brand-solid));
+  opacity: 0.09;
+  pointer-events: none;
+}
+/* The tint is a positioned pseudo-element, so the label spans have to be
+   positioned too or the tint paints over the text. */
+.sch__event > span { position: relative; }
+.sch__event:hover { z-index: 20; }
+.sch__event:focus-visible { outline: none; box-shadow: var(--focus-ring); z-index: 21; }
+
+/* Line one: who, and the two things about the booking that are true before
+   anyone reads a word — whether they are coming in, and whether a note is
+   riding on it. Both are glyphs, so the name keeps the width. */
+.sch__event-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.sch__event-mode,
+.sch__event-doc {
+  flex: none;
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}
+.sch__event-mode { color: var(--sch-ink, var(--color-text-secondary)); }
+.sch__event-doc { margin-left: auto; color: var(--color-text-tertiary); }
+
+/*
+ * The name wears the appointment type's colour — that is what makes a block
+ * recognisable at a glance in a full week, which is the whole point of the
+ * clinic choosing colours at all.
+ *
+ * It is not the raw colour, though: the practice picks those, and some of
+ * them are pale yellows and light blues that would fail against white. Mixed
+ * two parts colour to one part body text, the hue survives and the contrast
+ * stops being the customer's to get wrong. --sch-ink is that mix, so the
+ * glyph beside the name and the name itself can never disagree.
+ */
+.sch__event {
+  --sch-ink: color-mix(in srgb, var(--sch-colour, var(--color-brand-solid)) 62%, var(--color-text-primary));
+}
+
+.sch__event-name {
+  flex: 1;
+  min-width: 0;
+  font-weight: var(--font-weight-semibold);
+  color: var(--sch-ink, var(--color-text-primary));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sch__event-time {
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sch__event-mins { color: var(--color-text-tertiary); }
+
+/* The status carries its own colour — the same one the list's status pill and
+   the settings screen use, read from the practice's status palette. */
+.sch__event-status {
+  font-weight: var(--font-weight-medium);
+  color: var(--sch-colour, var(--color-text-secondary));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* A block is only as tall as its appointment is long, so how much it can say
+   is decided by the duration, not by hope. Under half an hour there is room
+   for the name and the time on one line; up to three quarters, the two of
+   them stacked; longer than that, the status as well. */
+.sch__event--sm .sch__event-status { display: none; }
+
+.sch__event--xs {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0 var(--space-3);
+}
+.sch__event--xs .sch__event-status,
+.sch__event--xs .sch__event-mins,
+.sch__event--xs .sch__event-doc { display: none; }
+.sch__event--xs .sch__event-head { flex: 1; min-width: 0; }
+.sch__event--xs .sch__event-time { flex: none; order: 2; }
+.sch__event--cancelled .sch__event-name { text-decoration: line-through; color: var(--color-text-tertiary); }
+
+/* The rest of a clash, as one small chip at the top-right of the run it
+   stands for. It is a count and nothing else on purpose: anything longer
+   would need room the cluster does not have, which is why it exists. */
+/* The count sits ON the card's top-right corner, and only the line it lands
+   on gives way to it. Shortening the whole card left a white gutter down the
+   right-hand side of a two-hour booking for the sake of something twenty
+   pixels tall, and made the chip read as an object floating in the column
+   rather than a mark on the card it belongs to. A one-line card pads its
+   whole row, because on that card the row IS the line. */
+.sch__event--crowded .sch__event-head { padding-right: var(--space-9); }
+.sch__event--xs.sch__event--crowded { padding-right: var(--space-9); }
+
+.sch__more {
+  position: absolute;
+  right: var(--space-2);
+  top: calc(var(--sch-top) * var(--sch-hour) / 60 + var(--space-2));
+  /* Above the card it marks, and above a hovered neighbour: a count that can
+     be covered is a count nobody trusts. */
+  z-index: 25;
+  display: inline-flex;
+  align-items: center;
+  /* Small enough that a one-line card can spare the room: the count is a
+     footnote on the card, not a control competing with it. */
+  height: var(--space-7);
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-full);
+  /* Flat. It was a bordered, shadowed pill — the same weight as a card, which
+     is what made it look like one more thing in a column that already had too
+     many. It is a label on a card now, so it is drawn like one. */
+  background-color: var(--color-bg-surface-sunken);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.sch__more:hover {
+  background-color: var(--color-brand-surface);
+  color: var(--color-brand-text);
+}
+.sch__more:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* --- Calendar: the current time -------------------------------------------
+   One line across the grid, and its clock time in the gutter. It is drawn on
+   top of the blocks — a "now" that a booking can hide is a now nobody can
+   find — but it never takes a click, so the block underneath is still the
+   thing you press.
+   -------------------------------------------------------------------------- */
+
+.sch__cal-grid .sch__cols { position: relative; }
+
+.sch__now {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(var(--sch-top) * var(--sch-hour) / 60);
+  height: 0;
+  border-top: var(--border-width-thin) solid var(--color-brand-solid);
+  pointer-events: none;
+  z-index: 30;
+}
+.sch__now::before {
+  content: '';
+  position: absolute;
+  left: -0.3125rem;
+  top: -0.3125rem;
+  width: var(--space-5);
+  height: var(--space-5);
+  border-radius: var(--radius-full);
+  background-color: var(--color-brand-solid);
+}
+
+/* The clock time in the gutter, in the line's own colour — the hour labels
+   around it are the same size and the same alignment, so "now" reads as one
+   of them that happens to be true. A filled badge shouted it. */
+.sch__now-label {
+  position: absolute;
+  left: var(--space-4);
+  top: calc(var(--sch-top) * var(--sch-hour) / 60);
+  transform: translateY(-0.5em);
+  padding-right: var(--space-2);
+  background-color: var(--color-bg-surface);
+  color: var(--color-brand-text);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  z-index: 5;
+}
+
+/* --- Calendar: month grid -------------------------------------------------- */
+
+.sch__month { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+
+.sch__month-head {
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+  background-color: var(--color-bg-surface-sunken);
+}
+.sch__month-head span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--sch-head-h);
+  padding: var(--space-4);
+  text-align: center;
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+}
+
+.sch__month-grid {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-auto-rows: minmax(6rem, 1fr);
+  overflow: auto;
+}
+
+.sch__day {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: var(--space-4);
+  border-left: var(--border-width-thin) solid var(--color-border-subtle);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+  background-color: var(--color-bg-surface);
+  text-align: left;
+  cursor: pointer;
+}
+.sch__day:hover { background-color: var(--color-bg-surface-hover); }
+.sch__day:focus-visible { outline: none; box-shadow: var(--focus-ring); z-index: 2; }
+
+.sch__day--outside .sch__day-num { color: var(--color-text-disabled); }
+/* A provider is selected and this is not one of their working days. Hatched
+   for the same reason the day grid's closed columns are: "nothing goes here"
+   should not be another shade competing with the bookings. */
+.sch__day--closed {
+  background-image: repeating-linear-gradient(
+    135deg,
+    transparent 0 7px,
+    var(--sch-hatch) 7px 8px
+  );
+}
+
+.sch__day-top { display: flex; align-items: center; gap: var(--space-3); }
+
+.sch__day-num {
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  font-variant-numeric: tabular-nums;
+}
+.sch__day--today .sch__day-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  border-radius: var(--radius-full);
+  background-color: var(--color-brand-solid);
+  color: var(--color-text-inverse);
+}
+
+.sch__day-tag {
+  margin-left: auto;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-2xs);
+  white-space: nowrap;
+}
+.sch__day-tag--blocked {
+  background-color: var(--color-status-critical-surface);
+  color: var(--color-status-critical-text);
+}
+.sch__chips { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
+
+/* A month cell's chip is the day-grid block with everything but the name and
+   the hour taken out of it — same left bar, same tint, same two glyphs — so a
+   booking is recognisably the same object in both grids. */
+.sch__chip {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  padding: 1px var(--space-3);
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--sch-colour, var(--color-brand-solid));
+  background-color: var(--color-bg-surface);
+  font-size: var(--font-size-2xs);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sch__chip::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-color: var(--sch-colour, var(--color-brand-solid));
+  opacity: 0.09;
+  pointer-events: none;
+}
+.sch__chip > * { position: relative; }
+.sch__chip {
+  --sch-ink: color-mix(in srgb, var(--sch-colour, var(--color-brand-solid)) 62%, var(--color-text-primary));
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  border-left-width: 3px;
+}
+.sch__chip b {
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+}
+.sch__chip-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--sch-ink);
+  font-weight: var(--font-weight-medium);
+}
+.sch__chip .sch__event-mode,
+.sch__chip .sch__event-doc {
+  width: var(--icon-size-xs);
+  height: var(--icon-size-xs);
+}
+.sch__chip .sch__event-doc { color: var(--sch-ink); opacity: 0.75; }
+.sch__chip--cancelled .sch__chip-name { text-decoration: line-through; color: var(--color-text-tertiary); }
+.sch__chip-more {
+  padding-left: var(--space-3);
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-2xs);
+}
+
+/* --- Calendar: empty state and legend ------------------------------------- */
+
+.sch__empty[hidden] { display: none; }
+
+.sch__empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  padding: var(--space-11);
+  color: var(--color-text-tertiary);
+}
+
+.sch__legend {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-7);
+  /* The card's own inset, now that the body around it has none: the legend is
+     the last thing in the shell, so its sides and its floor are the card's. */
+  padding: var(--space-5) var(--space-7) var(--space-6);
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+}
+
+.sch__legend-item { display: inline-flex; align-items: center; gap: var(--space-4); }
+.sch__legend-item::before {
+  content: '';
+  width: var(--space-8);
+  height: var(--space-5);
+  border-radius: var(--radius-sm);
+  border: var(--border-width-thin) solid var(--color-border-default);
+}
+.sch__legend-item--blocked::before {
+  background-color: var(--color-status-critical-surface);
+  border-color: var(--color-status-critical-border);
+}
+.sch__legend-item--closed::before {
+  background-color: var(--color-bg-surface-sunken);
+  background-image: repeating-linear-gradient(
+    135deg,
+    transparent 0 3px,
+    var(--color-border-default) 3px 4px
+  );
+}
+
+.sch__legend-link { color: var(--color-text-link); text-decoration: none; }
+.sch__legend-link:hover { text-decoration: underline; }
+
+/* ============================================================================
+   APPOINTMENT FORM — MOVED
+
+   Every .appt* rule now lives in css/components/appointment-form.css, linked
+   by this screen and by the patient chart. The chart's Appointments module
+   opens the same booking dialog on the patient already on screen, and one
+   dialog drawn by two stylesheets is a dialog that drifts. The rules there are
+   written against classes rather than this screen's field ids for the same
+   reason.
+
+   The right-hand rail's own classes (.appt__rail, .appt__card, .appt__facts)
+   went with the rail itself and are not in either file.
+   ========================================================================= */
+
+
+/* --- gEstimator --------------------------------------------------------------
+   A worked calculation, not a number. Each line is label-left / amount-right
+   with the amounts on tabular figures so the column reads as a column, and the
+   total is separated from the working above it the way a receipt separates it.
+   -------------------------------------------------------------------------- */
+
+.est { display: flex; flex-direction: column; gap: var(--space-7); }
+
+.est__who {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-7);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+}
+.est__who > div { display: flex; gap: var(--space-6); }
+.est__who dt {
+  flex: none;
+  width: 5rem;
+  font-size: var(--font-size-fact-label);
+  color: var(--color-fact-label);
+  font-weight: var(--font-weight-regular);
+}
+.est__who dd { flex: 1; min-width: 0; font-size: var(--font-size-caption); }
+
+.est__empty { font-size: var(--font-size-caption); color: var(--color-text-tertiary); }
+
+.est__calc { display: flex; flex-direction: column; gap: var(--space-5); }
+
+.est__line { display: flex; align-items: baseline; gap: var(--space-6); }
+.est__line dt { flex: 1; min-width: 0; font-size: var(--font-size-fact-label); font-weight: var(--font-weight-regular); color: var(--color-fact-label); }
+.est__line dd {
+  flex: none;
+  font-size: var(--font-size-caption);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The allowed amount is a subtotal — the line everything below it is worked
+   out from — so it is ruled off rather than left in the run of charges. */
+.est__line--sub {
+  padding-top: var(--space-5);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+  font-weight: var(--font-weight-semibold);
+}
+
+.est__note { font-size: var(--font-size-2xs); color: var(--color-text-tertiary); }
+
+.est__total {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-6);
+  padding: var(--space-7);
+  border-radius: var(--radius-md);
+  background-color: var(--color-brand-surface);
+  color: var(--color-brand-text);
+}
+.est__total span { flex: 1; font-size: var(--font-size-caption); }
+.est__total strong {
+  font-size: var(--font-size-24);
+  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.est__caveat {
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-tertiary);
+  line-height: var(--line-height-normal);
+}
+
+/* --- Narrow windows -------------------------------------------------------- */
+
+/* The appointment form is a centred dialog now, so the block of
+   .ui-modal--drawer overrides that used to squeeze it into a 52rem column —
+   two-column grids, a full-width patient, the billing rail laid out sideways —
+   has gone with the drawer. What is left is viewport-driven, below.
+   */
+
+/* The booking dialog's own narrow-window rules went with the rest of the form,
+   to css/components/appointment-form.css — the chart opens the same dialog and
+   needs the same reflow. What is left below is this screen's furniture. */
+
+@media (max-width: 60rem) {
+  .sch__toolbar { flex-wrap: wrap; }
+  /* Below this the rail costs more than it gives: it would leave the table
+     under 30rem, which is not enough for eight columns. It stays reachable —
+     shut, it is the same 52px control it always is. */
+  .sch__rail { width: 12rem; }
+}
+
+/* --- The print-only header ---------------------------------------------------
+   Hidden on screen, and the only thing on the printed page that is not the
+   schedule itself. It is populated on every repaint rather than at print time,
+   because window.print() is synchronous and would race a beforeprint render.
+   -------------------------------------------------------------------------- */
+
+.sch__print-head { display: none; }
+
+/* ============================================================================
+   PRINT
+
+   The printed schedule is the view on screen — same period, same filters —
+   with the chrome taken off and the scroll containers released so the list
+   runs onto as many sheets as it needs instead of stopping at one screenful.
+   ========================================================================= */
+
+@media print {
+  @page { margin: 14mm; }
+
+  /* Everything the desk clicks, and nothing the page needs on paper. */
+  /* The print header carries the title, the period and the count, so the
+     screen header would only repeat them. */
+  .pt__bar,
+  .pt__head,
+  .sch__rail,
+  .sch__subtabs,
+  .sch__toolbar,
+  .sch__pager,
+  /* Both are parented to <body> now, so neither is inside anything the rules
+     above already take off the page. */
+  .ui-select-menu,
+  .ui-row-menu-panel,
+  .ui-modal { display: none !important; }
+
+  /* The app shell is a fixed-height flex column with overflow hidden. On
+     paper that would print exactly one screenful, so every scroll container
+     between the page and the rows is released. */
+  html, body, .sch, .sch__layout, .sch__panels, .sch__panel,
+  .sch__body, .sch__card, .sch__view, .sch__cal-host {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    display: block !important;
+  }
+  .sch__panel[hidden] { display: none !important; }
+  .sch__body { padding: 0 !important; }
+  .sch__layout {
+    margin: 0 !important;
+    border: none !important;
+    border-radius: 0 !important;
+  }
+  .sch__view[hidden] { display: none !important; }
+  .sch__view .ui-table-wrap,
+  .sch__cal-scroll {
+    overflow: visible !important;
+    max-height: none !important;
+    border-radius: 0;
+  }
+
+  .sch__print-head {
+    display: block;
+    margin-bottom: var(--space-6);
+    padding-bottom: var(--space-4);
+    border-bottom: var(--border-width-thick) solid var(--color-text-primary);
+  }
+  .sch__print-brand span,
+  .sch__print-filters {
+    font-size: var(--font-size-caption);
+    color: var(--color-text-secondary);
+  }
+  .sch__print-meta {
+    display: flex;
+    gap: var(--space-5);
+    align-items: baseline;
+    margin-top: var(--space-3);
+  }
+  .sch__print-meta strong { font-size: var(--font-size-body); }
+  .sch__print-filters { margin-top: var(--space-2); }
+
+  /* Actions are the last column and the row menu; neither means anything on
+     paper, and dropping them buys the width back for the columns that do. */
+  .sch__view th:last-child,
+  .sch__view td:last-child { display: none; }
+
+  /* Fixed widths exist to keep the on-screen table from reflowing as rows
+     load. On paper there is no reflow and no hover, so a truncated location
+     is just a fact the reader cannot get at — let the columns size to their
+     content and wrap. */
+  .sch__view .ui-table { table-layout: auto; }
+  .sch__view th,
+  .sch__view td {
+    width: auto !important;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+  }
+
+  .sch__view tr { break-inside: avoid; }
+
+  .sch__view .ui-table,
+  .sch__view th,
+  .sch__view td {
+    border-color: var(--color-border-default) !important;
+    color: var(--color-text-primary) !important;
+  }
+
+  /* Calendar blocks are absolutely positioned against a scroll container, so
+     the grid keeps its geometry — it just stops being clipped. */
+  .sch__cal { border: var(--border-width-thin) solid var(--color-border-default); }
+
+  .pt__foot { border-top: var(--border-width-thin) solid var(--color-border-subtle); }
+}
+
+/* ============================================================================
+   WAIT LIST
+
+   The same furniture as the other two tabs — shared table, shared badges — so
+   moving between Appointments, Encounters and this one is not three different
+   screens to learn.
+   ========================================================================= */
+
+/* The band that held a "Wait List" title and a sentence under it is gone: the
+   tab lit in the header already says the word, and the sentence explained what
+   the list IS rather than anything a reader could act on. The panel is the
+   table inside .sch__card — the same edge Encounters draws around its switch
+   and its rows, so the two tabs are one object with and without a control at
+   the top of it. */
+
+.sch__wl-name { font-weight: var(--font-weight-medium); }
+.sch__wl-activity { color: var(--color-text-link); }
+
+/* Edit and Remove sit on one line at the right of the row. nowrap because the
+   actions column is the one place a wrap turns a row two lines tall for no
+   information at all. */
+.sch__wl-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  white-space: nowrap;
+}
+.sch__cell-sub { display: block; font-size: var(--font-size-2xs); color: var(--color-text-tertiary); }
+
+/* --- Add to wait list ------------------------------------------------------ */
+
+.wl { display: flex; flex-direction: column; gap: var(--space-7); }
+
+/* WHO IS WAITING — the identity block under the patient picker, and the only
+   thing in that section once the entry exists.
+
+   It is a card rather than a strip of fields because on the edit path it is
+   carrying an answer, not collecting one: the name is the heading of the
+   request being edited, and a bare grey band of dt/dd pairs read as four more
+   inputs somebody had forgotten to enable. Nothing inside it is focusable,
+   which is the point. */
+.wl__who {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: var(--space-7);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+}
+
+/* Before a patient is chosen there is nothing to show, and an empty card of
+   dashes would be four facts that all say the same thing. One line and one
+   icon, at the height the filled card will take, so choosing somebody does not
+   jump the rest of the form down the page. */
+.wl__who--empty {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-5);
+  border-style: dashed;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-caption);
+}
+.wl__who--empty .ui-icon { flex: none; color: var(--color-text-tertiary); }
+
+.wl__who-head { display: flex; align-items: center; gap: var(--space-6); flex-wrap: wrap; }
+
+/* Initials, not a photograph: there is no photograph, and a person scanning a
+   drawer for "am I editing the right request" finds a name faster when it has
+   a shape beside it. */
+.wl__who-avatar {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-10);
+  height: var(--space-10);
+  border-radius: var(--radius-full);
+  background-color: var(--color-brand-surface);
+  color: var(--color-text-brand);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-semibold);
+}
+.wl__who-id { min-width: 0; }
+.wl__who-id strong { display: block; font-size: var(--font-size-body); font-weight: var(--font-weight-semibold); }
+.wl__who-id small { display: block; margin-top: var(--space-2); font-size: var(--font-size-caption); color: var(--color-text-secondary); }
+
+/* The lock says WHY the picker above is missing. Without it the edit form
+   looks like the add form with a field lost to a bug. */
+.wl__who-lock {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-5);
+  border-radius: var(--radius-full);
+  background-color: var(--color-bg-surface);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+.wl__who-lock .ui-icon { width: var(--space-6); height: var(--space-6); color: var(--color-text-tertiary); }
+
+.wl__who-wait { color: var(--color-text-secondary); font-weight: var(--font-weight-regular); }
+
+
+/* Read-only facts about a patient already on file. Rendered as a strip rather
+   than as fields, so it is obvious nothing here is being asked for. */
+.wl__facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: var(--space-6);
+  padding-top: var(--space-6);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+}
+.wl__facts dt { font-size: var(--font-size-fact-label); color: var(--color-fact-label); font-weight: var(--font-weight-regular); }
+.wl__facts dd { margin-top: var(--space-2); font-size: var(--font-size-caption); font-weight: var(--font-weight-medium); }
+.wl__facts-empty { font-size: var(--font-size-caption); color: var(--color-text-tertiary); }
+
+/* --- Select Slot ------------------------------------------------------------
+   Where the seven weekday checkboxes used to be.
+
+   The day picker asked which weekdays suited and then did nothing with the
+   answer beyond narrowing a queue by it; this panel answers the question the
+   desk actually has — which of the times inside that window is free — and it
+   answers it with real openings, cut from the provider's own hours by the
+   same openSlots() the booking form offers times from.
+
+   Deliberately built on the booking form's slot geometry rather than a shape
+   of its own: a row of times under a date heading is the control this product
+   already uses to say "pick one of these", and a wait-list request choosing a
+   slot is the same act as a booking choosing one. The one difference is the
+   grouping — the booking form groups by session within a single day, this one
+   groups by DAY, because a wait-list slot two weeks out is nothing without
+   the date attached to it.
+   -------------------------------------------------------------------------- */
+
+.wl__slots-field { margin-top: var(--space-7); }
+
+.wl__slots-label {
+  display: block;
+  margin-bottom: var(--space-5);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+}
+
+.wl__slots {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  /* Six days of starts is more than the panel can show at once and less than
+     the drawer can afford to grow by, so it scrolls inside itself — the same
+     bargain .appt__slots strikes beside the month grid. */
+  max-height: 17rem;
+  overflow-y: auto;
+  padding: var(--space-6);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+}
+
+.wl__slots-head { display: flex; align-items: baseline; gap: var(--space-4); }
+
+/* The slot taken, in words. Same weight as the booking form's, and for the
+   same reason: it is a value, not a label. */
+.wl__slots-chosen {
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+.wl__slots-count {
+  margin-left: auto;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-full);
+  background-color: var(--color-status-success-surface);
+  color: var(--color-status-success-text);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-medium);
+}
+
+/* Undoing a pick is a quiet action, not a second commit — it sits after the
+   count as a text button rather than beside Save as a button proper. */
+.wl__slots-clear {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-link);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.wl__slots-clear:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.wl__slots-hint { font-size: var(--font-size-caption); color: var(--color-text-tertiary); }
+
+.wl__slot-group { display: flex; flex-direction: column; gap: var(--space-3); }
+
+/* The DATE, and it reads a step louder than the booking form's session label:
+   there it disambiguates two blocks of one day the reader already knows, here
+   it is half the answer. */
+.wl__slot-group-label {
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+}
+
+.wl__slot-row { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+
+.wl__slot {
+  height: var(--control-height-sm);
+  padding: 0 var(--space-5);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+  font-size: var(--font-size-caption);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+.wl__slot:hover {
+  border-color: var(--color-border-brand);
+  background-color: var(--color-brand-surface);
+  color: var(--color-brand-text);
+}
+.wl__slot:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.wl__slot--selected {
+  border-color: var(--color-brand-solid);
+  background-color: var(--color-brand-solid);
+  color: var(--color-text-inverse);
+  font-weight: var(--font-weight-medium);
+}
+.wl__slot--selected:focus-visible { box-shadow: var(--focus-ring-solid); }
+.wl__slot--selected:hover {
+  background-color: var(--color-brand-solid-hover);
+  color: var(--color-text-inverse);
+}
+
+/* The slot as the wait-list TABLE prints it — a date over its time, the same
+   two-line cell the appointment list uses for a booked slot. */
+.sch__wl-slot { font-weight: var(--font-weight-medium); }
+
+/* --- The recap -------------------------------------------------------------
+   Six controls describe one arrangement, and reading that arrangement off six
+   controls is work — one sentence under them is not. Sized as body text rather
+   than as a hint: it is the one line in this section a reader is meant to
+   check, and hint grey is where the eye has already learned nothing important
+   lives.
+   -------------------------------------------------------------------------- */
+.wl__recap {
+  padding: var(--space-5) var(--space-6);
+  border-left: var(--border-width-thick) solid var(--color-border-brand);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-brand-surface);
+  font-size: var(--font-size-caption);
+  color: var(--color-text-primary);
+}
+.wl__recap--quiet {
+  border-left-color: var(--color-border-default);
+  background-color: var(--color-bg-surface-sunken);
+  color: var(--color-text-tertiary);
+}
+/* A window the wrong way round is caught here, while it is being typed, rather
+   than by an error under a field after the save button has been pressed. */
+.wl__recap--warning {
+  border-left-color: var(--color-status-warning-border);
+  background-color: var(--color-status-warning-surface);
+  color: var(--color-text-primary);
+}
+
+/* --- The calendar's booking choice ----------------------------------------- */
+
+.wl__choice { display: flex; flex-direction: column; gap: var(--space-5); }
+.wl__choice-lead { font-size: var(--font-size-caption); color: var(--color-text-secondary); }
+
+.wl__choice-option {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-6);
+  width: 100%;
+  padding: var(--space-7);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.wl__choice-option:hover:not(:disabled) {
+  border-color: var(--color-border-brand);
+  background-color: var(--color-brand-surface);
+}
+.wl__choice-option:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+/* Offered but not available — greyed rather than hidden, so "nobody is
+   waiting for this day" is an answer rather than a missing option. */
+.wl__choice-option:disabled { opacity: 0.55; cursor: not-allowed; }
+.wl__choice-option > .ui-icon { flex: none; margin-top: var(--space-1); color: var(--color-text-tertiary); }
+.wl__choice-option strong { display: block; font-size: var(--font-size-body); font-weight: var(--font-weight-medium); }
+.wl__choice-option small { display: block; margin-top: var(--space-2); font-size: var(--font-size-caption); color: var(--color-text-secondary); }
+
+.wl__choice-option--quiet { border-style: dashed; }
+
+/* --- Instant appointment ----------------------------------------------------
+   Two questions asked in order, so the second appears once the first is
+   answered rather than sitting there greyed out. */
+
+/* The care types are a radiogroup, so one of them STAYS picked — and that has
+   to look different from whatever the pointer happens to be over.
+
+   It did not, at first. The elsewhere-shared hover gives the same brand border
+   and the same brand fill as the chosen state, and choosing one grows the
+   panel: the "who" step appears, everything below shifts up, and the option
+   under the pointer becomes the NEXT one down. So the instant you clicked
+   Procedure, Infusion slid under your cursor and lit up identically. Two of
+   three options read as chosen at the exact moment the answer matters.
+
+   Hover here is therefore the border only, the chosen one owns the fill, and
+   the tick carries it without relying on colour at all. */
+.sch__kinds .wl__choice-option:hover:not(:disabled) { background-color: var(--color-bg-surface); }
+
+/* THREE ACROSS RATHER THAN THREE DOWN. Stacked full-width, the care types cost
+   about 340px of a dialog that has two more questions and a summary under
+   them — enough that the desk had to scroll past the answer it had already
+   given to reach the patient field. Side by side they cost a third of that,
+   and the choice reads as one row of three at a glance rather than a list to
+   work down. The hint stays: it is the line that says what "Procedure" books.
+
+   Below the width where three columns would each be too narrow to hold a hint
+   on two lines, they stack again — the original layout, on the screens that
+   actually need it. */
+.sch__kinds {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-4);
+}
+
+.sch__kinds .wl__choice-option {
+  position: relative;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+  /* Right inset leaves the corner free for the tick, which now sits over the
+     tile rather than in the flow — a column layout has no free end to put it
+     at, and a tick under the hint would read as part of the hint. */
+  padding: var(--space-6) var(--space-8) var(--space-6) var(--space-6);
+}
+.sch__kinds .wl__choice-option > .ui-icon { margin-top: 0; }
+.sch__kinds .wl__choice-option small { margin-top: var(--space-1); }
+
+@media (max-width: 34rem) {
+  .sch__kinds { grid-template-columns: minmax(0, 1fr); }
+}
+
+.sch__kinds .wl__choice-option[aria-checked='true'],
+.sch__kinds .wl__choice-option[aria-checked='true']:hover {
+  border-color: var(--color-border-brand);
+  box-shadow: inset 0 0 0 var(--border-width-thin) var(--color-border-brand);
+  background-color: var(--color-brand-surface);
+}
+.sch__kinds .wl__choice-option[aria-checked='true'] > .ui-icon { color: var(--color-text-brand); }
+
+.sch__kind-tick {
+  position: absolute;
+  top: var(--space-5);
+  right: var(--space-5);
+  color: var(--color-text-brand);
+  visibility: hidden;
+}
+.wl__choice-option[aria-checked='true'] .sch__kind-tick { visibility: visible; }
+
+.sch__instant { display: flex; flex-direction: column; gap: var(--space-7); }
+.sch__instant-step { display: flex; flex-direction: column; gap: var(--space-5); }
+
+/* Patient and provider are one question asked twice — who is here, and whose
+   encounter it is — and both are a single select. Side by side they read as
+   the pair they are and save the dialog another row; they stack at the same
+   width the care types do. */
+.sch__instant-who {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5) var(--space-6);
+}
+@media (max-width: 34rem) {
+  .sch__instant-who { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* What is about to be created, in words, before the button that creates it. */
+.sch__instant-summary {
+  padding: var(--space-5) var(--space-6);
+  border-left: 3px solid var(--color-border-brand);
+  background-color: var(--color-bg-surface-sunken);
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+}
+
+/* --- Picking somebody off the list ----------------------------------------- */
+
+.wl__pick-lead { font-size: var(--font-size-caption); color: var(--color-text-secondary); margin-bottom: var(--space-7); }
+.wl__pick-list { display: flex; flex-direction: column; gap: var(--space-4); }
+
+.wl__pick-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-7);
+  width: 100%;
+  padding: var(--space-6) var(--space-7);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.wl__pick-row:hover { border-color: var(--color-border-brand); background-color: var(--color-brand-surface); }
+.wl__pick-row:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.wl__pick-main { flex: 1; min-width: 0; }
+.wl__pick-main strong { display: block; font-size: var(--font-size-body); font-weight: var(--font-weight-medium); }
+.wl__pick-main small { display: block; margin-top: var(--space-2); font-size: var(--font-size-caption); color: var(--color-text-secondary); }
+
+.wl__pick-meta { flex: none; display: flex; align-items: center; gap: var(--space-5); }
+.wl__pick-meta small { font-size: var(--font-size-2xs); color: var(--color-text-tertiary); }
+
+/* Said out loud rather than filtered out: the desk offering a cancelled slot
+   to somebody who asked for a different clinician is a conversation, and
+   hiding those rows would hide the person the slot is actually for. */
+.wl__pick-other {
+  padding: var(--space-1) var(--space-4);
+  border-radius: var(--radius-full);
+  background-color: var(--color-status-warning-surface);
+  color: var(--color-status-warning-text);
+  font-size: var(--font-size-2xs);
+}
+
+/* Ten columns, and the two on the left carry two lines each. Without explicit
+   widths the browser sizes them from content and the stacked sub-lines spill
+   into the neighbouring column — proportions rather than fixed rem so the
+   split holds at every window size. */
+#wlTable th:nth-child(1) { width: 15%; }  /* Patient/MRN */
+#wlTable th:nth-child(2) { width: 14%; }  /* Activity */
+#wlTable th:nth-child(3) { width: 10%; }  /* Resources */
+#wlTable th:nth-child(4) { width: 12%; }  /* Location */
+#wlTable th:nth-child(5) { width: 7%; }   /* From */
+#wlTable th:nth-child(6) { width: 7%; }   /* To */
+#wlTable th:nth-child(7) { width: 8%; }   /* Start/End */
+#wlTable th:nth-child(8) { width: 8%; }   /* Days */
+#wlTable th:nth-child(9) { width: 7%; }   /* Priority — Actions takes the rest */   /* Priority */
+
+/* Each cell keeps its own two lines inside its own column. */
+#wlTable td { vertical-align: top; }
+#wlTable td > span { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+
+/* A fixed layout does not widen a column to fit its content — a cell that runs
+   long paints straight over the one beside it, which is how a five-day
+   availability list ended up sitting under the priority badge. The two plain
+   text columns clip instead; the days cell carries the full list in its
+   title so nothing is actually lost. */
+#wlTable td:nth-child(7),
+#wlTable td:nth-child(8) { overflow: hidden; text-overflow: ellipsis; }
+.sch__wl-name,
+.sch__wl-activity { white-space: normal; }

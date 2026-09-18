@@ -1,0 +1,141 @@
+/* ============================================================================
+   HEALTH RECORDS — medications and allergies
+
+   Two records over one screen — Medications, split into Current and Past by
+   the sub-tabs, and Allergies. Both are drawn as tables.
+
+   WHY TABLES AND NOT THE CARDS THIS REPLACED
+
+   Cards were tried on the argument that a medication is one heading and half
+   a dozen facts. What they cost is the reason anyone opens the screen: both
+   of these lists are read DOWN a column — "is anything here severe", "which
+   of these is from the mail pharmacy", "when did the prednisone stop" — and a
+   grid of cards has no column to run an eye down.
+
+   So both records are .pp-table inside .pp-table-wrap, which is the portal's
+   own table and not a shape invented here: Billing, Documents and Reports all
+   draw it, and the wrap scrolls sideways when the columns outrun the well
+   rather than dropping any of them. A medication list with a column hidden is
+   a list somebody can be wrong from.
+
+   Almost nothing in this file is table styling for that reason. What is left
+   is the bar across the top, and the two lines inside the first cell.
+   ========================================================================= */
+
+/* ============================================================================
+   THE BAR — the record tabs, and the download button
+   ========================================================================= */
+
+/*
+ * Tabs left, the download right, and NO rule under them.
+ *
+ * There was one, drawn on this row so it ran the full width of the well. It
+ * had a job when the tabs were an underlined strip; it has none now that they
+ * are a boxed group with an edge of their own, and it left three horizontal
+ * lines stacked within 100px of each other — the rule, the sub-tabs' track,
+ * and the top of the table. The gap does the separating.
+ */
+.pp-meds__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pp-space-3);
+  margin-bottom: var(--pp-gap-block);
+}
+
+/* The row owns the spacing under the band, so the strip inside it does not
+   add its own. */
+.pp-meds__bar .pp-tabs {
+  margin-bottom: 0;
+}
+
+/* ============================================================================
+   THE PANEL — the sub-tabs and the table, inside one edge
+
+   Current / Past used to sit above the table as a strip of its own, which put
+   a screen-level control and a control over one list on the same footing. It
+   is inside the panel now: the reader sees the edge close around the tabs and
+   the rows together, and there is no question which list the switch acts on.
+
+   The panel owns the border and the radius, so the table inside it gives up
+   both — two nested rounded boxes read as a mistake. The table keeps the
+   sideways scroll, which is why the wrap is still there at all.
+   ========================================================================= */
+
+.pp-meds__panel {
+  overflow: hidden;
+  border: 1px solid var(--pp-line);
+  border-radius: var(--pp-radius);
+  background-color: var(--pp-surface);
+}
+
+/* The band the sub-tabs sit in.
+
+   Margin rather than padding on a wrapper, so `hidden` on the control
+   collapses the band with it and the Allergies panel is the table alone.
+
+   Tighter than a card's own padding on all three sides: the control is not
+   content sitting inside the panel, it is the panel's own switch, and a full
+   16px inset on every side made it float in a band of its own rather than
+   reading as the top of the table. */
+.pp-meds__panel > .pp-seg {
+  margin: var(--pp-space-2) var(--pp-space-3);
+}
+
+.pp-meds__panel .pp-table-wrap {
+  border: none;
+  border-radius: 0;
+}
+
+/* ============================================================================
+   THE FIRST CELL — the name, and the patient's own line under it
+
+   "Why you take it" on a medication and a note on an allergy are the one
+   fact that is blank on most rows, so neither gets a column of its own: a
+   column that is an em dash eight times out of ten is a column paying rent
+   for nothing. Under the name, quieter and smaller, it is read as a gloss on
+   the row it belongs to.
+   ========================================================================= */
+
+.pp-meds__name {
+  display: block;
+  font-weight: var(--pp-weight-medium);
+}
+
+.pp-meds__note {
+  display: block;
+  max-width: 24rem;
+  margin-top: 0.125rem;
+  color: var(--pp-text-muted);
+  font-size: var(--pp-size-xs);
+}
+
+/* ============================================================================
+   NARROW SCREENS
+   ========================================================================= */
+
+@media (width < 48rem) {
+  /* The tabs and the button stop competing for one line. */
+  .pp-meds__bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--pp-space-4);
+  }
+
+  /* Both controls span the well and split it evenly rather than sitting at
+     its left flank: two tabs of half a phone each are a comfortable target,
+     and the alternative is a boxed group ending in the middle of nowhere. */
+  .pp-meds__bar .pp-tabs,
+  .pp-seg {
+    display: flex;
+  }
+
+  .pp-tab,
+  .pp-seg__item {
+    flex: 1 1 0;
+    justify-content: center;
+    padding-left: var(--pp-space-3);
+    padding-right: var(--pp-space-3);
+    text-align: center;
+  }
+}

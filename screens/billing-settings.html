@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MediNova EHR — Billing Settings</title>
+    <link rel="icon" type="image/svg+xml" href="../assets/img/favicon.svg" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="../css/reset.css" />
+    <link rel="stylesheet" href="../css/tokens.css" />
+    <link rel="stylesheet" href="../css/base.css" />
+    <link rel="stylesheet" href="../css/ui-kit.css" />
+    <link rel="stylesheet" href="../css/screen-patient.css" />
+    <link rel="stylesheet" href="../css/screen-leads.css" />
+    <link rel="stylesheet" href="../css/screen-settings.css" />
+    <link rel="stylesheet" href="../css/screen-billing-settings.css" />
+
+    <script type="module" src="../js/main.js"></script>
+    <script type="module" src="../js/screens/billing-settings.js"></script>
+    <script src="../js/open-me-properly.js"></script>
+  </head>
+
+  <body class="pt">
+    <header class="pt__bar">
+      <img class="pt__logo" src="../assets/img/medinova-logo.svg" width="158" height="32"
+        alt="MediNova Gastroenterology Clinic" />
+      <ui-main-nav active="settings"></ui-main-nav>
+      <div class="pt__bar-actions">
+        <ui-time-clock></ui-time-clock>
+        <button type="button" class="pt__icon-action" aria-label="Notifications">
+          <svg class="ui-icon" aria-hidden="true"><use href="#i-bell"></use></svg>
+        </button>
+        <ui-avatar name="Amara Mensah" size="sm"></ui-avatar>
+      </div>
+    </header>
+
+    <!--
+      The band names the list itself rather than carrying a strip of one tab
+      under "Billing Settings".
+
+      A one-tab strip is not a choice being offered; it is a section heading
+      wearing the clothes of a control, and it cost the band its title twice
+      over — the h1 went visually hidden so the tab could stand in for it, and
+      the tab then said the same thing the panel below it said. Fee Schedule is
+      the only list Billing Settings has, so it is what the screen is, and the
+      title says so at title size with the caret beside it.
+
+      When Invoice, Claim or Membership land here there will be a real choice
+      to offer: the title goes back to "Billing Settings" (hidden again),
+      .ui-page-head--tabs returns to the head, and each list gets a <ui-tab>
+      plus a panel below — the same way Master's eight lists sit in one strip.
+
+      The two filters sit up here beside Add rather than in a row of their
+      own over the table. They used to do the opposite, on the argument that
+      a filter belongs over the rows it narrows — but every other list in the
+      EHR keeps its narrowing controls in the header, and one screen making
+      the opposite case is a screen where the filters cannot be found by
+      knowing the others.
+    -->
+    <div class="ui-page-head ui-page-head--flush set__head">
+      <div class="ui-page-head__lead">
+        <a class="ui-page-head__back ui-page-head__back--icon" href="settings.html" data-testid="bst--back" aria-label="Back to settings">
+          <svg class="ui-icon" aria-hidden="true"><use href="#i-caret-left"></use></svg>
+        </a>
+        <h1 class="ui-page-head__title">Fee Schedule</h1>
+      </div>
+
+      <div class="ui-page-head__actions">
+        <!-- The standard filter control (js/components/ui-filter.js), the same
+             on this screen as on every list in the product. -->
+        <ui-filter id="feeFilter" label="Filters" panel-label="Filter fee schedule"
+          data-testid="bst--fee-filter">
+          <ui-filter-group name="status" label="Status"></ui-filter-group>
+          <ui-filter-group name="procedure" label="Procedure code"></ui-filter-group>
+        </ui-filter>
+
+        <ui-button id="feeAdd" variant="primary" icon="plus" data-testid="bst--fee-add"
+          >Add New Fee Schedule</ui-button
+        >
+      </div>
+    </div>
+
+
+    <main class="set__body">
+      <!-- ================= FEE SCHEDULE ================= -->
+      <div id="panel-fee">
+        <div class="ui-table-card">
+          <ui-data-table
+            id="feeTable"
+            empty-text="No fee schedules match."
+            data-testid="bst--fee-table"
+          ></ui-data-table>
+          <div data-foot="fee"></div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Add / Edit dialog. Wide enough for three fields on the amounts-and-
+         dates row without any of them collapsing to a stub. -->
+    <ui-modal id="feeModal" heading="Add Fee Schedule" size="lg">
+      <div id="feeModalBody" class="bst__form"></div>
+    </ui-modal>
+
+    <!-- Delete confirmation. A rate a claim is priced from is not something to
+         remove on a single stray click. -->
+    <ui-modal id="feeConfirm" heading="Delete fee schedule" size="sm">
+      <div class="bst__confirm">
+        <p id="feeConfirmText"></p>
+        <div class="ui-modal__actions">
+          <ui-button variant="tertiary" data-confirm-cancel data-testid="bst--delete-cancel"
+            >Cancel</ui-button
+          >
+          <span class="ui-modal__actions-spacer"></span>
+          <ui-button variant="danger" data-confirm-delete data-testid="bst--delete-confirm"
+            >Delete</ui-button
+          >
+        </div>
+      </div>
+    </ui-modal>
+  </body>
+</html>

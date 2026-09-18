@@ -1,0 +1,44 @@
+/* ============================================================================
+   ui-spinner — the indeterminate loader.
+
+   One turn per 900ms, linear, because a spinner that eases is a spinner that
+   looks like it is struggling. Under prefers-reduced-motion it slows rather
+   than stopping: a still spinner reads as a frozen page, which is the opposite
+   of what it is there to say.
+   ========================================================================= */
+
+ui-spinner { display: inline-flex; }
+
+.ui-spinner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-brand-solid);
+}
+
+.ui-spinner__mark {
+  width: var(--icon-size-md);
+  height: var(--icon-size-md);
+  animation: ui-spin 900ms linear infinite;
+}
+
+.ui-spinner--sm .ui-spinner__mark {
+  width: var(--icon-size-md);
+  height: var(--icon-size-md);
+}
+.ui-spinner--md .ui-spinner__mark {
+  width: var(--space-9);
+  height: var(--space-9);
+}
+.ui-spinner--lg .ui-spinner__mark {
+  width: var(--space-11);
+  height: var(--space-11);
+}
+
+@keyframes ui-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-spinner__mark { animation-duration: 3s; }
+}

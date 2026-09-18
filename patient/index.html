@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MediNova Clinic Patient Portal</title>
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+
+    <!--
+      THE PORTAL'S FRONT DOOR — /patient/
+
+      A separate address from the EHR's, which is the point of the whole
+      directory. This page holds nothing of its own: it sends you to the
+      patient sign-in, and the sign-in sends you on to Home.
+
+      The redirect is a CLASSIC script, not a module and not a <meta refresh>:
+      modules do not run from file://, and a meta refresh would fire there too
+      and bounce a disk-opened copy to a page that cannot start. Guarding on
+      the protocol lets the file:// warning below do its job.
+    -->
+    <!-- The one typeface the product is set in. These pages carry visible text
+         of their own — the file:// warning — so they load it like a screen. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="css/reset.css" />
+    <link rel="stylesheet" href="css/tokens.css" />
+    <link rel="stylesheet" href="css/base.css" />
+
+    <script src="js/open-me-properly.js"></script>
+    <script>
+      if (location.protocol === 'http:' || location.protocol === 'https:') {
+        location.replace('login.html');
+      }
+    </script>
+  </head>
+
+  <body>
+    <!-- Only ever seen on file://, behind the warning open-me-properly.js puts
+         up, and for the instant before the redirect over http. -->
+    <noscript>
+      <p>
+        This prototype needs JavaScript. Open
+        <a href="login.html">the patient sign-in page</a> directly.
+      </p>
+    </noscript>
+  </body>
+</html>

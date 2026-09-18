@@ -1,0 +1,91 @@
+/* ============================================================================
+   BILLING — Statements and Payment History.
+
+   THE TABLE IS THE SCREEN, SO IT TAKES THE SCREEN.
+
+   Both billing tabs are one table and nothing else: no summary band, no cards,
+   no form. Drawn the ordinary way — a card sized to its rows, sitting in a well
+   that scrolls — five statements left two thirds of a 900px window empty below
+   them, and the pager sat wherever the last row happened to end. On a long
+   list the opposite problem: the pager scrolled off the bottom, so the control
+   for moving through the rows was only reachable by first moving through the
+   rows.
+
+   Here the well is a flex column that does not scroll, and the table's card is
+   the part that stretches. The rows scroll INSIDE it against a stuck header,
+   and the pager is the card's bottom edge — always on screen, always the same
+   distance from the bottom of the window, whether the page holds three rows or
+   fifty. The card fills the width it always did; what changed is that it now
+   fills the height too.
+
+   The tab strip above it and the pager below are both flex: none, so all the
+   give is in the middle where the data is.
+   ========================================================================= */
+
+/* Sits on .pp-content beside .pp-content--fill, which supplies the
+   `display: flex; overflow: hidden` half. The direction is here rather than
+   there because Messages — the other screen using --fill — is a row. */
+.pp-billing {
+  flex-direction: column;
+}
+
+/* The strip is an inline-flex box, which shrink-wraps to its two tabs in a
+   block container. In a flex column the cross axis is horizontal and the
+   default stretch would run it the full width of the well, so it has to say
+   it wants to be its own size. */
+.pp-billing .pp-tabs {
+  flex: none;
+  align-self: flex-start;
+}
+
+/*
+ * The scrolling part.
+ *
+ * min-height: 0 is the whole trick: a flex child's floor is its content, so
+ * without it a fifty-row table refuses to shrink to the well and pushes the
+ * pager off the bottom of the window — exactly the fault this layout exists
+ * to fix. The bottom corners and the bottom border come off because the pager
+ * carries them now; the two together are one card.
+ */
+.pp-billing .pp-table-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  border-bottom: none;
+  border-radius: var(--pp-radius) var(--pp-radius) 0 0;
+}
+
+/*
+ * The column heads stay put while the rows move under them.
+ *
+ * A table that scrolls inside its own card is a table whose header can leave,
+ * and a money column with no heading in sight is a column of numbers nobody
+ * can name. The head is opaque already (--pp-brand-050 on .pp-table thead th),
+ * so nothing shows through it.
+ *
+ * The hairline under it is drawn as an inset shadow rather than a border,
+ * for two reasons. A sticky cell carries only its OWN borders — .pp-table
+ * rules the rows with a border-top on the row below, which scrolls away and
+ * leaves the head sitting straight on the first visible row of data. And a
+ * real border would add a pixel to the header's height, moving the whole
+ * table down by one.
+ */
+.pp-billing .pp-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  box-shadow: inset 0 -1px 0 var(--pp-line);
+}
+
+/*
+ * The footer takes a top rule here, which it does not wear anywhere else.
+ *
+ * .pp-pager normally sits under a table that ended: the last row's own
+ * border-top closes the card and a second line would double it. This table
+ * does not end — it scrolls — so without a rule a half-scrolled row bleeds
+ * straight into the range label, and the footer reads as one more row of the
+ * data rather than as the thing that counts it.
+ */
+.pp-billing .pp-pager {
+  border-top: 1px solid var(--pp-line);
+}

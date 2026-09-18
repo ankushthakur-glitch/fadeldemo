@@ -1,0 +1,197 @@
+/* ============================================================================
+   ui-button — the pattern every other component follows.
+   Anatomy and variants mirror the reference Button; all visual values are
+   re-pointed at MediNova tokens. Sizes use the Phase 0 scale (24/28/32/40).
+   ========================================================================= */
+
+ui-button {
+  display: inline-flex;
+  vertical-align: middle;
+}
+
+ui-button[full] {
+  display: flex;
+  width: 100%;
+}
+
+.ui-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  width: 100%;
+  border: var(--border-width-thin) solid transparent;
+  border-radius: var(--radius-md);
+  font-family: var(--font-family-base);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-tight);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
+}
+
+/* Bordered and text buttons take the light ring: a hairline plus a tinted
+   halo. Solid-filled variants below swap to --focus-ring-solid, because a
+   green hairline on a green button shows nothing. */
+.ui-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.ui-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+/* --- Sizes ---------------------------------------------------------------- */
+
+.ui-btn--xs {
+  min-height: var(--control-height-xs);
+  padding: 0 var(--space-3);
+  font-size: var(--font-size-xs);
+  gap: var(--space-2);
+}
+
+.ui-btn--sm {
+  min-height: var(--control-height-sm);
+  padding: 0 var(--space-4);
+  font-size: var(--font-size-sm);
+  gap: var(--space-2);
+}
+
+.ui-btn--md {
+  min-height: var(--control-height-md);
+  padding: 0 var(--space-5);
+  font-size: var(--font-size-md);
+}
+
+.ui-btn--lg {
+  min-height: var(--control-height-lg);
+  padding: 0 var(--space-6);
+  font-size: var(--font-size-lg);
+}
+
+/* Icon-only collapses to a square so it does not steal horizontal space. */
+.ui-btn--icon-only {
+  padding: 0;
+  aspect-ratio: 1;
+}
+.ui-btn--icon-only.ui-btn--xs { min-width: var(--control-height-xs); }
+.ui-btn--icon-only.ui-btn--sm { min-width: var(--control-height-sm); }
+.ui-btn--icon-only.ui-btn--md { min-width: var(--control-height-md); }
+.ui-btn--icon-only.ui-btn--lg { min-width: var(--control-height-lg); }
+
+/* --- Icons ---------------------------------------------------------------- */
+
+.ui-btn .ui-icon {
+  width: var(--icon-size-md);
+  height: var(--icon-size-md);
+  flex-shrink: 0;
+}
+
+.ui-btn--xs .ui-icon,
+.ui-btn--sm .ui-icon {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}
+
+.ui-btn--loading .ui-btn__spinner {
+  animation: ui-spin var(--duration-base) linear infinite;
+}
+
+@keyframes ui-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* --- Variants ------------------------------------------------------------- */
+
+/* Primary — solid oxblood. The one high-emphasis action on a screen. */
+.ui-btn--primary {
+  background-color: var(--color-brand-solid);
+  color: var(--color-text-inverse);
+}
+.ui-btn--primary:hover:not(:disabled) {
+  background-color: var(--color-brand-solid-hover);
+}
+.ui-btn--primary:active:not(:disabled) {
+  background-color: var(--color-brand-solid-active);
+}
+.ui-btn--primary:focus-visible {
+  box-shadow: var(--focus-ring-solid);
+}
+
+/* Secondary — outlined brand. */
+.ui-btn--secondary {
+  background-color: var(--color-bg-surface);
+  color: var(--color-brand-text);
+  border-color: var(--color-border-brand);
+}
+.ui-btn--secondary:hover:not(:disabled) {
+  background-color: var(--color-brand-surface);
+}
+.ui-btn--secondary:active:not(:disabled) {
+  background-color: var(--color-brand-surface-hover);
+}
+
+/* Tertiary — text only. For low-emphasis actions inside dense rows. */
+.ui-btn--tertiary {
+  background-color: transparent;
+  color: var(--color-text-primary);
+}
+.ui-btn--tertiary:hover:not(:disabled) {
+  background-color: var(--color-bg-surface-hover);
+}
+.ui-btn--tertiary:active:not(:disabled) {
+  background-color: var(--color-bg-surface-pressed);
+}
+
+/* Outline — neutral bordered. The workhorse for toolbars. */
+.ui-btn--outline {
+  background-color: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  border-color: var(--color-border-default);
+}
+.ui-btn--outline:hover:not(:disabled) {
+  background-color: var(--color-bg-surface-hover);
+  border-color: var(--color-border-strong);
+}
+.ui-btn--outline:active:not(:disabled) {
+  background-color: var(--color-bg-surface-pressed);
+}
+
+/* Status variants — destructive and confirmatory actions. */
+.ui-btn--danger {
+  background-color: var(--color-status-critical-solid);
+  color: var(--color-text-inverse);
+}
+.ui-btn--danger:hover:not(:disabled) {
+  background-color: var(--color-status-critical-solid-hover);
+}
+.ui-btn--danger:focus-visible {
+  box-shadow: var(--focus-ring-solid-critical);
+}
+
+.ui-btn--success {
+  background-color: var(--color-status-success-solid);
+  color: var(--color-text-inverse);
+}
+.ui-btn--success:hover:not(:disabled) {
+  background-color: var(--color-status-success-solid-hover);
+}
+.ui-btn--success:focus-visible {
+  box-shadow: var(--focus-ring-solid);
+}
+
+.ui-btn--warning {
+  background-color: var(--color-status-warning-solid);
+  color: var(--color-text-inverse);
+}
+.ui-btn--warning:hover:not(:disabled) {
+  background-color: var(--color-status-warning-solid-hover);
+}
+.ui-btn--warning:focus-visible {
+  box-shadow: var(--focus-ring-solid);
+}

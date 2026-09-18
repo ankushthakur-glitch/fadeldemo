@@ -1,0 +1,509 @@
+/* ============================================================================
+   The patient portal's signature block, on a clinician screen.
+
+   Check-in signs the same consents the portal does, and the desk and the
+   patient should not be shown two different controls for the one act. So this
+   is the portal's block — its markup and its wiring come straight out of
+   patient/js/lib/signature-pad.js rather than being reimplemented here, and
+   the rules below are its own, copied across unchanged.
+
+   THE VALUES ARE THE PORTAL'S TOO, AND THAT IS DELIBERATE.
+
+   These rules are written against --pp-* tokens, and the obvious move was to
+   point each one at this side's nearest semantic equivalent. That was tried
+   and it was wrong: the two products run different scales — the portal's
+   --pp-space-4 is 1rem where this side's --space-4 is 0.5rem — so mapping by
+   name rebuilt the control at roughly half its spacing. Near-enough is not
+   what was asked for and not what a patient signing at the desk should meet:
+   it is the same control or it is a second one that merely resembles it.
+
+   So the portal's own scale is vendored here, resolved to the literal values
+   patient/css/tokens.css gives them, and scoped to .pp-sign so nothing else
+   on the screen can see them. This is the one place in this codebase where a
+   raw value is the correct answer rather than a token: the block is a foreign
+   component embedded whole, and it has to carry its own palette to stay
+   identical to the copy it was taken from. Changing a value here without
+   changing it in patient/css/tokens.css is what breaking this looks like.
+   ========================================================================= */
+
+.pp-sign {
+  /* Ink and ground */
+  --pp-surface: #ffffff;
+  --pp-surface-sunk: #f4f5f6;
+  --pp-surface-tint: #eaf0f9;
+  --pp-white: #ffffff;
+  --pp-text: #455260;
+  --pp-text-strong: #273444;
+  --pp-text-muted: #5f6a76;
+  --pp-text-faint: #7d8c9b;
+  --pp-text-link: #1e3a6e;
+  --pp-red-fg: #c2373a;
+
+  /* Lines, brand and focus */
+  --pp-line: #e3e7ec;
+  --pp-line-strong: #cfd5dc;
+  --pp-action: #1e3a6e;
+  --pp-action-hover: #182f5a;
+  --pp-brand-025: #f5f8fc;
+  --pp-focus: #1e3a6e;
+
+  /* Type */
+  --pp-size-h3: 0.9375rem;
+  --pp-size-sm: 0.875rem;
+  --pp-size-xs: 0.8125rem;
+  --pp-weight-medium: 500;
+  --pp-weight-semibold: 600;
+
+  /* Space and radius */
+  --pp-space-2: 0.5rem;
+  --pp-space-3: 0.75rem;
+  --pp-space-4: 1rem;
+  --pp-space-5: 1.25rem;
+  --pp-gap-block: 1rem;
+  --pp-pad-card: 1rem;
+  --pp-radius: 0.5rem;
+  --pp-radius-ctl: 0.375rem;
+  --pp-radius-sm: 0.25rem;
+  --pp-choice-size: 1.125rem;
+}
+
+/* The block sits inside a pane that already has a surface and a border of its
+   own, so it does not need the outer card the portal gives it. */
+.cin__pad .pp-sign { margin-top: 0; }
+
+/* --- The portal's own rules, copied unchanged ----------------------------- */
+
+.pp-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex: none;
+  fill: currentcolor;
+  stroke: none;
+}
+
+.pp-icon--sm {
+  width: 1rem;
+  height: 1rem;
+}
+
+.pp-icon--lg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.pp-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.pp-link {
+  color: var(--pp-text-link);
+  font-size: var(--pp-size-sm);
+  font-weight: var(--pp-weight-medium);
+  text-decoration: underline;
+  text-underline-offset: 0.1875rem;
+  cursor: pointer;
+}
+
+.pp-field__error {
+  font-size: var(--pp-size-xs);
+  color: var(--pp-red-fg);
+}
+
+.pp-check {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pp-space-2);
+  font-size: var(--pp-size-sm);
+  color: var(--pp-text);
+  cursor: pointer;
+}
+
+.pp-check input {
+  width: var(--pp-choice-size);
+  height: var(--pp-choice-size);
+  margin: 0;
+  cursor: pointer;
+}
+
+.pp-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--pp-space-3);
+  min-height: 12rem;
+  padding: var(--pp-space-5);
+  border: 1px solid var(--pp-line-strong);
+  border-radius: var(--pp-radius);
+  background-color: var(--pp-surface);
+  color: var(--pp-text-muted);
+  font-size: var(--pp-size-sm);
+  text-align: center;
+  cursor: pointer;
+}
+
+.pp-drop[data-dragging='true'] {
+  border-color: var(--pp-action);
+  background-color: var(--pp-brand-025);
+}
+
+.pp-drop svg {
+  width: 2.5rem;
+  height: 2.5rem;
+  color: var(--pp-text-faint);
+}
+
+.pp-drop__files {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pp-space-2);
+  width: 100%;
+  margin-top: var(--pp-space-2);
+  font-size: var(--pp-size-xs);
+  color: var(--pp-text);
+}
+
+.pp-drop--sm {
+  min-height: 7rem;
+  padding: var(--pp-space-4);
+  gap: var(--pp-space-2);
+  border-style: dashed;
+  font-size: var(--pp-size-xs);
+}
+
+.pp-drop--sm svg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.pp-sign {
+  min-width: 0;
+  margin: var(--pp-gap-block) 0 0;
+  padding: var(--pp-pad-card);
+  border: 1px solid var(--pp-line);
+  border-radius: var(--pp-radius);
+  background-color: var(--pp-surface);
+}
+
+.pp-sign__title {
+  padding: 0;
+  margin-bottom: var(--pp-space-3);
+  color: var(--pp-text-strong);
+  font-size: var(--pp-size-h3);
+  font-weight: var(--pp-weight-semibold);
+}
+
+.pp-sign__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pp-space-3);
+  margin-bottom: var(--pp-space-3);
+}
+
+.pp-sign__modes {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid var(--pp-line-strong);
+  border-radius: var(--pp-radius-ctl);
+  background-color: var(--pp-surface);
+}
+
+.pp-sign__mode {
+  display: inline-flex;
+  margin: 0;
+}
+
+.pp-sign__mode input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.pp-sign__mode span {
+  display: inline-flex;
+  align-items: center;
+  height: 2.25rem;
+  padding: 0 var(--pp-space-5);
+  color: var(--pp-text-muted);
+  font-size: var(--pp-size-sm);
+  font-weight: var(--pp-weight-medium);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.pp-sign__mode + .pp-sign__mode span {
+  border-left: 1px solid var(--pp-line-strong);
+}
+
+.pp-sign__mode span:hover {
+  color: var(--pp-text-strong);
+}
+
+.pp-sign__mode input:checked + span {
+  background-color: var(--pp-surface-tint);
+  color: var(--pp-action);
+  font-weight: var(--pp-weight-semibold);
+}
+
+.pp-sign__mode input:focus-visible + span {
+  outline: 2px solid var(--pp-focus);
+  outline-offset: -2px;
+}
+
+.pp-sign__clear {
+  margin-left: auto;
+  color: var(--pp-text-link);
+  font-size: var(--pp-size-sm);
+  font-weight: var(--pp-weight-medium);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.pp-sign__clear:hover {
+  color: var(--pp-action-hover);
+}
+
+.pp-sign__clear:focus-visible {
+  outline: 2px solid var(--pp-focus);
+  outline-offset: 2px;
+  border-radius: var(--pp-radius-sm);
+}
+
+.pp-sign__pad {
+  position: relative;
+  background-color: var(--pp-white);
+  border: 1px dashed var(--pp-line-strong);
+  border-radius: var(--pp-radius-sm);
+}
+
+.pp-sign__canvas {
+  display: block;
+  width: 100%;
+  height: 10rem;
+  border-radius: var(--pp-radius-sm);
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.pp-sign__canvas:focus-visible {
+  outline: 2px solid var(--pp-focus);
+  outline-offset: 2px;
+}
+
+.pp-sign__baseline {
+  position: absolute;
+  right: var(--pp-space-4);
+  bottom: var(--pp-space-3);
+  margin: 0;
+  color: var(--pp-text-faint);
+  font-size: var(--pp-size-xs);
+  pointer-events: none;
+}
+
+.pp-sign__drop {
+  width: 100%;
+  min-height: 10rem;
+  gap: var(--pp-space-2);
+  border-style: dashed;
+  background-color: var(--pp-surface-sunk);
+}
+
+.pp-sign__drop-note {
+  color: var(--pp-text-muted);
+  font-size: var(--pp-size-xs);
+}
+
+.pp-sign__upload {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pp-space-3);
+  margin: var(--pp-space-3) 0 0;
+}
+
+.pp-sign__upload-image {
+  max-width: 22rem;
+  max-height: 7rem;
+  padding: var(--pp-space-2);
+  border: 1px solid var(--pp-line);
+  border-radius: var(--pp-radius-sm);
+  background-color: var(--pp-white);
+  object-fit: contain;
+}
+
+.pp-sign__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pp-space-4);
+  margin-top: var(--pp-space-2);
+}
+
+.pp-sign__state {
+  margin: 0;
+  color: var(--pp-text-muted);
+  font-size: var(--pp-size-sm);
+}
+
+.pp-sign__confirm {
+  margin-top: var(--pp-space-3);
+  align-items: flex-start;
+}
+
+.pp-link--button {
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+}
+
+/* The portal's own narrow-width overrides, kept inside the query they came
+   from. Lifted out of it they turn the segmented control full-width at every
+   size, which is how a phone rule ends up on a 1680px desk. */
+@media (width < 48rem) {
+  .pp-sign {
+    padding: var(--pp-space-3);
+  }
+
+  .pp-sign__bar {
+    justify-content: flex-start;
+  }
+
+  .pp-sign__modes {
+    width: 100%;
+  }
+
+  .pp-sign__mode {
+    flex: 1;
+  }
+
+  .pp-sign__mode span {
+    flex: 1;
+    justify-content: center;
+    padding: 0 var(--pp-space-3);
+  }
+
+  .pp-sign__clear {
+    margin-left: 0;
+  }
+}
+
+
+/* ============================================================================
+   A FILED MARK
+
+   What a signature block becomes once it has been given: the image, who made
+   it, when, and by which route — plus a way to take it back off. The image is
+   shown rather than a tick alone, because "signed electronically" is a claim
+   about something that happened and this is the evidence for it.
+
+   Small on purpose. It is a receipt that the signature exists, not the
+   signature being taken again.
+   ========================================================================= */
+
+.ui-sign-mark__line {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  font-size: var(--font-size-body);
+  color: var(--color-status-success-text);
+}
+
+.ui-sign-mark {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-items: flex-start;
+  margin: var(--space-4) 0 0;
+  padding: var(--space-4) var(--space-5);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+}
+
+.ui-sign-mark img {
+  max-width: min(100%, 18rem);
+  max-height: 5rem;
+  object-fit: contain;
+}
+
+/* The typed mark an e-signature leaves, where a drawn one leaves an image.
+   Set in the product's own face, italic and larger, because a signature has to
+   read as a signature rather than as one more line of the form. Same treatment
+   the clinic-visit screen and the encounter summary give theirs. */
+.ui-sign-mark__ink {
+  font-family: var(--font-family-signature);
+  font-style: italic;
+  font-size: var(--font-size-24);
+  line-height: var(--line-height-normal);
+  color: var(--color-text-primary);
+}
+
+/* WHO SIGNED AND WHEN, WHICH IS THE PART THAT GETS READ BACK.
+
+   This was one caption-sized tertiary line carrying a name, a timestamp and
+   the route strung together on middots — the same weight as a filename, under
+   an image that is the most consequential thing on the document. The route has
+   gone from the markup (see js/lib/signature-block.js) and the two that are
+   left are set as what they are: the name is the attribution, at body size in
+   the primary colour, and the time sits under it a step quieter but still at
+   caption size rather than below it.
+
+   Both are here under every mark, the typed route included: there the ink is
+   the signature and this line is the attribution under it, which is the pair a
+   drawn mark gets and the pair a filed signature is read back as. */
+.ui-sign-mark__by {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.ui-sign-mark__signer {
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.ui-sign-mark__at {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+}
+
+/* WHERE A QUOTED MARK WAS TAKEN.
+
+   Only blocks showing a signature made on another screen carry this — the
+   procedure consent at the bay, quoting the mark the front desk took at
+   check-in. It is set below the timestamp and quieter than it, because the
+   order it is read in is who, when, then where: the first two identify the
+   signature and this one explains why there is no pad above it. */
+.ui-sign-mark__source {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-tertiary);
+}
+
+/* The clinician's e-signature card lived here — a name, a sentence and a
+   Confirm button, for a signer who was already authenticated and so did not
+   draw. Every signature is a pad now and the block it styled is gone with the
+   button; see js/lib/signature-block.js. */
+
+.ui-sign-mark__actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-4);
+}
+
+.ui-sign-pad[hidden] { display: none; }

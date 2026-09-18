@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MediNova EHR — Referrals</title>
+    <link rel="icon" type="image/svg+xml" href="../assets/img/favicon.svg" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="../css/reset.css" />
+    <link rel="stylesheet" href="../css/tokens.css" />
+    <link rel="stylesheet" href="../css/base.css" />
+    <link rel="stylesheet" href="../css/ui-kit.css" />
+    <link rel="stylesheet" href="../css/screen-patient.css" />
+    <link rel="stylesheet" href="../css/screen-leads.css" />
+    <link rel="stylesheet" href="../css/screen-referrals.css" />
+
+    <script type="module" src="../js/main.js"></script>
+    <script type="module" src="../js/screens/referrals.js"></script>
+    <script src="../js/open-me-properly.js"></script>
+  </head>
+
+  <body class="pt ref">
+    <header class="pt__bar">
+      <img class="pt__logo" src="../assets/img/medinova-logo.svg" width="158" height="32"
+        alt="MediNova Gastroenterology Clinic" />
+      <ui-main-nav active="referrals"></ui-main-nav>
+      <div class="pt__bar-actions">
+        <ui-time-clock></ui-time-clock>
+        <button type="button" class="pt__icon-action" aria-label="Notifications">
+          <svg class="ui-icon" aria-hidden="true"><use href="#i-bell"></use></svg>
+        </button>
+        <ui-avatar name="Amara Mensah" size="sm"></ui-avatar>
+      </div>
+    </header>
+
+    <!-- ================= DIRECTION: in / out =================
+         PRIMARY level — these are the screen's two sections. Counts are
+         written by paintDirTabs(); the labels here are the pre-upgrade text. -->
+    <div class="ui-page-head ui-page-head--flush ref__head">
+      <div class="ui-page-head__lead">
+        <h1 class="u-sr-only">Referrals</h1>
+        <ui-tabs selected="in" id="dirTabs" primary aria-label="Document direction">
+          <ui-tab value="in" label="Document In"></ui-tab>
+          <ui-tab value="out" label="Document Out"></ui-tab>
+        </ui-tabs>
+        <!-- Both labels here are the pre-upgrade text only: paintDirTabs()
+             rewrites them from DIRECTION_LABEL as soon as the script runs. They
+             match so the button does not visibly change wording on load. -->
+      </div>
+
+      <div class="ui-page-head__actions">
+        <ui-button variant="primary" icon="plus" id="createBtn" data-testid="ref--create">
+          Create Document In
+        </ui-button>
+      </div>
+    </div>
+
+    <!-- ONE CARD, TWO PANES — the same object Communications is built from.
+         The queue and the record are not two things sitting near each other;
+         they are one worklist, and the pane on the right is what the row you
+         pressed on the left opened. Two bordered cards with a gap between them
+         said the opposite, and said it twice on a screen that already has a
+         header telling you which queue you are in. -->
+    <div class="ref__shell">
+      <div class="ref__cols">
+        <!-- ================= LEFT: the queue ================= -->
+        <aside class="ref__queue" aria-label="Referral queue">
+          <!-- SECONDARY level — Fax and Email are two views of the one queue
+               this section already chose. It sits at the top of the panel because
+               the channel decides what the search and the filters are searching:
+               a query typed against the fax queue and then switched to email is a
+               query the desk has to retype. Choosing the pile comes first, then
+               narrowing it.
+
+               It is drawn as a divided box rather than an underline — the same
+               shape as the direction strip above it, half a step quieter — so the
+               two segmented controls on the screen read as the same kind of
+               control. The `primary` attribute stays off it: this is a view of a
+               section, not a section, and the hierarchy is carried by the size
+               and the ink rather than by the box. -->
+          <div class="ref__chan">
+            <ui-tabs selected="fax" id="chanTabs" aria-label="Channel">
+              <ui-tab value="fax" label="Fax"></ui-tab>
+              <ui-tab value="email" label="Email"></ui-tab>
+            </ui-tabs>
+          </div>
+
+          <div class="ref__queue-search">
+            <ui-input id="qSearch" icon="search" label="Search referrals" label-hidden
+              placeholder="Search…" data-testid="ref--search"></ui-input>
+            <!-- The standard filter control (js/components/ui-filter.js). The
+                 queue rail is narrow and this panel hangs off <body>, so it is
+                 not clipped by the rail the way the old in-rail panel was —
+                 which is why the questions can now show their answers rather
+                 than hiding them in three dropdowns. -->
+            <ui-filter id="refFilter" label="" panel-label="Filter referrals"
+              align="end" data-testid="ref--filter">
+              <ui-filter-group name="status" label="Status"></ui-filter-group>
+              <ui-filter-group name="priority" label="Priority"></ui-filter-group>
+              <ui-filter-group name="source" label="Referral source"></ui-filter-group>
+              <!-- Two facts about the referral rather than a field on it, so
+                   they are one question with two answers rather than two
+                   loose boxes at the bottom of the panel. -->
+              <ui-filter-group name="flags" label="Show only"
+                options="STAT,Unread"></ui-filter-group>
+            </ui-filter>
+          </div>
+
+          <!-- The quick views. Every chip here is a filter the panel below can
+               already set; the chips exist because these five are the ones the
+               desk sets twenty times a day, and opening a panel to tick a box is
+               too much ceremony for "show me the unread ones". They are painted
+               from the filter state rather than from a separate variable, so a
+               chip and the panel can never disagree about what is being shown. -->
+          <div class="ref__chips" id="quickChips" role="group"
+            aria-label="Quick views" data-testid="ref--chips"></div>
+
+          <div class="ref__list" id="queueList" data-testid="ref--list"></div>
+          <p class="ref__list-empty" id="queueEmpty" hidden data-testid="ref--list-empty">
+            No referrals match this search.
+          </p>
+        </aside>
+
+        <!-- ================= CENTRE: the referral ================= -->
+        <main class="ref__main" id="main">
+          <div class="ref__empty" id="emptyState" data-testid="ref--empty">
+            <svg class="ui-icon ref__empty-icon" aria-hidden="true">
+              <use href="#i-document"></use>
+            </svg>
+            <h2>Select a referral to view details</h2>
+            <p>Choose a record from the queue to read it, process it, or route it on.</p>
+          </div>
+
+          <div class="ref__doc" id="docPane" hidden>
+            <header class="ref__doc-head">
+              <ui-avatar id="docAvatar" size="md"></ui-avatar>
+              <div class="ref__doc-who">
+                <h2 class="ref__doc-name" id="docName"></h2>
+                <!-- Two labelled facts rather than one run-on line. Who it is
+                     addressed to and when it landed are the two things the desk
+                     reads off the header, and "From +1 585 393 0485 · Tue, 4 Aug
+                     2026 15:02" made the reader work out which half was which. -->
+                <dl class="ref__doc-meta" id="docSub"></dl>
+              </div>
+              <span class="ref__spacer"></span>
+              <!-- The split button: the action the desk takes on nearly every
+                   referral is the first item in this menu, so it gets the face of
+                   the control and the caret opens the rest. Both halves open the
+                   menu for now — the prototype has no default action to fire. -->
+              <div class="ref__addon">
+                <ui-button variant="primary" size="sm" icon="plus" id="addonBtn"
+                  aria-expanded="false" aria-haspopup="true" aria-controls="addonMenu"
+                  data-testid="ref--addon">Add on</ui-button>
+                <button type="button" class="ref__addon-caret" id="addonCaret"
+                  aria-expanded="false" aria-haspopup="true" aria-controls="addonMenu"
+                  aria-label="More referral actions" data-testid="ref--addon-caret">
+                  <svg class="ui-icon" aria-hidden="true"><use href="#i-caret-down"></use></svg>
+                </button>
+                <div class="ref__addon-menu" id="addonMenu" role="menu" hidden></div>
+              </div>
+            </header>
+
+            <div class="ref__doc-body" id="docBody"></div>
+          </div>
+        </main>
+
+        <!-- ================= RIGHT: context (outgoing only) ================= -->
+        <aside class="ref__info" id="infoPane" aria-label="Referral information" hidden></aside>
+      </div>
+    </div>
+
+    <!-- ================= CREATE REFERRAL (drawer) ================= -->
+    <ui-modal id="createModal" heading="Create Document In" size="lg" variant="drawer">
+      <form class="ref__form" id="createForm">
+        <div class="ref__channel">
+          <ui-radio-group inline id="cChannel" label="Channel" label-hidden
+            options="Fax,Email" value="Fax" data-testid="ref--c-channel"></ui-radio-group>
+        </div>
+
+        <div class="ref__sections" id="createBody"></div>
+
+        <div class="ui-modal__actions">
+          <span class="ui-modal__actions-spacer"></span>
+          <ui-button variant="tertiary" id="cCancel"
+            data-testid="ref--c-cancel">Cancel</ui-button>
+          <ui-button variant="primary" id="cSave"
+            data-testid="ref--c-save">Create referral</ui-button>
+        </div>
+      </form>
+    </ui-modal>
+
+    <!-- ================= PROCESS DOCUMENT (full screen) ================= -->
+    <section class="ref__process" id="processView" hidden data-testid="ref--process">
+      <div class="ref__process-head">
+        <button type="button" class="ref__back" id="processBack" aria-label="Back"
+          data-testid="ref--process-back">
+          <svg class="ui-icon" aria-hidden="true"><use href="#i-caret-left"></use></svg>
+        </button>
+        <h2 class="ref__process-title" id="processName">Process referral</h2>
+        <span class="ref__spacer"></span>
+        <span id="processMatch" data-testid="ref--process-match"></span>
+      </div>
+
+      <!-- The OCR pass, drawn as a modal rather than as a banner in the flow.
+           The form underneath is built out of what this pass returns, so there
+           is nothing on the screen worth touching until it finishes; a scrim
+           says that far more plainly than a strip of text above an empty page.
+           The step line stays, because a wait that names what it is doing is
+           the difference between "reading the fax" and "frozen". -->
+      <div class="ref__scan" id="ocrBanner" hidden data-testid="ref--ocr">
+        <div class="ref__scan-card" role="status" aria-live="polite">
+          <span class="ref__scan-ring" aria-hidden="true"></span>
+          <p class="ref__scan-title">Scanning fax document and extracting patient information</p>
+          <p class="ref__scan-step" id="ocrStep">Extracting demographics, insurance and diagnosis codes.</p>
+        </div>
+      </div>
+
+      <div class="ref__process-body" id="processBody"></div>
+    </section>
+
+    <!-- ================= DUPLICATE PATIENT ================= -->
+    <ui-modal id="matchModal" heading="Matching records found" size="lg">
+      <div class="ref__match">
+        <p class="ref__match-lede" id="matchLede"></p>
+        <div class="ref__match-list" id="matchList" role="radiogroup"
+          aria-label="Matching patients"></div>
+
+        <div class="ui-modal__actions">
+          <ui-button variant="tertiary" id="matchCancel"
+            data-testid="ref--match-cancel">Cancel</ui-button>
+          <span class="ui-modal__actions-spacer"></span>
+          <ui-button variant="outline" id="matchNew"
+            data-testid="ref--match-new">Create new patient instead</ui-button>
+          <ui-button variant="primary" id="matchUse"
+            data-testid="ref--match-use">Use selected record</ui-button>
+        </div>
+      </div>
+    </ui-modal>
+
+    <!-- ================= CREATE NEW PATIENT ================= -->
+    <ui-modal id="newPatientModal" heading="Create new patient profile" size="md">
+      <div class="ref__newpat">
+        <p class="ref__match-lede">
+          No matching patient record was found. Create a new profile to continue with
+          registration and document processing.
+        </p>
+        <div class="ref__newpat-card">
+          <h3>Patient details</h3>
+          <dl class="ref__newpat-facts" id="newPatientFacts"></dl>
+        </div>
+
+        <div class="ui-modal__actions">
+          <ui-button variant="tertiary" id="newPatCancel"
+            data-testid="ref--newpat-cancel">Cancel</ui-button>
+          <span class="ui-modal__actions-spacer"></span>
+          <ui-button variant="primary" id="newPatContinue"
+            data-testid="ref--newpat-continue">Continue</ui-button>
+        </div>
+      </div>
+    </ui-modal>
+
+    <!-- ================= DOCUMENT CLASSIFICATION ================= -->
+    <ui-modal id="classifyModal" heading="Select the document types to upload" size="md">
+      <div class="ref__classify">
+        <div class="ref__classify-list" id="classifyList"></div>
+
+        <div class="ui-modal__actions">
+          <ui-button variant="tertiary" id="classifyBack"
+            data-testid="ref--classify-back">Back</ui-button>
+          <span class="ui-modal__actions-spacer"></span>
+          <ui-button variant="primary" id="classifyAdd"
+            data-testid="ref--classify-add">Add to patient chart</ui-button>
+        </div>
+      </div>
+    </ui-modal>
+
+    <!-- ================= REJECT ================= -->
+    <ui-modal id="rejectModal" heading="Reject referral" size="md">
+      <div class="ref__reject">
+        <ui-alert severity="warning">
+          The sending practice is notified with the reason given here. Rejecting cannot be
+          undone from this screen.
+        </ui-alert>
+        <ui-select id="rReason" label="Reason" placeholder="Choose a reason"
+          data-testid="ref--r-reason"></ui-select>
+        <ui-textarea id="rNote" label="Note to sender" rows="3"
+          data-testid="ref--r-note"></ui-textarea>
+
+        <div class="ui-modal__actions">
+          <ui-button variant="tertiary" id="rCancel"
+            data-testid="ref--r-cancel">Cancel</ui-button>
+          <span class="ui-modal__actions-spacer"></span>
+          <ui-button variant="danger" id="rConfirm"
+            data-testid="ref--r-confirm">Reject referral</ui-button>
+        </div>
+      </div>
+    </ui-modal>
+
+    <!-- Runtime geometry for the fax viewer: zoom and rotation arrive as
+         custom properties on a generated sheet, never as inline styles. -->
+    <style id="refGeometry"></style>
+  </body>
+</html>

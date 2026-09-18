@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sign in — MediNova Gastroenterology EHR</title>
+    <link rel="icon" type="image/svg+xml" href="../assets/img/favicon.svg" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="../css/reset.css" />
+    <link rel="stylesheet" href="../css/tokens.css" />
+    <link rel="stylesheet" href="../css/base.css" />
+    <link rel="stylesheet" href="../css/ui-kit.css" />
+    <link rel="stylesheet" href="../css/screen-auth.css" />
+
+    <script type="module" src="../js/main.js"></script>
+    <script type="module" src="../js/screens/login.js"></script>
+    <script src="../js/open-me-properly.js"></script>
+  </head>
+
+  <body class="auth">
+    <!--
+      The patient portal's door, wearing the EHR's words.
+
+      Both products now open on the same two-column split: the form on white at
+      the left, one inset green panel at the right. The panel is decorative and
+      says so — see the aria-hidden note on it below.
+    -->
+    <div class="auth__grid">
+      <!-- ===================== FORM ===================== -->
+      <section class="auth__side">
+        <a class="auth__brand" href="login.html">
+          <img
+            class="auth__logo"
+            src="../assets/img/medinova-logo.svg"
+            width="158"
+            height="32"
+            alt="MediNova Gastroenterology Clinic"
+          />
+        </a>
+
+        <main class="auth__main">
+          <div class="auth__card">
+            <h1 class="auth__title">Sign In</h1>
+            <p class="auth__subtitle">Sign in to access your EHR workspace.</p>
+
+            <form class="auth__form" id="loginForm" novalidate>
+              <ui-input
+                id="email"
+                label="Email Address"
+                type="email"
+                placeholder="Enter your work email"
+                required
+                data-testid="login--email"
+              ></ui-input>
+
+              <ui-input
+                id="password"
+                label="Password"
+                type="password"
+                placeholder="Enter password"
+                reveal
+                required
+                data-testid="login--password"
+              ></ui-input>
+
+              <!-- Live region: announced when Caps Lock goes on, silent otherwise. -->
+              <p class="auth__caps" id="capsWarning" role="status" hidden data-testid="login--caps">
+                <svg class="ui-icon" aria-hidden="true"><use href="#i-warning"></use></svg>
+                <span>Caps Lock is on.</span>
+              </p>
+
+              <div class="auth__row">
+                <ui-checkbox id="remember" data-testid="login--remember">
+                  Remember this device
+                </ui-checkbox>
+                <a class="auth__link" href="forgot-password.html" data-testid="login--forgot">
+                  Forgot password?
+                </a>
+              </div>
+
+              <!-- Appears only after repeated failures. A real build swaps this for
+                   the provider's widget; the placement and timing are the design. -->
+              <div id="captchaSlot" hidden></div>
+
+              <ui-button
+                type="submit"
+                variant="primary"
+                size="lg"
+                full
+                data-testid="login--submit"
+                loading-label="Signing you in…"
+              >Sign In</ui-button>
+            </form>
+          </div>
+        </main>
+
+        <p class="auth__legal">
+          Authorised use only. Activity on this system is logged and monitored.
+        </p>
+      </section>
+
+      <!-- ===================== PROMO ===================== -->
+      <!--
+        aria-hidden, and it means it. Every slide is decorative and its caption
+        is marketing copy repeated in no functional way anywhere else. A screen
+        reader user tabbing to sign in should reach the email field, not four
+        carousel dots and a rotating advertisement.
+      -->
+      <aside class="auth__promo" id="promo" aria-hidden="true">
+        <div class="auth__slide" data-current="true"></div>
+        <div class="auth__slide"></div>
+        <div class="auth__slide"></div>
+        <div class="auth__slide"></div>
+
+        <div class="auth__scrim"></div>
+
+        <div class="auth__caption">
+          <h2 id="promoTitle">MediNova Gastroenterology EHR</h2>
+          <p id="promoBody">
+            Secure Electronic Health Record platform designed to streamline
+            scheduling, clinical documentation, referrals, billing, and patient
+            care.
+          </p>
+          <div class="auth__dots" id="promoDots"></div>
+        </div>
+      </aside>
+    </div>
+  </body>
+</html>

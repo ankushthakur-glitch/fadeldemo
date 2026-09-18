@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MediNova EHR — Dashboard</title>
+    <link rel="icon" type="image/svg+xml" href="../assets/img/favicon.svg" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="../css/reset.css" />
+    <link rel="stylesheet" href="../css/tokens.css" />
+    <link rel="stylesheet" href="../css/base.css" />
+    <link rel="stylesheet" href="../css/ui-kit.css" />
+    <link rel="stylesheet" href="../css/screen-patient.css" />
+    <link rel="stylesheet" href="../css/screen-leads.css" />
+    <link rel="stylesheet" href="../css/screen-dashboard.css" />
+
+    <script type="module" src="../js/main.js"></script>
+    <script type="module" src="../js/screens/dashboard.js"></script>
+    <script src="../js/open-me-properly.js"></script>
+  </head>
+
+  <body class="pt dash">
+    <header class="pt__bar">
+      <img class="pt__logo" src="../assets/img/medinova-logo.svg" width="158" height="32"
+        alt="MediNova Gastroenterology Clinic" />
+      <ui-main-nav active="dashboard"></ui-main-nav>
+      <div class="pt__bar-actions">
+        <ui-time-clock></ui-time-clock>
+        <button type="button" class="pt__icon-action" aria-label="Notifications">
+          <svg class="ui-icon" aria-hidden="true"><use href="#i-bell"></use></svg>
+        </button>
+        <ui-avatar name="Amara Mensah" size="sm"></ui-avatar>
+      </div>
+    </header>
+
+    <!-- The standard header, tabs variant. The two sites ARE this screen's
+         sections — requested in the 2026-08-04 design review, the clinic and
+         the ASC read as two different dashboards switched from one control
+         rather than as two separate screens — so the strip takes the lead
+         slot and the title goes with it. "Dashboard" was the nav item's word
+         repeated in a heading over a screen that opens on nothing else; what
+         is worth saying, the greeting and the date, sits where the actions
+         would.
+
+         "All Locations" was a third option here and is gone. A combined day
+         is not a day anybody works: the two sites have different staff,
+         different rooms and different lists, so the merged view was a number
+         nobody could act on and a schedule nobody owned. The clinic opens by
+         default because it is the busier list. -->
+    <div class="ui-page-head ui-page-head--flush pt__head">
+      <div class="ui-page-head__lead">
+        <h1 class="u-sr-only">Dashboard</h1>
+        <div class="ui-tabs ui-tabs--primary" role="tablist" aria-label="Location"
+          id="locTabs">
+          <button type="button" role="tab" class="ui-tabs__tab ui-tabs__tab--selected"
+            data-loc="clinic" aria-selected="true" aria-controls="dashBody"
+            data-testid="dash--loc-clinic">
+            Outpatient Clinic
+          </button>
+          <button type="button" role="tab" class="ui-tabs__tab" data-loc="asc"
+            aria-selected="false" aria-controls="dashBody" tabindex="-1"
+            data-testid="dash--loc-asc">
+            ASC
+          </button>
+        </div>
+      </div>
+
+      <div class="ui-page-head__actions">
+        <p class="dash__lede" data-testid="dash--lede"></p>
+      </div>
+    </div>
+
+    <main class="ui-page-body dash__body" id="dashBody">
+      <section class="dash__stats" aria-label="Today at a glance" id="statTiles" data-testid="dash--stats"></section>
+
+      <!-- The day, then two narrow columns beside it.
+           Pending Items was the middle column of an earlier draft and is gone:
+           the dashboard shows what is MINE, and a queue of everybody's
+           refills, recalls and lab orders is the Task Management screen's
+           job. -->
+      <div class="dash__grid">
+        <!-- ================= MY SCHEDULE — a time grid ================= -->
+        <section class="dash__card" data-testid="dash--schedule-card">
+          <div class="dash__card-head">
+            <span class="dash__card-icon" aria-hidden="true">
+              <svg class="ui-icon"><use href="#i-calendar"></use></svg>
+            </span>
+            <h2 class="dash__card-title">My Schedule</h2>
+            <span class="dash__card-count" id="schedCount" data-testid="dash--sched-count"></span>
+          </div>
+
+          <!-- The day being drawn. The time zone qualifies every time in the
+               column under it, so it leads; the arrows walk the same
+               appointment store the scheduler works from, which is why they
+               are real navigation and not decoration. -->
+          <div class="dash__daybar">
+            <span class="dash__tz" data-testid="dash--tz">CST</span>
+            <div class="dash__daynav">
+              <button type="button" class="dash__daynav-btn" id="dayPrev"
+                aria-label="Previous day" data-testid="dash--day-prev">
+                <svg class="ui-icon" aria-hidden="true"><use href="#i-caret-left"></use></svg>
+              </button>
+              <span class="dash__daynav-label" id="dayLabel" aria-live="polite"
+                data-testid="dash--day-label"></span>
+              <button type="button" class="dash__daynav-btn" id="dayNext"
+                aria-label="Next day" data-testid="dash--day-next">
+                <svg class="ui-icon" aria-hidden="true"><use href="#i-caret-right"></use></svg>
+              </button>
+            </div>
+            <span class="dash__spacer"></span>
+            <!-- What the day IS, before anything is booked into it: the hours
+                 I work at this site, or the reason I do not. This is where the
+                 "nothing booked" message used to be — a sentence saying the
+                 list was empty, on a grid that now shows why. -->
+            <span class="dash__daysum" id="daySummary" data-testid="dash--day-summary"></span>
+            <button type="button" class="dash__today-btn" id="dayToday" hidden
+              data-testid="dash--day-today">Today</button>
+          </div>
+
+          <div class="dash__card-body" id="schedScroll" tabindex="0"
+            role="region" aria-label="My schedule" data-testid="dash--sched-list">
+            <!-- Four layers, painted in this order: what the day is made of,
+                 the hour rules over it, the bookings over those, and the
+                 now-line over everything. The bands come first precisely so
+                 the hour rules stay legible across them. -->
+            <div class="dash__day" id="dayGrid">
+              <div class="dash__bands" id="dayBands"></div>
+              <div class="dash__hours" id="dayHours"></div>
+              <div class="dash__blocks" id="dayBlocks"></div>
+              <div class="dash__now" data-now hidden id="dayNow">
+                <span class="dash__now-time" id="dayNowTime"></span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= THE RAIL — my inbox, then the ways out ========
+             One column carrying two cards, both of which read down rather than
+             across: a list of conversations and a list of places to go. They
+             share the column's height between them and each scrolls its own
+             overflow, so the rail always ends level with the day grid beside
+             it however long either list runs.
+
+             Messages keeps the lion's share because it is the one that is
+             read line by line and the one that grows; Quick Actions is five
+             tiles in two rows and will be the same five tomorrow.
+             ============================================================= -->
+        <div class="dash__rail">
+          <!-- ================= MESSAGES ================= -->
+          <section class="dash__card" data-testid="dash--messages-card">
+            <div class="dash__card-head">
+              <span class="dash__card-icon" aria-hidden="true">
+                <svg class="ui-icon"><use href="#i-chat"></use></svg>
+              </span>
+              <h2 class="dash__card-title">Messages</h2>
+              <span class="dash__card-count" id="msgCount" data-testid="dash--msg-count"></span>
+              <span class="dash__spacer"></span>
+              <a class="dash__card-link" href="communications.html" data-testid="dash--msg-link">View all</a>
+            </div>
+            <div class="dash__card-body">
+              <div class="dash__msgs" id="msgList" data-testid="dash--msg-list"></div>
+              <p class="dash__empty" id="msgEmpty" hidden data-testid="dash--msg-empty">
+                No conversations yet.
+              </p>
+            </div>
+          </section>
+
+          <!-- ================= QUICK ACTIONS =================
+               Five destinations as small tiles, two or three to a row.
+
+               They have now been all four shapes, and the height is what
+               decided it. A column of its own cost the day grid width it could
+               not spare. A strip of pills across the top of the body read as a
+               toolbar acting ON the screen when every one of them LEAVES it.
+               Full-width rows in the rail read correctly but were 66 pixels
+               each with a line of explanation under the label, and five of
+               those took a third of the rail off the inbox — which is the
+               panel that actually grows, and the one that was truncating every
+               line it drew before it got this track.
+
+               So the label goes on one line beside its glyph and the
+               explanation goes on the tile's title, where a hover can still
+               reach it. Five tiles then take two rows instead of five, the
+               card is a little over a third of the height it was, and every
+               pixel it gives up goes to Messages by construction — the rail
+               gives the actions what they need and the inbox the rest.
+               ============================================================= -->
+          <section class="dash__card" data-testid="dash--actions-card">
+            <div class="dash__card-head">
+              <span class="dash__card-icon" aria-hidden="true">
+                <svg class="ui-icon"><use href="#i-sparkle"></use></svg>
+              </span>
+              <h2 class="dash__card-title">Quick Actions</h2>
+            </div>
+
+            <div class="dash__card-body">
+              <div class="dash__actions" data-testid="dash--actions">
+                <a class="dash__action" href="patient-add.html"
+                  title="Register someone who is not on file"
+                  data-testid="dash--action-patient">
+                  <svg class="ui-icon dash__action-icon" aria-hidden="true"><use href="#i-user-plus"></use></svg>
+                  <span class="dash__action-label">New Patient</span>
+                </a>
+                <a class="dash__action" href="scheduler.html"
+                  title="Find a slot in any diary"
+                  data-testid="dash--action-schedule">
+                  <svg class="ui-icon dash__action-icon" aria-hidden="true"><use href="#i-calendar"></use></svg>
+                  <span class="dash__action-label">Book Appointment</span>
+                </a>
+                <a class="dash__action" href="tasks.html?tab=mine"
+                  title="The worklist the My Open Tasks tile counts"
+                  data-testid="dash--action-tasks">
+                  <svg class="ui-icon dash__action-icon" aria-hidden="true"><use href="#i-clipboard"></use></svg>
+                  <span class="dash__action-label">My Tasks</span>
+                </a>
+                <a class="dash__action" href="referrals.html"
+                  title="Work the incoming referral queue"
+                  data-testid="dash--action-referrals">
+                  <svg class="ui-icon dash__action-icon" aria-hidden="true"><use href="#i-send"></use></svg>
+                  <span class="dash__action-label">Referrals</span>
+                </a>
+                <a class="dash__action" href="reports.html"
+                  title="The practice's reports — AR, receipts, productivity and the quality measures"
+                  data-testid="dash--action-reports">
+                  <svg class="ui-icon dash__action-icon" aria-hidden="true"><use href="#i-chart"></use></svg>
+                  <span class="dash__action-label">Reports</span>
+                </a>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>

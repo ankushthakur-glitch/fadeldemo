@@ -1,0 +1,770 @@
+/* ============================================================================
+   Reports — the twelve-report screen, and the Time report that shares its
+   shapes.
+
+   TWO SCREENS, ONE VOCABULARY. screens/reports.html is the pack: a rail of
+   titles down the left and the chosen report filling the rest, both running
+   the full height of the window. screens/time-reports.html is the timesheet,
+   which is not one of the twelve and is reached from the clock in the header,
+   but which was where the filter bar, the summary tiles and the detail table
+   below were first drawn. They are written to be shared rather than to belong
+   to either — only the fields inside them change.
+
+   Anything specific to the pack's layout is scoped to .rep__body--rail, so
+   the timesheet, which still stacks two tables down a scrolling page, is not
+   dragged into a screen-height grid it has no use for.
+   ========================================================================= */
+
+/* --- Section head ------------------------------------------------------------ */
+
+/* The page header is .ui-page-head in base.css — one band, every screen.
+   Nothing was different about this one, so nothing is redeclared here.
+
+   Neither screen carries a back arrow any more: Reports is a destination in
+   the top nav, and the timesheet is opened from the clock. Both used to point
+   at a hub that no longer exists. */
+
+/* ----------------------------------------------------------------------------
+   ONE LEFT RAIL DOWN THE WHOLE REPORT
+
+   Everything stacked in a report body is a card of the same width, and the
+   first thing the eye does is run down their left edges. What sat ON those
+   edges did not agree: a card's heading was inset 16px, the column header
+   directly under it 12px, and a summary tile's label 12px from a tile whose
+   own padding was 12px all round. Four pixels is too small to read as a
+   deliberate step and too big to look like a straight line, so the stack
+   looked slightly loose rather than aligned.
+
+   The inset is --density-cell-padding-x everywhere below: the table's own,
+   because the table is the one thing here that cannot be moved without
+   changing every table in the system. A heading now sits exactly over its
+   first column, and a tile's label over the heading under it. Taking the cell
+   token rather than a fixed step also keeps the rail straight at
+   density="compact", where the cell inset drops to 10px and a hard-coded 12
+   would have gone crooked.
+
+   Vertical spacing keeps to the same three steps, biggest to smallest:
+   16px inside a card, 12px between cards in a group, 6px between a label and
+   the thing it labels.
+   ------------------------------------------------------------------------- */
+/* --- Report body -------------------------------------------------------------- */
+
+/* The gutter, the gap and the scroll are .ui-page-body in base.css. */
+
+/* --- The period navigator ------------------------------------------------------
+   NO BAR OF ITS OWN. Every report used to carry a sunken strip under the
+   header holding the period picker, a stepper and a line of text repeating the
+   dates it had just set. That strip was a full-width row about the page,
+   standing between the reader and the report — and the sentence it ended with
+   ("Aug 24, 2026 — Aug 30, 2026") was the picker beside it read back out.
+
+   The picker now sits in .ui-page-head__actions with the screen's other
+   controls, which is where a list screen has always kept its search and its
+   filter; the stepper and the read-back line are gone. The dates in words
+   survive where they are genuinely needed — .rep__print-head, on paper. */
+
+/* One group so the unit and the which-one stay welded together as the actions
+   slot's own gap (--space-6) opens up between the group and the buttons: at
+   that distance a loose "Month" and a loose date field read as two unrelated
+   controls rather than one question. */
+.rep__period {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+/* Narrower than the 11rem the old bar gave it. In a full-width strip the
+   picker could be generous; in the header band it is competing with a tab
+   strip and two buttons for the same row, and "Custom range" is the longest
+   thing it ever has to show. */
+.rep__period ui-select { width: 9.5rem; }
+
+/* THE BUSINESS, and it is wider than the period because its answers are.
+   "MediNova Gastroenterology ASC" does not fit 9.5rem and the one thing this
+   control must never do is show the reader half the name of the company they
+   are reporting on. It is last in the group — the period is the question
+   asked most often, and a picker nobody changes between reports should not
+   stand between the reader and the one they do. */
+.rep__period #repBusiness { width: 13rem; }
+
+/* ----------------------------------------------------------------------------
+   THE HAIRLINE BETWEEN ASKING AND DOING
+
+   The band held four controls in a row — a unit, a date, Export, Print — with
+   one gap between all of them, so it read as a queue of four equal things and
+   the eye had to work out which two set the report and which two acted on it.
+   A rule costs one pixel and does that sorting for free.
+
+   It is a rule rather than a wider gap because the band is already short of
+   room at 1280 and a gap big enough to read as a division is bigger than the
+   gap inside each group.
+   ------------------------------------------------------------------------- */
+.rep__actions-rule {
+  align-self: center;
+  width: var(--border-width-thin);
+  height: var(--space-9);
+  /* --default, not --subtle. Subtle is the border of a card sitting on the
+     page's ground, where the eye already has the card's own edge to go on. A
+     single free-standing hairline in a row of controls has nothing helping
+     it, and at #e5e5ea it simply was not there. */
+  background-color: var(--color-border-default);
+}
+
+/* Export is the action; Print is the utility beside it. Pulling the pair
+   together — against the actions slot's own --space-6 — is what says they are
+   two of one thing rather than two more items in the queue. */
+.rep__head .ui-page-head__actions { gap: var(--space-5); }
+.rep__head [data-testid='report--print'] { margin-left: calc(var(--space-5) * -0.5); }
+
+/* --- Summary tiles -------------------------------------------------------------- */
+
+.rep__stats {
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: var(--space-6);
+}
+
+.rep__stat {
+  padding: var(--space-7) var(--density-cell-padding-x);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+}
+
+.rep__stat-label {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-tertiary);
+  margin-bottom: var(--space-3);
+}
+
+.rep__stat-value {
+  font-size: var(--font-size-heading-md);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Detail table ---------------------------------------------------------------- */
+
+/* flex: none because the body is a scrolling flex column. Without it a table
+   section shrinks to share the height, and `overflow: hidden` then silently
+   cuts the rows below the fold off the bottom of the card — a report that is
+   missing employees with no scrollbar to say so. The page scrolls; the card
+   keeps its full height. */
+.rep__detail {
+  flex: none;
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+  overflow: hidden;
+}
+
+.rep__detail-title {
+  padding: var(--space-7) var(--density-cell-padding-x);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+  font-size: var(--font-size-title-card);
+  line-height: var(--line-height-tight);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+/* A report is the one place a table is allowed to be wider than the viewport —
+   it scrolls itself rather than pushing the page sideways. */
+.rep__table-wrap { overflow-x: auto; }
+
+/* A numeric column's HEADER right-aligns with its figures.
+
+   `.ui-table thead th` sets text-align: left for every table in the system and
+   outranks `.ui-table__cell--numeric` on specificity, so a numeric header sat
+   at the left of a column whose numbers were at the right — readable in a
+   worklist of two number columns, unreadable in a report of six, where the
+   label over a figure was two columns away from it. Scoped to a report rather
+   than fixed in the component: a worklist's one right-hand count column looks
+   right as it is, and this is not the file that gets to change every table. */
+.rep__detail thead th.ui-table__cell--numeric { text-align: right; }
+
+/* An empty table is still a card: it keeps a card's height rather than
+   collapsing to the depth of one row, which reads as a table that failed to
+   draw rather than as a period with nothing in it. */
+.rep__empty {
+  padding: var(--space-11) var(--density-cell-padding-x);
+  text-align: center;
+  font-size: var(--font-size-body);
+  color: var(--color-text-tertiary);
+}
+
+.rep__note {
+  display: inline-block;
+  max-width: 14rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+
+.rep__running {
+  color: var(--color-brand-text);
+  font-weight: var(--font-weight-medium);
+}
+
+/* A clock-out that was never recorded. Stated in words rather than left blank:
+   an empty cell in a timesheet reads as "nothing happened", and something did —
+   somebody worked and the record is incomplete. */
+.rep__missing { color: var(--color-status-warning-text); font-weight: var(--font-weight-medium); }
+
+.rep__muted { color: var(--color-text-tertiary); }
+.rep__strong { font-weight: var(--font-weight-semibold); }
+
+.rep__link-btn {
+  color: var(--color-text-link);
+  background: none;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.rep__link-btn:hover { text-decoration: underline; }
+.rep__link-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--radius-sm); }
+
+
+/* --- Period navigator ------------------------------------------------------------
+   The unit (day, week, pay period) picks which control appears next to it, so
+   the filter bar only ever shows the one that can answer the question asked. */
+
+.rep__nav { display: flex; align-items: center; gap: var(--space-3); }
+.rep__nav[hidden] { display: none; }
+.rep__nav ui-input { width: 9.5rem; }
+.rep__nav ui-select { width: 11rem; }
+/* Two date fields and a dash between them, so the pair still fits the row a
+   single month field fits. */
+.rep__nav--custom ui-input { width: 9.5rem; }
+
+.rep__nav-sep { color: var(--color-text-tertiary); }
+
+/* --- Exceptions banner -------------------------------------------------------- */
+
+/* Squarer than a default alert, and on the rail: the banner is full width
+   between the filter bar and the tiles, so its sentence starts where every
+   other first word on the screen does. */
+.rep__exceptions {
+  flex: none;
+  align-items: center;
+  padding: var(--space-5) var(--density-cell-padding-x);
+}
+.rep__exceptions[hidden] { display: none; }
+
+.rep__exceptions-btn {
+  flex: none;
+  color: inherit;
+  background: none;
+  font: inherit;
+  font-weight: var(--font-weight-medium);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.rep__exceptions-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--radius-sm); }
+
+/* --- Adjust / add dialog --------------------------------------------------------- */
+
+.rep__form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5) var(--space-6);
+}
+/* Two columns of short facts, with the free-text fields spanning both — a
+   note squeezed into half a dialog is a note nobody writes. */
+.rep__form ui-textarea,
+.rep__form .rep__form-wide { grid-column: 1 / -1; }
+
+/* The date pair shares one cell. When adding, that is From and To; when
+   correcting, the To field is gone and the single date fills the cell. Held
+   together like this so hiding one control never shunts every field after it
+   into the wrong column. */
+.rep__form-range { display: flex; gap: var(--space-4); }
+.rep__form-range ui-input { flex: 1; min-width: 0; }
+.rep__form-range ui-input[hidden] { display: none; }
+
+.rep__original,
+.rep__audit {
+  margin-top: var(--space-6);
+  padding: var(--space-5) var(--space-6);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+  font-size: var(--font-size-caption);
+}
+.rep__original[hidden], .rep__audit[hidden] { display: none; }
+
+.rep__original-title,
+.rep__audit-title {
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-3);
+}
+
+.rep__audit-list { display: flex; flex-direction: column; gap: var(--space-4); }
+
+.rep__audit-item {
+  padding-left: var(--space-5);
+  border-left: var(--border-width-thick) solid var(--color-border-default);
+}
+.rep__audit-head { font-weight: var(--font-weight-medium); }
+.rep__audit-reason { color: var(--color-text-secondary); }
+.rep__audit-detail { color: var(--color-text-tertiary); }
+
+/* What Save is about to write. Sits between the form and the commit, because
+   a range's consequence is not readable off the two date fields alone. */
+.rep__preview {
+  margin-top: var(--space-6);
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+}
+.rep__preview[hidden] { display: none; }
+
+.rep__form-error {
+  margin-top: var(--space-5);
+  color: var(--color-status-critical-text);
+  font-size: var(--font-size-caption);
+}
+.rep__form-error[hidden] { display: none; }
+
+/* --- The report screen -------------------------------------------------------------
+   The twelve reports are one shell — see js/lib/report-screen.js. What follows
+   is the little that shell needs beyond the shapes above, which the Time
+   report already established.
+   -------------------------------------------------------------------------------- */
+
+/* A card's heading and the sentence saying what it counts. The sentence is not
+   decoration: "cases performed" and "cases billed" are different numbers, and
+   the title alone does not say which one is in the table. */
+.rep__detail-head {
+  padding: var(--space-7) var(--density-cell-padding-x);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+}
+.rep__detail-head .rep__detail-title { padding: 0; border-bottom: none; }
+
+/* ----------------------------------------------------------------------------
+   FOUR RANKS OF INK
+
+   A report is nine or ten columns wide, and drawn in one colour it is a wall:
+   the payer's name weighs the same as the third of five aged buckets, and the
+   rate the row exists to produce weighs the same as the counts it came from.
+   Nothing in the grid says where to start reading.
+
+   So the cells are ranked, and js/lib/report-screen.js works the rank out from
+   what the column already declares itself to be — see columnKind():
+
+     label    what the row IS. Primary ink, medium weight. The reader's
+              anchor, and the only column that is words rather than figures
+     derived  the ANSWER — a rate, an incidence, a share. Primary ink and
+              medium weight too, because a row is read left to right and this
+              is the end of the sentence the label started
+     metric   the WORKING — raw counts and amounts. Secondary ink: present,
+              checkable, and not competing with the two above it
+     attr     reference the row simply carries — a benchmark, a GL code, an
+              FTE. Tertiary, because it is not a measurement at all and a
+              reader scanning for movement should slide straight past it
+
+   Two levels of ink and one of weight, no more. A table that used four
+   greys, three weights and a tint would be a legend the reader has to learn
+   before they can read a number.
+   ------------------------------------------------------------------------- */
+
+/* All four are scoped to tbody. The heading row is ranked already — it is one
+   line of secondary ink over a ground, saying what the columns are — and
+   ranking it a second time would make the header of the label column shout
+   and the header of a benchmark column whisper, for no reason a reader could
+   name. What is ranked is the DATA. */
+.rep__detail tbody .rep__cell--label {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+.rep__detail tbody .rep__cell--metric { color: var(--color-text-secondary); }
+
+.rep__detail tbody .rep__cell--derived {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+.rep__detail tbody .rep__cell--attr { color: var(--color-text-tertiary); }
+
+/* A CELL ALLOWED TWO LINES. The carrier's claims address is written on two
+   lines in the world — a PO box, then the town — and squeezing it onto one
+   would be the table reformatting a fact to suit its own rhythm. `pre-line`
+   rather than plain wrapping, so the break lands where the address puts it
+   and not wherever the column happens to run out.
+
+   Every other cell stays one line tall; see the note on .ui-table tbody td. */
+.rep__detail .rep__cell--stack {
+  white-space: pre-line;
+  line-height: var(--line-height-snug);
+}
+
+/* Every figure in tabular figures, so a column of them lines up on the digit
+   rather than on whatever width the font gives a 1. Nine columns of money is
+   exactly the case proportional digits ruin. */
+.rep__detail .ui-table__cell--numeric { font-variant-numeric: tabular-nums; }
+
+/* ----------------------------------------------------------------------------
+   A SECOND HEADER ROW, FOR COLUMNS THAT COME IN FAMILIES
+
+   The year-end view prints Charges, Payments, Adjustments and Refunds for the
+   month, then the same four for the year. Eight headings, four of them
+   repeated word for word, and nothing on the page saying which half is which
+   — the span above them says it once.
+
+   It is centred over its family and ruled off from the family beside it,
+   because a label floating left over four columns reads as belonging to the
+   first of them rather than to all four.
+   ------------------------------------------------------------------------- */
+.rep__detail thead .rep__group {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  height: var(--density-head-height);
+  padding: 0 var(--density-cell-padding-x);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+  background-color: var(--color-bg-table-head);
+  text-align: center;
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+/* The spans over the columns that belong to no family — the row's name at one
+   end, the two A/R balances at the other. They hold the row open and draw the
+   ground, and say nothing, which is the correct thing for them to say. */
+.rep__detail thead .rep__group--blank { border-bottom-color: transparent; }
+
+/* Each family walled off from the next. Only between them: a rule down the
+   outside edges would box the table in. */
+.rep__detail thead .rep__group + .rep__group:not(.rep__group--blank),
+.rep__detail thead .rep__group:not(.rep__group--blank) + .rep__group {
+  border-left: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+/* With two header rows, the lower one sticks BELOW the upper rather than on
+   top of it — both are sticky, and without the offset the column headings
+   would scroll up underneath the family labels and disappear.
+
+   Written as "a group row that is not hidden, then any row after it", so the
+   offset applies on the two reports that have families and not on the ten
+   that do not. A flat `tr:last-child` would have pushed every other report's
+   headings down by a row height for a row that is not drawn. */
+.rep__detail thead tr:first-child:not([hidden]) ~ tr th {
+  top: var(--density-head-height);
+}
+#repGroups[hidden] { display: none; }
+
+/* A NOTHING DRAWN AS A NOTHING. Most cells on most of these reports are zero —
+   no ERCP on a Tuesday, nothing denied for timely filing all month — and a
+   zero set as loudly as a figure turns four numbers into a column of eight.
+   Quieting them is what lets the eye find the days something happened.
+   Deliberately below the ranks above, so it wins over all three. */
+.rep__detail tbody .rep__cell--nil { color: var(--color-text-tertiary); }
+
+/* The totals line. Kept out of the paging — a total of the six rows on page
+   one is a total of nothing — so it is a <tfoot> that stays put, and it is
+   drawn heavier than the working above it. */
+.rep__totals th,
+.rep__totals td {
+  border-top: var(--border-width-thin) solid var(--color-border-default);
+  background-color: var(--color-bg-surface-sunken);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+.rep__totals[hidden] { display: none; }
+
+.rep__table-wrap[hidden] { display: none; }
+
+
+/* --- A category read down a rail ---------------------------------------------
+
+   Four reports are a strip of tabs in the header band. Twelve are not: the
+   Practice pack's titles run to a full phrase — "Appointment cancellation
+   report", "ASC-09 Follow-up interval" — and a strip carrying twelve of those
+   either scrolls or wraps into a block of header taller than the summary
+   tiles under it. Either way half the pack is out of sight, on the one
+   category whose reports are chosen BY NAME rather than stepped through.
+
+   So the titles become a column down the left and the report takes the rest
+   of the width. The proportion is the one the brief asked for and it is
+   written as a percentage rather than a rem width on purpose: the rail holds
+   nothing but titles, so what it needs is a share of the page rather than a
+   fixed measure, and at 20% it is wide enough for the longest of them on a
+   laptop and does not turn into a canyon on a 27-inch screen.
+
+   minmax(0, 1fr) on the second column, not 1fr: a grid track's default
+   minimum is min-content, and the widest report here is nine columns of
+   figures. Without the zero floor that table would push the track wider than
+   the page instead of scrolling inside .rep__table-wrap, and the whole screen
+   would slide sideways.
+   ---------------------------------------------------------------------------- */
+
+/* BOTH COLUMNS RUN THE FULL HEIGHT OF THE SCREEN.
+
+   They used to be as tall as they needed to be, and on a six-row report that
+   left the rail as a short card floating at the top-left of an otherwise
+   empty page, with the table beside it stopping a third of the way down. Two
+   objects hanging in white space read as a page that failed to finish loading
+   rather than as a layout.
+
+   So one grid row, told to be exactly the height available:
+   grid-template-rows: minmax(0, 1fr). The `0` floor is what lets the children
+   be SHORTER than their content and scroll — without it the row grows to fit
+   a fifty-row table and the whole page scrolls again, which is the thing this
+   is replacing. The body stops scrolling; the table scrolls inside its card,
+   under a heading and above a pager that both stay put. */
+.rep__body--rail {
+  display: grid;
+  grid-template-columns: 20% minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  align-items: stretch;
+  /* A SHORT WINDOW IS ALREADY SOLVED, one level up. `body.pt` stops shrinking
+     at 42rem and the document scrolls past that floor — see SCROLL FLOOR in
+     base.css — so this grid is never handed less height than the card's own
+     heading and pager need, and there is nothing here to clip. `auto` rather
+     than `hidden` all the same: it is what .ui-page-body already declares, and
+     the difference between the two only shows up on the day something below
+     does not fit, when a scrollbar is the better of the two answers. */
+  overflow: auto;
+}
+
+/* Full height, and its own scroll for the day the pack outgrows the screen.
+   Twelve fit comfortably; the overflow is here so the thirteenth does not
+   push the rail's last entry off the bottom with nothing to say it is
+   there. */
+.rep__rail {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-4);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+}
+
+/* Not the screen's title said twice — the screen is called Practice Reports
+   in the band above and this word names the COLUMN, which is what stops the
+   rail reading as a stray card of links floating beside the table. */
+.rep__rail-title {
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wide);
+}
+
+.rep__rail-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* Buttons, not links. Every report is this same page with a different table
+   in it, and a reader who has set a custom range or paged down should not
+   lose either by moving to the next report. The address bar still keeps up —
+   see choose() in js/lib/report-screen.js.
+
+   The title wraps rather than being truncated: an ellipsis on "Appointment
+   cancellation repo…" saves four pixels of rail and costs the reader the word
+   that told them what it was. */
+.rep__rail-item {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-width-thin) solid transparent;
+  border-radius: var(--radius-md);
+  background-color: transparent;
+  font-family: inherit;
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-snug);
+  text-align: left;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.rep__rail-item:hover { background-color: var(--color-bg-surface-hover); }
+.rep__rail-item:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.rep__rail-label { min-width: 0; }
+
+/* A STARRED REPORT, and the star is the only thing on the rail that is not
+   ink. It sits hard right so that the twelve titles keep one left edge — a
+   star between the edge and the word would make the favourites the only rows
+   that start in a different place. Same size as the "Setup" tag beside it,
+   because they are two marks on the same kind of row. */
+.rep__rail-star {
+  margin-left: auto;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-brand-solid);
+}
+.rep__rail-star .ui-icon { width: 0.875rem; height: 0.875rem; }
+
+/* The report that is open. Tinted and outlined rather than only bolded: on a
+   column of twelve, weight alone is not findable at a glance, and the rail is
+   the only thing on screen saying which of the twelve the table belongs to. */
+.rep__rail-item--current {
+  border-color: var(--color-border-brand);
+  background-color: var(--color-brand-surface);
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+/* A report that is not wired up to its source yet — CAHPS, whose survey feed
+   is still being configured. The mark is on the rail as well as above the
+   table so that the reader knows before they click, rather than after. */
+.rep__rail-tag {
+  margin-left: auto;
+  flex: none;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-full);
+  background-color: var(--color-bg-surface-sunken);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-tertiary);
+}
+
+/* The report itself: tiles at a fixed height, then the table card taking
+   everything that is left. min-height: 0 on both the column and the card is
+   what makes "everything that is left" mean it — a flex child's default floor
+   is its content, so without it the card is as tall as fifty rows and the
+   pane overflows the grid row it was given. */
+.rep__pane {
+  display: flex;
+  flex-direction: column;
+  gap: var(--layout-gap);
+  min-width: 0;
+  min-height: 0;
+}
+
+/* THE TABLE CARD FILLS THE REST OF THE PAGE, on a six-row report as much as
+   on a fifty-row one. Scoped to the rail layout: the Time report shares
+   .rep__detail and stacks two of them down a scrolling page, where a card
+   that claimed the whole height would push the second one off the bottom. */
+.rep__body--rail .rep__detail {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* The heading and the pager stay put; the rows move under them. A table whose
+   column headings scroll away is a table you have to scroll back up to read,
+   and these are nine columns wide. */
+.rep__body--rail .rep__table-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* THE TOTALS LINE STICKS TO THE BOTTOM OF THE SCROLL, as the headings stick
+   to the top. Making the table scroll inside its own card is what created the
+   need: on a long report the answer would otherwise be somewhere below the
+   fold, and the reader would be scrolling to find the one row they came for.
+   The rows move between two lines that do not. */
+.rep__body--rail .rep__totals th,
+.rep__body--rail .rep__totals td {
+  position: sticky;
+  bottom: 0;
+  z-index: var(--z-sticky);
+}
+
+/* Figures that are not results yet. Said above the table, in the card, in the
+   colour the rest of the product uses for "true, and you need to know it
+   before you act on this" — a footnote under a table of satisfaction scores
+   is read after the number has already been written down. */
+.rep__pending {
+  padding: var(--space-5) var(--density-cell-padding-x);
+  border-bottom: var(--border-width-thin) solid var(--color-status-warning-border);
+  background-color: var(--color-status-warning-surface);
+  font-size: var(--font-size-caption);
+  color: var(--color-status-warning-text);
+}
+.rep__pending[hidden] { display: none; }
+
+/* Below a laptop the rail stops being a rail: at 20% of a narrow window the
+   titles wrap to three lines each and the table beside them has nothing left
+   to scroll into. It goes back on top of the report as a plain list, which is
+   the same reading order the page has always had. */
+@media (max-width: 64rem) {
+  /* The page goes back to scrolling as a whole: with the rail lying across
+     the top there is no second column to hold to a screen height, and a table
+     boxed into what is left of a short window would be four rows deep. */
+  .rep__body--rail {
+    display: flex;
+    overflow-y: auto;
+  }
+  .rep__rail { overflow-y: visible; }
+  .rep__rail-list { flex-direction: row; flex-wrap: wrap; }
+  .rep__rail-item { width: auto; }
+  .rep__body--rail .rep__detail { flex: none; }
+  .rep__body--rail .rep__table-wrap { flex: none; overflow: auto hidden; }
+  .rep__body--rail .rep__totals th,
+  .rep__body--rail .rep__totals td { position: static; }
+}
+
+/* On paper the rail is a list of the eleven reports this is not, and nothing
+   is boxed into a screen height that no longer exists. */
+@media print {
+  .rep__rail { display: none !important; }
+  .rep__body--rail { display: block; overflow: visible; }
+  .rep__body--rail .rep__detail { display: block; }
+  .rep__body--rail .rep__table-wrap { overflow: visible; }
+  .rep__body--rail .rep__totals th,
+  .rep__body--rail .rep__totals td { position: static; }
+}
+/* --- Print -----------------------------------------------------------------------
+   A timesheet gets signed on paper. What survives is the numbers and what they
+   cover; every control that produced them is noise once printed, and the row
+   actions are noise that cannot be clicked. */
+
+.rep__print-head { display: none; }
+
+@media print {
+  @page { margin: 14mm; }
+
+  .pt__bar,
+  .rep__head,
+  .rep__exceptions-btn,
+  .ui-pager,
+  .ui-modal,
+  .rep__row-action,
+  .ui-table__cell--actions { display: none !important; }
+
+  html, body, .pt, .rep__body, .rep__table-wrap {
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  .rep__print-head { display: block; margin-bottom: var(--space-6); }
+  .rep__print-title { font-size: var(--font-size-title-card); font-weight: var(--font-weight-semibold); line-height: var(--line-height-tight); color: var(--color-text-primary); }
+  .rep__print-meta { color: var(--color-text-secondary); }
+
+  .rep__detail, .rep__stat { border-color: var(--color-border-default); break-inside: avoid; }
+  .ui-table thead th { position: static; }
+  .ui-table tbody tr { break-inside: avoid; }
+}
+
+/* The header band is one row of controls; below a laptop it is one row too
+   many. The period group drops under the rest of the band rather than pushing
+   the buttons off the end — the band's own wrap, not a bar coming back. */
+@media (max-width: 75rem) {
+  .ui-page-head.rep__head { flex-wrap: wrap; row-gap: var(--space-4); }
+  .rep__head > .ui-page-head__actions { flex-wrap: wrap; justify-content: flex-end; }
+}

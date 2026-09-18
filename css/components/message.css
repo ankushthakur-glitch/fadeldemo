@@ -1,0 +1,87 @@
+/* ============================================================================
+   ui-message — the chat composer.
+
+   A textarea and its toolbar share one bordered box, and the box takes the
+   focus ring via :focus-within so the whole composer lights up rather than
+   just the field inside it. Send stays disabled while the box is empty:
+   sending nothing is never what anyone meant.
+   ========================================================================= */
+
+ui-message { display: block; }
+
+.ui-message {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.ui-message__box {
+  display: flex;
+  flex-direction: column;
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+  transition: border-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.ui-message__box:focus-within {
+  border-color: var(--color-border-focus);
+  box-shadow: var(--focus-ring);
+}
+
+.ui-message__box--error { border-color: var(--color-status-critical-solid); }
+.ui-message__box--error:focus-within {
+  border-color: var(--color-status-critical-solid);
+  box-shadow: var(--focus-ring-critical);
+}
+
+.ui-message__box--disabled { background-color: var(--color-bg-surface-disabled); }
+
+.ui-message__input {
+  border: 0;
+  outline: none;
+  resize: none;
+  background: transparent;
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-snug);
+  padding: var(--space-6) var(--space-6) var(--space-2);
+}
+.ui-message__input::placeholder { color: var(--color-text-disabled); }
+
+.ui-message__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-4) var(--space-4);
+}
+
+.ui-message__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.ui-message__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  min-height: var(--space-7);
+}
+
+.ui-message__error {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-snug);
+  color: var(--color-status-critical-text);
+}
+
+.ui-message__counter {
+  margin-left: auto;
+  font-size: var(--font-size-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-tertiary);
+}

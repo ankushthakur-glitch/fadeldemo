@@ -1,0 +1,1383 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MediNova EHR — Scheduler</title>
+    <link rel="icon" type="image/svg+xml" href="../assets/img/favicon.svg" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="../css/reset.css" />
+    <link rel="stylesheet" href="../css/tokens.css" />
+    <link rel="stylesheet" href="../css/base.css" />
+    <link rel="stylesheet" href="../css/ui-kit.css" />
+    <!-- The Schedule Appointment menu reuses the shared row ⋮ panel, so the
+         two can never look like different kinds of menu. -->
+    <link rel="stylesheet" href="../css/screen-patient.css" />
+    <link rel="stylesheet" href="../css/screen-leads.css" />
+    <!-- The booking dialog, which is no longer only this screen's: the chart's
+         Appointments module opens the same form on the patient already open, so
+         it is linked by both rather than living in either screen's sheet. -->
+    <link rel="stylesheet" href="../css/components/appointment-form.css" />
+    <link rel="stylesheet" href="../css/screen-scheduler.css" />
+
+    <script type="module" src="../js/main.js"></script>
+    <script type="module" src="../js/screens/scheduler.js"></script>
+    <script src="../js/open-me-properly.js"></script>
+  </head>
+
+  <body class="pt sch">
+    <header class="pt__bar">
+      <img class="pt__logo" src="../assets/img/medinova-logo.svg" width="158" height="32"
+        alt="MediNova Gastroenterology Clinic" />
+      <ui-main-nav active="schedule"></ui-main-nav>
+      <div class="pt__bar-actions">
+        <ui-time-clock></ui-time-clock>
+        <button type="button" class="pt__icon-action" aria-label="Notifications">
+          <svg class="ui-icon" aria-hidden="true"><use href="#i-bell"></use></svg>
+        </button>
+        <ui-avatar name="Amara Mensah" size="sm"></ui-avatar>
+      </div>
+    </header>
+
+    <!-- ================= HEAD: the tabs ARE the title =================
+         Two things live on this screen: the bookings themselves, and the
+         encounters those bookings owe. They share the patient search and the
+         same underlying appointment list, so they are two tabs of one screen
+         rather than two screens — and naming both in the tab strip says that
+         better than a "Scheduler" heading with the strip repeated beneath it.
+
+         PRIMARY tabs — the segmented strip every screen uses for its own
+         sections. It carries no rule of its own, so it sits on one centred row
+         with the count, the search and the primary action rather than being
+         bottom-aligned against a full-width underline the other three then
+         have to hang off.
+
+         The <h1> stays for anything reading the page structurally; a screen
+         with a tablist and no heading at all is a screen a screen reader
+         cannot announce. -->
+    <div class="ui-page-head ui-page-head--flush pt__head sch__head">
+      <div class="ui-page-head__lead">
+        <h1 class="u-sr-only">Scheduler</h1>
+        <ui-tabs selected="appointments" id="schTabs" primary data-testid="sch--tabs">
+          <ui-tab value="appointments" label="Appointments"></ui-tab>
+          <ui-tab value="visit-notes" label="Encounters"></ui-tab>
+          <ui-tab value="waitlist" label="Wait List"></ui-tab>
+        </ui-tabs>
+        <span class="pt__count" data-testid="sch--count">0 appointments</span>
+      </div>
+
+      <div class="ui-page-head__actions">
+        <ui-input
+          class="pt__search"
+          icon="search"
+          label="Search appointments"
+          label-hidden
+          placeholder="Search patient, MRN or reason"
+          data-testid="sch--search"
+        ></ui-input>
+        <!-- One primary action, and it is whatever the open tab is FOR.
+             Appointments books; the wait list adds to itself; Encounters is a
+             worklist of notes already owed, so it has nothing to create and
+             shows no button rather than one that would create the wrong
+             thing. Which one is on screen is decided in applyTab().
+
+             On Appointments it now opens a menu rather than the form directly,
+             because there are two ways to start: book a slot for later, or
+             take the patient who is standing at the desk straight into an
+             encounter. -->
+        <!-- `dropdown` adds the caret. aria-haspopup and aria-expanded go on
+             the REAL <button> inside, which ui-button renders itself — set
+             from JS in initScheduleMenu(), since on the host they would sit on
+             a non-interactive wrapper and tell a screen reader nothing. -->
+        <ui-button variant="primary" icon="plus" dropdown data-testid="sch--new">
+          Schedule Appointment
+        </ui-button>
+        <!-- NO "ADD TO WAIT LIST" BUTTON ON THIS SCREEN.
+             A standing request is raised where the desk discovers it is
+             needed — in the booking form, at the moment none of the offered
+             times will do, by ticking "Add to wait list". A second entry
+             point on the list itself asked the desk to re-enter a patient,
+             an activity and a provider they had just typed into the form
+             they abandoned to get here. The list is now what its name says:
+             the queue, read and worked, not a second place to fill one in. -->
+      </div>
+    </div>
+
+    <!-- Print only. A printed schedule that does not say whose it is, for
+         what dates, and what was filtered out is a page of times. It sits
+         outside both panels so it prints from whichever tab is open. -->
+    <div class="sch__print-head" id="printHead" aria-hidden="true"></div>
+
+    <div class="sch__layout">
+      <!-- ================= FILTER RAIL =================
+           Collapsible, and belongs to the Appointment tab: every field in it
+           narrows a booking within a period. The Visit Note tab has no period
+           and its own Unsigned / Signed split, so the rail steps aside there
+           rather than showing controls that would mean something else. -->
+      <aside class="sch__rail" id="filterRail" aria-label="Filter appointments"
+        data-testid="sch--rail">
+        <div class="sch__rail-head">
+          <button type="button" class="sch__rail-toggle" id="railToggle"
+            aria-expanded="true" aria-controls="railBody"
+            data-testid="sch--rail-toggle">
+            <svg class="ui-icon" aria-hidden="true"><use href="#i-filter"></use></svg>
+            <span class="sch__rail-title">Filters</span>
+            <span class="sch__rail-count" id="railCount" hidden
+              data-testid="sch--rail-count"></span>
+            <svg class="ui-icon sch__rail-chevron" aria-hidden="true">
+              <use href="#i-caret-left"></use>
+            </svg>
+          </button>
+        </div>
+
+        <div class="sch__rail-body" id="railBody">
+          <!-- ================= THE ANCHOR DATE =================
+               A month, not a text field. A date box answers "what is the
+               date"; a schedule asks "which day", and that is a question
+               about the shape of the month — where the weekend falls, how far
+               the end of it is, how many days sit between here and the one
+               being looked for. The grid answers all three at a glance.
+
+               <ui-date-picker> is the product's own month grid, the same one
+               every date field in the app now drops (js/lib/date-menu.js).
+               Here it is not dropped, it is simply left open: this is the one
+               screen where the month is worth a permanent home.
+
+               It IS the date field — id and test id and all — so everything
+               that used to write the anchor into an <input> still writes it
+               here, and reads back the same `ui-change`. `hide-today` because
+               the toolbar across the gutter already has a Today. -->
+          <ui-date-picker id="fDate" hide-today class="sch__picker"
+            data-testid="sch--f-date"></ui-date-picker>
+
+          <div class="sch__rail-fields">
+            <!-- Four filters, one shape.
+
+                 NOT the standard <ui-filter> panel the rest of the product
+                 filters from, and deliberately. That control is a button that
+                 opens a panel, and this rail IS a panel — permanently open,
+                 with the month grid above these four and a Clear beneath them.
+                 Putting a Filters button inside a rail whose own header reads
+                 Filters is one control opening another that says the same
+                 word, and the rail's count would then be counting a badge
+                 sitting two inches below it.
+
+                 The provider list used to be a hand-built disclosure with its
+                 own trigger, its own checkbox rows and its own "Select all",
+                 written when a <select multiple> meant ctrl-clicking six names
+                 into a native list box. It does not any more: ui-select's
+                 multiple mode draws the product's own panel with a checkbox a
+                 row (js/lib/select-menu.js), reports the set through the same
+                 `ui-change` as every other field, and is still a real <select>
+                 underneath — so a partner covering two colleagues gets both
+                 lists at once, and the rail stops carrying a control that
+                 exists nowhere else in the product. -->
+            <ui-select id="fProvider" multiple label="Provider" size="sm"
+              empty-option="All providers" data-testid="sch--f-provider"></ui-select>
+            <ui-select id="fLocation" multiple label="Location" size="sm"
+              empty-option="All locations" data-testid="sch--f-location"></ui-select>
+            <ui-select id="fType" multiple label="Appointment type" size="sm"
+              empty-option="All appointment types" data-testid="sch--f-type"></ui-select>
+            <ui-select id="fKind" multiple label="Care type" size="sm"
+              empty-option="All care types" data-testid="sch--f-kind"></ui-select>
+          </div>
+
+          <div class="sch__rail-foot">
+            <ui-button variant="outline" size="sm" full
+              data-testid="sch--clear">Clear filters</ui-button>
+          </div>
+        </div>
+      </aside>
+
+      <div class="sch__panels">
+        <!-- ================= APPOINTMENTS ================= -->
+        <section id="panel-appointments" class="sch__panel" role="tabpanel"
+          aria-labelledby="tab-appointments" data-testid="sch--panel-appointments">
+          <!-- ================= TOOLBAR: date nav · view switch =================== -->
+          <div class="sch__toolbar">
+            <!-- Today, then the period and the two ways to step it. "Today" sits
+                 OUTSIDE the stepper because it is not a step: it jumps, and a
+                 jump reading as the middle of a < · > run would be the one
+                 control on the bar whose neighbours do not describe it. The
+                 date itself is the label between the chevrons, so the thing
+                 being changed is between the two controls that change it. -->
+            <ui-button variant="outline" size="sm" data-testid="sch--today">Today</ui-button>
+
+            <div class="sch__stepper">
+              <ui-button variant="tertiary" size="sm" icon-only icon="caret-left"
+                label="Previous period" data-testid="sch--prev"></ui-button>
+              <h2 class="sch__range-title" data-testid="sch--range" aria-live="polite"></h2>
+              <ui-button variant="tertiary" size="sm" icon-only icon="caret-right"
+                label="Next period" data-testid="sch--next"></ui-button>
+            </div>
+
+            <div class="sch__spacer"></div>
+
+            <div class="sch__views">
+              <!-- Day / Week / Month. Drives the calendar grid, and the span of
+                   dates the list shows, so the two views never disagree.
+
+                   Three exclusive periods, all three worth showing at once, so
+                   a segmented strip rather than a select: the select spent a
+                   click saying what the strip says standing still. -->
+              <div class="sch__seg sch__seg--range" role="group" aria-label="Period"
+                data-testid="sch--f-range">
+                <button type="button" class="sch__seg-btn" data-range="day"
+                  aria-pressed="false" data-testid="sch--range-day">Day</button>
+                <button type="button" class="sch__seg-btn" data-range="week"
+                  aria-pressed="true" data-testid="sch--range-week">Week</button>
+                <button type="button" class="sch__seg-btn" data-range="month"
+                  aria-pressed="false" data-testid="sch--range-month">Month</button>
+              </div>
+
+              <!-- List / Calendar. Icon-only: the two glyphs are the two
+                   shapes of the thing underneath, and next to a strip that IS
+                   words the pair reads as a different kind of switch — which
+                   is exactly what it is. The words stay for screen readers. -->
+              <div class="sch__seg sch__seg--view" role="group" aria-label="View">
+                <button type="button" class="sch__seg-btn sch__seg-btn--icon" data-view="list"
+                  aria-pressed="true" title="List" data-testid="sch--view-list">
+                  <svg class="ui-icon" aria-hidden="true"><use href="#i-document"></use></svg>
+                  <span class="u-sr-only">List</span>
+                </button>
+                <button type="button" class="sch__seg-btn sch__seg-btn--icon" data-view="calendar"
+                  aria-pressed="false" title="Calendar" data-testid="sch--view-calendar">
+                  <svg class="ui-icon" aria-hidden="true"><use href="#i-calendar"></use></svg>
+                  <span class="u-sr-only">Calendar</span>
+                </button>
+              </div>
+
+              <!-- Prints what is on screen: this view, this period, these filters. -->
+              <ui-button variant="outline" size="sm" icon="printer" id="printSchedule"
+                data-testid="sch--print">Print schedule</ui-button>
+            </div>
+          </div>
+
+          <main class="sch__body">
+            <!-- ================= LIST VIEW ================= -->
+            <section id="listView" class="sch__view ui-table-card" data-testid="sch--list"
+              aria-label="Scheduled appointments, list">
+              <ui-data-table id="apptTable" data-testid="sch--table"></ui-data-table>
+              <div id="listEmpty" class="sch__empty" hidden data-testid="sch--empty">
+                <svg class="ui-icon" aria-hidden="true"><use href="#i-calendar"></use></svg>
+                <p>No appointments match these filters in this period.</p>
+              </div>
+              <!-- The pager every other table in the product now uses
+                   (js/lib/pagination.js): rows-per-page, the range in words,
+                   and the numbered run. A period can hold three hundred
+                   bookings, and until now the list drew all of them and let
+                   the browser cope.
+
+                   It REPLACES the strip that used to sit under it. That
+                   strip said "62 appointments · 3 Aug to 9 Aug" beside the
+                   toolbar that already says the period and a tab count that
+                   already says the number — two rows of chrome for one fact
+                   the pager states better, in the row that has to be there
+                   anyway. -->
+              <div id="foot" class="sch__pager"></div>
+            </section>
+
+            <!-- ================= CALENDAR VIEW ================= -->
+            <section id="calendarView" class="sch__view" hidden data-testid="sch--calendar"
+              aria-label="Scheduled appointments, calendar">
+              <div id="calBody" class="sch__cal-host"></div>
+              <!-- Two marks, because there are two. Bookable hours are plain
+                   paper now rather than a green-edged band, so "Available"
+                   was a swatch of nothing explaining itself. -->
+              <div class="sch__legend">
+                <span class="sch__legend-item sch__legend-item--blocked">Block day</span>
+                <span class="sch__legend-item sch__legend-item--closed">Outside availability</span>
+                <span class="sch__spacer"></span>
+                <a class="sch__legend-link" href="appointment-settings.html">
+                  Availability is configured in Settings → Appointment →
+                </a>
+              </div>
+            </section>
+          </main>
+        </section>
+
+        <!-- ================= VISIT NOTES =================
+             The documentation side of the same list: every visit the clinic has
+             actually had, and whether its note has been written and signed. Not a
+             period view — a note owed three weeks ago is still owed, so paging it
+             by week would be the fastest way to lose one. Unsigned and Signed are
+             separate tabs because they are separate jobs: one is a queue to work
+             through, the other is a record to look things up in. -->
+        <section id="panel-visit-notes" class="sch__panel" role="tabpanel"
+          aria-labelledby="tab-visit-notes" hidden data-testid="sch--panel-visit-notes">
+          <!-- Unsigned and Signed ARE the heading. A "Encounters" title with a
+               sentence under it and the two lists parked in a rail down the
+               left spent a column of width and two rows of height saying what
+               the tab strip above already said. The strip names the two jobs —
+               a queue to work through and a record to look things up in — and
+               carries each one's count, which the rail never did.
+
+               SECONDARY level, and INSIDE the panel. It switches which rows
+               show in this section, so it belongs to the table rather than to
+               the screen — drawn above the panel it read as a second
+               screen-level control competing with the strip in the header, and
+               it cost a band of its own to say so. Inside the edge that closes
+               around the tabs and the rows together there is no question what
+               it acts on, which is the shape the patient portal's Current /
+               Past switch already uses over its own table.
+
+               It is a SEGMENT there rather than an underline, and that is what
+               keeps the two levels apart: the strip in the header row is a
+               divided box with the open section tinted, this one is a pill
+               riding a sunk track — the same switch the Day / Week / Month
+               period uses on the Appointments tab. Two DIFFERENT shapes, so
+               neither reads as a copy of the other. -->
+          <h2 class="u-sr-only">Encounters</h2>
+
+          <main class="sch__body">
+            <!-- One edge around the switch, the rows and the count. The tables
+                 keep .ui-table-card for the scroll behaviour they take from it;
+                 the border and the corners are the card's now. -->
+            <div class="sch__card">
+              <div class="sch__subtabs">
+                <ui-tabs selected="unsigned" id="vnTabs" data-testid="sch--vn-tabs">
+                  <ui-tab value="unsigned" label="Unsigned"></ui-tab>
+                  <ui-tab value="signed" label="Signed"></ui-tab>
+                </ui-tabs>
+              </div>
+
+              <div id="panel-unsigned" class="sch__view ui-table-card" role="tabpanel"
+                aria-labelledby="tab-unsigned" data-testid="sch--vn-unsigned">
+                <ui-data-table id="vnUnsignedTable" data-testid="sch--vn-unsigned-table"></ui-data-table>
+                <div id="vnUnsignedEmpty" class="sch__empty" hidden
+                  data-testid="sch--vn-unsigned-empty">
+                  <svg class="ui-icon" aria-hidden="true"><use href="#i-check"></use></svg>
+                  <p>Nothing is waiting to be signed.</p>
+                </div>
+              </div>
+
+              <div id="panel-signed" class="sch__view ui-table-card" role="tabpanel"
+                aria-labelledby="tab-signed" hidden data-testid="sch--vn-signed">
+                <ui-data-table id="vnSignedTable" data-testid="sch--vn-signed-table"></ui-data-table>
+                <div id="vnSignedEmpty" class="sch__empty" hidden
+                  data-testid="sch--vn-signed-empty">
+                  <svg class="ui-icon" aria-hidden="true"><use href="#i-document"></use></svg>
+                  <p>No signed notes yet.</p>
+                </div>
+              </div>
+
+              <div class="pt__foot">
+                <span data-testid="sch--vn-range"></span>
+              </div>
+            </div>
+          </main>
+        </section>
+
+        <!-- ================= WAIT LIST =================
+             Standing requests, not bookings. Nothing here is reserved and
+             nobody is expected — which is why it is its own list rather than
+             appointments with a flag on them. The list pays for itself at a
+             cancellation, so the calendar reads it too. -->
+        <section id="panel-waitlist" class="sch__panel" role="tabpanel"
+          aria-labelledby="tab-waitlist" hidden data-testid="sch--panel-waitlist">
+          <!-- The title and its sentence are gone, for the same reason they
+               went from Encounters: the tab that is lit in the header already
+               says Wait List, and a heading repeating it under the strip spent
+               two rows of table to say it twice. What the sentence explained —
+               that these are standing requests offered first when a slot frees
+               up — is what the wait list IS, not something a reader can act on
+               here, and the comment above is where that belongs.
+
+               No sub-tabs: one list, undivided. The panel is the table alone,
+               inside the same edge Encounters draws around its switch and its
+               rows, so the two tabs are the same object with and without a
+               control at its top. -->
+          <h2 class="u-sr-only">Wait List</h2>
+
+          <main class="sch__body">
+            <div class="sch__card">
+              <div id="panel-wl-list" class="sch__view ui-table-card" data-testid="sch--wl-list">
+                <ui-data-table id="wlTable" data-testid="sch--wl-table"></ui-data-table>
+                <div id="wlEmpty" class="sch__empty" hidden data-testid="sch--wl-empty">
+                  <svg class="ui-icon" aria-hidden="true"><use href="#i-users"></use></svg>
+                  <p>Nobody is waiting. Add a patient when there is no slot to offer them.</p>
+                </div>
+              </div>
+
+              <div class="pt__foot">
+                <span data-testid="sch--wl-range"></span>
+              </div>
+            </div>
+          </main>
+        </section>
+      </div>
+    </div>
+
+    <!-- ================= APPOINTMENT DETAILS =================
+         What the front desk sees when starting a visit: who is arriving, what
+         they are booked for, which forms are outstanding, what to collect and
+         whether their cover is good. The provider can be swapped here, because
+         whoever actually takes the clinic is often not who was booked. -->
+    <ui-modal id="startModal" heading="Appointment Details" size="md" variant="drawer">
+      <div id="startBody" data-testid="sch--detail"></div>
+
+      <div class="ui-modal__actions">
+        <ui-button variant="tertiary" id="dClose" data-testid="sch--d-close">Close</ui-button>
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="outline" id="dEdit" data-testid="sch--d-edit">Edit</ui-button>
+        <!-- The verification sheet used to be reachable from here on its own;
+             it is now step 2 of Complete Check In (consent → checklist →
+             anaesthesia management), so there is nothing left for a separate
+             button to do.
+
+             The label is not fixed: `text` is set on open and on every status
+             change, so a patient already through the door is offered the step
+             they are actually at rather than a check-in they have had. -->
+        <ui-button variant="primary" id="dCheckIn" data-testid="sch--d-checkin">
+          Complete Check In
+        </ui-button>
+      </div>
+    </ui-modal>
+
+    <!-- ================= TRIAGE =================
+         A nurse's pass over a checked-in Clinical visit before the provider's
+         encounter: vitals, current medications, a note for the provider —
+         taken against the reason the booking already carries, which the
+         drawer prints rather than asks for. No Assessments/Screening here —
+         that stays out of this panel by design. Row action: "Start Triage" / "View Triage" on a
+         checked-in Clinical appointment (rowMenu() in scheduler.js). -->
+    <ui-modal id="triageModal" heading="Triage" size="lg" variant="drawer">
+      <div id="triageBody" data-testid="sch--triage"></div>
+
+      <div class="ui-modal__actions">
+        <ui-button variant="tertiary" id="triageDraft" data-testid="sch--triage-draft">
+          Save as Draft
+        </ui-button>
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="primary" id="triageComplete" data-testid="sch--triage-complete">
+          Complete Triage
+        </ui-button>
+      </div>
+    </ui-modal>
+
+    <!-- ================= TRIAGE: VITALS =================
+         The seven readings used to unfold inside the drawer, under the
+         section heading, which meant the pass grew a foot longer the moment
+         the nurse started taking them and its steps stopped being visible at
+         once. They are captured in a window of their own now: the
+         drawer keeps its shape, and taking a set of observations gets the
+         whole screen for the two minutes it takes.
+
+         Centred rather than a second drawer. The triage drawer is already
+         against the right edge; a panel sliding out over it from the same
+         side reads as the same surface changing its mind, where a window in
+         the middle reads as a step taken on top of the pass and handed back.
+
+         Pain is NOT in here — it stays on the drawer, always on screen. See
+         the Pain Level block in renderTriageBody for why. -->
+    <ui-modal id="triageVitalsModal" heading="Check Vitals" size="md">
+      <div id="triageVitalsBody" data-testid="sch--triage-vitals-body"></div>
+
+      <div class="ui-modal__actions">
+        <ui-button variant="tertiary" id="triageVitalsCancel" data-testid="sch--triage-vitals-cancel">
+          Cancel
+        </ui-button>
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="primary" id="triageVitalsSave" data-testid="sch--triage-vitals-save">
+          Save Vitals
+        </ui-button>
+      </div>
+    </ui-modal>
+
+    <!-- ================= TRIAGE: CURRENT MEDICATION =================
+         The mini-form and the running list it builds, in their own window for
+         the same reason as the vitals. A medication list is often five or six
+         rows long, and six rows unfolding inside the drawer pushed the Note
+         step off the bottom of it.
+
+         The list lives HERE and only here — one place for a row to be read
+         and removed. What the drawer shows while the window is shut is the
+         summary line under the section heading. -->
+    <ui-modal id="triageMedModal" heading="Current Medication" size="lg">
+      <div id="triageMedBody" data-testid="sch--triage-med-body"></div>
+
+      <div class="ui-modal__actions">
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="primary" id="triageMedDone" data-testid="sch--triage-med-done">
+          Done
+        </ui-button>
+      </div>
+    </ui-modal>
+
+    <!-- ================= APPOINTMENT FORM =================
+         Field set and section order follow the gGastro Appointment form:
+         the booking core, Resources (providers, staff, referring physicians,
+         area, equipment), Other (notes), Eligibility history, and a billing
+         rail down the right-hand side. -->
+    <!-- CENTRED, NOT A DRAWER.
+         A drawer earns its place when the form is filled in against the list
+         behind it — and this one is not. Booking asks for a patient, a
+         clinician, a day and a time, and every one of those answers comes from
+         inside the dialog: the open slots are computed here, not read off the
+         calendar. So the page behind was costing a third of the window to show
+         a table nobody consults while booking, and the form paid for it by
+         running two screens deep in a 52rem column. Centred, it has the width
+         to put three fields on a line and the day beside its own times, and it
+         fits without scrolling. -->
+    <!-- ONE HEADING, both ways in. The dialog used to be re-titled from
+         script — "New Appointment" when booking, "Appointment — Andi Lane"
+         when editing — so the same form announced itself as two different
+         things and the edit one repeated a name the Patient field already
+         holds three rows below. The heading is the markup's now, and it says
+         what the dialog is. -->
+    <ui-modal id="apptModal" heading="Appointment" size="xl">
+      <form class="appt" id="apptForm">
+        <!-- What kind of booking is this? Asked before anything else, because
+             the field set below depends on the answer. -->
+        <ui-radio-group
+          id="mKind"
+          label="Care Type"
+          inline
+          value="Clinical"
+          options="Clinical,Procedure,Infusion"
+          data-testid="sch--m-kind"
+        ></ui-radio-group>
+
+        <div class="appt__cols">
+          <div class="appt__main">
+            <!-- ===================== CLINICAL ===================== -->
+            <div id="kindClinical" class="appt__kind" data-testid="sch--m-clinical">
+            <div class="appt__grid">
+              <!-- Same wording as the procedure form's patient picker: one
+                   patient per appointment, and a picker rather than a search. -->
+              <ui-select id="mPatient" class="appt__field-wide" label="Patient" required
+                placeholder="Select one patient" data-testid="sch--m-patient"></ui-select>
+              <!-- The two answers that decide which times exist, on one line
+                   directly above the panel that shows them. One provider,
+                   chosen here rather than in a Resources list below: the slots
+                   are THIS provider's, so the question has to be answered
+                   before there is anything to show. Booking is one patient with
+                   one clinician; a co-provider list was offering a second
+                   answer to a question that only has one.
+
+                   Location used to be the third answer on this line. It is not
+                   asked any more (RM-003's sibling, RM-024): the practice runs
+                   one clinic and one ASC, and which of the two a booking
+                   belongs to follows from the care type without anybody
+                   choosing — clinical and infusion happen at the clinic,
+                   procedures at the ASC. The booking still CARRIES a location,
+                   because the calendar filter, the wait list and the details
+                   drawer all read it; it is derived in
+                   js/screens/scheduler.js rather than typed. -->
+              <ui-select id="mType" label="Activity" required
+                placeholder="Select activity" data-testid="sch--m-type"></ui-select>
+              <!-- Provider is on this form for a CLINICAL booking only. An
+                   infusion names nobody: the unit assigns whoever is on the
+                   floor when the patient arrives, at check-in. The control is
+                   taken out of the document for that care type rather than
+                   hidden — see syncProviderField() in js/screens/scheduler.js
+                   — because a hidden field still holds an answer the desk was
+                   never shown. -->
+              <ui-select id="mProvider" label="Provider" required
+                placeholder="Select provider" data-testid="sch--m-provider"></ui-select>
+
+              <!-- Is this person coming in or dialling in? Asked on the
+                   booking rather than inferred from the activity's name: the
+                   details drawer and the calendar both print a mode, and up
+                   to now both were guessing it from whether the word
+                   "virtual" happened to appear in the appointment type. A
+                   clinic visit and an infusion can each go either way, so the
+                   booking is where the answer belongs — which is why the
+                   field sits on the form the two of them share and not on the
+                   procedure set, where there has only ever been one answer. -->
+              <ui-select id="mMode" label="Appointment Mode"
+                options="In person,Telehealth" value="In person"
+                data-testid="sch--m-mode"></ui-select>
+
+              <!-- BOTH CARE TYPES THIS FIELD SET SERVES.
+                   A clinic visit names an exam room and an infusion names a
+                   bay, and both are asked here because both are asked: the
+                   room is written on the booking so the desk knows what it has
+                   given away and the patient can be told before they arrive.
+                   The procedure set asks the same question in its own grid.
+
+                   Typed, not picked: what the floor hands out is a number said
+                   down a corridor, and a catalogue of room names goes stale the
+                   first time the unit renumbers. Stored on the booking as
+                   `area`, which is the key the encounter header, the visit
+                   facility line and the chart's appointment table already
+                   read. -->
+              <ui-input id="mRoom" label="Room Number"
+                placeholder="e.g. Clinic Room 2"
+                data-testid="sch--m-room"></ui-input>
+            </div>
+
+            <!-- ---------------- WHEN ----------------
+                 The day and the time are one question and now they are one
+                 panel: a month on the left, that day's open slots on the
+                 right, the way every consumer booking flow this desk has ever
+                 used asks it.
+
+                 They used to be a <ui-input type="date"> up in the grid and a
+                 bordered box of times further down, with a Duration field and
+                 its hint sitting between them — so changing the day meant
+                 typing into a field at the top and then reading the answer
+                 below the fold. Duration has gone with them: it was a disabled
+                 box that could only ever restate the activity, and the slot
+                 panel already says "30 min" next to the times it is offering.
+
+                 The wait list lives here for the same reason it exists — it is
+                 what the desk reaches for when none of these times will do.
+
+                 NO CHECKS UNDER THE TIMES. A block day, a booking outside the
+                 provider's configured hours and a double booking used to be
+                 reported as <ui-alert>s in this column. They warned about
+                 things the desk had already decided: opening an existing
+                 booking that was deliberately made outside those hours put two
+                 orange banners under a time nobody was changing, which reads
+                 as a form full of errors rather than as a booking being
+                 edited. The times on offer are already only the ones that fit
+                 — openSlots() cuts the day by the provider's hours, drops the
+                 block days and drops what is already taken — so the panel
+                 shows the answer instead of narrating the exceptions. -->
+            <section class="appt__when" id="mWhen" data-testid="sch--m-when">
+              <div class="appt__when-cal">
+                <span class="appt__when-label" id="mDateLabel">
+                  Date<span class="ui-field__required" aria-hidden="true"> *</span>
+                </span>
+                <ui-date-picker id="mDate" hide-today class="appt__picker"
+                  aria-labelledby="mDateLabel" data-testid="sch--m-date"></ui-date-picker>
+              </div>
+
+              <div class="appt__when-times">
+                <!-- The second field in the panel, labelled like the first.
+                     The box used to carry its own TIME eyebrow inside itself,
+                     which put the two halves of one panel on two different
+                     baselines — the month grid started a label's height lower
+                     than the times beside it. Said out here, the labels line
+                     up and so do the two boxes under them. -->
+                <span class="appt__when-label" id="mTimeLabel">
+                  Time<span class="ui-field__required" aria-hidden="true"> *</span>
+                </span>
+                <div id="mSlots" class="appt__slots" role="group"
+                  aria-labelledby="mTimeLabel" data-testid="sch--m-slots"></div>
+              </div>
+            </section>
+
+            <!-- ADD TO WAIT LIST SITS OUTSIDE THE WHEN PANEL, NOT INSIDE IT.
+
+                 It used to be the last thing in the times column, pinned to
+                 the bottom edge of the month grid. The reasoning was that
+                 "none of these times will do" is answered where the times are
+                 — but what it produced was a booking decision dressed as part
+                 of the date question. Inside the sunken panel the checkbox
+                 inherited the panel's job: on a day with no provider picked
+                 yet the times column collapses, and the wait list collapsed
+                 with it, so the one control that does not depend on a date
+                 was the one a blank date took off the screen. It also read as
+                 a modifier on the chosen slot rather than as the alternative
+                 to choosing one at all.
+
+                 Out here it is what it is: a fact about the booking, asked
+                 after when and before why, visible whether or not there is a
+                 single time on offer above it.
+
+                 Clinical and Infusion only. Infusion books through this field
+                 set, so both care types that queue for chair or room time can
+                 be waitlisted; the procedure set below deliberately has no
+                 equivalent, because a scope list is deferred by its Status
+                 rather than by joining a queue.
+
+                 Which is why it is also hidden here whenever the Activity
+                 above names procedure work — working as the ASC entity this
+                 dropdown offers the ASC's own types, and the care type alone
+                 would let a colonoscopy in through the side door. See
+                 syncWaitlistOption(). -->
+            <ui-checkbox id="mWaitList" class="appt__waitlist"
+              data-testid="sch--m-waitlist">
+              Add to wait list
+            </ui-checkbox>
+
+            <!-- THE WINDOW, ASKED ONLY ONCE THE ANSWER MATTERS.
+                 A patient going onto the queue is not booked into a slot —
+                 they are available BETWEEN two dates, and that pair is what
+                 the desk reads back when a slot frees up. Asked here, under
+                 the box that just said "wait list", rather than as two date
+                 fields standing on every booking that will never join one.
+                 Hidden until the box is ticked, and emptied again when it is
+                 cleared — see syncWaitlistRange(). -->
+            <div class="appt__grid appt__grid--2" id="mWaitRange" hidden
+              data-testid="sch--m-wait-range">
+              <ui-input id="mWaitFrom" type="date" label="First date they can come"
+                data-testid="sch--m-wait-from"></ui-input>
+              <ui-input id="mWaitTo" type="date" label="Last date they can come"
+                data-testid="sch--m-wait-to"></ui-input>
+            </div>
+
+            <!-- The complaint in the patient's words and the diagnosis it is
+                 coded to are two different facts, so they are two fields — but
+                 they are one answer to one question, and they are stored as a
+                 single reason string because that is what billing and the
+                 details drawer read. Side by side, on the width a centred
+                 dialog has, they are read as the pair they are and cost one
+                 row instead of two. The procedure panel asks the same question
+                 with the same controls. -->
+            <div class="appt__grid appt__grid--2">
+              <ui-textarea id="mReason" label="Chief Complaint" rows="2"
+                placeholder="Reason for the visit" data-testid="sch--m-reason"></ui-textarea>
+              <ui-icd10 id="mIndication" label="Indication (Diagnosis)" multiple
+                suggest="common" suggest-label="Common indications"
+                data-testid="sch--m-indication"></ui-icd10>
+            </div>
+
+            <!-- ---------------- Resources ----------------
+                 One field per kind, each of them a multi-select.
+
+                 Every one of these lists used to be a stack of single-answer
+                 pickers that you grew a row at a time with a +: two nurses
+                 cost a click on +, a pick, a click on + again, and any row
+                 someone opened and then thought better of stayed behind as an
+                 empty dropdown that had to be deleted. They are all the same
+                 question — "which of these are on this booking?" — and this
+                 product already answers that question with <ui-select
+                 multiple> (the four filters above the calendar are the same
+                 control). One field, one panel of checkboxes, nothing to add
+                 or remove, and the closed field reads back everything chosen.
+
+                 One field is left here. Instruments went with Room
+                 (RM-025, RM-026): a clinic visit does not reserve a scope any
+                 more than it reserves an exam room — the instrument list
+                 belongs to the procedure form, where a case really is booked
+                 against a specific scope. Referring Physicians has now gone
+                 the way the procedure form's Referring Clinician went before
+                 it: who sent the patient — and is therefore owed the letter —
+                 is a directory fact, settled once where referrals are kept,
+                 not an answer the desk retypes into every booking it makes.
+                 The `referrers` key survives on the record, and an edited
+                 booking carries back whatever it already held, so no referrer
+                 recorded before this quietly disappears.
+
+                 What is left is the one thing a clinic booking genuinely
+                 carries beyond its core: who else is on it. It keeps the same
+                 three-column measure as the booking core above rather than
+                 stretching to the full width of the dialog — this grid is
+                 shared with the block above it, and a Resources row on its own
+                 geometry would pull the dialog out of alignment to fill space
+                 that reads fine empty. -->
+            <section class="appt__section">
+              <div class="appt__section-head">
+                <h3 class="appt__section-title">Resources</h3>
+              </div>
+
+              <div class="appt__grid">
+                <ui-select id="mStaff" multiple label="Staff"
+                  placeholder="Select staff" data-testid="sch--m-staff"></ui-select>
+              </div>
+            </section>
+
+            <!-- ---------------- Eligibility ----------------
+                 The check is here rather than on a billing rail because it is
+                 an action with an answer, not a fact to read: the desk runs it
+                 while the patient is on the phone, and the result decides
+                 whether the booking goes ahead as it stands. -->
+            <section class="appt__section">
+              <div class="appt__section-head">
+                <h3 class="appt__section-title">Eligibility</h3>
+                <ui-button variant="outline" size="sm" id="mCheckElig"
+                  data-testid="sch--m-check-eligibility">Check eligibility</ui-button>
+              </div>
+              <div id="mEligResult" class="appt__elig-result"
+                data-testid="sch--m-elig-result"></div>
+              <div id="mEligibility" class="appt__history" data-testid="sch--m-eligibility"></div>
+            </section>
+            </div>
+
+            <!-- ===================== PROCEDURE =====================
+                 THE SAME FORM AS CLINICAL, ASKING THE PROCEDURE'S QUESTIONS.
+
+                 This used to be four bordered cards — Procedure Information,
+                 Scheduling Details, Additional Notes, Eligibility — each with
+                 a heading of its own, its fields stacked full width inside it,
+                 and the day asked as a typed date box with a Time dropdown
+                 beside it. Booking through the Clinical set and then editing a
+                 scope list therefore looked like two different dialogs: the
+                 desk pressed Schedule Appointment and got a flat grid with a
+                 month grid in it, pressed Edit Appointment on Friday's list
+                 and got a column of boxes. Nothing about a procedure justifies
+                 the second look; it is the same booking with more to say about
+                 what is being done.
+
+                 So the panels are gone and the field set is laid out on the
+                 Clinical measure: the patient across the top, the what/who
+                 questions on one line under it, the When panel that every
+                 other booking on this screen is made in, the reason pair, and
+                 hairline sections for the rest. Every procedure-only field —
+                 the combo, the booked length, the status, the referring
+                 clinician, the notes — is still here, in the row it belongs
+                 in. Only the chrome went. -->
+            <div id="kindProcedure" class="appt__kind" hidden data-testid="sch--m-procedure">
+
+              <div class="appt__grid">
+                <!-- The catalogue pickers below carry their own "add"
+                     beneath them, so a procedure type or a provider that
+                     is not in the list yet does not send the clerk out of a
+                     half-filled form to go and create it.
+
+                     PATIENT DELIBERATELY DOES NOT. An appointment is for one
+                     patient, who is already a patient — booking is not where
+                     a record is created, and an "Add New" under a required
+                     single-value picker reads as "add another one". Someone
+                     genuinely new is registered first, in Patient, and then
+                     booked.
+
+                     "Select ONE patient", not "Search patients…": the old
+                     placeholder promised a search this control does not do.
+                     Full width, for the same reason #mPatient is — a name, an
+                     MRN and often a second identifier. -->
+                <ui-select id="qPatient" class="appt__field-wide" label="Patient" required
+                  placeholder="Select one patient"
+                  data-testid="sch--q-patient"></ui-select>
+
+                <!-- What is being done, who is doing it, and where the booking
+                     stands — the procedure form's answer to Clinical's
+                     Location / Activity / Provider line. Status is a field
+                     here rather than a row-menu-only setting because a scope
+                     list is confirmed, deferred and cancelled from the call
+                     the clerk is already on. -->
+                <!-- MORE THAN ONE PROCEDURE PER LIST ENTRY.
+
+                     A patient on the table for an upper and a lower is one
+                     booking, one sedation and one recovery — and it was being
+                     asked for as a single answer with a "Combo Procedure"
+                     dropdown underneath to carry the second. Two controls for
+                     one question, and no way at all to say three. This is the
+                     product's multiple select, the same control the Resources
+                     fields use: a panel of checkboxes, and the closed field
+                     reads back everything ticked. The booked length is the sum
+                     of what is ticked, so the slot search follows the answer.
+
+                     NO "ADD CUSTOM PROCEDURE TYPE" AND NO "ADD NEW DOCTOR".
+                     Both invited a clerk to create a catalogue entry from
+                     inside a half-filled booking — a procedure type carries a
+                     CPT code and a standard length, and a provider carries
+                     a schedule, credentials and a colour on the calendar.
+                     Neither is a thing to improvise at the desk mid-booking.
+                     They are maintained in Master and Providers, which is
+                     where the person who owns them works. -->
+                <ui-select id="qProcedure" multiple label="Procedure Type" required
+                  placeholder="Select procedure type"
+                  data-testid="sch--q-procedure"></ui-select>
+
+                <ui-select id="qDoctor" label="Provider" required
+                  placeholder="Select provider" data-testid="sch--q-doctor"></ui-select>
+
+                <ui-select id="qStatus" label="Status"
+                  data-testid="sch--q-status"></ui-select>
+
+                <!-- NO COMBO PROCEDURE FIELD. A second procedure on the same
+                     list entry is a second tick in Procedure Type above —
+                     that control is a multiple select and the booked length
+                     is the sum of everything ticked in it. A separate
+                     "Combo Procedure (optional)" dropdown was a second way to
+                     answer a question already answered, and one that could
+                     only ever carry a single extra case. -->
+
+                <!-- READ-ONLY. It is the sum of the standard lengths of the
+                     procedures ticked above, and it is stated here rather than
+                     asked because it is already answered: the catalogue says
+                     how long a colonoscopy takes, and a booking that ran to a
+                     different number would be the desk overruling the theatre
+                     list from a dropdown. Disabled rather than hidden — the
+                     length is what the slot panel underneath is searching on,
+                     and a search whose input is invisible is a search nobody
+                     can check. -->
+                <!-- Typed rather than picked, for the reason the general
+                     form's is: the centre calls the room by whatever it is
+                     called on the board that morning. Stored on `area`, the
+                     key three downstream screens already fall back to. -->
+                <ui-input id="qRoom" label="Room Number"
+                  placeholder="e.g. Endoscopy Suite A"
+                  data-testid="sch--q-room"></ui-input>
+
+                <ui-input id="qDuration" type="number" min="5" step="5" disabled
+                  label="Duration (minutes)"
+                  hint="Set by the procedures booked above"
+                  data-testid="sch--q-duration"></ui-input>
+
+                <!-- NO ROOM ON A PROCEDURE BOOKING (RM-027). The ASC gives a
+                     case whichever room comes free on the day, off the board,
+                     so a room chosen a week ahead at the desk described a plan
+                     the morning never followed. The infusion form asks for one
+                     because a chair IS reserved when the booking is made. -->
+              </div>
+
+              <!-- ---------------- WHEN ----------------
+                   The same panel the Clinical set books in: a month on the
+                   left, this provider's open starts for this length on the
+                   right. The Time <ui-select> that used to stand beside a
+                   typed date box has gone with it — it was a second control
+                   for the answer the buttons already give, kept in step with
+                   them by hand, and the booking being edited gets its own slot
+                   offered back by openSlots() so nothing is lost by dropping
+                   it. No checks under the times here either, for the reason
+                   given on the Clinical panel above. -->
+              <section class="appt__when" id="qWhen" data-testid="sch--q-when">
+                <div class="appt__when-cal">
+                  <span class="appt__when-label" id="qDateLabel">
+                    Date<span class="ui-field__required" aria-hidden="true"> *</span>
+                  </span>
+                  <ui-date-picker id="qDate" hide-today class="appt__picker"
+                    aria-labelledby="qDateLabel" data-testid="sch--q-date"></ui-date-picker>
+                </div>
+
+                <div class="appt__when-times">
+                  <!-- Labelled out here rather than inside the box, for the
+                       reason the Clinical panel is: two fields side by side
+                       start on the same line. -->
+                  <span class="appt__when-label" id="qTimeLabel">
+                    Time<span class="ui-field__required" aria-hidden="true"> *</span>
+                  </span>
+                  <div id="qSlots" class="appt__slots" role="group"
+                    aria-labelledby="qTimeLabel" data-testid="sch--q-slots"></div>
+                </div>
+              </section>
+
+              <!-- What the procedure is being done for, in the words the
+                   referral used.
+
+                   This was an ICD-10 picker (RM-028). Coding a procedure at
+                   the point of booking asked the desk to do the coder's job
+                   from a referral letter, days before anyone had looked at the
+                   patient — and the codes it produced were a guess that
+                   billing then had to check anyway. Diagnoses live in master
+                   data and are attached where they are actually determined.
+
+                   So the same <ui-textarea> the clinical set uses at mReason,
+                   asking the same question in the same words: what is this
+                   for. The stored `reason` string is unchanged in shape, which
+                   is why a booking made under the picker still reads correctly
+                   in billing and in the details drawer — it is the same field,
+                   now typed rather than looked up. -->
+              <!-- The complaint and the diagnoses it is coded to, side by
+                   side, exactly as the clinical set asks them. Both write into
+                   the one stored `reason` string, so a case reads the same way
+                   in billing and in the details drawer whichever form booked
+                   it. -->
+              <div class="appt__grid appt__grid--2">
+                <ui-textarea id="qReason" label="Chief Complaint" rows="2"
+                  placeholder="Reason for the visit"
+                  data-testid="sch--q-reason"></ui-textarea>
+                <ui-icd10 id="qIndication" label="Indication (Diagnosis)" multiple
+                  suggest="common" suggest-label="Common indications"
+                  data-testid="sch--q-indication"></ui-icd10>
+              </div>
+
+              <!-- ---------------- Resources ----------------
+                   One field, and that is the whole section: who else is on
+                   this case.
+
+                   Room used to sit here and is now typed in the block above,
+                   beside the booked length. Referring Clinician has gone from
+                   this form: a referrer is a directory record with an address
+                   and a fax number on it, and who is owed the report is settled
+                   where referrals are maintained rather than picked from a
+                   booking dialog. The `referrers` key survives on the record,
+                   carrying whatever an edited case already held, so nothing
+                   recorded before this change is dropped.
+
+                   What is left is the pair the theatre list actually needs at
+                   the point of booking — the provider, asked in the grid
+                   above, and the staff on the case, asked here. -->
+              <section class="appt__section">
+                <div class="appt__section-head">
+                  <h3 class="appt__section-title">Resources</h3>
+                </div>
+
+                <div class="appt__grid">
+                  <ui-select id="qStaff" multiple label="Staff"
+                    placeholder="Select staff"
+                    data-testid="sch--q-staff"></ui-select>
+                </div>
+              </section>
+
+              <!-- ---------------- Eligibility ---------------- -->
+              <section class="appt__section">
+                <div class="appt__section-head">
+                  <h3 class="appt__section-title">Eligibility</h3>
+                  <ui-button variant="outline" size="sm" id="qCheckElig"
+                    data-testid="sch--q-check-eligibility">Check eligibility</ui-button>
+                </div>
+                <div id="qEligResult" class="appt__elig-result"
+                  data-testid="sch--q-elig-result"></div>
+              </section>
+
+              <!-- LAST, BECAUSE IT IS WRITTEN LAST.
+
+                   Procedure Notes used to sit beside the indication, roughly
+                   two thirds of the way up the form, which put a free-text box
+                   in the middle of a run of decisions: what is being done, by
+                   whom, when, where, and with whose kit. The note is what the
+                   clerk types once all of those are settled — the sentence
+                   that starts "the list should know that…" — and reaching it
+                   meant scrolling back past the answers it is about.
+
+                   Full width rather than half. Its old neighbour was the
+                   ICD-10 picker, which is a different kind of answer and made
+                   the pair read as one question with two halves. A note is
+                   prose; prose gets the measure. -->
+              <ui-textarea id="qNotes" label="Procedure Notes" rows="3"
+                placeholder="Preparation, sedation, access or anything the list needs to know"
+                data-testid="sch--q-notes"></ui-textarea>
+            </div>
+
+            <!-- Infusion books through the Clinical field set above until it
+                 earns fields of its own. -->
+          </div>
+        </div>
+
+        <!-- Every action for this form lives here, in the shared modal action
+             row: dismiss on the left, the commit on the right.
+
+             THE SAME TWO BUTTONS WHETHER THE BOOKING IS NEW OR NOT. A red
+             "Cancel appointment" used to appear beside Close the moment an
+             existing booking was opened, which made editing a different-
+             looking dialog from booking — and put a destructive action a
+             thumb's width from the dismiss one, both reading as "cancel", in a
+             form somebody had opened to change a time. Cancelling is a status,
+             and it is set where every other status is set: the row's ⋮ menu,
+             under Change Status, which is also the only place the desk can
+             move a booking to No Show, Rescheduled or Declined. The procedure
+             field set carries the same list in its own Status field. -->
+        <div class="ui-modal__actions">
+          <ui-button variant="tertiary" id="mClose" data-testid="sch--m-close">Close</ui-button>
+          <span class="ui-modal__actions-spacer"></span>
+          <ui-button variant="primary" id="mSave" data-testid="sch--m-save">
+            Save Appointment
+          </ui-button>
+        </div>
+      </form>
+    </ui-modal>
+
+    <!-- ================= gESTIMATOR =================
+         What this visit will cost the patient, before it happens.
+
+         The patient is not a field to fill in — it is their appointment, and
+         the menu was opened on their row — so it is stated, not asked. The
+         only real question is which of their plans to estimate against, and
+         the answer appears in this same dialog rather than on a screen the
+         desk has to leave and come back from. -->
+    <ui-modal id="estimateModal" heading="gEstimator" size="md">
+      <div class="est">
+        <dl class="est__who" id="estimateWho" data-testid="sch--est-who"></dl>
+
+        <ui-select id="estPlan" label="Estimate against" required
+          placeholder="Select a plan" data-testid="sch--est-plan"></ui-select>
+
+        <div id="estResult" data-testid="sch--est-result"></div>
+      </div>
+
+      <div class="ui-modal__actions">
+        <ui-button variant="tertiary" id="estClose" data-testid="sch--est-close">Close</ui-button>
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="outline" id="estPrint" data-testid="sch--est-print">
+          Print estimate
+        </ui-button>
+      </div>
+    </ui-modal>
+
+    <!-- ================= ADD TO WAIT LIST =================
+         The same question set as the reference form, in this system's own
+         controls and grouped the way the rest of the app groups a booking:
+         who, when, where, and who is needed. The reference put SSN, MRN,
+         Gender and Type beside the name — none of them are ANSWERS, they are
+         facts about a patient already on file, so choosing the patient brings
+         them rather than asking for them again.
+
+         What is left is what a wait-list request actually is: a patient, an
+         activity, a window, and the days inside it they can attend. -->
+    <ui-modal id="wlModal" heading="Add To Wait List" size="lg" variant="drawer">
+      <form class="wl" id="wlForm">
+
+        <!-- ============ 1. WHO IS WAITING ============
+             Adding asks the question; editing has already answered it. A
+             standing request belongs to one patient for the whole of its life
+             — the wrong person is a different request, not a field to correct
+             — so the picker leaves the form once the entry exists rather than
+             sitting there greyed out, inviting a click that does nothing.
+
+             The identity strip below it is the same element in both modes, so
+             DOB, MRN, sex and phone are read from one place whether the entry
+             is a minute old or a month. -->
+        <section class="appt__section">
+          <h3 class="appt__section-title">Who is waiting</h3>
+
+          <div class="appt__grid appt__grid--2" id="wlPatientRow">
+            <ui-select id="wlPatient" label="Patient" required
+              placeholder="Search by name or MRN" data-testid="sch--wl-patient"></ui-select>
+          </div>
+
+          <div class="wl__who" id="wlFacts" data-testid="sch--wl-facts"></div>
+        </section>
+
+        <!-- ============ 2. WHAT THEY ARE WAITING FOR ============
+             Priority moved here from the patient block. It is a fact about the
+             REQUEST — how soon this particular ask should be offered a slot —
+             not about the person, and sitting beside the patient's name it
+             read as a label on the patient themselves. Four questions on a
+             two-column grid also lay out square, where three on a three-column
+             grid left the row a third empty. -->
+        <section class="appt__section">
+          <h3 class="appt__section-title">What they are waiting for</h3>
+          <div class="appt__grid appt__grid--2">
+            <ui-select id="wlActivity" label="Activity" required
+              placeholder="Select activity" data-testid="sch--wl-activity"></ui-select>
+            <ui-select id="wlProvider" label="Provider" required
+              placeholder="Select provider" data-testid="sch--wl-provider"></ui-select>
+            <ui-select id="wlLocation" label="Location" required
+              placeholder="Select location" data-testid="sch--wl-location"></ui-select>
+            <ui-select id="wlPriority" label="Priority"
+              hint="Urgent requests are offered a free slot first"
+              data-testid="sch--wl-priority"></ui-select>
+          </div>
+        </section>
+
+        <!-- ============ 3. WHEN THEY CAN COME ============
+             The rule for the whole section is said once, at the top: blank
+             means "any". It used to be printed twice, under Earliest time and
+             again under Latest time, which is how a reader learns to skip
+             hints rather than read them.
+
+             What the section is really for sits at the foot of it: six
+             controls describe one arrangement, and the recap is that
+             arrangement read back in the words the desk will use. -->
+        <section class="appt__section">
+          <div class="appt__section-head">
+            <h3 class="appt__section-title">When they can come</h3>
+          </div>
+
+          <div class="appt__grid appt__grid--2">
+            <ui-input id="wlFrom" type="date" label="First date they can come" required
+              data-testid="sch--wl-from"></ui-input>
+            <ui-input id="wlTo" type="date" label="Last date they can come" required
+              data-testid="sch--wl-to"></ui-input>
+          </div>
+
+          <div class="appt__grid appt__grid--2">
+            <ui-input id="wlStart" type="time" label="Earliest time"
+              data-testid="sch--wl-start"></ui-input>
+            <ui-input id="wlEnd" type="time" label="Latest time"
+              data-testid="sch--wl-end"></ui-input>
+          </div>
+
+          <!-- NO DAY-OF-THE-WEEK PICKER.
+               Seven checkboxes were asked of every request and answered on
+               almost none, and the ones that were answered narrowed a queue
+               nothing reads by weekday. The window is the constraint that
+               matters, and now that a real slot can be picked out of it
+               below, "which weekdays suit" is answered by which slot the
+               desk chooses. -->
+
+          <!-- ============ SELECT SLOT ============
+               The window says when the patient COULD come; this says which
+               of those times is actually free. Every open start in the
+               provider's hours between the first and last date, at the
+               activity's own length, each one carrying its date as well as
+               its time — because a wait-list slot two weeks out is nothing
+               without the day attached to it.
+
+               Optional. A request with no slot picked is the queue behaving
+               as it always has: the desk rings round when something frees
+               up. A request WITH one is the desk having found the answer
+               while the patient was still on the phone. -->
+          <div class="wl__slots-field">
+            <span class="wl__slots-label" id="wlSlotLabel">Select Slot</span>
+            <div id="wlSlots" class="wl__slots" role="group"
+              aria-labelledby="wlSlotLabel" data-testid="sch--wl-slots"></div>
+          </div>
+
+          <!-- The form said back to the person filling it in. The controls
+               describe one instruction to the desk — "offer between 30 Jul
+               and 27 Aug, mornings only" — and reading that instruction off
+               each of them is work. Reading it off one line is not. -->
+          <p class="wl__recap" id="wlRecap" data-testid="sch--wl-recap" aria-live="polite"></p>
+        </section>
+
+        <section class="appt__section">
+          <h3 class="appt__section-title">Other</h3>
+          <ui-textarea id="wlNote" label="Note" rows="2"
+            placeholder="Anything the desk should know when offering a slot"
+            data-testid="sch--wl-note"></ui-textarea>
+        </section>
+
+        <div class="ui-modal__actions">
+          <ui-button variant="tertiary" id="wlCancel" data-testid="sch--wl-cancel">Cancel</ui-button>
+          <span class="ui-modal__actions-spacer"></span>
+          <!-- Two commit buttons, one shown at a time. <ui-button> takes its
+               label from its own text once, so swapping the words at runtime
+               would mean reaching past the component; showing the right
+               button is the same result with no trickery. -->
+          <ui-button variant="primary" id="wlSave" data-testid="sch--wl-save">
+            Add To Wait List
+          </ui-button>
+          <ui-button variant="primary" id="wlUpdate" hidden data-testid="sch--wl-update">
+            Save Changes
+          </ui-button>
+        </div>
+      </form>
+    </ui-modal>
+
+    <!-- ================= BOOK THIS DAY =================
+         Asked when a day is picked on the calendar. A free slot is the only
+         moment a wait list is worth anything, and that moment happens on the
+         schedule — so the schedule asks rather than making the desk remember
+         there is a list on another tab. -->
+    <ui-modal id="bookChoiceModal" heading="Schedule" size="sm">
+      <div class="wl__choice">
+        <p class="wl__choice-lead" id="choiceLead" data-testid="sch--choice-lead"></p>
+
+        <button type="button" class="wl__choice-option" id="choiceNew"
+          data-testid="sch--choice-new">
+          <svg class="ui-icon" aria-hidden="true"><use href="#i-plus"></use></svg>
+          <span>
+            <strong>New appointment</strong>
+            <small>Book a patient who is not waiting for a slot.</small>
+          </span>
+        </button>
+
+        <button type="button" class="wl__choice-option" id="choiceWait"
+          data-testid="sch--choice-wait">
+          <svg class="ui-icon" aria-hidden="true"><use href="#i-users"></use></svg>
+          <span>
+            <strong>Select from wait list</strong>
+            <small id="choiceWaitCount">Offer this slot to someone already waiting.</small>
+          </span>
+        </button>
+
+        <!-- The old behaviour, kept: clicking a month cell used to drill into
+             that day, and losing it would cost a route the desk already has in
+             its fingers. -->
+        <button type="button" class="wl__choice-option wl__choice-option--quiet"
+          id="choiceOpen" data-testid="sch--choice-open">
+          <svg class="ui-icon" aria-hidden="true"><use href="#i-calendar"></use></svg>
+          <span>
+            <strong>Just open this day</strong>
+            <small>Look at the day without booking anything.</small>
+          </span>
+        </button>
+      </div>
+
+      <div class="ui-modal__actions">
+        <ui-button variant="tertiary" id="choiceCancel" data-testid="sch--choice-cancel">
+          Cancel
+        </ui-button>
+      </div>
+    </ui-modal>
+
+    <!-- ================= PICK FROM THE WAIT LIST ================= -->
+    <ui-modal id="wlPickModal" heading="Select from wait list" size="lg">
+      <div id="wlPickBody" data-testid="sch--wl-pick"></div>
+
+      <div class="ui-modal__actions">
+        <ui-button variant="tertiary" id="wlPickCancel"
+          data-testid="sch--wl-pick-cancel">Cancel</ui-button>
+      </div>
+    </ui-modal>
+
+    <!-- ================= INSTANT APPOINTMENT =================
+         The patient is already standing at the desk. Booking them a slot for
+         later and then immediately opening it is two jobs to do one thing, so
+         this asks the only two questions an encounter cannot start without —
+         what kind of care, and who — and goes straight in.
+
+         The booking is still made. An encounter with no appointment behind it
+         has nothing to bill, nothing for the day list to show and nothing for
+         check-out to close, so "instant" means the paperwork is written for
+         the desk rather than skipped. -->
+    <ui-modal id="instantModal" heading="Instant Appointment" size="md">
+      <div class="sch__instant">
+        <p class="wl__choice-lead">
+          For a patient who is here now — booked against today, and the
+          encounter opens straight away.
+        </p>
+
+        <!-- STEP 1 — care type.
+
+             radiogroup rather than three plain buttons: these are one choice
+             with three answers, and a screen reader should hear "2 of 3", not
+             three unrelated buttons. Filled from APPOINTMENT_KINDS, the same
+             list the full booking form's Care Type offers, so the two can
+             never drift apart. -->
+        <div class="sch__instant-step">
+          <span class="ui-field__label" id="instantKindLabel">
+            Care type <span class="ui-field__required" aria-hidden="true">*</span>
+          </span>
+          <div
+            class="wl__choice sch__kinds"
+            id="instantKinds"
+            role="radiogroup"
+            aria-labelledby="instantKindLabel"
+            data-testid="sch--instant-kinds"
+          ></div>
+        </div>
+
+        <!-- STEP 2 — who. Hidden until step 1 is answered: the care type is
+             what decides how long the visit is and where it happens, so
+             asking for a patient first would be asking in the wrong order. -->
+        <div class="sch__instant-step sch__instant-who" id="instantWho" hidden>
+          <!-- WHAT IS BEING DONE.
+               The care type above says which of the three kinds of visit this
+               is; it does not say which activity the booking lands on, and a
+               walk-in still has to land on a real one — the day list, the
+               claim and the room board all read it. It was being chosen for
+               the desk, silently, from a hard-coded default per care type. The
+               default is still offered, pre-selected, so the fast path is one
+               glance; the field is here so a walk-in that is plainly a wound
+               check does not get filed as a consultation. -->
+          <ui-select
+            label="Activity"
+            placeholder="Select activity"
+            id="instantActivity"
+            required
+            data-testid="sch--instant-activity"
+          ></ui-select>
+
+          <ui-select
+            label="Patient"
+            placeholder="Search by name or MRN"
+            id="instantPatient"
+            required
+            data-testid="sch--instant-patient"
+          ></ui-select>
+
+          <!-- Whose encounter this becomes. Defaulted to the provider the
+               schedule is already filtered to when that is exactly one — the
+               desk has usually narrowed to the clinician they are standing
+               next to — and asked for otherwise. An encounter filed under the
+               wrong clinician is worse than one more field. -->
+          <ui-select
+            label="Provider"
+            placeholder="Select"
+            id="instantProvider"
+            required
+            data-testid="sch--instant-provider"
+          ></ui-select>
+        </div>
+
+        <!-- What is about to be created, in words, before it is created. -->
+        <p class="sch__instant-summary" id="instantSummary"
+           data-testid="sch--instant-summary" hidden></p>
+
+      </div>
+
+      <div class="ui-modal__actions">
+        <ui-button variant="tertiary" id="instantCancel"
+          data-testid="sch--instant-cancel">Cancel</ui-button>
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="primary" icon="play" id="instantStart"
+          data-testid="sch--instant-start">Start encounter</ui-button>
+      </div>
+    </ui-modal>
+  </body>
+</html>

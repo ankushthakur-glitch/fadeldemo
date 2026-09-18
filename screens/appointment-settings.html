@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MediNova EHR — Appointment Settings</title>
+    <link rel="icon" type="image/svg+xml" href="../assets/img/favicon.svg" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="../css/reset.css" />
+    <link rel="stylesheet" href="../css/tokens.css" />
+    <link rel="stylesheet" href="../css/base.css" />
+    <link rel="stylesheet" href="../css/ui-kit.css" />
+    <link rel="stylesheet" href="../css/screen-patient.css" />
+    <link rel="stylesheet" href="../css/screen-leads.css" />
+    <link rel="stylesheet" href="../css/screen-settings.css" />
+
+    <script type="module" src="../js/main.js"></script>
+    <script type="module" src="../js/screens/appointment-settings.js"></script>
+    <script src="../js/open-me-properly.js"></script>
+  </head>
+
+  <body class="pt">
+    <header class="pt__bar">
+      <img class="pt__logo" src="../assets/img/medinova-logo.svg" width="158" height="32"
+        alt="MediNova Gastroenterology Clinic" />
+      <ui-main-nav active="settings"></ui-main-nav>
+      <div class="pt__bar-actions">
+        <ui-time-clock></ui-time-clock>
+        <button type="button" class="pt__icon-action" aria-label="Notifications">
+          <svg class="ui-icon" aria-hidden="true"><use href="#i-bell"></use></svg>
+        </button>
+        <ui-avatar name="Amara Mensah" size="sm"></ui-avatar>
+      </div>
+    </header>
+
+    <div class="ui-page-head ui-page-head--flush ui-page-head--tabs set__head">
+      <div class="ui-page-head__lead">
+        <a class="ui-page-head__back ui-page-head__back--icon" href="settings.html" data-testid="apt--back" aria-label="Back to settings">
+          <svg class="ui-icon" aria-hidden="true"><use href="#i-caret-left"></use></svg>
+        </a>
+        <h1 class="ui-page-head__title">Appointment Settings</h1>
+      </div>
+
+      <!-- Each tab's controls are their own group, swapped with the tab: a
+           search box that narrows a table two tabs away is a control that
+           appears to do nothing. -->
+      <ui-tabs selected="availability" primary data-testid="apt--tabs">
+        <ui-tab value="availability" label="Availability"></ui-tab>
+        <ui-tab value="types" label="Appointment Types"></ui-tab>
+        <ui-tab value="colors" label="Appointment Status"></ui-tab>
+        <ui-tab value="cancellation" label="Cancellation Policy"></ui-tab>
+      </ui-tabs>
+
+      <div class="ui-page-head__actions" id="availabilityActions">
+        <ui-input
+          label="Search providers"
+          label-hidden
+          icon="search"
+          placeholder="Search"
+          data-testid="apt--availability-search"
+        ></ui-input>
+        <!-- A practice manager reviewing availability is nearly always
+             comparing two or three providers, not reading one — so the panel
+             ticks, and nothing ticked is what "all providers" means. -->
+        <ui-filter id="providerFilter" label="Filters" panel-label="Filter availability"
+          data-testid="apt--provider-filter">
+          <ui-filter-group name="provider" label="Provider"></ui-filter-group>
+        </ui-filter>
+      </div>
+
+      <div class="ui-page-head__actions" id="statusActions" hidden>
+        <ui-button variant="primary" icon="plus" data-testid="apt--new-status"
+          >New Status</ui-button
+        >
+      </div>
+    </div>
+
+
+    <!-- One status line for the screen. Saving or deleting a type has to
+         answer the click; a Save that changes nothing visible reads as
+         broken. -->
+
+    <main class="set__body">
+      <!-- ================= AVAILABILITY ================= -->
+      <div id="panel-availability" role="tabpanel" aria-labelledby="tab-availability">
+        <div class="ui-table-card">
+          <ui-data-table id="availabilityTable" data-testid="apt--availability-table"></ui-data-table>
+          <div id="availabilityFoot"></div>
+        </div>
+      </div>
+
+      <!-- ================= APPOINTMENT TYPES ================= -->
+      <div id="panel-types" role="tabpanel" aria-labelledby="tab-types" hidden>
+        <!-- Which practice profile's list this is. The clinic and the ASC
+             offer different types, so a rail with four rows in it has to say
+             why rather than look like a loading failure. Filled in by
+             js/screens/appointment-settings.js. -->
+        <p class="set__scope" id="typeScope" data-testid="apt--type-scope"></p>
+        <div class="set__types">
+          <aside class="set__rail">
+            <div class="set__rail-head">
+              <span>Appointment Types</span>
+              <ui-button variant="tertiary" size="xs" icon="plus" data-testid="apt--new-type"
+                >New</ui-button
+              >
+            </div>
+            <!-- A group, not a tablist. It called itself a tablist and filled
+                 itself with plain buttons, which is a critical ARIA violation —
+                 a tablist must contain tabs — and the fix is not to promote the
+                 buttons. There is already a real tab strip on this page, above,
+                 and the rail is not a second one: it selects WHICH type the
+                 panel is editing, the way a list of records does, and the
+                 detail beside it is a form rather than a tabpanel. A labelled
+                 group of buttons with aria-current on the chosen one says
+                 exactly that. -->
+            <div class="set__rail-list" id="typeRail" role="group" aria-label="Appointment types"></div>
+          </aside>
+
+          <section class="set__detail" id="typeDetail" data-testid="apt--type-detail"></section>
+        </div>
+      </div>
+
+      <!-- ================= APPOINTMENT STATUS ================= -->
+      <div id="panel-colors" role="tabpanel" aria-labelledby="tab-colors" hidden>
+        <div class="ui-table-card">
+          <ui-data-table id="colorTable" data-testid="apt--color-table"></ui-data-table>
+          <div id="colorFoot"></div>
+        </div>
+      </div>
+
+      <!-- ================= CANCELLATION POLICY =================
+           One rule, written as the sentence it is rather than as four
+           labelled fields in a grid. "If a patient cancels within 24 hours,
+           charge 100%" is how the practice states the policy to itself; a
+           form that broke it into Window / Unit / Amount / Amount type would
+           be four answers to a question nobody asks in four parts.
+
+           The controls are the blanks in that sentence, so their labels are
+           taken off screen rather than dropped — a screen reader still has to
+           be able to say what each box is. -->
+      <div id="panel-cancellation" role="tabpanel" aria-labelledby="tab-cancellation" hidden>
+        <section class="set__policy" data-testid="apt--cancellation-panel">
+          <p class="set__policy-rule">
+            <span>If a Patient cancels within</span>
+            <ui-input
+              id="cancelWindow"
+              type="number"
+              min="0"
+              label="Cancellation window"
+              label-hidden
+              value="24"
+              class="set__policy-num"
+              data-testid="apt--cancel-window"
+            ></ui-input>
+            <ui-select
+              id="cancelWindowUnit"
+              label="Cancellation window unit"
+              label-hidden
+              options="Hours,Days"
+              value="Hours"
+              class="set__policy-unit"
+              data-testid="apt--cancel-window-unit"
+            ></ui-select>
+            <span>of the appointment, charge a</span>
+            <ui-input
+              id="cancelFee"
+              type="number"
+              min="0"
+              label="Cancellation fee"
+              label-hidden
+              value="100"
+              class="set__policy-num"
+              data-testid="apt--cancel-fee"
+            ></ui-input>
+            <ui-select
+              id="cancelFeeUnit"
+              label="Cancellation fee unit"
+              label-hidden
+              options="%,$"
+              value="%"
+              class="set__policy-unit"
+              data-testid="apt--cancel-fee-unit"
+            ></ui-select>
+            <span>cancellation fee.</span>
+          </p>
+        </section>
+
+        <div class="set__policy-actions">
+          <ui-button variant="primary" id="cancelPolicySave" data-testid="apt--cancel-save"
+            >Save</ui-button
+          >
+        </div>
+      </div>
+    </main>
+
+    <!-- Delete an appointment type -->
+    <ui-modal id="typeDeleteModal" heading="Delete appointment type" size="sm">
+      <div id="typeDeleteBody"></div>
+      <div class="ui-modal__actions">
+        <ui-button variant="tertiary" data-apt-dismiss>Cancel</ui-button>
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="danger" data-testid="apt--type-delete-confirm">Delete</ui-button>
+      </div>
+    </ui-modal>
+
+    <!-- Edit colour dialog -->
+    <ui-modal id="colorModal" heading="Edit Appointment Status" size="sm" variant="drawer">
+      <div class="set__picker">
+        <ui-input label="Status Name" readonly data-testid="apt--color-name"></ui-input>
+
+        <div>
+          <span class="ui-field__label">Color</span>
+          <div>
+            <button type="button" class="set__picker-trigger" id="colorTrigger"
+                    aria-expanded="false" data-testid="apt--color-trigger">
+              <span class="ui-swatch ui-swatch--lg" id="colorPreview"></span>
+            </button>
+          </div>
+        </div>
+
+        <div class="set__palette" id="palette" hidden data-testid="apt--palette">
+          <span class="set__palette-label">Basic Colours</span>
+          <div class="set__palette-grid" id="paletteGrid" role="group" aria-label="Basic colours"></div>
+          <!-- The mixer is built by js/lib/colour-mixer.js; this is only where it lands. -->
+          <div id="colorMixer"></div>
+        </div>
+
+        <div class="ui-modal__actions">
+          <ui-button variant="outline" data-modal-dismiss data-testid="apt--color-cancel">Cancel</ui-button>
+          <span class="ui-modal__actions-spacer"></span>
+          <ui-button variant="primary" data-testid="apt--color-save">Save</ui-button>
+        </div>
+      </div>
+    </ui-modal>
+  </body>
+</html>

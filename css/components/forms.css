@@ -1,0 +1,1184 @@
+/* ============================================================================
+   Form controls: field wrapper, text input, textarea, select, checkbox,
+   radio, toggle. Default control height is 32px (Phase 0 scale).
+   ========================================================================= */
+
+/* --- Field wrapper: label + control + hint/error --------------------------- */
+
+.ui-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+/* Label row. MediNova's "Button" variant puts an action link on the right of
+   this row, level with the label — used for things like "Clear" or
+   "Use patient address". */
+.ui-field__label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-5);
+}
+
+.ui-field__label {
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  line-height: var(--line-height-caption);
+}
+
+.ui-field__required { color: var(--color-status-critical-text); }
+
+.ui-field__action {
+  flex: none;
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-brand-text);
+  background: none;
+  cursor: pointer;
+}
+.ui-field__action:hover { text-decoration: underline; }
+.ui-field__action:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* Description text. MediNova supports it above the field ("Top description")
+   or below it ("Bottom description") — the order is set in the markup. */
+.ui-field__hint {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-tertiary);
+  line-height: var(--line-height-caption);
+}
+
+/* An error line is icon + text, so it is distinguishable from a hint without
+   relying on colour alone. */
+.ui-field__hint--error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  color: var(--color-status-critical-text);
+}
+
+.ui-field__hint--error .ui-icon {
+  flex: none;
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+  margin-top: 0.1em;
+}
+
+/* --- Text input / select shell -------------------------------------------- */
+
+ui-input, ui-select, ui-textarea { display: block; min-width: 0; }
+
+.ui-input {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--control-height-md);
+  padding: 0 var(--space-4);
+  background-color: var(--color-bg-surface);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  transition: border-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.ui-input--sm { min-height: var(--control-height-sm); padding: 0 var(--space-3); }
+.ui-input--lg { min-height: var(--control-height-lg); padding: 0 var(--space-5); }
+
+/* --- States ------------------------------------------------------------------
+   Per the MediNova input component sheet: empty, filled, hover, focus, error,
+   disabled. Focus is a THIN border plus a soft halo — at 34px tall a 4px
+   two-tone ring doubled the visual weight of the field and read as an error.
+   --focus-ring in tokens.css now follows this field's lead, so a focused
+   input, button and table row all carry the same weight.
+   -------------------------------------------------------------------------- */
+
+.ui-input:hover:not(.ui-input--disabled):not(:focus-within) {
+  border-color: var(--color-border-strong);
+  background-color: var(--color-bg-surface-hover);
+}
+
+.ui-input:focus-within {
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px var(--color-brand-surface);
+}
+
+/* Error carries a tinted fill as well as the border, so a failed field is
+   findable by scanning rather than by reading every label. */
+.ui-input--error {
+  border-color: var(--color-status-critical-solid);
+  background-color: var(--color-status-critical-surface);
+}
+/* Matches the generic hover selector's specificity exactly, so that later
+   position in the file decides it. One :not() short and the grey hover wins,
+   turning an errored field neutral the moment the cursor touches it. */
+.ui-input--error:hover:not(.ui-input--disabled):not(:focus-within) {
+  border-color: var(--color-status-critical-solid);
+  background-color: var(--color-status-critical-surface);
+}
+.ui-input--error:focus-within {
+  border-color: var(--color-status-critical-solid);
+  box-shadow: 0 0 0 3px var(--color-status-critical-border);
+}
+
+.ui-input--success { border-color: var(--color-status-success-solid); }
+
+.ui-input--disabled {
+  background-color: var(--color-bg-surface-disabled);
+  border-color: var(--color-border-subtle);
+  cursor: not-allowed;
+}
+
+.ui-input--readonly { background-color: var(--color-bg-surface-sunken); }
+
+.ui-input__control {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: var(--font-size-body);
+  color: var(--color-text-primary);
+  line-height: var(--line-height-tight);
+}
+
+/* The SHELL owns the focus treatment (border + halo above). Without this the
+   control inside also picks up the global :focus-visible ring, and a focused
+   field wore two rings — one around the <select>, one around the shell — with
+   a white band between them. That stacking, not the ring itself, was what made
+   focus look heavy. */
+.ui-input__control:focus-visible { box-shadow: none; }
+
+.ui-input__control::placeholder { color: var(--color-text-tertiary); }
+.ui-input__control:disabled { color: var(--color-text-disabled); cursor: not-allowed; }
+
+/* Password reveal. Sits inside the shell so the field keeps one border and
+   one focus ring — a button beside the field would read as a second control. */
+.ui-input__reveal {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-8);
+  height: var(--space-8);
+  flex: none;
+  margin-right: calc(var(--space-2) * -1);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+}
+.ui-input__reveal:hover { color: var(--color-text-primary); background-color: var(--color-bg-surface-hover); }
+.ui-input__reveal:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.ui-input__reveal .ui-icon { width: var(--icon-size-sm); height: var(--icon-size-sm); }
+
+.ui-input .ui-icon {
+  width: var(--icon-size-md);
+  height: var(--icon-size-md);
+  color: var(--color-text-tertiary);
+  flex-shrink: 0;
+}
+
+/* Decorative icons are not click targets.
+   A leading or trailing icon sat in the flex row and absorbed clicks that
+   were plainly aimed at the field, so the field ignored them. The direct-child
+   selector deliberately spares .ui-input__reveal .ui-icon — that one IS inside
+   a button and has to stay clickable. */
+.ui-input > .ui-icon { pointer-events: none; }
+
+/* Textarea grows vertically; everything else matches the input shell. */
+.ui-input--textarea { align-items: stretch; padding: var(--space-3) var(--space-4); }
+.ui-input--textarea .ui-input__control { resize: vertical; min-height: var(--space-11); line-height: var(--line-height-normal); }
+
+/* Native select keeps its own keyboard behaviour but wears our shell. */
+.ui-input__control--select { cursor: pointer; appearance: none; }
+
+/* --- The dropdown caret ------------------------------------------------------
+   Drawn OVER the control rather than beside it.
+
+   As a flex sibling the caret occupied a real column at the right-hand end of
+   the shell, so the <select> stopped short of it. Clicking the arrow — the
+   part of a dropdown everyone aims at — landed on an inert <svg> and the menu
+   stayed shut, while clicking the text beside it worked. Positioning it out of
+   flow lets the control run the full width of the shell, and pointer-events
+   none puts the click through to the control underneath.
+
+   The control keeps a right-hand pad so a long option label runs under the
+   field's edge rather than under the arrow.
+   -------------------------------------------------------------------------- */
+
+.ui-input--select { position: relative; }
+
+.ui-input--select .ui-input__control--select {
+  padding-right: calc(var(--icon-size-md) + var(--space-2));
+
+  /* FULL HEIGHT OF THE SHELL, not the height of its own text.
+     The shell centres its children, so the control sat 21px tall in a 34px
+     field and the ~6px band above and below it was shell, not control — a
+     press there landed on the border and no list opened. The dropdown that
+     ignores every fourth click near its own edge is the one thing a field is
+     not allowed to do. Stretching it makes the whole field one target, which
+     is what the caret rule above was already trying to achieve horizontally. */
+  align-self: stretch;
+}
+
+.ui-input__caret {
+  position: absolute;
+  right: var(--space-4);
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.ui-input--sm .ui-input__caret { right: var(--space-3); }
+.ui-input--lg .ui-input__caret { right: var(--space-5); }
+
+/* --- The caret, when the field is being typed into ---------------------------
+   A <ui-select free-text> that has been stepped out of the list replaces its
+   menu with a text box, and the caret becomes the way back to the list. It is
+   the same arrow in the same place, so it has to keep the same silhouette —
+   only now it takes the click instead of passing it through.
+   -------------------------------------------------------------------------- */
+
+.ui-input__caret--button {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.ui-input__caret--button:hover { color: var(--color-text-primary); }
+
+.ui-input__caret--button:focus-visible {
+  outline: none;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--focus-ring);
+}
+
+/* The typed box needs the same right-hand pad the menu had, or a long drug
+   name runs under the arrow. */
+.ui-input--select .ui-input__control:not(.ui-input__control--select) {
+  padding-right: calc(var(--icon-size-md) + var(--space-2));
+}
+
+/* --- Checkbox + radio ------------------------------------------------------ */
+
+ui-checkbox, ui-radio { display: block; }
+
+.ui-choice {
+  /* The hidden input is absolutely positioned. Without this it resolves
+     against the nearest positioned ancestor — a dialog, a table cell — and
+     stretches invisibly across it, swallowing clicks meant for other things.
+     Same bug the toggle carries a note about further down. */
+  position: relative;
+  display: inline-flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  cursor: pointer;
+  font-size: var(--font-size-body);
+  color: var(--color-text-primary);
+  line-height: var(--line-height-snug);
+}
+
+.ui-choice--disabled { cursor: not-allowed; color: var(--color-text-disabled); }
+
+/*
+ * 20px, with a 2px edge — MediNova's measurement, and the reason the control was
+ * redrawn. It used to be 12px with a hairline: small enough that the tick
+ * inside it had about six pixels to be a tick in, and thin enough that an
+ * unticked box on a white form read as a smudge rather than as something you
+ * are being asked to answer. A consent box is a legal act; it should look like
+ * a target.
+ *
+ * No margin-top any more. The box is 18px against a 20px line of body text
+ * (14px at 1.43), so flex-start lands it on the first line by itself, near
+ * enough centred. That keeps the two-line case right — the box stays with the
+ * line it belongs to — where centring the whole block would drift it down.
+ */
+.ui-choice__box {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  /* border-box, so the size means the size. Without it the 2px edge sat
+     OUTSIDE the width and the control drew four pixels larger than every
+     comment about it claimed — 20px of box wearing a 24px footprint, which is
+     most of why it read heavy next to 14px text. */
+  box-sizing: border-box;
+  width: var(--choice-size);
+  height: var(--choice-size);
+  flex-shrink: 0;
+  border: var(--border-width-thick) solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-bg-surface);
+  transition: background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
+}
+
+.ui-choice__box--radio { border-radius: var(--radius-full); }
+
+/* Hover moves the edge to brand on both controls. It is the cheapest possible
+   "this is clickable" and the row-sized hit area gives no other clue. */
+.ui-choice:not(.ui-choice--disabled):hover .ui-choice__box {
+  border-color: var(--color-border-brand);
+}
+
+/*
+ * THE INPUT IS A SIBLING OF THE BOX, NOT ITS CHILD.
+ *
+ * It used to sit inside, which forced every state rule to be a :has(). That
+ * worked, but it spends a fairly new selector on the most ordinary job a
+ * stylesheet has — and :has() is the one part of this file a browser might not
+ * have. Sibling order is what the Figma library uses, and it reduces every
+ * state to a plain `+`, which has worked everywhere for twenty years.
+ *
+ * The <label> wrapper still makes the whole row clickable, so the input does
+ * not need to cover anything and can shrink to the 1px it takes to stay
+ * focusable.
+ */
+.ui-choice__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  opacity: 0;
+  cursor: inherit;
+}
+
+/*
+ * A CHECKBOX FILLS. A RADIO DOES NOT.
+ *
+ * They were sharing one rule, so a selected radio came out as a solid green
+ * disc — which is a checkbox that happens to be round. The two controls answer
+ * different questions and the design system draws them differently on purpose:
+ * a checkbox is a box you put a mark IN, a radio is a ring with a dot AT its
+ * centre, and the ring staying visible while selected is what tells you the
+ * other options are still there to pick instead.
+ */
+.ui-choice__input:checked + .ui-choice__box:not(.ui-choice__box--radio),
+.ui-choice__input:indeterminate + .ui-choice__box:not(.ui-choice__box--radio) {
+  background-color: var(--color-brand-solid);
+  border-color: var(--color-brand-solid);
+  color: var(--color-text-inverse);
+}
+
+.ui-choice__input:checked + .ui-choice__box--radio {
+  border-color: var(--color-border-brand);
+}
+
+.ui-choice__input:focus-visible + .ui-choice__box { box-shadow: var(--focus-ring); }
+/* A checked box is filled brand green, so the green hairline has nothing to
+   sit against — invert to a surface gap and the ring outside it. */
+.ui-choice__input:focus-visible:checked + .ui-choice__box:not(.ui-choice__box--radio) {
+  box-shadow: var(--focus-ring-solid);
+}
+
+.ui-choice__input:disabled + .ui-choice__box {
+  background-color: var(--color-bg-surface-disabled);
+  border-color: var(--color-border-subtle);
+}
+
+/*
+ * DISABLED IS NOT UNANSWERED.
+ *
+ * The rule above greys the box out, and it was winning over the checked fill —
+ * so a ticked box that had been disabled lost its green and its white tick
+ * went invisible against the grey. On an ordinary form that is a cosmetic
+ * loss. On a SIGNED, LOCKED record it is a misreading: every attestation and
+ * every ASA class reads as though nobody answered it.
+ *
+ * So a disabled control that is checked keeps saying so. Muted, because it
+ * cannot be changed — but muted is a long way from blank.
+ */
+.ui-choice__input:disabled:checked + .ui-choice__box:not(.ui-choice__box--radio) {
+  background-color: var(--color-text-disabled);
+  border-color: var(--color-text-disabled);
+  color: var(--color-text-inverse);
+}
+
+/* Same argument, drawn the radio's way: the ring and the dot both mute rather
+   than the answer disappearing. */
+.ui-choice__input:disabled:checked + .ui-choice__box--radio {
+  border-color: var(--color-text-disabled);
+}
+.ui-choice__input:disabled:checked + .ui-choice__box .ui-choice__dot {
+  background-color: var(--color-text-disabled);
+}
+
+/*
+ * Both glyphs are always in the DOM; the state decides which one is visible.
+ *
+ * Indeterminate used to show NEITHER — the box was not :checked, so the tick
+ * stayed hidden and the fill rule never fired, and a half-selected "select
+ * all" in a table header came out looking identical to an empty one. A tick
+ * would have been worse: it would claim every row is selected when only some
+ * are. The dash is the third state drawn as a third thing.
+ */
+.ui-choice__mark {
+  /* Stacked, not laid out side by side. As flex children the pair each claimed
+     12px of a 20px box, so they squeezed each other off centre and the hidden
+     one still shifted the visible one. Absolute takes both out of flow and
+     centres them on the same spot. */
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  width: var(--icon-size-xs);
+  height: var(--icon-size-xs);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Only the TICK. `.ui-choice__mark` is on both glyphs, so an unqualified rule
+   here revealed the dash underneath the tick as well and a checked box came
+   out as a tick with a line struck through it. */
+.ui-choice__input:checked + .ui-choice__box .ui-choice__mark:not(.ui-choice__mark--mixed) {
+  opacity: 1;
+}
+
+/* Mixed wins over checked: the DOM property can be set on a ticked input, and
+   "some of these" is the more specific claim of the two. */
+.ui-choice__input:indeterminate + .ui-choice__box .ui-choice__mark { opacity: 0; }
+.ui-choice__input:indeterminate + .ui-choice__box .ui-choice__mark--mixed { opacity: 1; }
+
+/* --- File upload ----------------------------------------------------------- */
+
+ui-file-upload { display: block; }
+
+.ui-upload {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-8) var(--space-6);
+  border: var(--border-width-thin) dashed var(--color-border-default);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+  text-align: center;
+  cursor: pointer;
+  transition: border-color var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
+}
+
+/* The real input covers the whole zone so a click anywhere opens the picker
+   and keyboard focus still lands on a genuine form control. */
+.ui-upload__input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: inherit;
+}
+
+.ui-upload:hover,
+.ui-upload--over {
+  border-color: var(--color-border-brand);
+  background-color: var(--color-bg-surface-hover);
+}
+
+.ui-upload:has(.ui-upload__input:focus-visible) {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.ui-upload__icon .ui-icon {
+  width: var(--icon-size-lg);
+  height: var(--icon-size-lg);
+  color: var(--color-text-tertiary);
+}
+
+.ui-upload__prompt {
+  font-size: var(--font-size-body);
+  color: var(--color-text-secondary);
+}
+
+.ui-upload__browse {
+  color: var(--color-brand-text);
+  font-weight: var(--font-weight-medium);
+  text-decoration: underline;
+}
+
+.ui-upload__meta {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-tertiary);
+}
+
+.ui-upload--filled { border-style: solid; border-color: var(--color-border-brand); }
+.ui-upload--filled .ui-upload__prompt { color: var(--color-text-primary); }
+
+.ui-upload--disabled { cursor: not-allowed; background-color: var(--color-bg-surface-disabled); }
+
+/* --- Radio group ----------------------------------------------------------- */
+
+ui-radio-group { display: block; }
+
+.ui-radio-group { border: none; padding: 0; margin: 0; min-width: 0; }
+.ui-radio-group__options { display: flex; flex-direction: column; gap: var(--space-4); padding-top: var(--space-3); }
+.ui-radio-group--inline .ui-radio-group__options { flex-direction: row; gap: var(--space-8); padding-top: 0; }
+
+/* The filled centre of a selected radio. */
+/* 8px inside a 20px ring, in brand rather than currentColor — currentColor was
+   inherited from the label, so the dot was whatever the surrounding text
+   happened to be. It scales up out of nothing rather than blinking on, which
+   is the one place a 120ms transition earns its keep: it tells you WHICH of
+   the options in the group just took the answer. */
+.ui-choice__dot {
+  width: var(--space-4);
+  height: var(--space-4);
+  border-radius: var(--radius-full);
+  background-color: var(--color-brand-solid);
+  transform: scale(0);
+  transition: transform var(--duration-fast) var(--ease-out);
+  pointer-events: none;
+}
+
+.ui-choice__input:checked + .ui-choice__box .ui-choice__dot { transform: scale(1); }
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-choice__dot { transition: none; }
+}
+
+/* --- Toggle ---------------------------------------------------------------- */
+
+ui-toggle { display: inline-flex; }
+
+.ui-toggle {
+  /* The real <input> inside is absolutely positioned. Without this, it
+     resolves against the nearest positioned ancestor — a modal dialog, say —
+     and stretches invisibly across the whole thing, swallowing every click. */
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+  cursor: pointer;
+  font-size: var(--font-size-body);
+  color: var(--color-text-primary);
+}
+
+/*
+ * Geometry lives in three variables and the travel is DERIVED from them:
+ *
+ *     travel = track width − thumb − 2 × inset
+ *
+ * The old rule hard-coded the travel as a spacing step, so the two numbers
+ * could disagree — and they did the moment a second size arrived: the small
+ * toggle set the same track as the default and then shifted the thumb by a
+ * different amount. Deriving it means a size can only be wrong in one place.
+ *
+ * 32×18 with a 14px thumb is the default. It was 36×20, which next to 14px
+ * body text sat closer to a button than to a switch — the same two pixels have
+ * come off the checkbox and the radio, so the three controls still read as one
+ * family. Below about 28×16 the thumb and the track edge close to within three
+ * pixels and the control reads as a dash rather than a switch, which is what
+ * the old 24×12 did and why --toggle-sm stops where it does.
+ */
+.ui-toggle {
+  --toggle-track-w: 2rem; /* 32px */
+  --toggle-track-h: 1.125rem; /* 18px */
+  --toggle-thumb: 0.875rem; /* 14px */
+  --toggle-inset: var(--space-1); /* 2px */
+}
+
+.ui-toggle--sm {
+  --toggle-track-w: 1.75rem; /* 28px */
+  --toggle-track-h: 1rem; /* 16px */
+  --toggle-thumb: 0.75rem; /* 12px */
+}
+
+.ui-toggle__track {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: var(--toggle-track-w);
+  height: var(--toggle-track-h);
+  border-radius: var(--radius-full);
+  background-color: var(--color-border-strong);
+  transition: background-color var(--duration-base) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
+  flex-shrink: 0;
+}
+
+.ui-toggle__thumb {
+  position: absolute;
+  left: var(--toggle-inset);
+  width: var(--toggle-thumb);
+  height: var(--toggle-thumb);
+  border-radius: var(--radius-full);
+  background-color: var(--color-bg-surface);
+  box-shadow: var(--shadow-xs);
+  transition: transform var(--duration-base) var(--ease-out);
+}
+
+.ui-toggle__input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: inherit; }
+.ui-toggle__input:checked + .ui-toggle__track { background-color: var(--color-brand-solid); }
+.ui-toggle__input:checked + .ui-toggle__track .ui-toggle__thumb {
+  transform: translateX(
+    calc(var(--toggle-track-w) - var(--toggle-thumb) - 2 * var(--toggle-inset))
+  );
+}
+.ui-toggle__input:focus-visible + .ui-toggle__track { box-shadow: var(--focus-ring); }
+/* An on toggle is filled brand green — same inversion as the checked box. */
+.ui-toggle__input:focus-visible:checked + .ui-toggle__track { box-shadow: var(--focus-ring-solid); }
+.ui-toggle__input:disabled + .ui-toggle__track { opacity: 0.45; }
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-toggle__track,
+  .ui-toggle__thumb { transition: none; }
+}
+
+/* --- ICD-10 autocomplete <ui-icd10> -----------------------------------------
+   A combobox wearing the same shell as every other field, so a form column
+   with a diagnosis picker in it still lines up.
+
+   The panel is absolutely positioned rather than laid out in flow: a list that
+   pushed the rest of the form down every time somebody typed would move the
+   next field out from under the cursor mid-search.
+   -------------------------------------------------------------------------- */
+
+ui-icd10 { display: block; min-width: 0; }
+
+.ui-icd10 { position: relative; }
+
+.ui-input--icd10 .ui-icd10__input { flex: 1 1 8rem; }
+
+/* What is attached, above the box that attaches the next one.
+   One diagnosis per row and the description in full: a code-only pill is only
+   readable to somebody who already knows the code, which is not the desk. */
+.ui-icd10__selected:empty { display: none; }
+.ui-icd10__selected {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.ui-icd10__chip {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-2) var(--space-3) var(--space-4);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-brand-surface);
+  color: var(--color-text-brand);
+  font-size: var(--font-size-caption);
+}
+
+.ui-icd10__chip-text { min-width: 0; line-height: var(--line-height-normal); }
+.ui-icd10__chip code { font-family: var(--font-family-numeric); font-variant-numeric: tabular-nums; font-size: inherit; }
+
+.ui-icd10__chip-drop {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: var(--space-6);
+  height: var(--space-6);
+  border-radius: var(--radius-full);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+}
+.ui-icd10__chip-drop:hover { color: var(--color-text-primary); background-color: var(--color-bg-surface-hover); }
+.ui-icd10__chip-drop:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.ui-icd10__chip-drop .ui-icon { width: var(--icon-size-xs); height: var(--icon-size-xs); }
+
+.ui-icd10__clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-7);
+  height: var(--space-7);
+  flex: none;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+}
+.ui-icd10__clear:hover { color: var(--color-text-primary); background-color: var(--color-bg-surface-hover); }
+.ui-icd10__clear:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.ui-icd10__clear .ui-icon { width: var(--icon-size-sm); height: var(--icon-size-sm); }
+
+/* The way in for somebody who does not know the word their code is filed
+   under. Same size and hit area as the clear × beside it, so the right-hand
+   end of the box stays one row of controls rather than two sizes of button. */
+.ui-icd10__caret {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: var(--space-7);
+  height: var(--space-7);
+  margin-right: calc(var(--space-1) * -1);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+}
+.ui-icd10__caret:hover { color: var(--color-text-primary); background-color: var(--color-bg-surface-hover); }
+.ui-icd10__caret:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.ui-icd10__caret .ui-icon { width: var(--icon-size-sm); height: var(--icon-size-sm); }
+
+.ui-icd10__panel {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + var(--space-1));
+  left: 0;
+  right: 0;
+  max-height: 17rem;
+  overflow-y: auto;
+  background-color: var(--color-bg-surface);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+}
+
+/* Over the short list only. It is there to say these eight rows are the usual
+   answers rather than the result of a search — without it, a list that appears
+   before anything is typed reads as a search that ran itself. */
+.ui-icd10__head {
+  padding: var(--space-3) var(--space-4) var(--space-1);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+.ui-icd10__list { list-style: none; margin: 0; padding: var(--space-1); }
+
+.ui-icd10__opt {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+/* Highlight follows the keyboard, not the mouse — the arrow keys are the
+   primary way through a list this long. */
+.ui-icd10__opt.is-active { background-color: var(--color-brand-surface); }
+.ui-icd10__opt:hover { background-color: var(--color-bg-surface-hover); }
+
+.ui-icd10__opt-code {
+  flex: none;
+  min-width: 4.5rem;
+  font-family: var(--font-family-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-primary);
+}
+
+.ui-icd10__opt-text {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-secondary);
+}
+
+.ui-icd10__opt mark { background-color: transparent; color: var(--color-brand-text); font-weight: var(--font-weight-medium); }
+
+/* Searching / nothing found / search is down. Three different facts, and an
+   empty box tells them apart from none of them. */
+.ui-icd10__msg {
+  padding: var(--space-4);
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-secondary);
+}
+.ui-icd10__msg--error { color: var(--color-status-critical-text); }
+
+/* --- Type-or-pick <ui-suggest> ----------------------------------------------
+   The same shell and the same panel as <ui-icd10> above, drawn separately
+   rather than shared, because the two are only the same SHAPE. That one is a
+   search over a catalogue and its rows carry a code in a numeric face beside a
+   line of prose; this one is a short list already in memory and its rows carry
+   one name. A single rule set covering both would be a rule set with a column
+   that is empty half the time.
+
+   What they do share is the reason the panel is absolutely positioned: a list
+   that pushed the rest of the form down every time somebody typed would move
+   the next field out from under the cursor mid-answer.
+   -------------------------------------------------------------------------- */
+
+ui-suggest { display: block; min-width: 0; }
+
+.ui-suggest { position: relative; }
+
+/* The caret is a real button here, so it gets a real hit target and a focus
+   ring — unlike <ui-select>'s, which is decoration over a native control. */
+.ui-suggest__caret {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: var(--space-7);
+  height: var(--space-7);
+  margin-right: calc(var(--space-1) * -1);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+}
+.ui-suggest__caret:hover { color: var(--color-text-primary); background-color: var(--color-bg-surface-hover); }
+.ui-suggest__caret:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.ui-suggest__caret .ui-icon { width: var(--icon-size-sm); height: var(--icon-size-sm); }
+
+.ui-suggest__panel {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + var(--space-1));
+  left: 0;
+  right: 0;
+  /* A starting height only. The control measures the room under the field —
+     inside a scrolling dialog body, that is often less than this — and writes
+     the real cap on the element. See #place() in ui-suggest.js. */
+  max-height: 15rem;
+  overflow-y: auto;
+  background-color: var(--color-bg-surface);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+}
+
+/* Nowhere to fall: the field is near the foot of its dialog, so the list opens
+   over what is above it instead. Set by the same measurement that caps the
+   height, never by a media query — it is about this field's position in this
+   container, which no breakpoint knows. */
+.ui-suggest__panel--up {
+  top: auto;
+  bottom: calc(100% + var(--space-1));
+}
+
+.ui-suggest__list { list-style: none; margin: 0; padding: var(--space-1); }
+
+.ui-suggest__opt {
+  display: flex;
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+
+/* Highlight follows the keyboard; hover is the mouse's own feedback and is
+   deliberately the quieter of the two, so arrowing down a list the pointer
+   happens to be resting on still has one obvious current row. */
+.ui-suggest__opt.is-active { background-color: var(--color-brand-surface); }
+.ui-suggest__opt:hover { background-color: var(--color-bg-surface-hover); }
+
+.ui-suggest__opt-text {
+  min-width: 0;
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-primary);
+}
+
+/* The run of characters that matched, in the brand colour and half a step
+   heavier — enough to find, not enough to make the rest look faded. */
+.ui-suggest__opt mark {
+  background-color: transparent;
+  color: var(--color-brand-text);
+  font-weight: var(--font-weight-medium);
+}
+
+/* Nothing matched, which on this control is an answer rather than a failure —
+   so it reads as a note, in the same grey as a hint, not as an error. */
+.ui-suggest__msg {
+  padding: var(--space-4);
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-secondary);
+}
+
+/* --- Native date and time pickers -------------------------------------------
+ * Chrome draws its OWN calendar and clock inside <input type="date"> and
+ * <input type="time">, and there are ~240 of them across these screens — the
+ * scheduler's filters, every availability grid, patient-add, the time reports.
+ * They were the last icons in the EHR not coming from the sprite, and they
+ * looked it: a different calendar sitting beside the Phosphor one the same
+ * toolbar already showed.
+ *
+ * The indicator cannot host a <use>, so the glyph is a MASK rather than an
+ * image — the same Phosphor calendar-blank and clock paths the sprite carries,
+ * painted with background-color so they take a token colour and can darken on
+ * hover like any other control. `appearance: none` is what lets the mask show
+ * instead of the platform glyph.
+ *
+ * The button itself is left alone otherwise — it is still Chrome's element and
+ * still answers the keyboard — but on a date field it no longer opens Chrome's
+ * calendar: js/lib/date-menu.js cancels the click it would have opened on and
+ * drops <ui-date-picker> under the field instead. Time fields keep the platform
+ * panel, which is why the clock glyph below still leads somewhere native.
+ * -------------------------------------------------------------------------- */
+
+input[type='date']::-webkit-calendar-picker-indicator,
+input[type='month']::-webkit-calendar-picker-indicator,
+input[type='week']::-webkit-calendar-picker-indicator,
+input[type='time']::-webkit-calendar-picker-indicator,
+input[type='datetime-local']::-webkit-calendar-picker-indicator {
+  appearance: none;
+  width: var(--icon-size-md);
+  height: var(--icon-size-md);
+  padding: 0;
+  cursor: pointer;
+  opacity: 1;
+  background-color: var(--color-text-tertiary);
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'><path d='M208%2C32H184V24a8%2C8%2C0%2C0%2C0-16%2C0v8H88V24a8%2C8%2C0%2C0%2C0-16%2C0v8H48A16%2C16%2C0%2C0%2C0%2C32%2C48V208a16%2C16%2C0%2C0%2C0%2C16%2C16H208a16%2C16%2C0%2C0%2C0%2C16-16V48A16%2C16%2C0%2C0%2C0%2C208%2C32ZM72%2C48v8a8%2C8%2C0%2C0%2C0%2C16%2C0V48h80v8a8%2C8%2C0%2C0%2C0%2C16%2C0V48h24V80H48V48ZM208%2C208H48V96H208V208Z'/></svg>");
+  mask-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'><path d='M208%2C32H184V24a8%2C8%2C0%2C0%2C0-16%2C0v8H88V24a8%2C8%2C0%2C0%2C0-16%2C0v8H48A16%2C16%2C0%2C0%2C0%2C32%2C48V208a16%2C16%2C0%2C0%2C0%2C16%2C16H208a16%2C16%2C0%2C0%2C0%2C16-16V48A16%2C16%2C0%2C0%2C0%2C208%2C32ZM72%2C48v8a8%2C8%2C0%2C0%2C0%2C16%2C0V48h80v8a8%2C8%2C0%2C0%2C0%2C16%2C0V48h24V80H48V48ZM208%2C208H48V96H208V208Z'/></svg>");
+}
+
+input[type='time']::-webkit-calendar-picker-indicator {
+  -webkit-mask-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'><path d='M128%2C24A104%2C104%2C0%2C1%2C0%2C232%2C128%2C104.11%2C104.11%2C0%2C0%2C0%2C128%2C24Zm0%2C192a88%2C88%2C0%2C1%2C1%2C88-88A88.1%2C88.1%2C0%2C0%2C1%2C128%2C216Zm64-88a8%2C8%2C0%2C0%2C1-8%2C8H128a8%2C8%2C0%2C0%2C1-8-8V72a8%2C8%2C0%2C0%2C1%2C16%2C0v48h48A8%2C8%2C0%2C0%2C1%2C192%2C128Z'/></svg>");
+  mask-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'><path d='M128%2C24A104%2C104%2C0%2C1%2C0%2C232%2C128%2C104.11%2C104.11%2C0%2C0%2C0%2C128%2C24Zm0%2C192a88%2C88%2C0%2C1%2C1%2C88-88A88.1%2C88.1%2C0%2C0%2C1%2C128%2C216Zm64-88a8%2C8%2C0%2C0%2C1-8%2C8H128a8%2C8%2C0%2C0%2C1-8-8V72a8%2C8%2C0%2C0%2C1%2C16%2C0v48h48A8%2C8%2C0%2C0%2C1%2C192%2C128Z'/></svg>");
+}
+
+input[type='date']:hover::-webkit-calendar-picker-indicator,
+input[type='month']:hover::-webkit-calendar-picker-indicator,
+input[type='week']:hover::-webkit-calendar-picker-indicator,
+input[type='time']:hover::-webkit-calendar-picker-indicator,
+input[type='datetime-local']:hover::-webkit-calendar-picker-indicator {
+  background-color: var(--color-text-secondary);
+}
+
+input[type='date']:disabled::-webkit-calendar-picker-indicator,
+input[type='time']:disabled::-webkit-calendar-picker-indicator {
+  background-color: var(--color-text-disabled);
+  cursor: not-allowed;
+}
+
+/* --- Bare checkboxes and radios ---------------------------------------------
+ * <ui-checkbox> draws a Phosphor tick on a brand-green box (.ui-choice above).
+ * But 117 checkboxes across the practice-settings permission matrix, provider
+ * settings, billing, tasks and the scheduler filters are PLAIN <input>s that
+ * never went through the component, and a plain input wears the platform's own
+ * tick — system blue, nothing to do with this product, sitting a few pixels
+ * from a ui-checkbox wearing the right one.
+ *
+ * These give them the same face without touching a line of markup. The tick is
+ * the same Phosphor check the component uses, carried as a background image
+ * because a replaced element like <input> has no reliable ::after to hang it on.
+ *
+ * WRAPPED IN :where() ON PURPOSE. That drops the specificity to zero, so the
+ * screens that already size their own boxes — .rol__check at space-7,
+ * .pvs__check at space-6 — keep winning, and nothing below re-lays-out.
+ * Anything a screen does not say is what these supply.
+ * -------------------------------------------------------------------------- */
+
+:where(input[type='checkbox']:not(.ui-choice__input),
+       input[type='radio']:not(.ui-choice__input)) {
+  appearance: none;
+  /* --choice-size, the same number .ui-choice__box uses, so a bare input in a
+     bespoke row and the component in the form beside it are one control at one
+     size. An input is border-box already, which is where the component was
+     losing four pixels to its own edge. */
+  width: var(--choice-size);
+  height: var(--choice-size);
+  flex-shrink: 0;
+  margin: 0;
+  cursor: pointer;
+  border: var(--border-width-thick) solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-bg-surface);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 62%;
+  transition: background-color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
+}
+
+:where(input[type='radio']:not(.ui-choice__input)) { border-radius: var(--radius-full); }
+
+/* A checkbox fills; a radio keeps its ring and grows a dot. They were sharing
+   this rule, so a bare radio came out as a solid disc — the same thing the
+   component was doing until it was split. */
+:where(input[type='checkbox']:not(.ui-choice__input):checked,
+       input[type='checkbox']:not(.ui-choice__input):indeterminate) {
+  background-color: var(--color-brand-solid);
+  border-color: var(--color-brand-solid);
+}
+
+:where(input[type='radio']:not(.ui-choice__input):checked) {
+  border-color: var(--color-border-brand);
+  /* Sized against the 16px content box rather than the 62% the glyphs use,
+     which would shrink the dot by a third. 25% radius lands it on 8px. */
+  background-size: 100%;
+  background-image: radial-gradient(
+    circle,
+    var(--color-brand-solid) 0 25%,
+    transparent 27%
+  );
+}
+
+:where(input[type='checkbox']:not(.ui-choice__input),
+       input[type='radio']:not(.ui-choice__input)):hover:not(:disabled) {
+  border-color: var(--color-border-brand);
+}
+
+:where(input[type='checkbox']:not(.ui-choice__input):checked) {
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256' fill='white'><path d='M232.49%2C80.49l-128%2C128a12%2C12%2C0%2C0%2C1-17%2C0l-56-56a12%2C12%2C0%2C1%2C1%2C17-17L96%2C183.51%2C215.51%2C63.51a12%2C12%2C0%2C0%2C1%2C17%2C17Z'/></svg>");
+}
+
+:where(input[type='checkbox']:not(.ui-choice__input):indeterminate) {
+  background-color: var(--color-brand-solid);
+  border-color: var(--color-brand-solid);
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256' fill='white'><path d='M228%2C128a12%2C12%2C0%2C0%2C1-12%2C12H40a12%2C12%2C0%2C0%2C1%2C0-24H216A12%2C12%2C0%2C0%2C1%2C228%2C128Z'/></svg>");
+}
+
+:where(input[type='checkbox']:not(.ui-choice__input),
+       input[type='radio']:not(.ui-choice__input)):focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+/* A filled box has nothing for a green hairline to sit against, so the order
+   inverts: a gap in the surface colour, then the ring. */
+:where(input[type='checkbox']:not(.ui-choice__input)):focus-visible:checked {
+  box-shadow: var(--focus-ring-solid);
+}
+
+/* Disabled is not unanswered — the same rule the component makes. A ticked box
+   that has been locked keeps saying it is ticked, muted rather than blank. */
+:where(input[type='checkbox']:not(.ui-choice__input),
+       input[type='radio']:not(.ui-choice__input)):disabled {
+  cursor: not-allowed;
+  background-color: var(--color-bg-surface-disabled);
+  border-color: var(--color-border-subtle);
+}
+
+/* :disabled and :checked sit OUTSIDE the :where(), so this outranks the rule
+   directly above. Tucked inside they both scored zero, the plain disabled grey
+   won, and a ticked-then-locked box read as one nobody had answered. */
+:where(input[type='checkbox']:not(.ui-choice__input)):disabled:checked,
+:where(input[type='checkbox']:not(.ui-choice__input)):disabled:indeterminate {
+  background-color: var(--color-text-disabled);
+  border-color: var(--color-text-disabled);
+}
+
+:where(input[type='radio']:not(.ui-choice__input)):disabled:checked {
+  border-color: var(--color-text-disabled);
+  background-image: radial-gradient(
+    circle,
+    var(--color-text-disabled) 0 25%,
+    transparent 27%
+  );
+}
+
+/* --- Checkbox / radio: the invalid state ----------------------------------
+   The MediNova library marks a required-but-unticked consent box in the same
+   critical ink the field errors use. Without it, a form that will not submit
+   gives no clue which box is the reason. */
+
+.ui-choice--error .ui-choice__box { border-color: var(--color-status-critical-solid); }
+.ui-choice--error .ui-choice__input:focus-visible + .ui-choice__box {
+  box-shadow: var(--focus-ring-critical);
+}
+
+/* The small size is declared with the geometry above, next to the default it
+   varies from — see the --toggle-* variables on .ui-toggle. */
+
+/* --- Input: the success state --------------------------------------------
+   Only worth drawing where validity was in genuine doubt and has just been
+   resolved — an NPI that checked out, an eligibility response that came back
+   clean. A green ring on every field the user merely finished typing in is
+   noise, and it spends the colour that means "this worked". */
+
+.ui-input--success { border-color: var(--color-status-success-solid); }
+.ui-input--success:focus-within {
+  border-color: var(--color-status-success-solid);
+  box-shadow: 0 0 0 1px var(--color-status-success-solid),
+    0 0 0 3px var(--color-status-success-surface);
+}
+.ui-field__hint--success { color: var(--color-status-success-text); }
+
+/* --- Bare range inputs -------------------------------------------------------
+ * <ui-slider> paints its own track and thumb. The pre-check form's severity and
+ * score sliders are plain <input type="range"> with an `accent-color`, which is
+ * the old way of tinting a control you are otherwise letting the platform draw
+ * — so they came out as macOS sliders on a Mac and Windows sliders on Windows,
+ * beside a component drawn to the design system.
+ *
+ * Same approach as the bare checkboxes above: paint the element, leave the
+ * markup alone. The testids, the labels and the `input` handlers are untouched,
+ * and any range written later inherits this without asking.
+ *
+ * :where() keeps specificity at zero so a screen that wants its own geometry
+ * still wins, and .ui-slider__input — which sets its own track and fill from a
+ * custom property — is excluded outright.
+ * -------------------------------------------------------------------------- */
+
+:where(input[type='range']:not(.ui-slider__input)) {
+  --bare-range-track: var(--space-3); /* 6px, the ui-slider default */
+  --bare-range-thumb: 1.125rem; /* 18px */
+  appearance: none;
+  -webkit-appearance: none;
+  height: 1.25rem;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+:where(input[type='range']:not(.ui-slider__input)):focus { outline: none; }
+
+/* The filled portion cannot be computed in CSS from the value, so a bare range
+   shows a plain track. <ui-slider> is the component to reach for when the fill
+   matters; this is here so the ones already written stop looking foreign. */
+:where(input[type='range']:not(.ui-slider__input))::-webkit-slider-runnable-track {
+  height: var(--bare-range-track);
+  border-radius: var(--radius-full);
+  background-color: var(--color-bg-track);
+}
+
+/* Centred on the track: margin = −(thumb − track) / 2 */
+:where(input[type='range']:not(.ui-slider__input))::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  margin-top: calc((var(--bare-range-track) - var(--bare-range-thumb)) / 2);
+  width: var(--bare-range-thumb);
+  height: var(--bare-range-thumb);
+  border-radius: var(--radius-full);
+  background-color: var(--color-bg-surface);
+  border: var(--border-width-thick) solid var(--color-brand-solid);
+  box-shadow: var(--shadow-xs);
+}
+
+:where(input[type='range']:not(.ui-slider__input)):focus-visible::-webkit-slider-thumb {
+  box-shadow: var(--focus-ring);
+}
+
+:where(input[type='range']:not(.ui-slider__input))::-moz-range-track {
+  height: var(--bare-range-track);
+  border-radius: var(--radius-full);
+  background-color: var(--color-bg-track);
+}
+
+/* Firefox gives the filled portion for free, so a bare range gets it there. */
+:where(input[type='range']:not(.ui-slider__input))::-moz-range-progress {
+  height: var(--bare-range-track);
+  border-radius: var(--radius-full);
+  background-color: var(--color-brand-solid);
+}
+
+:where(input[type='range']:not(.ui-slider__input))::-moz-range-thumb {
+  width: var(--bare-range-thumb);
+  height: var(--bare-range-thumb);
+  border-radius: var(--radius-full);
+  background-color: var(--color-bg-surface);
+  border: var(--border-width-thick) solid var(--color-brand-solid);
+  box-shadow: var(--shadow-xs);
+}
+
+:where(input[type='range']:not(.ui-slider__input)):focus-visible::-moz-range-thumb {
+  box-shadow: var(--focus-ring);
+}
+
+:where(input[type='range']:not(.ui-slider__input)):disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}

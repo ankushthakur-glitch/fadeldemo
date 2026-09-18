@@ -1,0 +1,284 @@
+/* ============================================================================
+   SELECT MENU — the list a dropdown drops.
+
+   Every <select> in the product opens this instead of the operating system's
+   own popup. See js/lib/select-menu.js for why, and for the rule that the
+   <select> itself is untouched: this file styles the panel, nothing else. The
+   closed field is still .ui-input--select in components/forms.css.
+
+   Parented to <body>, because a dropdown inside a table, a drawer or a modal
+   would otherwise be clipped by whatever scrolls around it. Its coordinates
+   arrive through a generated stylesheet keyed to the panel's id — the same
+   arrangement the row ⋮ menu uses, so no element carries a style attribute.
+
+   IT IS THE SAME PANEL AS EVERY OTHER MENU
+   White surface, hairline border, field-height rows inside a 6px inset,
+   overlay shadow.
+   A dropdown and a row menu are the same object doing the same job — a short
+   list opened over the page — and the product would be poorer for having two
+   drawings of it.
+   ========================================================================= */
+
+.ui-select-menu {
+  position: fixed;
+  top: var(--select-menu-top, 0);
+  left: var(--select-menu-left, 0);
+  z-index: var(--z-select-menu);
+  box-sizing: border-box;
+
+  /* EXACTLY as wide as the field it belongs to. It was a min-width, so the
+     panel took the field's width as a floor and then grew to fit its longest
+     label — a dropdown that opened wider than the control it came out of, and
+     wider by a different amount on every field. A long label wraps instead;
+     truncating it would hide the very thing being chosen between.
+
+     "The field" now means the SHELL — the bordered .ui-input box a person sees
+     — rather than the <select> inside it, which is 18px narrower and inset by
+     the shell's own padding. See frameFor() in js/lib/select-menu.js. */
+  width: var(--select-menu-width, 12rem);
+  max-width: calc(100vw - 1rem);
+
+  /* Eight-odd rows, then it scrolls inside itself. Beyond that a list stops
+     being something you read and becomes something you search, and the panel
+     would run the height of the window on a field 32px tall. */
+  max-height: var(--select-menu-max-height, 18rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+
+  padding: var(--space-3);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-xl);
+  background-color: var(--color-bg-surface);
+  box-shadow: var(--elevation-overlay);
+
+  /* The panel takes focus so the keyboard has somewhere to land, but it is not
+     itself the thing being pointed at — the active ROW carries that. */
+  outline: none;
+
+  transform-origin: var(--select-menu-origin, top);
+  animation: ui-select-menu-in var(--duration-fast) var(--ease-out);
+}
+
+@keyframes ui-select-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-2px) scale(0.98);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-select-menu {
+    animation: none;
+  }
+}
+
+/* A ROW IS THE HEIGHT OF THE FIELD.
+   34px and 14px type, the same as the control the list came out of, so the
+   answer sitting in the closed field and the row it will be picked from are
+   drawn at one size. The rows were 36px on their own arithmetic, which is
+   close enough to look like a mistake rather than a decision. A label too long
+   for one line still wraps and the row grows — min-height, not height. */
+.ui-select-menu__option {
+  display: flex;
+  align-items: center;
+  min-height: var(--control-height-md);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-snug);
+  color: var(--color-text-primary);
+  cursor: pointer;
+
+  /* Keeps the row clear of the panel's own padding when the keyboard scrolls
+     it into view — without this the first and last rows land flush against the
+     rounded edge and look half-scrolled. */
+  scroll-margin: var(--space-3);
+}
+
+.ui-select-menu__option + .ui-select-menu__option {
+  margin-top: 1px;
+}
+
+/* THE HIGHLIGHT IS THE POINTER, NOT THE ANSWER.
+   Mouse and keyboard drive the same single row: the one the pointer is over,
+   or the one the arrow keys have reached. There is only ever one, which is why
+   hover is not styled separately — the script moves this class on pointermove
+   so the two can never disagree. */
+.ui-select-menu__option.is-active {
+  background-color: var(--color-bg-surface-hover);
+}
+
+/* The answer currently held is drawn in weight rather than in fill, so it
+   stays legible when the highlight is sitting somewhere else. */
+.ui-select-menu__option.is-selected {
+  font-weight: var(--font-weight-medium);
+}
+
+/* The empty first row — "Select a provider", or nothing at all. Greyed for the
+   same reason the closed field greys it: it is a prompt, not a value. */
+.ui-select-menu__option.is-placeholder {
+  color: var(--color-text-tertiary);
+}
+
+.ui-select-menu__option.is-disabled {
+  color: var(--color-text-disabled);
+  cursor: not-allowed;
+}
+
+/* THE NAME OF A HALF OF THE LIST — what an <optgroup> puts above its rows.
+
+   Drawn as a caption in the secondary colour rather than as another row: it
+   is a label for what follows, and a heading set at row weight in row size is
+   read as an answer that cannot be picked. The first one carries no top rule,
+   because a line directly under the panel's own edge is a line about nothing.
+   Nothing can land on it — see the heading block in select-menu.js. */
+.ui-select-menu__group {
+  padding: var(--space-3) var(--space-4) var(--space-1);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-snug);
+  color: var(--color-text-secondary);
+  cursor: default;
+}
+.ui-select-menu__option + .ui-select-menu__group {
+  margin-top: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+/* ============================================================================
+   A CARET FOR A SELECT THAT IS NOT WEARING THE FIELD SHELL
+
+   Most dropdowns in the product are <ui-select>, and .ui-input--select in
+   components/forms.css draws their arrow. A handful are bare <select>s sized
+   by their own screen — the pager's rows-per-page, the provider rows in
+   Practice Settings, the font size in the print-header toolbar. Those kept the
+   platform's arrow, which was defensible while the list they opened was the
+   platform's too. It is not any more: the panel above is ours everywhere, so a
+   Chrome arrow over a MediNova list is the one seam left showing.
+
+   Wrap the <select> in this and it gets the same caret as everything else:
+   drawn OVER the control and out of the hit test, so the whole field — arrow
+   included — is one click target.
+
+     <span class="ui-select-shell">
+       <select class="…">…</select>
+       <svg class="ui-icon" aria-hidden="true"><use href="#i-caret-down"></use></svg>
+     </span>
+
+   The shell, not the control, is what the screen's layout now sizes — the
+   <select> fills it. A screen that gave the control a width or a flex has to
+   move that onto the wrapper, or the arrow ends up somewhere the field is not.
+   ========================================================================= */
+
+.ui-select-shell {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.ui-select-shell > select {
+  width: 100%;
+  appearance: none;
+  /* Room for the caret, so a long option runs under the field's edge rather
+     than under the arrow. */
+  padding-right: calc(var(--icon-size-md) + var(--space-5));
+}
+
+.ui-select-shell > .ui-icon {
+  position: absolute;
+  right: var(--space-3);
+  width: var(--icon-size-md);
+  height: var(--icon-size-md);
+  color: var(--color-text-tertiary);
+  pointer-events: none;
+}
+
+/* ============================================================================
+   MORE THAN ONE ANSWER
+
+   A multiple select is drawn as a face — a button wearing the field shell —
+   over a <select multiple> that keeps the answers and stays out of sight. See
+   the "PICKING MORE THAN ONE" chapter in js/lib/select-menu.js for why the
+   element the browser draws could not be the element on screen.
+   ========================================================================= */
+
+/* Out of sight, not out of the document: it still holds the selection, still
+   posts with a form, and still answers `selectedOptions`. display:none would
+   take it out of the accessibility tree and out of form validation with it. */
+.ui-select--faceted {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  clip-path: inset(50%);
+  overflow: hidden;
+}
+
+/* The face is a <button>, so it arrives with a button's centring, its own font
+   and a pointer cursor it should not have — everything below puts it back to
+   reading as the field it is standing in for. */
+.ui-select-facade {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: var(--color-text-primary);
+  background: none;
+  cursor: pointer;
+}
+
+/* One line, however many answers are in it. A field that grew a row per choice
+   would move every control under it each time one was ticked. */
+.ui-select-facade__text {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Nothing chosen: the row it shows is the empty option's label, which is a
+   prompt rather than an answer and is greyed the way a placeholder is. */
+.ui-select-facade.is-empty { color: var(--color-text-tertiary); }
+
+/* --- The rows ------------------------------------------------------------- */
+
+.ui-select-menu--multi .ui-select-menu__option {
+  gap: var(--space-3);
+}
+
+/* The tick is hidden until the row is ticked. The box itself is the ordinary
+   .ui-choice__box from components/forms.css — one drawing of a checkbox, used
+   here as well — but its state normally comes from a sibling <input>, and
+   there is no input in a menu row. The row carries the state instead. */
+.ui-select-menu--multi .ui-choice__mark { opacity: 0; }
+
+.ui-select-menu__option.is-selected .ui-choice__box {
+  background-color: var(--color-brand-solid);
+  border-color: var(--color-brand-solid);
+  color: var(--color-text-inverse);
+}
+
+.ui-select-menu__option.is-selected .ui-choice__mark { opacity: 1; }
+
+/* The clear row has no box, so its label would start where the others' boxes
+   do and the list would read as two columns. Indented by exactly the box and
+   the gap, it lines up with the answers it cancels. */
+.ui-select-menu--multi .ui-select-menu__option.is-placeholder {
+  padding-left: calc(var(--space-4) + var(--choice-size) + var(--space-3));
+}
+
+/* A ticked row is already carrying its answer in the box, so it does not also
+   need the weight the single-select list uses to mark the current one. */
+.ui-select-menu--multi .ui-select-menu__option.is-selected {
+  font-weight: var(--font-weight-regular);
+}
+
+/* The label takes the room the box does not, and a long option wraps inside it
+   rather than widening a panel that is pinned to the field's width. */
+.ui-select-menu__label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Allergies — MediNova Clinic Patient Portal</title>
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+
+    <!--
+      ALLERGIES — a redirect, not a screen.
+
+      The list moved onto the Health Records screen as one of its two tabs; see lib/meds-tabs.js for why the two merged. So this address has
+      somewhere exact to send you: the Allergies tab, not the top of the
+      merged screen.
+
+      What it sends you to is now a read-only table rather than one with an
+      Add / Edit dialog on it — the reasoning is at the top of
+      js/lib/allergy-panel.js. The address is still worth honouring either
+      way: it is what the allergy list is called, whatever shape it is in.
+
+      It is a redirect rather than a deletion because the address has been in
+      the nav, in links and in bookmarks. An old address should explain itself
+      or arrive somewhere useful; it should not 404. placeholder.html is kept
+      for the same reason.
+
+      Classic script, not a module and not a <meta refresh> — the reasoning is
+      in index.html: modules do not run from file://, and a meta refresh would
+      fire on a disk-opened copy too and bounce it to a page that cannot
+      start. Guarding on the protocol lets the file:// warning do its job.
+    -->
+    <!-- The one typeface the product is set in. These pages carry visible text
+         of their own — the file:// warning — so they load it like a screen. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="css/reset.css" />
+    <link rel="stylesheet" href="css/tokens.css" />
+    <link rel="stylesheet" href="css/base.css" />
+
+    <script src="js/open-me-properly.js"></script>
+    <script>
+      if (location.protocol === 'http:' || location.protocol === 'https:') {
+        // replace(), not assign(): Back from the merged screen should return
+        // to wherever you came from, not to this address, which would bounce
+        // you straight forward again and trap you.
+        location.replace('health-medications.html?tab=allergies');
+      }
+    </script>
+  </head>
+
+  <body>
+    <!-- Only ever seen on file://, behind the warning open-me-properly.js puts
+         up, and for the instant before the redirect over http. -->
+    <noscript>
+      <p>
+        Allergies moved. Open
+        <a href="health-medications.html?tab=allergies">Health Records</a> instead.
+      </p>
+    </noscript>
+  </body>
+</html>

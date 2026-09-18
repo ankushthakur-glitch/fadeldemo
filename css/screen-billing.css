@@ -1,0 +1,1781 @@
+/* ============================================================================
+   Billing — Unbilled Encounters, Claims, Payments & Denials and AR Management
+   over one worklist. A status chip row under the tabs picks the stage of the
+   claim lifecycle being worked; the toolbar's right-hand half changes with it,
+   because what you can do to a batch depends entirely on where it has got to.
+
+   Claims is one tab covering the whole life of a claim, from the charge nobody
+   has scrubbed yet to the third round of an appeal. It was two — Unbilled and
+   Submitted — which put the same object either side of a postmark and made a
+   biller pick a tab before they could search. Its seventeen statuses are what
+   the chip row now carries, and it filters from a bar of its own rather than
+   the header's search-and-funnel pair.
+
+   Two full-screen "stages" replace the worklist the way Referrals' process
+   view replaces its queue: the claim detail (scrub error / clearing-house
+   rejection / payer denial) and the ERA detail.
+   ========================================================================= */
+
+.bil__home {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding: var(--space-6) var(--space-8) var(--space-8);
+  overflow: hidden;
+}
+
+/* The tab strip controls three panels; the worklist inside moves between
+   them. An empty panel still has to lay out like the full one, or the moment
+   the worklist arrives the page would jump. */
+.bil__panel-host {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* A stage replaces the worklist AND the page header — it is a different page,
+   not a panel over this one. All of these carry `display`, so each has to say
+   what `hidden` means or the UA rule loses to the class. */
+.bil__panel-host[hidden],
+.bil__home[hidden] { display: none; }
+
+/* The per-view half of the header. `display: contents` because it is a
+   grouping in the MARKUP only — its children are the header's own flex items,
+   and a box around them would break the row they sit in. It exists so the
+   filter control beside it survives the repaint that rebuilds this. */
+.bil__toolbar { display: contents; }
+
+/* --- Page header: tabs on the left, view-specific actions on the right -----
+   The band itself is .ui-page-head in base.css. Billing only adds what is
+   genuinely different about it: this header carries up to four controls after
+   the tabs, so it is allowed to wrap rather than squeezing them. */
+
+.bil__head { flex-wrap: wrap; }
+.bil__head[hidden] { display: none; }
+
+.ui-page-head__actions ui-input { width: 16rem; }
+
+.bil__icon-btn {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-height-md);
+  height: var(--control-height-md);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  background-color: var(--color-bg-surface);
+  cursor: pointer;
+}
+.bil__icon-btn:hover { border-color: var(--color-border-strong); color: var(--color-text-primary); }
+.bil__icon-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* --- Filters -------------------------------------------------------------------
+   Nothing here. This screen carried four filters that were four different
+   controls — two modals and two bars of six named fields over the tables. They
+   are one <ui-filter> in the header now, restocked per tab; the argument for
+   the bars was that six fields is more than a popover should hide, and that
+   was an argument about a popover made of dropdowns rather than one that shows
+   its answers. See css/components/filter.css. */
+
+/* --- The panel card -----------------------------------------------------------
+   ONE edge around the second-level switch, the rows and the pager.
+
+   .bil__list-card rather than .bil__card, which was already taken: the claim
+   and ERA stages call their rail panels that, and a second meaning for one
+   class name is how a worklist ends up inheriting `flex: none` from a sidebar
+   and refusing to fill its panel.
+
+   It was three boxes: a chip row floating in a band of its own, a bordered
+   table under it, and a bordered pager under that — which put a control over
+   ONE list on the same footing as the tab strip in the page header, and drew
+   three edges where a reader sees one thing.
+
+   This is the encounters queue's shape (.sch__card in screen-scheduler.css)
+   and the one Tasks' Orders panel already borrowed from it (.tsk__card). The
+   children give their frames up to the card: the table's wrap loses its border
+   entirely, the pager keeps only the rule that separates it from the last row,
+   so no child has to know which corner it is sitting in. `overflow: hidden` is
+   what clips them to the curve, and it is safe over a sticky header because
+   the card is not the scroll container — the wrap inside it is. The row and
+   select menus are position: fixed and were never being let out by an
+   overflowing ancestor.
+   -------------------------------------------------------------------------- */
+
+.bil__list-card {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+}
+
+/* Still .ui-table-card — it wants the flex column that welds the table to its
+   footer — but the corners and the frame are the outer card's now. */
+.bil__list-card .ui-table-card { border-radius: 0; overflow: visible; }
+
+.bil__list-card .ui-table-wrap { border: none; border-radius: 0; }
+
+.bil__list-card .ui-pager {
+  border: none;
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: 0;
+}
+
+/* --- The second level's band -------------------------------------------------
+   Where the switch sits, INSIDE the card. Tighter than the card's own padding
+   would be on all three sides: this is not content in the panel, it is the
+   panel's own control, and a full gutter round it made it float in a band
+   rather than read as the top of the table. */
+
+.bil__statusbar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+  margin: var(--space-5) var(--space-6);
+}
+/* Remits and Patient Collection have no second level, so the band goes rather
+   than being drawn empty.
+   It carries `display`, so it has to say what `hidden` means or the UA rule
+   loses to the class. */
+.bil__statusbar[hidden] { display: none; }
+
+/* --- Sub-tabs ----------------------------------------------------------------
+   The SECONDARY level, for the one tab whose two halves are different lists
+   rather than two states of one queue.
+
+   A PILL ON A SUNK TRACK, and deliberately NOT the divided box the tab strip
+   in the page header wears — the same switch the encounters queue uses for
+   Unsigned / Signed and Tasks for Lab orders / E-prescriptions. Two segmented
+   strips of the same shape stacked would read as one level and the eye could
+   not tell which of them moved it further; two different shapes, the second
+   inside the card's own edge, cannot be confused.
+
+   It was an underline strip floating above the table. Underline is what the
+   system reserves for "same page, different rows", which this is — but it was
+   drawn OUTSIDE the card, at full width, which is what made it read as a
+   second screen-level strip competing with the one in the header. Inside the
+   edge that closes round the switch and the rows together there is no question
+   what it acts on, and the shape can go back to being a control rather than a
+   band.
+
+   Hand-built rather than a second <ui-tabs>: this strip shares the worklist's
+   [data-chip] plumbing and its counts are recomputed on every repaint, which
+   the component's one-shot `count` attribute is not built for. */
+
+.bil__subtabs {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  width: fit-content;
+  max-width: 100%;
+  flex-wrap: wrap;
+  padding: var(--space-1);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+}
+
+.bil__subtab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  /* The BUTTON is short so the GROUP comes to the standard small-control
+     height — the track is the control here, the tabs inside it are its parts.
+     The same sum .sch__subtabs works from. */
+  min-height: calc(
+    var(--control-height-sm) - var(--space-1) * 2 - var(--border-width-thin) * 2
+  );
+  padding: 0 var(--space-6);
+  /* Transparent on every tab, coloured on the open one: a border that appeared
+     only when a tab was chosen would widen it by two pixels and shove its
+     neighbour sideways under the pointer that just clicked it. */
+  border: var(--border-width-thin) solid transparent;
+  border-radius: var(--radius-sm);
+  background: none;
+  font-family: inherit;
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.bil__subtab:hover { color: var(--color-text-primary); }
+.bil__subtab:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* The fill and the ink say which one is open — the weight does not, because a
+   heavier word is a wider tab and its neighbour would move under the pointer
+   that just chose it. */
+.bil__subtab--active,
+.bil__subtab--active:hover {
+  border-color: var(--color-border-subtle);
+  background-color: var(--color-bg-surface);
+  color: var(--color-brand-text);
+}
+
+
+/* --- Tables ---------------------------------------------------------------- */
+
+.bil__table { flex: 1; min-height: 0; display: flex; }
+.bil__table ui-data-table { flex: 1; min-width: 0; display: flex; }
+.bil__table .ui-table-wrap { flex: 1; overflow: auto; }
+
+/* Inside a modal the table sizes to its rows rather than filling a column. */
+.bil__table--modal { flex: none; max-height: 26rem; }
+.bil__table--modal .ui-table-wrap { max-height: 26rem; }
+
+/* The ERA line table needs a detail row nested under its parent, which
+   ui-data-table cannot express, so it is hand-authored markup wearing the
+   same .ui-table clothes. */
+.bil__table--custom { flex-direction: column; }
+.bil__table--custom .ui-table-wrap { flex: 1; overflow: auto; }
+.bil__table--custom .ui-table td,
+.bil__table--custom .ui-table th { white-space: nowrap; }
+
+/* Two truncating columns in one row otherwise split what is left after the
+   fixed ones and both end up showing three characters. A floor means a payer
+   name is at least recognisable before the title attribute is needed. */
+.bil__table .ui-table__cell--truncate { min-width: 9rem; }
+
+/* EVERY COLUMN READS LEFT, INCLUDING THE NUMBERS.
+   Almost nothing in these tables is a magnitude you scan down a column to
+   compare: an MRN, a CPT, a cheque number and an EOB tally are all read
+   against the header above them. Right-aligning them left every value out of
+   line with its own label, which is what made the header row look detached
+   from the rows underneath. The tabular face stays, so digits keep an even
+   width and a column of figures still lines up on the left edge. */
+.bil__table .ui-table__cell--numeric,
+.bil__table--custom .ui-table th.ui-table__cell--numeric { text-align: left; }
+
+/* The action column goes with them. Elsewhere it holds a lone ⋮ and hugging
+   the table edge is right; here it holds a labelled button — Submit, Force
+   Submit — which pinned to the far edge sat a long way from the "Action"
+   header naming it. */
+.bil__table .ui-table__cell--actions { width: auto; text-align: left; }
+
+
+/* The link-styled button is <ui-text-link>'s .ui-text-link now — colour,
+   hover underline and focus ring all come from css/components/text-link.css.
+   Only the placements below are still this screen's business. */
+
+.bil__muted { color: var(--color-text-tertiary); }
+
+/* --- Worklist cells, as the Encounters list writes them -----------------------
+
+   Billing's tables and the scheduler's Encounters worklist are the same visit
+   at two moments of its life, and were drawn as two different kinds of object.
+   These are the four shapes that make them one: a person with a face and the
+   facts that tell them from their namesake, a fact over its qualifier, the
+   appointment in the colour the calendar draws it, and the row's own act
+   beside the menu holding everything else. See the block comment over
+   patientCell() in js/screens/billing.js for what each second line is.
+   -------------------------------------------------------------------------- */
+
+/* The patient: avatar, name, and what tells them apart. The avatar is a fixed
+   item and the text beside it is the one that gives — min-width: 0 is what
+   lets the name ellipsis instead of shoving the face out of the cell. */
+.bil__who { display: inline-flex; align-items: center; gap: var(--space-4); }
+.bil__who ui-avatar { flex: none; }
+.bil__who-text { min-width: 0; }
+
+.bil__who-name {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-text-primary);
+}
+
+/* The name as the row's own opener. A button rather than an <a> because there
+   is no address to go to — the stage opens over this screen. */
+.bil__link-btn {
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  text-align: left;
+  color: var(--color-text-link);
+  cursor: pointer;
+}
+.bil__link-btn:hover { text-decoration: underline; }
+.bil__link-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--radius-sm); }
+
+/* A fact over the thing that qualifies it — a date over the time of day, a
+   clinician over their service, a coverage badge over the payer whose network
+   it is. The second line clips rather than wraps: ui-data-table's own
+   `truncate` cannot be used on these columns because it clips the whole cell,
+   which would take the second line with it. */
+.bil__cell-main { font-variant-numeric: tabular-nums; }
+.bil__cell-sub {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-tertiary);
+}
+
+/* The appointment type, in the colour the calendar draws it. The colour is set
+   by the clinic rather than the design system, so it arrives on --bil-colour
+   from the .bil-t-* rules js/screens/billing.js writes out of APPOINTMENT_TYPES
+   — the same trick, off the same palette, as the scheduler's .sch__dot. */
+.bil__dot {
+  display: inline-block;
+  width: var(--space-4);
+  height: var(--space-4);
+  margin-right: var(--space-4);
+  border-radius: var(--radius-full);
+  background-color: var(--bil-colour, var(--color-status-neutral-solid));
+  vertical-align: baseline;
+}
+
+/* The end of the row: the act it exists for, then the menu with the rest. The
+   actions column is sized for a lone ⋮ in components/data-table.css, which is
+   half a button too narrow now, so it gives that width back. */
+.bil__rowacts {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  justify-content: flex-end;
+}
+.bil__list-card .ui-table__cell--actions { width: 1%; white-space: nowrap; }
+
+/* Days-since-submission, marked once it is old enough to chase. */
+.bil__age { display: inline-flex; align-items: center; gap: var(--space-3); justify-content: flex-start; }
+.bil__age--warn { color: var(--color-status-warning-text); font-weight: var(--font-weight-medium); }
+.bil__age--warn .ui-icon { width: var(--icon-size-sm); height: var(--icon-size-sm); }
+
+.bil__expand-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-8);
+  height: var(--space-8);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+}
+.bil__expand-btn:hover { background-color: var(--color-bg-surface-hover); color: var(--color-text-primary); }
+.bil__expand-btn .ui-icon { transition: transform var(--duration-fast) var(--ease-in-out); }
+.bil__expand-btn[aria-expanded='true'] .ui-icon { transform: rotate(90deg); }
+
+/* A row whose detail panel is open reads as one group with the panel below
+   it — no border between the two. */
+tr.bil__row--expanded > td { border-bottom: none; background-color: var(--color-bg-surface-hover); }
+
+/* An id painted link-blue sits on that tint, where MediNova's link blue drops
+   from 3.5:1 to 3.15:1 — below AA at the size these are read. The darkened
+   step exists for exactly this case; same fix and same reason as the note on
+   .bil__eligibility further down. */
+tr.bil__row--expanded .ui-text-link { color: var(--color-status-info-text); }
+
+/* --- Stages ----------------------------------------------------------------- */
+
+.bil__stage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding: var(--space-6) var(--space-8) 0;
+  overflow: hidden;
+}
+.bil__stage[hidden] { display: none; }
+
+.bil__stage-head { flex: none; display: flex; align-items: center; gap: var(--space-5); }
+
+.bil__back {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-10);
+  height: var(--space-10);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  background: none;
+  cursor: pointer;
+}
+.bil__back:hover { background-color: var(--color-bg-surface-hover); color: var(--color-text-primary); }
+.bil__back:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.bil__stage-title {
+  font-size: var(--font-size-title-page);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  color: var(--color-text-primary);
+}
+
+.bil__stage-tags { display: flex; align-items: center; gap: var(--space-4); }
+
+/* Two columns that scroll independently: the claim is long, the rail is the
+   context you keep glancing back at while reading it. */
+.bil__stage-shell {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: var(--space-6);
+  align-items: stretch;
+}
+
+.bil__stage-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  overflow-y: auto;
+  padding-bottom: var(--space-5);
+}
+
+.bil__stage-rail {
+  flex: none;
+  width: 21rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  overflow-y: auto;
+  padding-bottom: var(--space-5);
+}
+
+.bil__stage-foot {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-5);
+  padding: var(--space-5) 0;
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+  background-color: var(--color-bg-surface);
+}
+
+/* --- Panels: the boxed sections a stage is built out of --------------------- */
+
+.bil__panel {
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+}
+
+.bil__panel-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-6) var(--space-7);
+  font-size: var(--font-size-title-card);
+  line-height: var(--line-height-tight);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+/* A panel whose title bar is also its toggle. */
+.bil__panel-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  width: 100%;
+  padding: var(--space-6) var(--space-7);
+  background: none;
+  font: inherit;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  text-align: left;
+  cursor: pointer;
+}
+.bil__panel-toggle:hover { background-color: var(--color-bg-surface-hover); }
+.bil__panel-toggle:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--radius-lg); }
+.bil__panel-toggle .ui-icon { margin-left: auto; color: var(--color-text-tertiary); transition: transform var(--duration-fast) var(--ease-in-out); }
+.bil__panel-toggle[aria-expanded='true'] .ui-icon { transform: rotate(180deg); }
+
+.bil__panel-body {
+  padding: 0 var(--space-7) var(--space-7);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+.bil__panel-body[hidden] { display: none; }
+
+/* A group of fields inside a panel — Service Details, Provider Details. */
+.bil__group {
+  padding: var(--space-6) var(--space-7);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+}
+
+.bil__group-title {
+  font-size: var(--font-size-title-section);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-6);
+}
+
+/* --- Read-only field: a label over a boxed value ---------------------------
+   The claim stage shows what was billed, not a form to retype it. The box
+   keeps the alignment of a real field so the error state has something to
+   colour — which is the whole reason these are boxes and not plain text. */
+
+.bil__fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: var(--space-6);
+}
+
+/* Provider rows are role/NPI PAIRS. Left to auto-fit they wrap at whatever
+   count fits and an NPI ends up on the line below the name it belongs to; a
+   fixed four-column grid keeps each number under its own provider. */
+.bil__fields--pairs { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+.bil__field { min-width: 0; }
+
+.bil__field-label {
+  display: block;
+  font-size: var(--font-size-label);
+  color: var(--color-text-tertiary);
+  margin-bottom: var(--space-3);
+}
+
+.bil__field-box {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-height: var(--control-height-md);
+  padding: 0 var(--space-6);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+  font-size: var(--font-size-body);
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bil__field-box .ui-icon { flex: none; margin-left: auto; color: var(--color-text-tertiary); }
+
+.bil__field--error .bil__field-box {
+  border-color: var(--color-status-critical-border);
+  background-color: var(--color-status-critical-surface);
+}
+.bil__field--error .bil__field-box .ui-icon { color: var(--color-status-critical-text); }
+
+.bil__field-block { display: flex; flex-direction: column; gap: var(--space-3); }
+
+/* --- Error / denial banner --------------------------------------------------
+   Scrub errors, a clearing-house rejection and a payer denial all open with
+   the same pink panel: a pill saying what kind of failure it is, then the
+   reasons as a list you can tick off as you fix them. */
+
+.bil__errors {
+  padding: var(--space-6) var(--space-7);
+  border: var(--border-width-thin) solid var(--color-status-critical-border);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-status-critical-surface);
+}
+
+.bil__errors-pill {
+  display: inline-flex;
+  align-items: center;
+  height: 1.5rem;
+  padding: 0 var(--space-5);
+  margin-bottom: var(--space-5);
+  border: var(--border-width-thin) solid var(--color-status-critical-border);
+  border-radius: var(--radius-full);
+  background-color: var(--color-bg-surface);
+  color: var(--color-status-critical-text);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-semibold);
+}
+
+.bil__errors-lede {
+  margin-bottom: var(--space-5);
+  color: var(--color-status-critical-text);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-normal);
+}
+
+.bil__errors-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4) var(--space-8);
+  margin-bottom: var(--space-5);
+  font-size: var(--font-size-body);
+  color: var(--color-text-secondary);
+}
+.bil__errors-meta strong { color: var(--color-text-primary); }
+
+.bil__errors-list { display: flex; flex-direction: column; gap: var(--space-4); }
+
+.bil__errors-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-5);
+  font-size: var(--font-size-body);
+  color: var(--color-status-critical-text);
+  line-height: var(--line-height-normal);
+}
+.bil__errors-item::before {
+  content: '';
+  flex: none;
+  width: 5px;
+  height: 5px;
+  margin-top: 0.55em;
+  border-radius: 50%;
+  background-color: var(--color-status-critical-solid);
+}
+.bil__errors-item span { flex: 1; min-width: 0; }
+.bil__errors-item ui-checkbox { flex: none; }
+
+/* The bar under the banner offering the original claim and the raw errors. */
+.bil__summary-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-5) var(--space-7);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+}
+
+/* --- Code tables (ICD / CPT) ------------------------------------------------ */
+
+.bil__code-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-6) var(--space-7);
+}
+.bil__code-head h3 { font-size: var(--font-size-body); font-weight: var(--font-weight-semibold); }
+.bil__code-head ui-input { width: 15rem; margin-left: auto; }
+
+.bil__code-table { width: 100%; border-collapse: collapse; font-size: var(--font-size-body); }
+.bil__code-table th {
+  height: var(--density-head-height);
+  padding: 0 var(--density-cell-padding-x);
+  background-color: var(--color-bg-surface-sunken);
+  border-block: var(--border-width-thin) solid var(--color-border-subtle);
+  text-align: left;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+.bil__code-table td {
+  height: var(--density-row-height);
+  padding: var(--space-4) var(--density-cell-padding-x);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+  vertical-align: middle;
+}
+.bil__code-table tbody tr:last-child td { border-bottom: none; }
+.bil__code-table .bil__num { width: 3rem; color: var(--color-text-tertiary); }
+.bil__code-table .bil__code-desc { max-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* A medication line has a second line to show — the NDC of the product it
+   dispensed — so it opts out of the clamp above. It can afford to: a drug
+   description is "Injection, propofol, 10 mg", not the sixty characters of
+   qualification a colonoscopy code carries. */
+.bil__code-table .bil__code-desc--drug {
+  max-width: none;
+  overflow: visible;
+  white-space: normal;
+}
+.bil__code-table .bil__code-act { width: var(--space-11); text-align: right; }
+
+/* The two facts that only a drug line carries: what was dispensed, and what
+   one unit of it costs. Quiet, because on the row they belong to they are the
+   supporting detail under a number that is already there — the NDC under the
+   description, the unit price under the quantity that multiplies it. */
+.bil__code-ndc,
+.bil__code-calc {
+  display: block;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-tertiary);
+  font-family: var(--font-family-numeric);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.bil__code-calc { margin-top: var(--space-2); }
+
+/* The one diagnosis the scrubber rejected. */
+.bil__code-table tr.bil__code-row--error td { background-color: var(--color-status-critical-surface); }
+
+.bil__del-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-9);
+  height: var(--space-9);
+  border-radius: var(--radius-md);
+  color: var(--color-status-critical-text);
+  cursor: pointer;
+}
+.bil__del-btn:hover { background-color: var(--color-status-critical-surface); }
+.bil__del-btn:focus-visible { outline: none; box-shadow: var(--focus-ring-critical); }
+
+/* The four modifier slots a CPT line carries. Boxes rather than text: an
+   empty modifier is meaningful, and empty text is invisible. */
+.bil__mods { display: flex; gap: var(--space-3); }
+.bil__mod {
+  width: 2.25rem;
+  height: 1.75rem;
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-caption);
+  font-family: var(--font-family-numeric);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+}
+
+.bil__cell-box {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.75rem;
+  padding: 0 var(--space-5);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-family-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--font-size-caption);
+}
+
+/* --- Collected strip + totals ---------------------------------------------- */
+
+.bil__collected {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: var(--space-6);
+  padding: var(--space-6) var(--space-7);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface-sunken);
+}
+.bil__collected dt { font-size: var(--font-size-fact-label); color: var(--color-fact-label); margin-bottom: var(--space-3); font-weight: var(--font-weight-regular); }
+.bil__collected dd { display: flex; align-items: center; gap: var(--space-4); font-size: var(--font-size-body); font-weight: var(--font-weight-medium); }
+
+.bil__total {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-6);
+  padding: var(--space-6) var(--space-7);
+}
+.bil__total dt { font-size: var(--font-size-fact-label); color: var(--color-fact-label); font-weight: var(--font-weight-regular); }
+.bil__total dd {
+  font-size: var(--font-size-heading-md);
+  font-weight: var(--font-weight-semibold);
+  font-family: var(--font-family-numeric);
+  font-variant-numeric: tabular-nums;
+  margin-left: auto;
+}
+
+.bil__note-box {
+  min-height: 5rem;
+  padding: var(--space-6);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+  font-size: var(--font-size-body);
+  color: var(--color-text-primary);
+  line-height: var(--line-height-normal);
+}
+
+/* --- Rail cards -------------------------------------------------------------- */
+
+.bil__card {
+  flex: none;
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+}
+
+.bil__card-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-6) var(--space-7);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+}
+.bil__card-head > .ui-icon { color: var(--color-text-tertiary); }
+.bil__card-head .ui-text-link { margin-left: auto; display: inline-flex; align-items: center; gap: var(--space-3); }
+
+.bil__card-body { padding: var(--space-6) var(--space-7); display: flex; flex-direction: column; gap: var(--space-5); }
+
+.bil__facts { display: flex; flex-direction: column; gap: var(--space-5); }
+.bil__fact { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-5); font-size: var(--font-size-body); }
+.bil__fact dt { flex: none; color: var(--color-fact-label); font-size: var(--font-size-fact-label); font-weight: var(--font-weight-regular); }
+.bil__fact dd { text-align: right; color: var(--color-text-primary); }
+
+/* The ERA header reads as a strip of facts, not a two-column list. */
+.bil__facts--strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: var(--space-6) var(--space-8);
+  padding: 0 var(--space-7) var(--space-7);
+}
+.bil__facts--strip .bil__fact { flex-direction: column; align-items: flex-start; gap: var(--space-2); }
+.bil__facts--strip .bil__fact dd { text-align: left; font-weight: var(--font-weight-medium); }
+
+.bil__facts--wide { grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); }
+
+.bil__facts--boxed {
+  padding: var(--space-6) var(--space-7);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface-sunken);
+}
+
+.bil__eligibility {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-top: var(--space-5);
+  padding: var(--space-4) var(--space-6);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+  font-size: var(--font-size-caption);
+  color: var(--color-text-tertiary);
+}
+/* MediNova's link blue is 3.5:1 on white and only 3.15:1 on this tint — below
+   AA at caption size, where it matters most. The darkened step exists for
+   exactly this case, so a link on a tinted surface uses it rather than
+   inheriting a colour that was only ever measured against white. */
+.bil__eligibility .ui-text-link {
+  margin-left: auto;
+  color: var(--color-status-info-text);
+}
+
+/* --- Notes + claim history timeline ------------------------------------------ */
+
+.bil__note {
+  padding: var(--space-5) var(--space-6);
+  border-left: var(--border-width-thick) solid var(--color-border-subtle);
+  background-color: var(--color-bg-surface-sunken);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+}
+.bil__note-meta { font-size: var(--font-size-caption); color: var(--color-text-tertiary); margin-bottom: var(--space-2); }
+.bil__note-text { font-size: var(--font-size-body); line-height: var(--line-height-normal); }
+
+.bil__timeline { display: flex; flex-direction: column; gap: var(--space-5); }
+
+.bil__timeline-item {
+  position: relative;
+  padding-left: var(--space-8);
+  padding-bottom: var(--space-5);
+}
+.bil__timeline-item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.35em;
+  width: var(--space-4);
+  height: var(--space-4);
+  border-radius: 50%;
+  background-color: var(--color-status-info-solid);
+}
+/* The connector runs from one dot to the next, so it stops at the last item. */
+.bil__timeline-item::after {
+  content: '';
+  position: absolute;
+  left: calc(var(--space-4) / 2 - 0.5px);
+  top: calc(0.35em + var(--space-4));
+  bottom: 0;
+  width: 1px;
+  background-color: var(--color-border-subtle);
+}
+.bil__timeline-item:last-child { padding-bottom: 0; }
+.bil__timeline-item:last-child::after { display: none; }
+
+.bil__timeline-title { font-size: var(--font-size-title-section); font-weight: var(--font-weight-medium); color: var(--color-text-primary); }
+.bil__timeline-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+  font-size: var(--font-size-caption);
+  color: var(--color-text-tertiary);
+}
+.bil__timeline-meta .ui-icon { width: var(--icon-size-xs); height: var(--icon-size-xs); }
+
+/* --- Sub-tables ----------------------------------------------------------------
+   The tables that open INSIDE a row. Shared with the ERA stage until that
+   went with Payments & Denials; the remit stage is the only caller now. */
+
+.bil__subtables table { width: 100%; border-collapse: collapse; font-size: var(--font-size-body); }
+.bil__subtables th {
+  padding: var(--space-3) var(--space-5);
+  text-align: left;
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+}
+.bil__subtables td { padding: var(--space-3) var(--space-5); border-bottom: var(--border-width-thin) solid var(--color-border-subtle); }
+.bil__subtables tr:last-child td { border-bottom: none; }
+
+/* --- Remit stage --------------------------------------------------------------
+   A remit's control number is the document's identity rather than one of its
+   facts, so it heads the panel instead of sitting in the grid below it. */
+.bil__remit-band {
+  flex: none;
+  padding: var(--space-5) var(--space-7);
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  background-color: var(--color-bg-surface-sunken);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+/* Thirteen facts, read four across rather than the seven a 9rem minimum would
+   fit on a wide screen. Four is what the pairs want: provider and date, payer
+   and cheque, routing and account. Seven thin columns break a payer name over
+   three lines and put an account number a screen away from its label. */
+.bil__facts--quad {
+  flex: none;
+  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+  padding-top: var(--space-6);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  background-color: var(--color-bg-surface);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-top: none;
+}
+
+/* An expanded claim opens into TWO tables, not one: what the payer priced,
+   and what it adjusted. They stack inside one sunken panel so the pair reads
+   as belonging to the row above them. */
+.bil__subtables {
+  padding: var(--space-6) var(--space-7);
+  background-color: var(--color-bg-surface-sunken);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-7);
+}
+
+/* A <caption>, so the sub-table is NAMED for a screen reader rather than
+   having a heading floating above it — and left-aligned, which caption is not
+   by default. */
+.bil__subtable-band {
+  padding: var(--space-4) var(--space-5);
+  margin-bottom: var(--space-4);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-bg-surface-active);
+  text-align: left;
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+}
+
+/* --- Modals ------------------------------------------------------------------- */
+
+
+
+.bil__form { display: flex; flex-direction: column; gap: var(--space-6); }
+
+.bil__fieldset {
+  padding: var(--space-6) var(--space-7);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+.bil__fieldset-title {
+  padding: 0;
+  font-size: var(--font-size-title-section);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.bil__grid-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: var(--space-6); }
+.bil__grid-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: var(--space-6); }
+
+/* Confirm — the sentence, then the numbers, then the question. */
+.bil__confirm { display: flex; flex-direction: column; gap: var(--space-6); }
+
+.bil__confirm-lede {
+  padding: var(--space-6) var(--space-7);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+  font-size: var(--font-size-body);
+  color: var(--color-text-secondary);
+}
+.bil__confirm-lede strong { color: var(--color-text-primary); font-weight: var(--font-weight-semibold); }
+
+.bil__confirm-rows { display: flex; flex-direction: column; gap: var(--space-4); }
+.bil__confirm-row { display: flex; justify-content: space-between; gap: var(--space-6); font-size: var(--font-size-body); }
+.bil__confirm-row dt { color: var(--color-fact-label); font-size: var(--font-size-fact-label); font-weight: var(--font-weight-regular); }
+.bil__confirm-row dd { font-family: var(--font-family-numeric); font-variant-numeric: tabular-nums; }
+
+.bil__confirm-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-11);
+  height: var(--space-11);
+  border-radius: var(--radius-full);
+  background-color: var(--color-status-warning-surface);
+  color: var(--color-status-warning-text);
+}
+.bil__confirm-icon .ui-icon { width: var(--icon-size-lg); height: var(--icon-size-lg); }
+
+/* Progress + result */
+.bil__progress { display: flex; flex-direction: column; align-items: center; gap: var(--space-5); padding: var(--space-6) 0; text-align: center; }
+.bil__progress-title { font-size: var(--font-size-title-card); font-weight: var(--font-weight-semibold); line-height: var(--line-height-tight); color: var(--color-text-primary); }
+.bil__progress-note { font-size: var(--font-size-caption); color: var(--color-text-secondary); max-width: 24rem; line-height: var(--line-height-normal); }
+
+ }
+@media (prefers-reduced-motion: reduce) {
+  }
+
+/* The spinner is <ui-spinner> now — see css/components/spinner.css. */
+.bil__done { display: flex; flex-direction: column; gap: var(--space-6); }
+.bil__done--centred { align-items: center; text-align: center; }
+
+.bil__done-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-11);
+  height: var(--space-11);
+  border-radius: var(--radius-full);
+  background-color: var(--color-status-success-surface);
+  color: var(--color-status-success-text);
+}
+.bil__done-mark .ui-icon { width: var(--icon-size-lg); height: var(--icon-size-lg); }
+
+.bil__done-title { font-size: var(--font-size-title-card); font-weight: var(--font-weight-semibold); line-height: var(--line-height-tight); color: var(--color-text-primary); }
+
+.bil__result-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: var(--space-5); }
+.bil__result-tile {
+  padding: var(--card-padding-tight);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface-sunken);
+}
+.bil__result-tile dt { font-size: var(--font-size-fact-label); color: var(--color-fact-label); margin-bottom: var(--space-3); font-weight: var(--font-weight-regular); }
+.bil__result-tile dd { font-size: var(--font-size-body); font-weight: var(--font-weight-semibold); }
+
+/* The stat list ERA upload / download both report back. */
+.bil__stat-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-6) var(--space-7);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface-sunken);
+  font-size: var(--font-size-body);
+}
+.bil__stat-row { display: flex; gap: var(--space-5); }
+.bil__stat-row dt { flex: 0 0 17rem; color: var(--color-fact-label); font-size: var(--font-size-fact-label); font-weight: var(--font-weight-regular); }
+.bil__stat-row dd { color: var(--color-text-primary); }
+/* CMS-1500 facsimile — the red-ruled form the payer expects on paper. */
+.bil__cms-actions { display: flex; justify-content: flex-end; gap: var(--space-4); margin-bottom: var(--space-5); }
+.bil__cms-head { display: flex; align-items: center; gap: var(--space-6); margin-bottom: var(--space-5); }
+.bil__cms-qr { flex: none; width: 3.5rem; height: 3.5rem; }
+.bil__cms-qr-svg { width: 100%; height: 100%; }
+.bil__cms-title { font-size: var(--font-size-heading-md); font-weight: var(--font-weight-bold); line-height: var(--line-height-tight); color: var(--color-status-critical-text); }
+.bil__cms-approved { font-size: var(--font-size-caption); color: var(--color-status-critical-text); }
+
+.bil__cms-form {
+  border: var(--border-width-thick) solid var(--color-status-critical-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.bil__cms-row { display: flex; }
+.bil__cms-row + .bil__cms-row { border-top: var(--border-width-thin) solid var(--color-status-critical-border); }
+.bil__cms-cell {
+  flex: 1;
+  min-width: 0;
+  padding: var(--space-4) var(--space-5);
+  border-left: var(--border-width-thin) solid var(--color-status-critical-border);
+}
+.bil__cms-cell:first-child { border-left: none; }
+.bil__cms-label { font-size: var(--font-size-2xs); color: var(--color-text-secondary); margin-bottom: var(--space-3); }
+.bil__cms-value { min-height: 1.25rem; font-size: var(--font-size-body); color: var(--color-text-primary); }
+.bil__cms-checks { display: flex; flex-wrap: wrap; gap: var(--space-4) var(--space-6); margin-top: var(--space-3); }
+.bil__cms-check { display: flex; align-items: center; gap: var(--space-2); font-size: var(--font-size-2xs); color: var(--color-text-secondary); }
+.bil__cms-box { width: 0.9rem; height: 0.9rem; border: var(--border-width-thin) solid var(--color-text-tertiary); border-radius: var(--radius-sm); }
+.bil__cms-box--on { background-color: var(--color-status-critical-solid); border-color: var(--color-status-critical-solid); }
+
+/* Rejection detail */
+.bil__reject-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: var(--space-6);
+  padding: var(--space-6) var(--space-7);
+  margin-bottom: var(--space-6);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface-sunken);
+}
+.bil__reject-summary dt { font-size: var(--font-size-fact-label); color: var(--color-fact-label); margin-bottom: var(--space-3); font-weight: var(--font-weight-regular); }
+.bil__reject-summary dd { font-size: var(--font-size-body); font-weight: var(--font-weight-medium); color: var(--color-brand-text); }
+
+.bil__section-title { font-size: var(--font-size-title-section); font-weight: var(--font-weight-semibold); margin-bottom: var(--space-5); color: var(--color-text-primary); }
+
+/* --- Invoice worklist ----------------------------------------------------------
+   The type is a dot and a word rather than a seventh badge on a row that
+   already carries one: the Status pill is the thing being scanned down this
+   table, and six coloured pills beside it would compete for that job. */
+
+.bil__inv-type { display: inline-flex; align-items: center; gap: var(--space-4); white-space: nowrap; }
+
+.bil__inv-dot {
+  flex: none;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: var(--radius-full);
+  background-color: var(--color-status-neutral-solid);
+}
+.bil__inv-dot--info { background-color: var(--color-status-info-solid); }
+.bil__inv-dot--warning { background-color: var(--color-status-warning-solid); }
+.bil__inv-dot--critical { background-color: var(--color-status-critical-solid); }
+.bil__inv-dot--success { background-color: var(--color-status-success-solid); }
+
+/* Money still owed reads as owed. A settled row keeps the plain 0.00 so the
+   column can still be scanned as amounts rather than as states. */
+.bil__inv-due { color: var(--color-status-critical-text); font-weight: var(--font-weight-medium); }
+
+/* --- The invoice document ------------------------------------------------------
+   Add, Edit and View are one form. In View every control is locked rather
+   than swapped for text, so the document a patient is read is laid out
+   exactly like the one a biller edits. */
+
+.bil__inv-form { display: flex; flex-direction: column; gap: var(--space-7); }
+
+.bil__inv-head { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: var(--space-6); }
+
+.bil__inv-items {
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+/* One template for the header and every row, so a column cannot drift out of
+   alignment with the heading above it. */
+.bil__inv-items-head,
+.bil__inv-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 6rem 7rem 7rem var(--space-11);
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-5) var(--space-6);
+}
+
+.bil__inv-items-head {
+  background-color: var(--color-bg-surface-sunken);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+}
+.bil__inv-items-head span:nth-child(n + 2) { text-align: right; }
+
+/* Every row, first included: the row above the first one is the header. */
+.bil__inv-row { border-top: var(--border-width-thin) solid var(--color-border-subtle); }
+
+.bil__inv-line-total {
+  text-align: right;
+  font-family: var(--font-family-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--font-size-body);
+  color: var(--color-text-primary);
+}
+
+.bil__inv-add-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  width: 100%;
+  padding: var(--space-6);
+  border: none;
+  border-top: var(--border-width-thin) dashed var(--color-border-default);
+  background: none;
+  color: var(--color-brand-text);
+  font: inherit;
+  font-size: var(--font-size-body);
+  cursor: pointer;
+}
+.bil__inv-add-item:hover { background-color: var(--color-bg-surface-hover); }
+.bil__inv-add-item:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* The three lines the total is built from, pushed to the right-hand end of
+   the document the way a bill's totals block always is. */
+.bil__inv-foot { display: flex; justify-content: flex-end; }
+
+.bil__inv-totals {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  width: 22rem;
+  max-width: 100%;
+  padding: var(--space-6) var(--space-7);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface-sunken);
+}
+.bil__inv-totals > div { display: flex; align-items: center; justify-content: space-between; gap: var(--space-6); }
+.bil__inv-totals dt {
+  font-size: var(--font-size-title-eyebrow);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wide);
+  color: var(--color-text-tertiary);
+}
+.bil__inv-totals dd { font-family: var(--font-family-numeric); font-variant-numeric: tabular-nums; font-size: var(--font-size-body); }
+.bil__inv-totals ui-input { width: 8rem; }
+
+.bil__inv-responsibility {
+  align-self: flex-end;
+  padding: var(--space-5) var(--space-7);
+  border-radius: var(--radius-md);
+  background-color: var(--color-brand-surface);
+  color: var(--color-brand-text);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* --- Receipt --------------------------------------------------------------------
+   A document, so it is set as one: a meta line, then blocks of labelled
+   facts, then what was paid. */
+
+.bil__receipt-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-5) var(--space-9);
+  padding-bottom: var(--space-6);
+  margin-bottom: var(--space-6);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+  font-size: var(--font-size-body);
+}
+.bil__receipt-meta div { display: flex; align-items: baseline; gap: var(--space-4); }
+.bil__receipt-meta dt { color: var(--color-fact-label); font-size: var(--font-size-fact-label); font-weight: var(--font-weight-regular); }
+.bil__receipt-meta dd { font-weight: var(--font-weight-medium); }
+
+.bil__receipt-block + .bil__receipt-block { margin-top: var(--space-6); }
+
+.bil__receipt-title {
+  margin-bottom: var(--space-5);
+  font-size: var(--font-size-title-eyebrow);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wide);
+  color: var(--color-text-tertiary);
+}
+
+.bil__receipt-rows {
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.bil__receipt-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-6);
+  padding: var(--space-5) var(--space-7);
+  font-size: var(--font-size-body);
+}
+.bil__receipt-row + .bil__receipt-row { border-top: var(--border-width-thin) solid var(--color-border-subtle); }
+.bil__receipt-row dt { color: var(--color-fact-label); font-size: var(--font-size-fact-label); font-weight: var(--font-weight-regular); }
+.bil__receipt-row dd { text-align: right; color: var(--color-text-primary); }
+
+/* What actually arrived — the line the receipt exists for. */
+.bil__receipt-row--total { background-color: var(--color-bg-surface-sunken); }
+.bil__receipt-row--total dt,
+.bil__receipt-row--total dd { font-weight: var(--font-weight-semibold); color: var(--color-text-primary); }
+
+.bil__receipt-method {
+  padding: var(--space-5) var(--space-7);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  font-size: var(--font-size-body);
+}
+
+/* --- Collecting a payment --------------------------------------------------------
+   The instrument down the side, the payment across the middle. The rail is a
+   list of three because there are three, and a dropdown would hide two of
+   them behind a click at the exact moment somebody is standing at the desk. */
+
+.bil__collect { display: flex; gap: var(--space-8); align-items: flex-start; }
+
+.bil__collect-methods {
+  flex: none;
+  width: 12rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  border-right: var(--border-width-thin) solid var(--color-border-subtle);
+  padding-right: var(--space-6);
+}
+
+.bil__collect-method {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-5) var(--space-6);
+  border: none;
+  border-left: var(--border-width-thick) solid transparent;
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--color-text-secondary);
+  font: inherit;
+  font-size: var(--font-size-body);
+  text-align: left;
+  cursor: pointer;
+}
+.bil__collect-method .ui-icon { color: var(--color-text-tertiary); }
+.bil__collect-method:hover { background-color: var(--color-bg-surface-hover); color: var(--color-text-primary); }
+.bil__collect-method:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.bil__collect-method--active {
+  border-left-color: var(--color-brand-solid);
+  background-color: var(--color-brand-surface);
+  color: var(--color-brand-text);
+  font-weight: var(--font-weight-medium);
+}
+.bil__collect-method--active .ui-icon { color: var(--color-brand-text); }
+
+.bil__collect-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-6); }
+
+.bil__collect-notes { display: flex; flex-wrap: wrap; gap: var(--space-4) var(--space-7); }
+
+/* Two figures, two cells, a rule between them. Side by side with only a gap
+   they read as one four-line block and the eye pairs the wrong label with
+   the wrong number. */
+.bil__collect-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 26rem;
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface-sunken);
+  overflow: hidden;
+}
+.bil__collect-facts > div { padding: var(--space-6) var(--space-7); }
+.bil__collect-facts > div + div { border-left: var(--border-width-thin) solid var(--color-border-subtle); }
+.bil__collect-facts dt { font-size: var(--font-size-fact-label); color: var(--color-fact-label); margin-bottom: var(--space-3); font-weight: var(--font-weight-regular); }
+.bil__collect-facts dd { font-family: var(--font-family-numeric); font-variant-numeric: tabular-nums; font-size: var(--font-size-heading-md); font-weight: var(--font-weight-semibold); }
+
+.bil__cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: var(--space-5); }
+
+.bil__card-tile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--card-padding-tight);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface-sunken);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.bil__card-tile:hover { border-color: var(--color-border-strong); }
+.bil__card-tile:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* The chosen card is outlined AND labelled by aria-pressed — a border on its
+   own would be the only signal, and one a colour-blind reader may not get. */
+.bil__card-tile--active {
+  border-color: var(--color-brand-solid);
+  background-color: var(--color-brand-surface);
+}
+
+.bil__card-brand { font-size: var(--font-size-body); font-weight: var(--font-weight-semibold); color: var(--color-text-primary); }
+.bil__card-number { font-family: var(--font-family-numeric); font-variant-numeric: tabular-nums; font-size: var(--font-size-caption); color: var(--color-text-secondary); }
+.bil__card-kind { font-size: var(--font-size-caption); color: var(--color-text-tertiary); }
+
+.bil__collect-add-card { display: inline-flex; align-items: center; gap: var(--space-4); align-self: flex-start; }
+
+/* --- Responsive ---------------------------------------------------------------
+   The rail drops under the claim before the claim's own field grid starts
+   wrapping to one column per row. */
+@media (max-width: 1100px) {
+  .bil__fields--pairs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .bil__stage-shell { flex-direction: column; overflow-y: auto; }
+  .bil__stage-main,
+  .bil__stage-rail { overflow: visible; width: auto; }
+
+  /* The payment instruments go over the form rather than beside it — at this
+     width the rail was taking a third of a dialog whose subject is one
+     number. */
+  .bil__collect { flex-direction: column; }
+  .bil__collect-methods {
+    flex-direction: row;
+    width: auto;
+    align-self: stretch;
+    border-right: none;
+    border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+    padding: 0 0 var(--space-5);
+  }
+  .bil__collect-body { align-self: stretch; }
+}
+@media (max-width: 760px) {
+  .ui-page-head__actions ui-input { width: 100%; }
+  /* Quantity and price keep their own columns; the item name gives up its
+     share first because it is the only one that can be read wrapped. */
+  .bil__inv-items-head,
+  .bil__inv-row { grid-template-columns: minmax(0, 1fr) 4rem 5rem 5rem var(--space-10); }
+  .bil__inv-totals { width: 100%; }
+  .bil__stat-row { flex-direction: column; gap: var(--space-2); }
+  .bil__stat-row dt { flex: none; }
+}
+
+/* ============================================================================
+   AR MANAGEMENT
+
+   The fourth tab, and the only one that is not the worklist wearing different
+   columns. A card holding a sub-tab strip, two dials and one of three bodies:
+   a bar chart, a table of patients, or a table of payers.
+   ========================================================================= */
+
+.bil__ar {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding: var(--space-6) var(--space-8) var(--space-8);
+  overflow: hidden;
+}
+
+/* A card, unlike the three worklist tabs, because AR is a REPORT: the figures
+   need an edge to be read against rather than floating on the page
+   background. It carries no title of its own — the tab strip above the panel
+   already says "Account Receivable", and the chart names itself. */
+.bil__ar-card {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  /* The worklist card's rhythm, to the pixel: its switch sits in a band five
+     down and six in, and this card's strip now sits on the same measure.
+     AR was one step looser on both, which is invisible on its own
+     screen and obvious the moment you tab between it and Claims — the whole
+     card appeared to shift. No shadow either, for the same reason: the four
+     worklist tabs and this one are the same object on the same canvas, and
+     only one of them was lifted off it. */
+  gap: var(--space-5);
+  padding: var(--space-6);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+  overflow: hidden;
+}
+
+/* Summary. The chart has a size of its own, so the card takes its height from
+   what is in it rather than from what the panel has spare — a report that ends
+   where its figures end, with the page below it left alone, instead of one bar
+   chart stretched over a whole screen. The two table views keep `flex: 1`. */
+.bil__ar-card--chart {
+  flex: none;
+  min-height: 0;
+}
+.bil__ar-card--chart .bil__ar-body { flex: none; }
+
+/* The strip and the dials share one line: the dials re-cut whatever the strip
+   has open, so they belong to it rather than to the page.
+
+   NO RULE UNDER IT. The bar used to carry a hairline across the whole card and
+   the strip sat on it like an underline tab set — which is where the underline
+   belonged when the strip WAS underlined. It is a pill on a sunk track now,
+   the same switch the worklists wear, and a track has its own edges: the rule
+   under it drew a second horizontal line a few pixels below the title's
+   baseline, which read as the card being divided in two before the report had
+   said anything. The two halves of the bar align on their middles now rather
+   than on a line that is no longer there. */
+.bil__ar-bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+}
+
+.bil__ar-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  flex-wrap: wrap;
+}
+
+.bil__ar-controls ui-input { width: 15rem; }
+.bil__ar-controls ui-input[type="date"] { width: 11rem; }
+.bil__ar-controls ui-select { width: 9rem; }
+
+.bil__ar-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.bil__ar-table {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.bil__ar-table .ui-table-wrap { flex: 1; overflow: auto; }
+
+/* --- The ageing grid ---------------------------------------------------------
+   Six or seven money columns and two identity columns. The money is set in
+   tabular figures and right-aligned so the digits line up down the column,
+   which is the only way a reader tells $95.00 from $950.00 at a glance. */
+
+.bil__ar-grid td,
+.bil__ar-grid th { white-space: nowrap; }
+
+/* No face override on the headings here. "0-30 Days" used to be dragged into
+   the monospace by `.ui-table__cell--numeric` and read as another row of data
+   above the data; the product is one typeface now, so the heading and the
+   figures under it already agree. */
+
+/* The Total band. It leads the body rather than closing it — the number
+   everyone came for, before the rows that explain it — so it is coloured and
+   pinned under the header instead of being left to scroll away. */
+.bil__ar-total > td,
+.bil__ar-total > th {
+  position: sticky;
+  top: var(--density-head-height);
+  z-index: var(--z-sticky);
+  background-color: var(--color-brand-surface);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+.bil__ar-total > th { text-align: left; }
+
+/* Hover repaints every other row; the total is not a row you can act on. */
+.ui-table tbody tr.bil__ar-total:hover > td,
+.ui-table tbody tr.bil__ar-total:hover > th {
+  background-color: var(--color-brand-surface);
+}
+
+.bil__ar-rowtotal { font-weight: var(--font-weight-medium); color: var(--color-text-primary); }
+
+/* An empty aged cell. Dimmed rather than absent, so the column still reads as
+   a column when most of it has nothing in it. */
+.bil__ar-nil { color: var(--color-text-disabled); }
+
+.bil__ar-docs td,
+.bil__ar-docs th { white-space: nowrap; }
+
+/* --- The stage ---------------------------------------------------------------
+   The account's own ageing line above the documents that add up to it. The
+   line is one row tall and must stay that way; the documents take the rest. */
+.bil__ar-stage-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding-bottom: var(--space-8);
+  overflow: hidden;
+}
+.bil__ar-stage-body > .bil__ar-table:first-child { flex: none; }
+
+/* --- The chart ---------------------------------------------------------------
+   Two series, and they have to stay apart at a glance. Which of the design
+   system's two chart series is which is decided HERE and aliased once, so the
+   swatch in the legend and the bar in the plot cannot drift apart — and so
+   that swapping the pair over is a two-line edit rather than a hunt through
+   every fill and background in the block below. */
+.bil__chart {
+  --ar-series-patient: var(--color-chart-series-1);
+  --ar-series-insurance: var(--color-chart-series-2);
+
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* Caption on the left, key on the right, on the line the plot starts under.
+   The key sits with the chart rather than over the tab strip because it names
+   the two colours in the plot and nothing else on the card is coloured. */
+.bil__chart-head {
+  flex: none;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+}
+
+.bil__chart-title {
+  font-size: var(--font-size-title-section);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.bil__chart-legend { display: flex; align-items: center; gap: var(--space-6); }
+
+.bil__chart-key {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+  font-size: var(--font-size-body);
+  color: var(--color-text-secondary);
+}
+
+.bil__chart-swatch {
+  width: var(--space-7);
+  height: var(--space-7);
+  border-radius: var(--radius-sm);
+}
+.bil__chart-swatch--patient { background-color: var(--ar-series-patient); }
+.bil__chart-swatch--insurance { background-color: var(--ar-series-insurance); }
+
+/* A height of its own, in the viewBox's own proportion, so there is never any
+   slack for the drawing to float in: the old rule took whatever height the
+   card had left and then fitted a fixed-shape drawing inside it, which left
+   two empty bands above and below on a tall screen and a plot the height of a
+   whole laptop screen on a short one. The ceiling stops it running away on a
+   very wide monitor; the floor keeps the period labels off the bars when the
+   card is narrow. */
+.bil__chart-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1000 / 268;
+  min-height: 10rem;
+  /* The plot is as wide as the card at every width a clinic actually works at.
+     The ceiling is for the monitor wide enough that holding the proportion
+     would make the banner taller than it has any reason to be — past it the
+     height stops and the drawing centres itself in the width, which is what
+     the SVG does on its own: a viewBox is centred in a box wider than its
+     proportion asks for. */
+  max-height: 34rem;
+}
+
+.bil__chart-axis { stroke: var(--color-border-default); stroke-width: 1; }
+/* The rules the bars are read against. Subtle on purpose: they are there to be
+   measured by, and a grid as dark as the axis competes with the bars standing
+   on it. There is no left spine any more — with a rule at every step the
+   vertical line only re-drew the leftmost pixel of each of them. */
+.bil__chart-grid { stroke: var(--color-border-subtle); stroke-width: 1; }
+/* The hairline in front of Total Dues, saying the pair beyond it is the sum of
+   the pairs behind rather than one more ageing column. */
+.bil__chart-divider {
+  stroke: var(--color-border-subtle);
+  stroke-width: 1;
+  stroke-dasharray: 3 4;
+}
+
+/* Period names along the bottom — words, so the body face. Sizes here are in
+   viewBox units and the box is drawn about a third larger than it is written,
+   so 11 lands near the 14px these labels should read at. */
+.bil__chart-axis-label {
+  font-size: 11px;
+  fill: var(--color-text-tertiary);
+}
+/* Money up the side — figures, so the tabular face, which is what keeps the
+   tick labels the same width and stops the axis wobbling as they change. */
+.bil__chart-axis-label--tick { font-family: var(--font-family-numeric); font-variant-numeric: tabular-nums; }
+/* Total Dues is a sum of the five columns beside it, not a sixth column —
+   weighting it says so without a separator nobody would read. */
+.bil__chart-axis-label--total {
+  font-weight: var(--font-weight-semibold);
+  fill: var(--color-text-secondary);
+}
+
+.bil__chart-axis-title {
+  font-size: 11px;
+  fill: var(--color-text-tertiary);
+}
+
+.bil__chart-bar--patient { fill: var(--ar-series-patient); }
+.bil__chart-bar--insurance { fill: var(--ar-series-insurance); }
+
+/* The figure printed over each bar. Tabular, like the axis, so a column of
+   them lines up; secondary, so the bars stay the loudest thing in the plot. */
+.bil__chart-value {
+  font-family: var(--font-family-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: 10px;
+  font-weight: var(--font-weight-medium);
+  fill: var(--color-text-secondary);
+}
+
+/* --- Narrow ------------------------------------------------------------------
+   The dials wrap under the strip before the card starts scrolling sideways:
+   they are how the report is read, and pushing them off the edge would leave
+   a table nobody can re-cut. */
+@media (max-width: 68rem) {
+  .bil__ar { padding: var(--space-5) var(--space-6) var(--space-6); }
+  .bil__ar-bar { align-items: stretch; }
+  .bil__ar-controls { width: 100%; }
+  .bil__ar-controls ui-input,
+  .bil__ar-controls ui-select { flex: 1; width: auto; min-width: 8rem; }
+}
+
+/* ============================================================================
+   PATIENT COLLECTION
+
+   The worklist over what patients owe. It borrows the shared table, chips,
+   pager and filter bar wholesale — including the patient cell, which is the
+   shared .bil__who with the MRN as its second line, because these accounts are
+   their own set of names and the roster has no date of birth for them. What it
+   needs of its own is an empty entity column and a total carrying a note.
+   ========================================================================= */
+
+/* A column with nothing in it. Dimmed rather than blank, so the cell still
+   reads as part of its column: a truly empty cell in a money column looks
+   like a value that failed to render. */
+.bil__nil { color: var(--color-text-disabled); }
+
+/* Total Outstanding, and the note that it is not worth chasing. Stacked in
+   one cell rather than given a column of its own, which would be empty on
+   almost every row. Right-aligned with the figure it qualifies, so the money
+   column still reads as one straight edge of digits. */
+.bil__amount {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-2);
+}
+
+.bil__amount-note {
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-2xs);
+  line-height: var(--line-height-tight);
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+}
+
+/* --- The account dialog ------------------------------------------------------
+   What the total is made of. Sized to its rows rather than to the dialog, and
+   scrolling inside itself once there are more charges than fit — the actions
+   under it must not be pushed off the bottom of the modal. */
+.bil__coll-charges { width: 100%; }
+.bil__coll-charges td,
+.bil__coll-charges th { white-space: nowrap; }
+.bil__coll-charges td.ui-table__cell--numeric { font-family: var(--font-family-numeric); font-variant-numeric: tabular-nums; }
+
+/* The charges add up to the figure the worklist row shows, and the last line
+   says so. Not sticky and not coloured like the AR total band: this is six
+   rows in a dialog, not a page of a report. */
+.bil__coll-total > td {
+  border-top: var(--border-width-thin) solid var(--color-border-default);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+.ui-table tbody tr.bil__coll-total:hover > td { background-color: transparent; }
+
+/* Five selects and a Reset. Wider floors than the Claims bar's: "Below
+   threshold" and "3 or more" are the options, and a select that truncates its
+   own values makes the user open it to find out what is selected. */
+#collectionFilters ui-select { flex: 1 1 11rem; min-width: 10rem; max-width: 15rem; }

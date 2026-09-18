@@ -1,0 +1,99 @@
+/* ============================================================================
+   Settings ▸ Billing — the practice's billing rules. Fee Schedule is the first
+   list; Invoice / Claim / Membership land beside it as their designs do.
+
+   Everything table-shaped is inherited from screen-settings.css (.set__body,
+   .ui-table-card, .set__foot); only what this screen adds lives here.
+   ========================================================================= */
+
+/* --- Filters ----------------------------------------------------------------
+   In the tab bar's action slot (.ui-page-head__actions in base.css) with Add,
+   reading left to right in the order you would narrow: which status, then
+   which code, then the one thing you add. The procedure list carries a full
+   code-plus-description, so it gets the width; Status holds one word. */
+
+/* Wider than the settings default in screen-settings.css: a procedure line is
+   a code plus its description, and 12rem truncated every one of them. */
+.set__head ui-select { width: 20rem; }
+.set__head ui-select:first-child { width: 12rem; }
+
+@media (max-width: 900px) {
+  .set__head .ui-page-head__actions { width: 100%; flex-wrap: wrap; }
+  .set__head ui-select,
+  .set__head ui-select:first-child { flex: 1; width: auto; min-width: 12rem; }
+}
+
+/* --- Primary cell -----------------------------------------------------------
+   The procedure opens the editor, so it is a button that reads as a link —
+   the same affordance Master and the patient lists use. */
+
+.bst__code {
+  /* The cell truncates, but text-overflow only ellipsises a block's OWN text —
+     a button inside it would run past the edge and get clipped mid-word. So
+     the button does its own truncating. */
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+  padding: 0;
+  background: none;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-brand-text);
+  cursor: pointer;
+}
+.bst__code:hover { text-decoration: underline; }
+.bst__code:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--radius-sm); }
+
+/* The wording under the code. Capped and ellipsised so one very long
+   description cannot widen the column past the rest of the row — the code
+   above it is the part that must always be whole.
+
+   18rem, down from 24. This table carries nine columns, and at 24rem the
+   procedure description pushed the total past the card on a 1440 laptop: the
+   wrap scrolled sideways and the row's ⋮ button — the only way to reach edit
+   and delete — sat half off the right-hand edge. The description is the one
+   value here that can be cut without losing the row, so it is the one that
+   gives way. */
+.bst__muted {
+  display: block;
+  max-width: 18rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-text-tertiary);
+}
+
+/* --- Row ⋮ trigger -----------------------------------------------------------
+   The panel it opens is shared — see css/components/row-menu.css. */
+
+
+/* --- Add / Edit dialog ------------------------------------------------------
+   Fields pair up by what they answer together: what and who, then for whom
+   and at what price, then the amounts and the dates they hold between. */
+
+.bst__form { display: flex; flex-direction: column; gap: var(--space-5); }
+
+.bst__form-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+}
+.bst__form-row > ui-input,
+.bst__form-row > ui-select {
+  flex: 1;
+  min-width: 10rem;
+}
+
+/* The toggle carries its own label above it, the way the fields beside it do,
+   so "Status" sits on the same baseline as every other field label. */
+.bst__toggle { display: flex; flex-direction: column; gap: var(--space-3); }
+
+/* --- Delete confirmation ---------------------------------------------------- */
+
+.bst__confirm { display: flex; flex-direction: column; gap: var(--space-6); }
+.bst__confirm p { font-size: var(--font-size-body); color: var(--color-text-secondary); }
+.bst__confirm strong { color: var(--color-text-primary); font-weight: var(--font-weight-semibold); }

@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MediNova EHR — Encounter</title>
+    <link rel="icon" type="image/svg+xml" href="../assets/img/favicon.svg" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="../css/reset.css" />
+    <link rel="stylesheet" href="../css/tokens.css" />
+    <link rel="stylesheet" href="../css/base.css" />
+    <link rel="stylesheet" href="../css/ui-kit.css" />
+    <!-- Step 1 mounts the bay's pre-procedure sheet, so it wears the sheet's
+         own styles — see js/lib/pre-check-form.js. screen-encounter.css
+         loads after it and restyles the sections into cards. -->
+    <link rel="stylesheet" href="../css/screen-pre-check.css" />
+    <!-- The pad itself is <ui-signature>, styled from ui-kit.css. This carries
+         the two states around it — the filed mark and the clinician's
+         e-signature — which js/lib/signature-block.js draws. -->
+    <link rel="stylesheet" href="../css/components/sign-pad.css" />
+    <!-- The findings diagram on the Procedure report — a picture of the bowel
+         with clickable segments and the drawer that opens off them. Loaded
+         before the screen's own sheet so the screen can still overrule it. -->
+    <link rel="stylesheet" href="../css/components/segment-findings.css" />
+    <!-- The clinical rail — the fourteen record sections on the right, and the
+         shell both rails share. The clinic visit mounts the same component, so
+         it is a component rather than part of this screen's sheet. Loaded
+         before that sheet, which still owns the columns the rails sit in. -->
+    <link rel="stylesheet" href="../css/components/clinical-rail.css" />
+    <link rel="stylesheet" href="../css/screen-encounter.css" />
+
+    <script type="module" src="../js/main.js"></script>
+    <script type="module" src="../js/screens/encounter.js"></script>
+    <script src="../js/open-me-properly.js"></script>
+  </head>
+
+  <!--
+    THE ENCOUNTER.
+
+    The procedure day arranged as the run of work it is. Three columns: where
+    the case is on the left, what you are doing in the middle, what you need to
+    know while doing it on the right.
+
+    This screen used to have a rival. A three-stage workspace lived at this
+    same address and a V1/V2 switch in the header carried a reviewer between
+    the two on one case. The review is over — the step run won, the switch and
+    the three-stage screen are both gone, and every flow that opens an
+    encounter lands here. What is left of that history is in CHANGELOG.md;
+    nothing in the running prototype should still speak of two versions.
+
+    Steps whose centre column is still empty say so in place. Each one names
+    what will go there.
+  -->
+  <body class="encv">
+    <header class="ui-page-head encv__head">
+      <div class="ui-page-head__lead">
+        <a class="ui-page-head__back" href="scheduler.html" data-testid="encv--back"
+           aria-label="Back to the scheduler">
+          <svg class="ui-icon" aria-hidden="true"><use href="#i-caret-left"></use></svg>
+        </a>
+        <!-- The screen's name, and under it the one line that says which
+             encounter this is: what is being done, by whom, where, and on what
+             day. It was hidden for a while on the argument that the rails
+             already say all four — the patient card names the patient, the
+             step ladder names the stage, the facts in the action slot name the
+             procedure and the endoscopist. But a clinician arriving from the
+             scheduler, the worklist or a link in a task lands here with none of
+             that read yet, and a band with no ink on its left reads as a screen
+             still loading. So the title is drawn again, over the same meta line
+             the clinic visit wears (.enc__meta in css/screen-clinic-visit.css),
+             so the two encounter screens open the same way. -->
+        <div class="encv__heading">
+          <h1 class="ui-page-head__title">Encounter</h1>
+          <p class="encv__meta" id="encounterMeta" data-testid="encv--meta"></p>
+        </div>
+      </div>
+
+      <div class="ui-page-head__actions">
+        <dl class="encv__facts" id="encounterFacts" data-testid="encv--facts"></dl>
+
+      </div>
+    </header>
+
+    <div class="encv__cols" id="cols" data-left="open" data-right="collapsed">
+      <!-- ================== LEFT: the patient, and the run ================== -->
+      <aside class="encv__rail encv__rail--left" id="railLeft" data-collapsed="false"
+        aria-label="Patient and encounter steps">
+        <!-- The handle is OUTSIDE the scrolling body, pinned to the rail's
+             inner edge, so it stays put while the steps scroll under it. -->
+        <button type="button" class="encv__rail-handle" id="toggleLeft"
+          aria-expanded="true" aria-controls="railLeftBody"
+          data-testid="encv--toggle-left">
+          <svg class="ui-icon" aria-hidden="true"><use href="#i-caret-left"></use></svg>
+        </button>
+
+        <button type="button" class="encv__rail-spine" data-spine="left"
+          aria-hidden="true" tabindex="-1">Encounter steps</button>
+
+        <div class="encv__rail-body" id="railLeftBody">
+          <section class="encv__patient" id="patientCard" data-testid="encv--patient"></section>
+
+          <!-- The eight steps of the day.
+               NOT role="tree", and not a tablist either. A tree would oblige
+               this to be a roving-tabindex widget driven by arrow keys, which
+               is a lot of machinery for seven rows, and a tablist cannot
+               express two levels of selection at all. So it stays a list of
+               disclosure buttons: aria-expanded says whether a step's documents
+               are showing, aria-current="step" says which step the work column
+               is on, and Tab reaches every one of them. role="list" because
+               list-style: none drops an <ol>'s list semantics in Safari. -->
+          <ol class="encv__steps" id="stepper" role="list"
+            aria-label="Encounter steps" data-testid="encv--stepper"></ol>
+        </div>
+      </aside>
+
+      <!-- ====================== CENTRE: the work ========================== -->
+      <main class="encv__main">
+        <!-- The step, then the document inside it. No tab strip on thirteen of
+             the fourteen steps: every one of their documents is listed under
+             its step in the rail, so a strip here would be a second set of
+             controls for the same destinations three inches away, and the two
+             would have to be kept agreeing for no gain. The fourteenth is
+             Intra-procedure Management, and the strip under this row says why
+             it is different. -->
+        <div class="encv__doc-head">
+          <h2 class="encv__doc-name" id="docName" data-testid="encv--doc-name"></h2>
+          <span class="encv__doc-sub" id="docSub" data-testid="encv--doc-sub" hidden></span>
+          <span class="encv__doc-spacer"></span>
+
+          <!-- The open document's own toolbar. Empty for a step with nothing
+               to offer; the checklist fills it with Set Default / Use Default /
+               Download PDF. -->
+          <div class="encv__doc-actions" id="docActions"
+            data-testid="encv--doc-actions"></div>
+
+          <!-- A host to render a fresh <ui-badge> into, rather than a badge to
+               mutate: the component reads its label once on connect, so a
+               badge whose text is rewritten in place keeps the first step's
+               role forever. -->
+          <div id="docRole" data-testid="encv--doc-role"></div>
+        </div>
+
+        <!-- THE SEGMENT STRIP, FOR THE ONE STEP THAT IS EIGHT DOCUMENTS DEEP.
+
+             The general rule on this screen still holds: documents are reached
+             from the rail, and a strip repeating them would be a second set of
+             controls for the same destinations. Intra-procedure Management is
+             the exception, and it is an exception about the work rather than
+             about the taste. Its eight logs are not read one after another and
+             filed — they are worked TOGETHER, all through the case: a set of
+             obs, then the drug that answered them, then the bag, then back to
+             the obs. Every one of those hops through the rail is a trip across
+             the screen to a 16px row, and on a collapsed rail it is not there
+             at all.
+
+             So the step that is charted by hopping gets the hops put next to
+             the work. Every other step keeps the rail and nothing else.
+
+             Empty and hidden for those other steps — see paintDocTabs. The
+             host is outside #docBody because the body is replaced wholesale on
+             every paint, and the strip must not be one of the things that goes
+             with it. -->
+        <div class="encv__doc-tabs" id="docTabs" data-testid="encv--doc-tabs" hidden></div>
+
+        <!-- THE PATIENT'S ACTIVE ALERTS, ON EVERY STEP.
+
+             Outside #docBody on purpose. The body is replaced wholesale every
+             time a step or document is opened, and an alert that only appears
+             on the tab that happened to render it is an alert nobody can rely
+             on having seen. This band is painted once and stays put under the
+             title while the eight logs and six documents come and go beneath
+             it — which is the only arrangement that makes "the patient is
+             anaphylactic to penicillin" true of the whole encounter rather
+             than of one screenful of it. -->
+        <section class="encv__alerts" id="docAlerts" data-testid="encv--alerts"
+          aria-label="Active patient alerts" hidden></section>
+
+        <div class="encv__body" id="docBody"
+          aria-labelledby="docName" data-testid="encv--doc-body"></div>
+
+        <!-- The commit, at the end of the document where the nurse gets to
+             after working it — not in the toolbar above, which is where they
+             start. Hidden for a step that has nothing to commit yet. -->
+        <div class="encv__foot" id="docFoot" data-testid="encv--doc-foot" hidden>
+          <span class="encv__foot-hint" id="docHint" aria-live="polite"
+            data-testid="encv--doc-hint"></span>
+          <div class="encv__foot-actions" id="docFootActions"></div>
+        </div>
+      </main>
+
+      <!-- ================= RIGHT: the clinical picture ====================
+           Empty on purpose. Everything inside it — the handle, the spine, the
+           title bar, the fourteen section cards — is drawn by
+           js/lib/clinical-rail.js, which the clinic visit mounts as well. What
+           stays in this file is the element itself, because being the third
+           track of .encv__cols is a fact about this screen's layout and not
+           about the rail. -->
+      <aside class="encv__rail encv__rail--right" id="railRight" data-collapsed="true"
+        aria-label="Clinical data"></aside>
+
+      <!-- ONE DRAWER FOR ALL EIGHT INTRA-PROCEDURE LOGS.
+           An observation, a drug, a bag of fluid and a handover are the same
+           shape — a few fields and a time, appended to a log — so they share a
+           dialog whose fields are built from a spec. Eight near-identical forms
+           would drift apart within a month; see js/lib/intra-log.js.
+
+           Centred, not a side drawer: it is the only thing being done while it
+           is open, and a panel at the edge of a three-column screen puts the
+           form as far as it can be from the table it is adding to. It does
+           double duty for adding and editing — one dialog, because two would be
+           two sets of fields free to disagree about what a vital sign is. -->
+      <ui-modal id="logDrawer" heading="Record" size="lg"
+        data-testid="encv--log-drawer">
+        <div class="encv__log-form" id="logForm"></div>
+        <p class="encv__log-error" id="logError" role="alert"></p>
+        <!-- Rebuilt on every open rather than relabelled. <ui-button> renders an
+             inner <button> and listens on THAT for the click it re-emits, so
+             assigning textContent to the host wipes the button and the listener
+             with it — the commit then looks present and does nothing. -->
+        <div class="ui-modal__actions" id="logActions"></div>
+      </ui-modal>
+
+      <!-- ASKING BEFORE A ROW CHANGES STATE.
+
+           Two of the logs do something to a row that is not a correction:
+           the IV log ends a running solution, and the medication inventory
+           takes a drug off the cart list. Neither is undone by pressing the
+           thing again, and one of them wants a number on the way through —
+           the volume that actually went in, which is only knowable while the
+           bag is still hanging there to be read.
+
+           One dialog for both, built from the log's own spec at the moment it
+           opens (see openRowConfirm in js/screens/encounter.js), the same way
+           the add/edit modal above is. A second confirm dialog would be a
+           second set of words for "are you sure" free to disagree with the
+           first. -->
+      <ui-modal id="rowConfirm" heading="Confirm" size="sm"
+        data-testid="encv--row-confirm">
+        <div class="encv__confirm" id="rowConfirmBody"></div>
+        <div class="ui-modal__actions" id="rowConfirmActions"></div>
+      </ui-modal>
+
+      <!-- READING A ROW THAT IS LONGER THAN ITS COLUMNS.
+
+           One log carries something a table cannot show: the Note register,
+           whose row is a letter. Its four columns say who it went to and what
+           it was about, and this is where the letter itself is read — on the
+           practice letterhead, exactly as it went out, with Print beside Close
+           because a copy for the paper file is why most people open one.
+
+           Built from the log's own spec at the moment it opens (see
+           openRowView in js/screens/encounter.js), the same way the add
+           drawer and the confirm above it are, so a second log that ever needs
+           one gets it by declaring `view` rather than by another dialog here.
+
+           Large rather than medium: a letter is a laid-out page and the whole
+           point of opening it is to read it as one. -->
+      <ui-modal id="rowView" heading="Note details" size="lg"
+        data-testid="encv--row-view">
+        <div class="encv__letter" id="rowViewBody"></div>
+        <div class="ui-modal__actions" id="rowViewActions"></div>
+      </ui-modal>
+
+      <!-- THE FINDINGS DRAWER, on the Procedure report.
+
+           One window, re-filled for whichever segment of the diagram was
+           pressed. Eight copies of an eleven-type form is a great deal of DOM
+           for a panel that shows one of them at a time, and the eleven forms
+           share nothing but the segment they were opened from.
+
+           A side drawer rather than the centred dialog the logs use, because
+           unlike a log row this is charted AGAINST something still on screen:
+           the endoscopist wants the diagram beside the form, to see the
+           segment they are describing and the ones already marked.
+
+           Heading and body are both written on open — see
+           js/lib/segment-findings.js. -->
+      <ui-modal id="findingsDrawer" heading="Findings" size="lg" variant="drawer"
+        data-testid="encv--findings-drawer">
+        <div data-segf-body data-testid="encv--findings-drawer-body"></div>
+      </ui-modal>
+
+      <!-- What the copy buttons announce. One region for all of them: they
+           report the same kind of thing one at a time, and a live region per
+           section would be thirteen politely-queued announcements waiting to
+           read out the one that mattered. -->
+      <p class="u-sr-only" id="copyLive" role="status" aria-live="polite"></p>
+    </div>
+  </body>
+</html>

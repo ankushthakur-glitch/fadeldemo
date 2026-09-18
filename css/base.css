@@ -1,0 +1,717 @@
+/* ============================================================================
+   BASE + TYPOGRAPHY UTILITIES
+   Page-level defaults and a small set of text helpers. Everything here reads
+   from tokens.css — no literal values.
+   ========================================================================= */
+
+/* The face is set on the ROOT, not only on <body>, so there is no element in
+   the document that can fall back to the UA's serif — a dialog, a <select>
+   dropdown or anything else rendered against the root inherits Inter too.
+   <body> keeps its own declaration below: the two agree, and a screen that
+   loads base.css without this file ever running is not a case worth relying
+   on inheritance for. */
+:root {
+  font-family: var(--font-family-base);
+}
+
+body {
+  background-color: var(--color-bg-page);
+  color: var(--color-text-primary);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-normal);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Anything focused by keyboard gets the same ring. Mouse clicks do not
+   trigger it, so the UI stays quiet for pointer users. */
+:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm);
+}
+
+a {
+  color: var(--color-text-link);
+  text-decoration-thickness: var(--border-width-thin);
+  text-underline-offset: 0.15em;
+}
+
+/* Hovering a link darkens it rather than only underlining it. Screens here put
+   links inside table rows that already change background on hover, so the
+   underline alone can be hard to attribute to the word under the pointer —
+   the colour shift says "this one" without adding another moving part. */
+a:hover { color: var(--color-text-link-hover); }
+
+/* Components set `display` on their own host element (ui-button is
+   inline-flex, ui-input is block …), and a type selector like `ui-button`
+   would otherwise beat the browser's built-in [hidden] rule — leaving a
+   "hidden" component perfectly visible. An attribute selector outranks a
+   type selector, so this fixes the component case.
+
+   !important covers the other half: a CLASS that sets display (.ap__grid,
+   .ik__results, .wf__card-body …) ties this rule on specificity and wins on
+   order, because screen stylesheets load after this one. That left
+   `<div class="ap__grid" hidden>` on screen, and was being patched one
+   `.thing[hidden] { display: none }` at a time. `hidden` must never be a lie
+   the markup can tell, so it is enforced here instead. Anything that needs to
+   keep its box while concealed should use visibility or opacity. */
+[hidden] { display: none !important; }
+
+/* --- Icons ---------------------------------------------------------------- */
+
+/* Icons are drawn with <use href="#i-name">. A <use> clone inherits its paint
+   from the *referencing* <svg>, not from the sprite it was copied out of — so
+   the fill setup has to live here or every glyph renders in the browser's
+   default black. currentColor means an icon always matches its text.
+
+   Phosphor's regular weight is an OUTLINED SHAPE, not a stroked line — the
+   weight is already in the path. So these fill and do not stroke; a leftover
+   `stroke: currentColor` would thicken every glyph by a pixel all round. */
+.ui-icon {
+  display: inline-block;
+  width: var(--icon-size-md);
+  height: var(--icon-size-md);
+  flex-shrink: 0;
+  fill: currentColor;
+  stroke: none;
+}
+
+/* The sprite itself is never displayed — it only supplies the symbols. */
+.ui-icon-sprite {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+/* --- Text utilities ------------------------------------------------------- */
+
+.u-text-2xs { font-size: var(--font-size-2xs); }
+.u-text-xs { font-size: var(--font-size-xs); }
+.u-text-sm { font-size: var(--font-size-sm); }
+.u-text-md { font-size: var(--font-size-md); }
+.u-text-lg { font-size: var(--font-size-lg); }
+.u-text-xl { font-size: var(--font-size-xl); }
+.u-text-2xl { font-size: var(--font-size-2xl); }
+
+.u-weight-regular { font-weight: var(--font-weight-regular); }
+.u-weight-medium { font-weight: var(--font-weight-medium); }
+.u-weight-semibold { font-weight: var(--font-weight-semibold); }
+.u-weight-bold { font-weight: var(--font-weight-bold); }
+
+.u-text-primary { color: var(--color-text-primary); }
+.u-text-secondary { color: var(--color-text-secondary); }
+.u-text-tertiary { color: var(--color-text-tertiary); }
+.u-text-brand { color: var(--color-text-brand); }
+.u-text-critical { color: var(--color-status-critical-text); }
+
+/* Tabular figures — lab values and vitals line up in a column. */
+.u-numeric {
+  font-family: var(--font-family-numeric);
+  font-variant-numeric: tabular-nums;
+}
+
+/* All-caps section label, the kind that sits above a group of fields. This is
+   the bottom rung of the title ladder in tokens.css — see that comment for
+   when an eyebrow is the right thing and when a label pair is. */
+.u-eyebrow {
+  font-size: var(--font-size-title-eyebrow);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+/* ----------------------------------------------------------------------------
+   THE TITLE LADDER, AS CLASSES
+
+   tokens.css defines the four rungs and says when each applies. These are the
+   two that a screen actually has to draw itself — the page title already
+   belongs to .ui-page-head__title and the eyebrow to .u-eyebrow above.
+
+   A screen with an existing name for its heading (.dash__card-title,
+   .bil__panel-title) does not have to rename anything: it reads the same rung
+   tokens and comes out identical. These exist so that the NEXT card title has
+   somewhere to go other than a fresh three declarations.
+   ------------------------------------------------------------------------- */
+.ui-title-card {
+  font-size: var(--font-size-title-card);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  color: var(--color-text-primary);
+}
+
+.ui-title-section {
+  font-size: var(--font-size-title-section);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-snug);
+  color: var(--color-text-primary);
+}
+
+/* ----------------------------------------------------------------------------
+   THE LABEL PAIR
+
+   A <dl> of read-only facts. Applied to the list, so the name and the value
+   halves cannot be set from two different places and drift apart — which is
+   exactly how they drifted apart the first time.
+   ------------------------------------------------------------------------- */
+.ui-facts > dt {
+  font-size: var(--font-size-fact-label);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-fact-label);
+}
+
+.ui-facts > dd {
+  margin: 0;
+  font-size: var(--font-size-fact-value);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-fact-value);
+}
+
+/* One-line truncation. Pair with a title attribute so the full value is
+   still reachable on hover. */
+.u-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Visible only to screen readers — used for labels that would be redundant
+   on screen but are required for assistive tech. */
+.u-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* --- Layout helpers ------------------------------------------------------- */
+
+.u-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--density-stack-gap);
+}
+
+.u-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.u-row-tight {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.u-grow { flex: 1; min-width: 0; }
+.u-spacer { flex: 1; }
+
+/* ============================================================================
+   PAGE HEADER — ONE BAND, EVERY SCREEN
+
+   The strip under the app bar that names where you are and carries the screen's
+   primary tabs, its count, its search and its one primary action.
+
+   It was eleven separate classes with five paddings, three gaps and an
+   arbitrary split over whether it had a background and a rule. That is a real
+   cost, not a tidiness complaint: if the top of the screen is a different
+   height and a different colour on every screen, nothing below it can be read
+   as being at a consistent depth either, and the eye re-learns the page every
+   time it moves.
+
+   So the band is defined once, here. A screen's own file adds only what is
+   genuinely different about that screen — and if it needs to change the
+   padding, that is a sign it should be changing this instead.
+
+   THREE BANDS, TOP TO BOTTOM, AND NOTHING ELSE:
+     app bar      page-level chrome        --color-bg-surface-sunken
+     page head    this                     --color-bg-surface + bottom rule
+     content      the work                 --color-bg-page
+   ========================================================================= */
+
+.ui-page-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  /* 3.875rem rather than 3.5: a head whose actions are buttons alone came out
+     four pixels shorter than one carrying a search field, and the two bands
+     sit a click apart — Patients and Complications, the directory and its
+     exception log. Nothing on the screen explains a four-pixel step, so it
+     reads as the page shifting under you. The floor is the taller of the two;
+     no band shrinks, and one with a search field is already at it. */
+  min-height: 3.875rem;
+  padding: var(--space-6) var(--space-8);
+  /* NO GROUND OF ITS OWN. The band used to be white, which was invisible on a
+     white page and is a white stripe on the canvas — a strip of paper between
+     the bar and the cards, belonging to neither. The screen's name is a label
+     ON the canvas; the cards below are the paper. The hairline stays for the
+     full-bleed screens, where a workspace runs flush to the band and there is
+     nothing else to mark the join; against a card in a gutter it is a stroke
+     on a stroke and all but disappears, which is the right amount of it. */
+  background-color: transparent;
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+/*
+ * No bottom rule, for a screen whose content brings its own top edge.
+ *
+ * The band's rule exists to separate the header from work that starts flush
+ * against it. On a screen that is one bordered card in a gutter — Leads — the
+ * card's own edge already does that, and the rule became a second horizontal
+ * line a few pixels above the first.
+ *
+ * A MODIFIER rather than a per-screen override on purpose: the band's
+ * geometry stays owned by this file, which is what stops the eleven-headers
+ * drift the shared rule was written to end. Screens opt in; they do not
+ * redeclare.
+ */
+.ui-page-head--flush { border-bottom: none; }
+
+/* The screen's name. One size on every screen — a heading that grows and
+   shrinks between screens reads as a change of level that is not there. */
+.ui-page-head__title {
+  font-size: var(--font-size-heading-lg);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  white-space: nowrap;
+}
+
+/* ----------------------------------------------------------------------------
+   THE TWO SLOTS OF THE HEADER ROW
+
+   Every list screen's header answers the same two questions in the same two
+   places, and the reason they are named slots rather than "whatever the screen
+   put there" is that they had drifted into eleven different arrangements: a
+   title in a screen-local heading class here, a title wrapped in a private
+   column there, a bespoke `__spacer` span in a third place doing by hand what
+   margin-left:auto already does.
+
+     .ui-page-head__lead      WHERE AM I      hard left
+     .ui-page-head__actions   WHAT CAN I DO   hard right
+
+   The lead slot takes ONE of two fillers, never both:
+
+     a title      <h1 class="ui-page-head__title">Leads</h1>
+     primary tabs <ui-tabs primary> …the screen's own sections… </ui-tabs>
+
+   Tabs REPLACE the title rather than sit under it. A screen whose sections are
+   named on the row has already said what it is — "Patients" above an
+   Inpatient / Outpatient strip is the same word twice, and it costs a whole
+   row of table. Where the name still has to exist for a screen reader, it goes
+   in the slot as a visually hidden <h1> ahead of the strip.
+
+   A screen you navigate INTO and can navigate back out of — every Settings
+   module, every Reports category — reads the same way, with the back arrow
+   standing where the title would have been: see .ui-page-head--tabs below.
+   The name survives as a visually hidden <h1> and in the arrow's aria-label,
+   so the screen still announces itself even though nothing draws it.
+
+   The actions slot is ordered, left to right, narrowest reach to widest:
+
+     search  ->  filters  ->  column setup  ->  the screen's own action
+
+   Search first because it is the control reached for most; the screen's own
+   button last because it is the only one there that does not act on the list
+   in front of you. The order is fixed so that moving between two worklists
+   never moves the button under the cursor.
+   ------------------------------------------------------------------------- */
+.ui-page-head__lead {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  min-width: 0;
+}
+
+/* The way back out of a screen you arrived at from another one — the arrow
+   before the title, inside the lead slot.
+
+   Four screens had drawn this themselves (.set__back, .ap__back, .cin__back,
+   .rep__back) and no two agreed on its size: two at 24px, one at 20px, and
+   Reports' as a pill carrying the word "Reports". The arrow is the same
+   promise on every screen and now has the same shape; it still takes a label
+   beside the glyph where the destination is worth naming. */
+.ui-page-head__back {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  min-width: var(--space-10);
+  height: var(--space-10);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-body);
+  text-decoration: none;
+}
+.ui-page-head__back:hover {
+  background-color: var(--color-bg-surface-hover);
+  color: var(--color-text-primary);
+}
+.ui-page-head__back:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/*
+ * The arrow ALONE, with no word beside it — the way back on a screen whose
+ * title already says what you are looking at and therefore what you would be
+ * leaving.
+ *
+ * "‹ Reports  Billing Reports" said Reports twice on one row, and the label
+ * pushed the screen's name a third of the way across the band, so the first
+ * thing read on a report was the way off it. Referrals had already settled
+ * the shape the other way round — a bare caret, then the title — and this is
+ * that shape, promoted out of one screen's stylesheet so every screen using
+ * it draws the same object. The destination survives as the link's
+ * aria-label and its tooltip; a caret under an app bar has one meaning.
+ *
+ * Two adjustments to the labelled form. The side padding goes, and a negative
+ * inset of the same size takes its place, so it is the GLYPH that lines up
+ * with the page gutter and the card edges below rather than the invisible box
+ * around it — a 32px hit area whose left edge is at the gutter puts the arrow
+ * six pixels inside everything it sits above. The hover ground still covers
+ * the whole box. And a little air after it, because the caret is now touching
+ * a 20px title instead of its own label.
+ */
+.ui-page-head__back--icon {
+  gap: 0;
+  padding: 0;
+  margin-left: calc(var(--space-3) * -1);
+  margin-right: var(--space-1);
+}
+
+/* Everything after this sits hard right: search, filters, the primary action. */
+.ui-page-head__actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+}
+
+/* ----------------------------------------------------------------------------
+   A TWO-ROW BAND, STILL ONE BAND
+
+   Some screens have a title AND five primary tabs AND an action. Those do not
+   fit on one row at any honest size, so the tabs take a second row — but they
+   stay INSIDE the header, because they are the screen's own sections and the
+   band is what says "this is the top of the page".
+
+   The header gives up its rule and its lower padding; the tab row picks both
+   up. Same surface, same gutter, one edge at the bottom — so a two-row screen
+   and a one-row screen still read as the same object.
+   ------------------------------------------------------------------------- */
+.ui-page-head--split {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+/* ----------------------------------------------------------------------------
+   ONE ROW: WHERE AM I, WHICH SECTION, WHAT CAN I DO
+
+   The Settings modules use this instead of the two-row band above, because the
+   reference draws them as a single line — a back arrow, the module's sections,
+   and the controls that act on the open section, left to right in that order.
+   Two rows spent 62px of every settings screen restating a band the eye had
+   already read, and pushed the table it was introducing a third of the way
+   down the window.
+
+   The module's name USED to sit between the arrow and the strip, on the
+   argument that a place you navigated into has to keep saying which place it
+   is. It does not: you arrived by clicking the module's own card on the hub,
+   the strip below the arrow lists that module's sections and nothing else,
+   and "Practice Settings" over Profile / Locations / Users / Roles / Print is
+   a fifth thing to read before the first thing you came for. Reports had
+   already settled it the other way — a bare caret, then the category's
+   reports — and this is that shape, applied to every settings module. The
+   name lives on where it costs nothing: the <h1> is still in the lead slot
+   carrying .u-sr-only, the <title> still names the module, and the arrow's
+   aria-label still says what you would be leaving.
+
+   The strip takes the room left between the two fixed ends and scrolls inside
+   itself when it runs out — Master has eight sections and a search box. It
+   never wraps: a wrapped primary strip reads as two levels of tab, which is
+   the one thing the tab system exists to prevent.
+   ------------------------------------------------------------------------- */
+.ui-page-head--tabs > .ui-page-head__lead { flex: none; }
+
+/*
+ * A name that DOES still draw in this band is set at card-title size, not
+ * page-title size.
+ *
+ * Only one screen is left in that position — Provider Availability, whose
+ * heading reads "Olivia Rhye Availability Preferences" and so says the one
+ * thing the two tabs beside it cannot: whose week you are editing. Every
+ * other module hides its <h1> (see above), and this rule simply passes over
+ * a hidden one.
+ *
+ * 20px is right for a name that owns a row — Patients, Settings, the hub you
+ * came from. Beside its own tab strip it is not that: it is the left-hand end
+ * of one sentence, "Settings ▸ Appointment ▸ Availability", and at 20px it
+ * shouted the middle word of it. The reference sets the same line at 16, half
+ * a step over the 14px tabs beside it, which is enough to read as the name of
+ * the thing without competing with the sections it introduces.
+ *
+ * This is not the "one size on every screen" rule bending: a screen still has
+ * exactly one page title at one size. What changed is that this band holds a
+ * BREADCRUMB, and the middle of a breadcrumb is not a page title.
+ */
+.ui-page-head--tabs > .ui-page-head__lead > .ui-page-head__title {
+  font-size: var(--font-size-title-card);
+  line-height: var(--line-height-tight);
+}
+
+.ui-page-head--tabs > ui-tabs {
+  flex: 0 1 auto;
+  min-width: 0;
+  display: flex;
+  overflow-x: auto;
+}
+/* The strip inside the element keeps its own width rather than being stretched
+   by the flex line — that is what makes the overflow above scroll instead of
+   squashing every tab. */
+.ui-page-head--tabs > ui-tabs > .ui-tabs { flex: none; }
+
+/*
+ * Tabs in the head band are set tighter than tabs anywhere else, and the band
+ * is why.
+ *
+ * A standalone strip owns its row and can afford 16px either side of every
+ * label. This one shares a row with the module's name on one side and a search
+ * box and a button on the other, so its padding is the first thing that pushes
+ * the last section out of view: Master's eight sections at 16px spend 256px on
+ * whitespace, which is what put "Recall Type" behind the search box on a 1440
+ * laptop. At 12px the same eight fit with room to spare, and the tab is still
+ * comfortably wider than its label — the strip scrolls only when a module
+ * genuinely has more sections than the window can hold.
+ */
+.ui-page-head--tabs > ui-tabs .ui-tabs--primary .ui-tabs__tab {
+  padding: 0 var(--space-6);
+}
+
+/* Below a laptop there is no honest way to keep a title, eight sections and a
+   search box on one line, so the band wraps into the two rows it used to be —
+   the controls first, because they are what is being reached for. */
+@media (max-width: 56.25rem) {
+  .ui-page-head--tabs { flex-wrap: wrap; }
+  .ui-page-head--tabs > .ui-page-head__actions { order: 1; }
+}
+
+/*
+ * The second row of the two-row band — the Reports modules' section strip.
+ *
+ * It carries neither a ground nor a rule, for the same reason the row above
+ * it carries neither: what follows on those screens is cards in a gutter, and
+ * every card brings its own top edge. The rule was a hairline a few pixels
+ * above the first card's, and the white was a strip of paper laid across a
+ * canvas that the cards below were already the paper of — the two together
+ * made the band look like a shallow card of its own with the page's real
+ * content starting under it.
+ *
+ * The band is still one object: same gutter, same surface as the row above
+ * (which is to say none), and the padding that closes it.
+ */
+.ui-page-head-tabs {
+  flex: none;
+  padding: var(--space-5) var(--space-8) var(--space-6);
+}
+
+/* ----------------------------------------------------------------------------
+   THE LIST SCREEN FRAME
+
+   Under the header band, a worklist is always the same two nested objects:
+
+     .ui-list-body    the gutter the card floats in
+       .ui-table-card the card itself: table above, footer below, ONE edge
+
+   The card exists because the footer and the table are one object and had
+   stopped looking like it. Every screen drew the gutter itself — .pt__body,
+   .lead__body, .med__body — and each set its own gap, so on one screen the
+   pager was welded to the last row and on the next it floated a paragraph
+   below the table with two rounded edges between them, reading as a second
+   card that happened to contain page numbers.
+
+   The card is what owns that join now: the table's wrap gives up its lower
+   corners, the footer (.ui-pager, or a screen's own summary strip) keeps its
+   upper border off, and the two close into a single bordered rectangle. A
+   screen adds column widths and cell shapes on top; it does not restate the
+   frame.
+   ------------------------------------------------------------------------- */
+/*
+ * NO TOP GUTTER. The header band above already ends in its own padding, and
+ * adding the gutter on top of it put twice as much air between the title and
+ * the table as there is between the title and the app bar — the screen's name
+ * drifting up toward chrome it has nothing to do with, and away from the rows
+ * it names. The card's top edge now sits the same distance below the title as
+ * the title sits below the bar.
+ */
+.ui-list-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  /* EIGHT ABOVE, TWENTY AROUND — see THE FRAME UNDER THE HEADER BAND below. */
+  padding: var(--space-4) var(--layout-gutter) var(--layout-gutter);
+  overflow: hidden;
+}
+
+/*
+ * THE CARD IS ROUNDED, AND IT IS THE ONE THING THAT KNOWS IT.
+ *
+ * The table wrap and the pager inside it stay square-cornered on purpose: a
+ * sticky header clipped to a rounded corner of its OWN box arrives with its
+ * first and last cells a different shape from the rest of the row, which is
+ * the seam the wrap gave its corners up to avoid. The card has no such
+ * problem — it draws no rows — so it takes the curve and clips its children
+ * to it, and no child has to know which corner it is sitting in.
+ *
+ * Safe to clip, because the two things that genuinely have to escape the card
+ * already do: the row menu and the select menu are position: fixed (see
+ * components/row-menu.css and components/select-menu.css), so an overflowing
+ * ancestor was never what was letting them out.
+ *
+ * Tasks proved this shape first and carried the only copy of the rule; it is
+ * said here now, once, for every list in the product. The screens that do NOT
+ * want it — the Scheduler's tables, which live inside a bigger card of their
+ * own — already give up the border and the corners on their wraps and say so
+ * where they do it.
+ */
+.ui-table-card {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+/* display:flex beats the default [hidden], so say it again — the card is a
+   whole tab panel on Templates and the Scheduler's two lists. */
+.ui-table-card[hidden] { display: none; }
+
+/*
+ * THE SCROLLING SIBLING. Same gutter, same missing top padding, but the PAGE
+ * scrolls rather than a table inside a card — which is the difference between
+ * a screen that is one list and a screen that is a column of cards. The
+ * Dashboard, Complications, the Audit Log and the report screens are the
+ * second kind; everything about the frame around them is otherwise the same.
+ */
+/* ----------------------------------------------------------------------------
+   THE FRAME UNDER THE HEADER BAND
+
+   One measure, every screen: the content starts EIGHT pixels under the band's
+   box and keeps a twenty-pixel gutter down the sides and along the foot.
+
+   Eight rather than twenty because the band is not a line — it ends with its
+   own twelve pixels of padding under whatever was last drawn in it, and eight
+   on top of that twelve is the same twenty the sides already have. Measuring
+   from the band's box instead of from the last thing inked in it is how a
+   header ends up looking like it has a strip of dead ground beneath it.
+
+   The screens this does NOT apply to are the full-bleed ones — the scheduler,
+   billing's panels, the inventory, the chart — where the content is not a card
+   floating in a gutter but a workspace running to the edges. There is no frame
+   there to be consistent about.
+   ------------------------------------------------------------------------- */
+
+.ui-page-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--layout-gap);
+  padding: var(--space-4) var(--layout-gutter) var(--layout-gutter);
+  overflow-y: auto;
+}
+
+/* ----------------------------------------------------------------------------
+   THE CONTROL BAR — for the sets that cannot go behind the button
+
+   Most narrowing controls belong in the header: a search box, and a Filters
+   button with everything else behind it. Two sets do not fit that rule and
+   should not be forced into it:
+
+     a set too big for the header   the users list's six filters
+     a set that must stay readable  the time report's period navigator, which
+                                    is always set and is stepped through
+
+   They get a bar of their own directly under the header — one shape, defined
+   here, so that the two screens that need it do not each invent one. Anything
+   that is neither of those cases goes in the header; a third bar shape is not
+   a third case, it is drift.
+   ------------------------------------------------------------------------- */
+.ui-control-bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+  padding: var(--space-5) var(--space-6);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  /* White, like the card it sits above. It was the sunken grey back when the
+     page around it was white and the bar had to be pushed into it; on the
+     canvas the relationship inverts — everything you can work with is a white
+     object floating on the green-grey, and a grey bar there reads as disabled
+     rather than as a place to change what the list shows. */
+  background-color: var(--color-bg-surface);
+}
+.ui-control-bar[hidden] { display: none; }
+
+/* The table scrolls; the footer under it does not move with it. */
+.ui-table-card ui-data-table { flex: 1; min-height: 0; display: flex; }
+.ui-table-card .ui-table-wrap { flex: 1; min-height: 0; }
+
+/* The corners belong to the card, not to the wrap. The wrap still has none of
+   its own — a sticky band clipped to ITS rounded corner arrives with its first
+   and last cells a different shape from the rest of the row, which is the seam
+   that rule exists to avoid (see .ui-table-wrap in components/data-table.css)
+   — and the card above clips the whole stack, wrap and footer together, to one
+   rounded rectangle. */
+
+/* ============================================================================
+   SCROLL FLOOR
+
+   Every app shell is a viewport-height flex column whose inner regions scroll
+   — the right behaviour on a normal screen, and what keeps a table header and
+   a footer pinned while rows move between them.
+
+   On a short window it stops being right. Top bar, page header, toolbar and
+   filter bar can exceed the viewport between them, and `overflow: hidden` on
+   the shell then clips whatever is below with no way to reach it.
+
+   So the shell stops shrinking at a usable floor, and the document scrolls
+   past it. Above the floor nothing changes at all.
+   ========================================================================= */
+
+body.pt,
+body.enc,
+body.app {
+  min-height: 42rem;
+}
+
+/* ============================================================================
+   SCROLLBARS: SCROLL, BUT DO NOT SHOW
+
+   A dense EHR has scroll containers nested three deep — the page, a panel, a
+   table body — and a visible bar on each draws three vertical rules down the
+   screen that mean nothing clinically. They are chrome competing with content
+   for the same narrow space.
+
+   Hidden, NOT disabled: every one of these still scrolls by wheel, trackpad,
+   touch, keyboard and programmatic scrollIntoView. Only the painted bar goes.
+
+   Applied at the root so it covers every screen and anything added later,
+   rather than being remembered per component.
+   ========================================================================= */
+
+* {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* legacy Edge */
+}
+*::-webkit-scrollbar { width: 0; height: 0; }

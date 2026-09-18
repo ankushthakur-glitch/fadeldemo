@@ -1,0 +1,416 @@
+/* ============================================================================
+   VISIT SUMMARY — one past visit, as a document
+
+   SET OUT LIKE THE CLINICIAN'S NOTE. The sectioning is the EHR's Encounter
+   Summary — a card per section, a brand rule beside each heading, and labelled
+   facts carried in a band of rule-divided cells rather than a column of
+   bordered cards. See css/screen-encounter-summary.css, whose `.es__section`
+   and `.es__grid` these mirror, and the header of
+   js/screens/visit-summary.js for why the layout is shared when the wording
+   deliberately is not.
+
+   FULL WIDTH, and the band is what earns it. The page used to be capped at
+   60rem because it was a single column of prose, and a paragraph read across
+   more than about eighty characters loses the start of its next line. A band
+   is not a paragraph: it packs short facts several across and reflows to as
+   many columns as the window allows, so the width goes into MORE COLUMNS
+   rather than longer lines. The prose inside a section is held to a readable
+   measure by .pp-visit__para instead, which is the rule that was actually
+   wanted.
+
+   Everything here is scoped to .pp-visit apart from .pp-back, which is a
+   page-level control.
+   ========================================================================= */
+
+/*
+ * Back to where you came from.
+ *
+ * A link, not history.back(): this address is shareable and bookmarkable, so
+ * a patient can arrive here from a message or a browser tab restored a week
+ * later, with no history to go back to. It always points at the Past tab,
+ * which is the only place the summary is reachable from.
+ */
+.pp-back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pp-space-2);
+  margin-bottom: var(--pp-space-3);
+  color: var(--pp-text-muted);
+  font-size: var(--pp-size-sm);
+  font-weight: var(--pp-weight-medium);
+}
+
+.pp-back:hover {
+  color: var(--pp-text-strong);
+  text-decoration: none;
+}
+
+.pp-visit {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pp-space-4);
+}
+
+/* ============================================================================
+   THE HEAD — what this document is, and about which visit
+   ========================================================================= */
+
+/* The document's name and its two actions — no longer a card. The visit's
+   facts moved into a Visit Details SECTION below, which is where the note puts
+   them and which stopped this head being a card that held a heading, three
+   buttons and a six-row definition list all at once. */
+.pp-visit__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--pp-space-4);
+}
+
+.pp-visit__title {
+  font-size: var(--pp-size-h1);
+  font-weight: var(--pp-weight-semibold);
+  color: var(--pp-text-strong);
+  line-height: var(--pp-leading-h1);
+  letter-spacing: var(--pp-tracking-display);
+}
+
+/* The reason for the visit, under the document's name. This is the line that
+   tells the patient they have opened the right one. */
+.pp-visit__reason {
+  margin-top: var(--pp-space-1);
+  color: var(--pp-text-muted);
+  font-size: var(--pp-size-body);
+}
+
+.pp-visit__tools {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--pp-space-3);
+}
+
+/* ============================================================================
+   THE SECTIONS
+
+   One card each, heading inside the same border as its body. The heading used
+   to be bare text over a body with no boundary, which drew no box at all for
+   a document of eight sections and left the reader counting headings to work
+   out where one ended.
+
+   The rule beside the heading is the note's own device: enough to find a
+   section when scrolling, without a full-width tinted band on every heading
+   down the page.
+   ========================================================================= */
+
+.pp-visit__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pp-space-4);
+  padding: var(--pp-space-5) var(--pp-pad-card);
+  border: 1px solid var(--pp-line);
+  border-radius: var(--pp-radius);
+  background-color: var(--pp-surface);
+}
+
+.pp-visit__section-title {
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-3);
+  font-size: var(--pp-size-h3);
+  font-weight: var(--pp-weight-semibold);
+  line-height: var(--pp-leading-h3);
+  color: var(--pp-text-strong);
+}
+
+.pp-visit__section-title::before {
+  content: '';
+  flex: none;
+  width: 0.1875rem;
+  align-self: stretch;
+  min-height: 1rem;
+  border-radius: var(--pp-radius-pill);
+  background-color: var(--pp-brand-700);
+}
+
+.pp-visit__section-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pp-space-4);
+  color: var(--pp-text);
+  font-size: var(--pp-size-body);
+  line-height: var(--pp-leading-loose);
+}
+
+/* Discs, and hanging indents, because these lists are read as instructions
+   and a wrapped second line that starts under the bullet loses its place. */
+.pp-visit__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pp-space-3);
+  padding-left: var(--pp-space-5);
+  list-style: disc;
+}
+
+.pp-visit__list li::marker {
+  color: var(--pp-text-faint);
+}
+
+/* "Nothing was measured at this visit" — an answer, not an empty box. */
+.pp-visit__none {
+  color: var(--pp-text-muted);
+}
+
+/* The line under a band that points at the screen holding the whole record. */
+.pp-visit__aside {
+  color: var(--pp-text-muted);
+  font-size: var(--pp-size-sm);
+}
+
+/* The prose runs the width of its section, the way the note's own `.es__para`
+   does. It is the one place this layout asks something of the reader that the
+   old 60rem column did not — a long line is harder to track back from — and it
+   is the price of the page filling the window it is given. The sections that
+   carry the instructions a patient acts on are bands and lists, not prose, and
+   those reflow into columns instead of stretching. */
+.pp-visit__para {
+  max-width: none;
+}
+
+/* ============================================================================
+   THE BAND — labelled facts across the width
+
+   The EHR note's `.es__grid`, in the portal's tokens. The wrapper clips the
+   leftmost cell's own left border so the rules fall between the columns and
+   never against the card's edge, on the first row and on every row the grid
+   wraps to.
+   ========================================================================= */
+
+.pp-band-wrap {
+  overflow: hidden;
+}
+
+.pp-band {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  row-gap: var(--pp-space-5);
+  margin-left: calc(-1 * var(--pp-space-5));
+}
+
+/* The wide track, for a band whose values are sentences. 22rem is about fifty
+   characters at the portal's body size: two across a laptop, three or four
+   across a wide monitor. */
+.pp-band--wide {
+  grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr));
+}
+
+/* Pulled left by its own padding, so the first column's text starts flush with
+   the card's other content and only the rule hangs outside, into the clip. */
+.pp-band__cell {
+  padding: 0 var(--pp-space-5);
+  border-left: 1px solid var(--pp-line);
+}
+
+/* The one fact in a band that has to have the whole width: the reason for the
+   visit, which is prose sitting under six short appointment facts. */
+.pp-band__cell--full {
+  grid-column: 1 / -1;
+}
+
+.pp-band__cell dt {
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-2);
+  color: var(--pp-text-muted);
+  font-size: var(--pp-size-sm);
+  font-weight: var(--pp-weight-regular);
+}
+
+.pp-band__cell dd {
+  margin-top: var(--pp-space-1);
+  color: var(--pp-text-strong);
+  font-size: var(--pp-size-body);
+  font-weight: var(--pp-weight-medium);
+  line-height: var(--pp-leading-normal);
+}
+
+/* A value that is a sentence is read, not scanned: regular weight and the
+   looser leading, wherever it lands. */
+.pp-band--wide dd,
+.pp-band__cell--full dd {
+  font-weight: var(--pp-weight-regular);
+  line-height: var(--pp-leading-loose);
+}
+
+/* What the number means, the code it is filed under, when and where to go —
+   the line the clinician's copy does not need. Quieter than the value, and on
+   its own line, so the band still scans as a band. */
+.pp-band__note {
+  display: block;
+  margin-top: var(--pp-space-2);
+  color: var(--pp-text-muted);
+  font-size: var(--pp-size-sm);
+  font-weight: var(--pp-weight-regular);
+  line-height: var(--pp-leading-normal);
+}
+
+/* ============================================================================
+   THE FOOTNOTE — "this is a summary, not your full record"
+   ========================================================================= */
+
+.pp-visit__foot {
+  margin-top: var(--pp-gap-block);
+}
+
+.pp-visit__foot-icon {
+  flex: none;
+  display: flex;
+  margin-top: 0.125rem;
+}
+
+.pp-visit__foot .pp-alert__body {
+  line-height: var(--pp-leading-normal);
+}
+
+/* ============================================================================
+   THE PRINTED SHEET'S IDENTITY BLOCK
+
+   Off-screen the way .pp-print is off-screen in css/print.css, and for the
+   same reason set out there: clipped rather than display:none, because an
+   element hidden that way is not reliably in the print output of every engine
+   and drops out of the accessibility tree unpredictably. aria-hidden on the
+   element keeps a screen reader from reading a name the reader already knows
+   is theirs.
+   ========================================================================= */
+
+.pp-visit__print-head {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ============================================================================
+   NARROW SCREENS
+   ========================================================================= */
+
+@media (width < 56rem) {
+  /* The actions drop under the title rather than squeezing it, and wrap among
+     themselves once there are three of them. */
+  .pp-visit__head {
+    flex-direction: column;
+  }
+
+  .pp-visit__tools {
+    flex-wrap: wrap;
+  }
+
+  /*
+   * One column, and no rules.
+   *
+   * A band's vertical rules divide COLUMNS. Once the grid has wrapped to a
+   * single column they divide nothing — they become a stripe down the left of
+   * every cell, which reads as a quote block or a selected row, neither of
+   * which is what a fact is. The row gap is doing the separating by then.
+   */
+  .pp-band {
+    grid-template-columns: minmax(0, 1fr);
+    margin-left: 0;
+  }
+
+  .pp-band__cell {
+    padding: 0;
+    border-left: none;
+  }
+}
+
+/* ============================================================================
+   PRINT
+
+   The one screen in the portal that is genuinely printed — a patient takes
+   this to a specialist, or puts it on the fridge. The shell, the back link
+   and the buttons are chrome and must not appear on paper; the document
+   itself needs no restyling beyond losing the well's scroll box.
+   ========================================================================= */
+
+@media print {
+  .pp-topbar,
+  .pp-side,
+  .pp-back,
+  .pp-visit__tools,
+  .pp-toasts {
+    display: none !important;
+  }
+
+  /* Whose sheet this is, and how old it is — put back at the top of the page.
+     See printHead() in js/screens/visit-summary.js. */
+  .pp-visit__print-head {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip-path: none;
+    white-space: normal;
+    margin-bottom: var(--pp-space-4);
+    padding-bottom: var(--pp-space-3);
+    border-bottom: 1px solid #000;
+  }
+
+  /* Matched to .pp-print__logo in css/print.css, so the mark is the same size
+     on this sheet as it is on a printed form or medication list — three
+     documents from one clinic that print three different-sized logos read as
+     three different clinics. */
+  .pp-visit__print-logo {
+    display: block;
+    width: auto;
+    height: 12mm;
+    margin-bottom: var(--pp-space-2);
+  }
+
+  .pp-visit__print-clinic {
+    font-size: 12pt;
+    font-weight: var(--pp-weight-semibold);
+  }
+
+  .pp-visit__print-facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4mm 8mm;
+    margin-top: var(--pp-space-2);
+    font-size: 9pt;
+  }
+
+  .pp-visit__print-facts dt {
+    color: #444;
+  }
+
+  .pp-visit__print-facts dd {
+    font-weight: var(--pp-weight-semibold);
+  }
+
+  /* The brand rule beside each heading arrives as a grey tick on a mono
+     printer, which is worse than nothing beside a heading that is already
+     bold. The section borders do the dividing on paper. */
+  .pp-visit__section-title::before {
+    display: none;
+  }
+
+  .pp-content {
+    padding: 0;
+    overflow: visible;
+  }
+
+  .pp-visit {
+    max-width: none;
+  }
+
+  .pp-visit__section {
+    box-shadow: none;
+  }
+
+  /* A section split across a page break costs the reader the heading it
+     belonged to. */
+  .pp-visit__section {
+    break-inside: avoid;
+  }
+}

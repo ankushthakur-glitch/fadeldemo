@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MediNova EHR — Templates</title>
+    <link rel="icon" type="image/svg+xml" href="../assets/img/favicon.svg" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="../css/reset.css" />
+    <link rel="stylesheet" href="../css/tokens.css" />
+    <link rel="stylesheet" href="../css/base.css" />
+    <link rel="stylesheet" href="../css/ui-kit.css" />
+    <link rel="stylesheet" href="../css/screen-patient.css" />
+    <link rel="stylesheet" href="../css/screen-leads.css" />
+    <link rel="stylesheet" href="../css/screen-settings.css" />
+    <link rel="stylesheet" href="../css/screen-templates.css" />
+
+    <script type="module" src="../js/main.js"></script>
+    <script type="module" src="../js/screens/templates.js"></script>
+    <script src="../js/open-me-properly.js"></script>
+  </head>
+
+  <body class="pt">
+    <header class="pt__bar">
+      <img class="pt__logo" src="../assets/img/medinova-logo.svg" width="158" height="32"
+        alt="MediNova Gastroenterology Clinic" />
+      <ui-main-nav active="settings"></ui-main-nav>
+      <div class="pt__bar-actions">
+        <ui-time-clock></ui-time-clock>
+        <button type="button" class="pt__icon-action" aria-label="Notifications">
+          <svg class="ui-icon" aria-hidden="true"><use href="#i-bell"></use></svg>
+        </button>
+        <ui-avatar name="Amara Mensah" size="sm"></ui-avatar>
+      </div>
+    </header>
+
+    <!--
+      One row, read left to right: the way back, the module's name, its two
+      sections, and the controls that act on whichever list is showing — the
+      same order every Settings module uses, and the same order the worklists
+      outside Settings use for the half of it they have. See
+      .ui-page-head--tabs in base.css.
+
+      The search box and the button are single controls that re-point at the
+      selected tab rather than a pair per panel, so there is never a stale
+      search box sitting in a hidden one. Same shape Master uses.
+    -->
+    <div class="ui-page-head ui-page-head--flush ui-page-head--tabs set__head">
+      <div class="ui-page-head__lead">
+        <a class="ui-page-head__back ui-page-head__back--icon" href="settings.html" data-testid="tpl--back" aria-label="Back to settings">
+          <svg class="ui-icon" aria-hidden="true"><use href="#i-caret-left"></use></svg>
+        </a>
+        <h1 class="ui-page-head__title u-sr-only">Templates</h1>
+      </div>
+
+      <ui-tabs selected="visit-notes" id="tplTabs" primary data-testid="tpl--tabs">
+        <!-- Two, and they are different things: a template is an ordered list
+             of sections, a macro is a block of prose. Custom Questionnaire,
+             ROS, Physical Exam, Annotable Image and Order Set were here and
+             are gone — five names for the thing Visit Notes already is. What a
+             template is FOR is the Type column's job. -->
+        <ui-tab value="visit-notes" label="Visit Notes"></ui-tab>
+        <ui-tab value="macros" label="Macros"></ui-tab>
+      </ui-tabs>
+
+      <div class="ui-page-head__actions">
+        <ui-input
+          id="tplSearch"
+          label="Search templates"
+          label-hidden
+          icon="search"
+          placeholder="Search…"
+          data-testid="tpl--search"
+        ></ui-input>
+        <!-- Label named by the open tab — see paintCreateButton(). Never
+             assign textContent to a ui-button; the label is set through the
+             span it renders. -->
+        <ui-button variant="primary" icon="plus" id="tplCreate" data-testid="tpl--create">
+          Create New Template
+        </ui-button>
+      </div>
+    </div>
+
+
+    <!--
+      One panel per tab, not one shared panel the strip re-points at. <ui-tabs>
+      gives every tab aria-controls="panel-<value>", so a single panel would
+      leave the other tab pointing at an element that does not exist — which is
+      an invalid ARIA reference, not a cosmetic one. Same shape Master uses for
+      its lists.
+    -->
+    <main class="tpl__body">
+      <section class="ui-table-card" id="panel-visit-notes" role="tabpanel"
+        aria-labelledby="tab-visit-notes">
+        <ui-data-table data-table="visit-notes" data-testid="tpl--table"></ui-data-table>
+        <div data-foot="visit-notes"></div>
+      </section>
+
+      <section class="ui-table-card" id="panel-macros" role="tabpanel" aria-labelledby="tab-macros" hidden>
+        <ui-data-table data-table="macros" data-testid="tpl--table"></ui-data-table>
+        <div data-foot="macros"></div>
+      </section>
+    </main>
+
+    <!-- ================= NEW MACRO =================
+         A macro is a title and a body, so its create dialog asks for exactly
+         that. Templates do not use this — they open the builder, because
+         choosing and ordering sections is not something a two-field dialog
+         can do. -->
+    <ui-modal id="macroModal" heading="New macro" size="md">
+      <div class="tpl__form">
+        <ui-input class="tpl__field--wide" label="Macro name" required
+          data-testid="tpl--macro-name"></ui-input>
+        <ui-textarea class="tpl__field--wide" label="Description" rows="6"
+          placeholder="What this macro says, and when to use it."
+          data-testid="tpl--macro-description"></ui-textarea>
+      </div>
+      <div class="ui-modal__actions">
+        <ui-button variant="outline" data-modal-dismiss data-testid="tpl--macro-cancel"
+          >Cancel</ui-button>
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="primary" data-testid="tpl--macro-save">Add</ui-button>
+      </div>
+    </ui-modal>
+
+    <!-- ================= DELETE =================
+         Named rather than "Are you sure?": the confirmation quotes the row
+         back so a mis-click on the wrong ⋮ is caught here rather than after. -->
+    <ui-modal id="deleteModal" heading="Delete" size="sm">
+      <p class="tpl__confirm" id="deleteLead"></p>
+      <p class="tpl__confirm-note">This cannot be undone.</p>
+      <div class="ui-modal__actions">
+        <ui-button variant="outline" data-modal-dismiss data-testid="tpl--delete-cancel"
+          >Cancel</ui-button>
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="danger" data-testid="tpl--delete-confirm">Delete</ui-button>
+      </div>
+    </ui-modal>
+  </body>
+</html>

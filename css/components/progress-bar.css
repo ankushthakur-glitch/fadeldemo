@@ -1,0 +1,72 @@
+/* ============================================================================
+   ui-progress-bar — a linear measure.
+
+   Two modes, and they are not the same claim. A determinate bar says "this
+   much of a known total is done"; an indeterminate one says only "something is
+   still happening", which is why it carries no aria-valuenow — a number the
+   component cannot honestly supply is worse than none.
+
+   Under prefers-reduced-motion the sweeping sliver becomes a full track, so
+   the bar still reads as busy without anything moving.
+   ========================================================================= */
+
+ui-progress-bar { display: block; }
+
+.ui-progress {
+  --progress-height: var(--space-3); /* 6px */
+  --progress-fill: var(--color-brand-solid);
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  width: 100%;
+}
+
+.ui-progress--brand { --progress-fill: var(--color-brand-solid); }
+.ui-progress--success { --progress-fill: var(--color-status-success-solid); }
+.ui-progress--warning { --progress-fill: var(--color-status-warning-solid); }
+.ui-progress--critical { --progress-fill: var(--color-status-critical-solid); }
+
+.ui-progress--sm { --progress-height: var(--space-2); }
+.ui-progress--md { --progress-height: var(--space-3); }
+.ui-progress--lg { --progress-height: var(--space-4); }
+
+.ui-progress__track {
+  flex: 1;
+  height: var(--progress-height);
+  border-radius: var(--radius-full);
+  background-color: var(--color-bg-track);
+  overflow: hidden;
+}
+
+.ui-progress__fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  background-color: var(--progress-fill);
+  transition: width var(--duration-base) var(--ease-out);
+}
+
+.ui-progress__track--indeterminate .ui-progress__fill {
+  width: 40%;
+  transition: none;
+  animation: ui-progress-sweep 1.2s var(--ease-out) infinite;
+}
+
+@keyframes ui-progress-sweep {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(250%); }
+}
+
+.ui-progress__label {
+  flex-shrink: 0;
+  min-width: 2.5rem;
+  font-size: var(--font-size-md);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-secondary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-progress__track--indeterminate .ui-progress__fill {
+    animation: none;
+    width: 100%;
+  }
+}

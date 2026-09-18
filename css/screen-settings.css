@@ -1,0 +1,788 @@
+/* ============================================================================
+   Settings — page head, appointment tabs, and provider availability. The hub
+   card grid moved to components/hub.css when Reports needed the same thing.
+   ========================================================================= */
+
+/* --- Page head with back arrow --------------------------------------------- */
+
+/* The page header is .ui-page-head in base.css — one band, every screen.
+   Nothing was different about this one, so nothing is redeclared here. */
+
+/* The tab strip is IN the head band, not under it — see .ui-page-head--tabs
+   in base.css. A settings module is one row: back arrow, module name, its
+   sections, and whatever acts on the open section. */
+
+/*
+ * The tab body scrolls rather than clipping.
+ *
+ * Panels whose content sizes itself — the permission matrix with its summary
+ * cards above it, a long profile — will exceed the shell on a short window.
+ * `overflow: hidden` here meant the bottom of those panels was unreachable.
+ * `auto` costs nothing on the panels that already fit.
+ */
+.set__body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: var(--layout-gutter);
+  /* Eight above, twenty around — see THE FRAME UNDER THE HEADER BAND in
+     base.css. */
+  padding-top: var(--space-4);
+  overflow: auto;
+}
+
+.set__body [role='tabpanel'] { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.set__body [role='tabpanel'][hidden] { display: none; }
+
+/* What acts on the open tab sits in the tab bar's action slot, not in a row
+   of its own above the table — see .ui-page-head__actions in base.css. The
+   only thing left to say about it here is how wide the two controls are.
+
+   14rem, not 16: the search box shares its row with the module's sections, and
+   Master's eight of them were being pushed off the end of the band by the two
+   extra characters nobody types. A 14rem field still shows a whole search term
+   at body size. */
+.set__head ui-select { width: 12rem; }
+.set__head ui-input { width: 14rem; }
+
+/* Below a laptop the band wraps and the controls take the row above the tabs
+   — base.css does that part. What is left is the row itself: the slot spans
+   the width it has been given rather than hugging the right-hand edge of it,
+   and the search box takes whatever the buttons beside it leave. Master, with
+   eight sections and three controls, is where this first stops fitting.
+
+   The wrap is asked for here as well as in base.css, because base only wraps
+   a band that has a strip in it. Billing Settings has none — one list, named
+   in the title — and on a nowrap row its buttons slid straight over the top
+   of "Fee Schedule". The controls take the row below the name, which is the
+   same two-row shape every other module falls back to. */
+@media (max-width: 56.25rem) {
+  .set__head { flex-wrap: wrap; }
+  .set__head .ui-page-head__actions { width: 100%; }
+  .set__head .ui-page-head__actions ui-input { flex: 1; width: auto; }
+}
+
+/* The table and its pager are .ui-table-card in base.css now — the same card
+   the patient directory, Leads and Inventory are built from. This file used
+   to draw a settings-only version of it, which is how the pager under a
+   settings list ended up meeting a fully rounded table edge while the
+   directory's met a flat one. */
+
+.set__foot {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+  padding-top: var(--space-5);
+  font-size: var(--font-size-body);
+  color: var(--color-text-secondary);
+}
+
+/* --- Colour swatch (runtime colours, generated classes) --------------------- */
+
+.ui-swatch {
+  display: inline-block;
+  width: var(--space-10);
+  height: var(--space-7);
+  border-radius: var(--radius-sm);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  vertical-align: middle;
+}
+
+.ui-swatch--lg { width: var(--space-11); height: var(--space-9); }
+
+/* --- Colour picker grid ----------------------------------------------------- */
+
+.set__picker { display: flex; flex-direction: column; gap: var(--space-6); }
+
+.set__picker-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-2);
+  border: var(--border-width-thin) solid transparent;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+.set__picker-trigger:hover { border-color: var(--color-border-default); }
+.set__picker-trigger:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.set__modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-4);
+  padding-top: var(--space-4);
+}
+
+.set__palette {
+  padding: var(--space-6);
+  background-color: var(--color-bg-surface-sunken);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.set__palette-label {
+  display: block;
+  margin-bottom: var(--space-5);
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+}
+
+.set__palette-grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: var(--space-3);
+}
+
+.set__palette-swatch {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: var(--radius-sm);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  cursor: pointer;
+}
+.set__palette-swatch:hover { transform: scale(1.12); }
+/* A swatch is filled with an arbitrary colour — possibly a green — so the ring
+   needs the surface gap to stay legible against whatever it sits on. */
+.set__palette-swatch:focus-visible { outline: none; box-shadow: var(--focus-ring-solid); }
+.set__palette-swatch[aria-pressed='true'] {
+  outline: var(--border-width-thick) solid var(--color-border-focus);
+  outline-offset: var(--space-1);
+}
+
+/* --- Colour mixer: the square, the two ramps and the hex box ---------------- */
+
+/*
+ * Sits under the Basic Colours grid, separated by a rule rather than by a gap,
+ * because it is the same question answered a second way — not a second
+ * question. Everything that moves is a custom property written by
+ * js/lib/colour-mixer.js onto [data-mixer-id]; the geometry and the ordinary
+ * colours stay here.
+ */
+.set__mixer {
+  margin-top: var(--space-6);
+  padding-top: var(--space-6);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+/*
+ * The saturation/brightness square.
+ *
+ * THE ONLY LITERAL COLOURS IN THIS SHEET, and deliberately: these two
+ * gradients are not a design decision that a re-skin should follow, they are
+ * the axes of the HSV colour model itself. White has to be white and black
+ * black, or the corner the user drags into is not the colour the swatch then
+ * shows. --color-base-black is #0d0d0d — near-black, correct for ink, wrong
+ * for this. The hue behind them is the live one.
+ */
+.set__mixer-field {
+  position: relative;
+  aspect-ratio: 5 / 3;
+  border-radius: var(--radius-md);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  background-image: linear-gradient(to top, #000, transparent),
+    linear-gradient(to right, #fff, var(--mixer-hue, transparent));
+  cursor: crosshair;
+  touch-action: none; /* the drag is ours, not the scroller's */
+}
+.set__mixer-field:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* Two rings, light over dark, so the thumb survives both ends of the square. */
+.set__mixer-thumb {
+  position: absolute;
+  left: var(--mixer-x, 0%);
+  top: var(--mixer-y, 0%);
+  width: var(--space-6);
+  height: var(--space-6);
+  margin: calc(var(--space-6) / -2) 0 0 calc(var(--space-6) / -2);
+  border-radius: var(--radius-full);
+  border: var(--border-width-thick) solid var(--color-base-white);
+  box-shadow: 0 0 0 1px var(--color-border-strong);
+  background-color: var(--mixer-ink, transparent);
+  pointer-events: none;
+}
+
+.set__mixer-ramps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  margin-top: var(--space-6);
+}
+
+/* A ramp is a painted track with a real range input laid over it: the arrow
+   keys, Home/End and the screen-reader announcement all come free that way. */
+.set__mixer-ramp {
+  position: relative;
+  display: block;
+  height: var(--space-6);
+  border-radius: var(--radius-full);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.set__mixer-ramp--hue {
+  background-image: linear-gradient(
+    to right,
+    hsl(0, 100%, 50%),
+    hsl(60, 100%, 50%),
+    hsl(120, 100%, 50%),
+    hsl(180, 100%, 50%),
+    hsl(240, 100%, 50%),
+    hsl(300, 100%, 50%),
+    hsl(360, 100%, 50%)
+  );
+}
+
+/* The chequerboard is what says "see-through" — without it a 20% opacity red
+   just looks like a pale pink someone chose on purpose. */
+.set__mixer-ramp--alpha,
+.set__mixer-result {
+  background-image: repeating-conic-gradient(
+    var(--color-bg-surface-sunken) 0% 25%,
+    var(--color-bg-surface) 0% 50%
+  );
+  background-size: var(--space-6) var(--space-6);
+}
+
+.set__mixer-fade {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image: linear-gradient(to right, transparent, var(--mixer-solid, transparent));
+}
+
+.set__mixer-range {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.set__mixer-range:focus { outline: none; }
+
+.set__mixer-range::-webkit-slider-runnable-track { height: 100%; background: transparent; }
+.set__mixer-range::-moz-range-track { height: 100%; background: transparent; }
+
+/* Same thumb said twice, once per engine. It is a ring, not a disc: the point
+   of a ramp is that you can see the colour you are standing on. */
+.set__mixer-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: var(--space-6);
+  height: var(--space-6);
+  border-radius: var(--radius-full);
+  background-color: transparent;
+  border: var(--border-width-thick) solid var(--color-base-white);
+  box-shadow: 0 0 0 1px var(--color-border-strong);
+}
+.set__mixer-range::-moz-range-thumb {
+  width: var(--space-6);
+  height: var(--space-6);
+  box-sizing: border-box;
+  border-radius: var(--radius-full);
+  background-color: transparent;
+  border: var(--border-width-thick) solid var(--color-base-white);
+  box-shadow: 0 0 0 1px var(--color-border-strong);
+}
+.set__mixer-range:focus-visible::-webkit-slider-thumb { box-shadow: var(--focus-ring-solid); }
+.set__mixer-range:focus-visible::-moz-range-thumb { box-shadow: var(--focus-ring-solid); }
+
+.set__mixer-out {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  margin-top: var(--space-6);
+}
+
+/* The chequerboard rides in the background above; the colour goes on top of it
+   as its own layer, which is the only way a translucent result reads right. */
+.set__mixer-result {
+  position: relative;
+  width: var(--space-11);
+  height: var(--space-9);
+  flex: none;
+  border-radius: var(--radius-sm);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  overflow: hidden;
+}
+.set__mixer-result::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-color: var(--mixer-ink, transparent);
+}
+
+.set__mixer-hex { flex: 1; min-width: 0; }
+.set__mixer-hex .ui-input__control { font-variant-numeric: tabular-nums; }
+
+/* --- Appointment types: rail + detail ---------------------------------------- */
+
+/* One line naming the practice profile whose types are listed. flex:none so it
+   keeps its height and the rail below still gets the rest of the panel. */
+.set__scope {
+  flex: none;
+  margin-bottom: var(--space-5);
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+}
+.set__scope a { color: var(--color-text-link); }
+.set__scope a:hover { text-decoration: underline; }
+
+/* 18rem for the rail, not 15.
+   The list is names — "pH / Impedance Study — Placement", "Laboratory Work /
+   Blood Draw" — and at 15rem a third of a fifty-type list wrapped onto two
+   lines, which breaks the rhythm that makes a rail scannable. The three
+   columns it takes come off the form beside it, which had more width than any
+   of its fields could use. */
+.set__types {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 18rem minmax(0, 1fr);
+  gap: var(--space-7);
+}
+
+@media (max-width: 900px) {
+  .set__types { grid-template-columns: minmax(0, 1fr); }
+}
+
+.set__rail {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+  overflow: hidden;
+}
+
+.set__rail-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-6);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+}
+
+.set__rail-list { flex: 1; min-height: 0; overflow-y: auto; padding: var(--space-2); }
+
+.set__rail-item {
+  display: block;
+  width: 100%;
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-body);
+  color: var(--color-text-secondary);
+  text-align: left;
+  cursor: pointer;
+}
+.set__rail-item:hover { background-color: var(--color-bg-surface-hover); color: var(--color-text-primary); }
+.set__rail-item:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.set__rail-item[aria-current='true'] {
+  background-color: var(--color-brand-surface);
+  color: var(--color-brand-text);
+  font-weight: var(--font-weight-medium);
+}
+
+.set__detail {
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--card-padding);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+}
+
+/* The form runs the full width of the panel.
+   It used to stop at a 56rem measure, which left a band of empty card to the
+   right of every field on a wide monitor and made the detail read as a narrow
+   form that had been dropped into a container meant for something else. The
+   fields themselves stay the size their content wants — the duration box is
+   still 6rem, the provider override still 6rem — so widening the column
+   stretches only the things that genuinely want the room: the title input, the
+   two pickers, and the attached-form rows whose remove button now sits at the
+   panel edge rather than mid-card. */
+.set__detail > * { max-width: none; }
+
+.set__detail-title {
+  font-size: var(--font-size-title-card);
+  line-height: var(--line-height-tight);
+  font-weight: var(--font-weight-semibold);
+  margin-bottom: var(--space-6);
+  color: var(--color-text-primary);
+}
+
+.set__stack { display: flex; flex-direction: column; gap: var(--space-6); }
+
+.set__duration { display: flex; align-items: flex-end; gap: var(--space-4); }
+.set__duration ui-input { width: 6rem; }
+.set__duration ui-select { width: 9rem; }
+
+.set__attach { display: flex; align-items: flex-end; gap: var(--space-4); }
+.set__attach ui-select { flex: 1; min-width: 0; }
+
+.set__form-list { display: flex; flex-direction: column; gap: var(--space-3); }
+
+.set__form-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-4) var(--space-5);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+  font-size: var(--font-size-body);
+}
+.set__form-item span { flex: 1; min-width: 0; }
+
+.set__detail-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: var(--space-7);
+}
+
+/* --- Provider availability --------------------------------------------------- */
+
+/* The inline "add a block day" row above the table. */
+.set__add-row {
+  flex: none;
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) repeat(4, minmax(0, 1fr)) auto;
+  align-items: end;
+  gap: var(--space-5);
+  padding: var(--space-5) var(--space-6);
+  margin-bottom: var(--space-5);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface-sunken);
+}
+
+@media (max-width: 1100px) {
+  .set__add-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+/* ---------------------------------------------------------------------------
+   Day slots — three levels of hierarchy, made visible:
+     1. the DATE RANGE card     (heaviest border, own header bar)
+     2. a DAY inside it          (checkbox + name, separated by a rule)
+     3. a TIME BLOCK inside a day (indented, no day name, lighter type)
+   Without those three weights the whole thing reads as one flat list.
+   ------------------------------------------------------------------------ */
+
+.set__slot {
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+  margin-bottom: var(--space-6);
+  overflow: hidden;
+}
+
+/* Level 1 — the range header. Tinted so it reads as a container, not a row. */
+.set__slot-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  padding: var(--space-5) var(--space-6);
+  background-color: var(--color-bg-surface-sunken);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.set__slot-label {
+  flex: none;
+  width: 7rem;
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+}
+
+.set__slot-head ui-input { width: 11rem; }
+/* The repeat answer reads as the end of the same sentence as the two dates,
+   so it is sized with them rather than left to stretch into the spacer. Wide
+   enough for "Every other week" on one line — the longer of the two answers
+   wrapping would push the header row taller than the fields in it. */
+.set__slot-head ui-select { width: 11rem; flex: none; }
+.set__slot-head .set__spacer { flex: 1; }
+
+.set__slot-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-height-md);
+  height: var(--control-height-md);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.set__slot-toggle:hover { background-color: var(--color-bg-surface-hover); }
+.set__slot-toggle:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.set__slot-toggle[aria-expanded='false'] .ui-icon { transform: rotate(180deg); }
+
+.set__slot-body { padding: 0; }
+.set__slot-body[hidden] { display: none; }
+
+/* Level 2 + 3 — the week grid. */
+.set__week { width: 100%; font-size: var(--font-size-body); }
+
+.set__week thead th {
+  padding: var(--space-4) var(--space-5);
+  background-color: var(--color-bg-surface);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+  text-align: left;
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.set__week td {
+  padding: var(--space-3) var(--space-5);
+  vertical-align: middle;
+}
+
+/* A new day starts a new visual group. */
+.set__week tr.set__day-first td {
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+  padding-top: var(--space-5);
+}
+.set__week tr.set__day-last td { padding-bottom: var(--space-5); }
+
+.set__day-cell { width: 11rem; }
+
+.set__day-name {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+  font-weight: var(--font-weight-medium);
+}
+
+/* A disabled day keeps its row but greys out — the pattern is still visible. */
+.set__day-off .set__day-name,
+.set__day-off .set__time-cell { opacity: 0.5; }
+
+.set__time-cell { width: 9.5rem; }
+.set__time-cell ui-input { width: 100%; }
+.set__location-cell ui-select { width: 100%; }
+
+.set__week .set__row-actions { white-space: nowrap; text-align: right; }
+
+.set__copy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-9);
+  height: var(--space-9);
+  border-radius: var(--radius-md);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+}
+.set__copy:hover { background-color: var(--color-bg-surface-hover); color: var(--color-brand-text); }
+.set__copy:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.set__copy .ui-icon { width: var(--icon-size-sm); height: var(--icon-size-sm); }
+
+.set__add-block {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-9);
+  height: var(--space-9);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  color: var(--color-brand-text);
+  cursor: pointer;
+}
+.set__add-block:hover { background-color: var(--color-brand-surface); border-color: var(--color-border-brand); }
+.set__add-block:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.set__add-block .ui-icon { width: var(--icon-size-sm); height: var(--icon-size-sm); }
+
+.set__icon-danger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-height-md);
+  height: var(--control-height-md);
+  border-radius: var(--radius-md);
+  color: var(--color-status-critical-text);
+  cursor: pointer;
+}
+.set__icon-danger:hover { background-color: var(--color-status-critical-surface); }
+.set__icon-danger:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* Month grouping inside the block-days table. */
+.set__group-row td {
+  background-color: var(--color-bg-surface-sunken);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+}
+
+.set__row-actions { display: inline-flex; gap: var(--space-2); }
+
+
+/* ============================================================================
+   APPOINTMENT TYPES — the additions that came with editing.
+   ========================================================================= */
+
+/* The rail now carries each type's colour, because the colour is how a type is
+   recognised on the calendar — reading a name to find the right row is slower
+   than looking for the swatch you already know. */
+.set__rail-item { display: flex; align-items: center; gap: var(--space-4); }
+.set__rail-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+
+.ui-swatch--sm { width: var(--space-7); height: var(--space-7); flex: none; }
+
+.set__detail-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  margin-bottom: var(--space-6);
+}
+.set__detail-head .set__spacer { flex: 1; }
+.set__detail-head .set__detail-title { margin-bottom: 0; }
+
+/* --- Colour picker -----------------------------------------------------------
+   THE WHOLE PALETTE, OPEN ON THE CARD.
+
+   It spent a while behind a single swatch, on the argument that a colour is
+   set once and the other fifty-five tiles are in the way. That is true of a
+   field somebody fills in; it is not true of this one. The colour IS the type
+   on the calendar — the thing a scheduler recognises a block by before they
+   have read a word of it — so choosing one is a comparison against the
+   colours already in use, and a picker that shows one tile at a time turns
+   that comparison into a memory exercise.
+
+   Still a palette and a mixer rather than a native colour input: the grid is
+   the practice's agreed set, and the mixer is there for the clinic that has a
+   brand colour halfway between two of them. */
+
+/* Column, so the label sits above the panel rather than beside it. Stretched,
+   because the palette inside wants the width of the card — the old
+   flex-start shrank it to its content when it was a popover. */
+.set__colour-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  align-items: stretch;
+}
+
+/*
+ * FLAT SWATCHES, NOT SQUARES.
+ *
+ * The grid keeps its eight columns, but out here it has the whole card to fill
+ * rather than the width of a drawer, and a square tile at that width comes out
+ * a hundred and fifty pixels tall — seven rows of those is a wall of colour
+ * that pushes duration, providers and forms off the bottom of the screen. A
+ * swatch only has to be big enough to read a colour off, and a wide flat band
+ * reads one better than a square does: it is the shape of the block the type
+ * will actually draw on the calendar.
+ *
+ * The Appointment Status dialog keeps the squares — its palette sits in a
+ * narrow drawer where the width never runs away.
+ */
+.set__palette--wide .set__palette-swatch { aspect-ratio: auto; height: var(--space-8); }
+
+/* Same argument for the mixer square, which is not square: 5/3 of the card's
+   width is a saturation field eight hundred pixels tall. A fixed height caps
+   it, and the extra width is not wasted — the axis you actually hunt along is
+   saturation, which is the horizontal one. */
+.set__palette--wide .set__mixer-field { aspect-ratio: auto; height: 6.5rem; }
+
+/* --- Provider-specific duration ---------------------------------------------
+   One row per provider who differs from the type's default, and nothing at all
+   for the ordinary type that has none. Laid out as a sentence — who, how long,
+   in what — rather than as a table, because two rows do not earn a header. */
+
+.set__overrides { display: flex; flex-direction: column; gap: var(--space-3); }
+
+/* The note under the label, and the "No forms attached." line. Small and
+   secondary: it explains a mechanism, it is not part of the form. */
+.set__field-note {
+  margin: 0;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+}
+
+.set__override-list { display: flex; flex-direction: column; gap: var(--space-3); }
+.set__override-list:empty { display: none; }
+
+.set__override {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+}
+
+/* The name takes the slack, so the number, the unit and the remove button line
+   up down the list however long the names are. */
+.set__override-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-body);
+  color: var(--color-text-primary);
+}
+
+.set__override-num { width: 5.5rem; flex: none; }
+
+.set__override-unit {
+  flex: none;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+}
+
+/* The picker row under the list reads as the last line of the block, not as a
+   field of its own, so it keeps a little more air above it than the rows do. */
+.set__overrides .set__attach { margin-top: var(--space-2); }
+
+
+/* ============================================================================
+   CANCELLATION POLICY
+
+   The rule reads as a sentence with the numbers set into it, so the row is a
+   wrapping flex line rather than a grid: at a narrow width it breaks between
+   words like prose instead of leaving four labelled boxes stranded in columns.
+
+   `align-items: center` and a shared line-height are what keep the text on the
+   same baseline as the controls — a number box is taller than the words around
+   it, and without this the sentence steps up and down across the row.
+   ========================================================================= */
+
+.set__policy {
+  padding: var(--card-padding);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+}
+
+.set__policy-rule {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  font-size: var(--font-size-body);
+  color: var(--color-text-primary);
+}
+
+/* Wide enough for three digits and the spinner, no wider: a full-width field
+   for "24" would read as the sentence having stopped. */
+.set__policy-num { width: 4rem; flex: none; }
+.set__policy-unit { width: 7rem; flex: none; }
+
+
+/* The commit sits under the card rather than inside it: it saves the policy,
+   which is the whole panel, not the box it happens to be drawn in. */
+.set__policy-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--space-7);
+}

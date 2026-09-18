@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Health Records — MediNova Clinic Patient Portal</title>
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="css/reset.css" />
+    <link rel="stylesheet" href="css/tokens.css" />
+    <link rel="stylesheet" href="css/base.css" />
+    <link rel="stylesheet" href="css/components.css" />
+    <link rel="stylesheet" href="css/shell.css" />
+    <link rel="stylesheet" href="css/screen-medications.css" />
+    <!-- Print only. Nothing in it applies on screen; see the file header. -->
+    <link rel="stylesheet" href="css/print.css" />
+    <link rel="stylesheet" href="css/select-menu.css" />
+
+    <!--
+      HEALTH RECORDS — two records, one screen.
+
+      WHY THE SCREEN IS CALLED HEALTH RECORDS
+        It was "Medications & Allergies", which lists the contents rather than
+        naming the section, and a name made of its contents has to be rewritten
+        every time the screen grows. This is the clinical record the practice
+        holds — as against Documents (things filed), Forms (things owed) and
+        Billing (money) — and the tabs inside still say Medications and
+        Allergies, so nothing is hidden by the shorter name.
+
+      WHY THE TWO SECTIONS ARE TOGETHER
+        They were two sidebar rows, adjacent on the reasoning that the two are
+        read together — what you take, and what you cannot be given. Adjacent
+        was the weaker version of that argument. They are not two subjects
+        that belong near each other; they are one subject, and every clinical
+        form that asks for either asks for both.
+
+      TABS AND SUB-TABS, NOT FOUR TABS IN A ROW
+        Medications and Allergies on top; inside Medications, sub-tabs for
+        Current and Past. Current and Past are one list split by time —
+        the same fields, the same medication moving between them — while
+        Allergies is a different record entirely, and a flat row of four tabs
+        said all four were peers. See lib/meds-tabs.js.
+
+      NOTHING ON THIS SCREEN WRITES
+        No Add, no Stop, no Remove, no pencil — and the two data modules
+        behind it export no mutators to reach for. A medication list and an
+        allergy list are read in the one situation where being wrong is
+        expensive, by whoever is about to prescribe or anaesthetise, and a row
+        a patient typed carries the same visual weight as one a prescriber
+        wrote. The patient amends the record by telling the practice. The
+        reasoning in full is at the top of js/screens/health-medications.js.
+
+      PHARMACY IS A LINE ON A MEDICATION, NOT A TAB
+        The fourth tab used to hold the patient's pharmacies, answering "where
+        do you collect prescriptions". Nobody opens this screen asking that.
+        They ask "this one, where do I pick it up" — which is a property of
+        the medication, and is now a column on its row.
+
+      DOWNLOAD IS SCOPED TO THE RECORD
+        One button, and it takes the record you are on: the medications —
+        current AND past, on one sheet — or the allergies. Its label says
+        which, so the scope is on the button's face rather than discovered on
+        paper. See js/screens/health-medications.js.
+    -->
+    <script src="js/guard.js"></script>
+    <script type="module" src="js/screens/health-medications.js"></script>
+    <script type="module" src="js/lib/select-menu.js"></script>
+    <script type="module" src="js/comments.js"></script>
+    <script src="js/open-me-properly.js"></script>
+  </head>
+
+  <body class="pp-app">
+    <header class="pp-topbar" id="topbar"></header>
+
+    <div class="pp-body">
+      <nav class="pp-side pp-scroll" id="sidenav" aria-label="Portal sections"></nav>
+
+      <main class="pp-main">
+        <div class="pp-content pp-scroll">
+          <h1 class="pp-sr-only">Health Records</h1>
+
+          <!-- The records, and the download. -->
+          <div class="pp-meds__bar">
+            <!-- The records. Drawn by lib/meds-tabs.js, which owns the set. -->
+            <div class="pp-tabs" id="tabs"></div>
+
+            <button
+              type="button"
+              class="pp-btn pp-btn--outline pp-meds__download"
+              id="download"
+              data-testid="meds--download"
+            >
+              <svg class="pp-icon pp-icon--sm" aria-hidden="true">
+                <use href="#pi-download"></use>
+              </svg>
+              <!-- Rewritten on every repaint to name the record on screen. -->
+              <span id="downloadLabel">Download</span>
+            </button>
+          </div>
+
+          <!--
+            ONE PANEL, WITH ITS OWN CONTROL INSIDE IT.
+
+            The sub-tabs are part of the table rather than a strip floating
+            above it: Current and Past are two views of THIS list, and drawn
+            outside the panel they read as a second screen-level control
+            competing with the record tabs. Inside the panel's edge there is
+            no question what they act on. The table below them loses its own
+            border and radius to this container — see css/screen-medications.css.
+
+            Current / Past is hidden outright on Allergies rather than drawn
+            disabled: a control that cannot act on what is in front of you is
+            noise, and "Current / Past" over a list of allergies invites the
+            reader to wonder what a past allergy is. Hidden, the band it sits
+            in collapses and the panel is the table alone.
+
+            One host per record rather than one host repainted three ways.
+            Each keeps its own scroll position, and Current and Past share a
+            host because they are one list under two filters.
+          -->
+          <div class="pp-meds__panel">
+            <div class="pp-seg" id="views" hidden></div>
+
+            <div id="medsPanel" hidden></div>
+            <div id="allergiesPanel" hidden></div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!--
+      THE DOWNLOADED DOCUMENT.
+
+      Hidden on screen, and the only thing on the page when the sheet is
+      printed — see css/print.css. It is built by lib/med-print.js the moment
+      Download is pressed and holds ONLY the record that was on screen — the
+      medications, current and past, or the allergies — so it always carries
+      what the person was looking at rather than a copy that drifted or
+      sections they did not ask for.
+
+      A separate container rather than print rules over the live markup: the
+      panel that is not on screen is `hidden`, and no arrangement of display
+      rules can print a hidden element without un-hiding it first.
+    -->
+    <div class="pp-print" id="printDoc" aria-hidden="true"></div>
+  </body>
+</html>

@@ -1,0 +1,17 @@
+# What NOT to publish when the patient portal is deployed.
+#
+# This directory is its own Vercel project, so `vercel` run from here uploads
+# THIS tree — not the repo root. The same rule as the root .vercelignore
+# applies: the deployed site is a public URL, so anything here that is not
+# part of the portal itself would be browsable by whoever gets the link.
+
+# Local environment files. `vercel link` writes .env.local with an OIDC token
+# into this folder, and this command uploads the working tree rather than the
+# commit — so being gitignored is not on its own enough to keep it off a
+# public URL.
+.env
+.env.*
+
+# Build notes for whoever picks the prototype up, not for the people it is
+# being shown to.
+README.md

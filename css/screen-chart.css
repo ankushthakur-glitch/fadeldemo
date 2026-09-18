@@ -1,0 +1,4416 @@
+/* ============================================================================
+   PATIENT CHART — the shell, then every module inside it.
+
+   ONE chart, one sheet. The chart used to be drawn by two shells side by side
+   — a first design and a second one being fitted against it — and this file
+   carried the first while css/screen-chart-v2.css carried the second. The
+   second one won, so it is simply the chart now: the shell rules below are
+   that design, renamed from .c2 to .ch because there is no longer a second
+   thing for the prefix to hold them apart from.
+
+   The two halves of the file, and the line between them:
+
+     THE SHELL      the frame — page, banner, sidebar, panel. Nothing in a
+                    module may reach for these, and nothing here knows which
+                    module is open.
+     THE MODULES    from "The module head" onwards: the contract the shell
+                    renders around every module (.ch__module-head and its
+                    row), then each module's own rules under its own prefix
+                    (fs__, ord__, apt__, vt__ …).
+
+   A module is styled by its own prefix and reaches the shell only through
+   .ch__module-head — which is why the shell could be replaced wholesale
+   without a single module changing.
+   ========================================================================= */
+
+.ch {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-bg-page);
+  color: var(--color-text-primary);
+  overflow: hidden;
+}
+
+/* ============================================================================
+   THE TOP BAR
+
+   A second copy of the app bar used to live here under `ch__` names, because
+   this screen carries its own page layout and could not pick up the block
+   that sat in css/screen-patient.css. Both copies are gone: the bar is
+   css/components/app-bar.css and this screen wears the same `pt__` classes as
+   every other one, so the comparison between the two charts stays about the
+   chart rather than about the furniture above it.
+   ========================================================================= */
+
+/* ============================================================================
+   THE PAGE — a grey ground carrying two cards.
+   ========================================================================= */
+
+.ch__page {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding: var(--space-5) var(--space-6);
+}
+
+.ch__banner,
+.ch__body {
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+}
+
+/* The banner is a header, not a panel of content: it states who the patient
+   is and then gets out of the way. Its inset is a step tighter than the
+   chart card's below it for that reason — every pixel it keeps is a pixel of
+   the chart the reader has to scroll for. */
+.ch__banner {
+  flex: none;
+  padding: var(--space-4) var(--space-5);
+}
+
+.ch__body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+}
+
+/* ============================================================================
+   THE PATIENT BANNER
+   ========================================================================= */
+
+/* The two halves centre against each other rather than both hanging from the
+   top. They are never quite the same height — the boxes run a line or two
+   longer than the name and its six facts — and top-alignment collects the
+   whole of that difference underneath the facts as one pocket of empty
+   banner. Centred, it is half as deep and on both sides, which is the
+   difference between a block that is short and a block that is unfinished. */
+.ch__ident {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3) var(--space-5);
+}
+
+/* The photograph belongs to the name and the facts, not to the banner: it is
+   centred on THAT block rather than on the row, which is what stops it
+   floating at the top of a banner made tall by the boxes at the other end. */
+.ch__who {
+  flex: 1 1 26rem;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+/* Round, not a rounded square. A round frame reads as a person — it is the
+   shape every product on the machine puts a face in — and this is the one
+   image on the screen that is a face. */
+.ch__photo {
+  flex: none;
+  /* A fixed disc, not one measured off the identity block beside it. It was
+     briefly grown to the full height of the name line and the rows of facts,
+     on the reasoning that a shorter circle leaves a sliver of banner above
+     and below it; on screen that reading did not hold. At 68-80px the face
+     stops being the small badge that answers "is this the person in front of
+     me" and becomes the largest object in the banner — larger than the
+     patient's own name, which is the thing the banner is actually about —
+     and every pixel of its width comes out of the facts standing beside it.
+     56px is the size the reference shows and the size the rest of the
+     product puts a face at. */
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: var(--radius-full);
+  object-fit: cover;
+  background-color: var(--color-bg-surface-sunken);
+}
+
+.ch__photo--initials {
+  display: grid;
+  place-items: center;
+  background-color: var(--color-brand-surface);
+  color: var(--color-brand-text);
+  font-size: var(--font-size-title-card);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-tight);
+}
+
+.ch__ident-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  container-type: inline-size;
+}
+
+/* --- Name line ------------------------------------------------------------ */
+
+.ch__name-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+}
+
+/* The largest type on the screen, and the only thing at this size. It was set
+   a step down the ladder while the flags lived in a box of their own and the
+   name had nothing beside it to be found among; now it heads a line carrying
+   a status badge and up to five flag pills, and at 16px it was barely taller
+   than the pills next to it. Everything else in the banner is a fact ABOUT
+   this name — the module title below is 16, the box values 14, the facts 12 —
+   so nothing else earns 20. */
+.ch__name {
+  font-size: var(--font-size-title-page);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  color: var(--color-text-primary);
+}
+
+/* The number is part of the name — "Henna West (326486)" is how a chart is
+   called out loud — so it is set at the same size, lighter and greyer. Set
+   any smaller it detaches and starts to read as a caption. */
+.ch__mrn {
+  font-family: var(--font-family-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--font-size-title-page);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--line-height-tight);
+  color: var(--color-text-tertiary);
+}
+
+/* --- Flags, on the name line ----------------------------------------------
+   A pill row after the name and its status badge, not a box across the far
+   side of the banner. Each chip is labelled, so no drawn "Flags" heading — a
+   word introducing a row of labels is a label on a label. The word stays in
+   the markup for anyone listening to the page. */
+
+.ch__flags {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.ch__flags-empty { color: var(--color-text-tertiary); font-size: var(--font-size-body-sm); }
+
+/* A denser override than the global .ui-chip: this row can carry five or six
+   flags on the same line as the patient's name, and chips at their default
+   height would set the height of that whole line. A flag never breaks across
+   lines either — "Special Assistance" over two lines inside its own chip is a
+   40px object in a row of 20px ones, and it drags the line up with it. */
+.ch__flags .ui-chip {
+  min-height: 1.25rem;
+  padding: 0 var(--space-1) 0 var(--space-2);
+  gap: var(--space-1);
+  font-size: var(--font-size-2xs);
+  white-space: nowrap;
+}
+.ch__flags .ui-chip__remove { width: var(--space-6); height: var(--space-6); }
+.ch__flags .ui-chip__remove .ui-icon { width: 0.5rem; height: 0.5rem; }
+
+.ch__flags-add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+}
+.ch__flags-add:hover { background-color: var(--color-bg-surface-hover); color: var(--color-text-primary); }
+.ch__flags-add:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.ch__flags-add .ui-icon { width: var(--icon-size-xs); height: var(--icon-size-xs); }
+
+/* --- Contact facts ---------------------------------------------------------
+   Three lanes, so the same fact is in the same place on every chart. The
+   column count follows the width of THIS block rather than the window's: the
+   same 1280px window gives it half a row when the boxes sit beside it and the
+   whole row when they have wrapped below. */
+
+/* Three lanes, each as wide as the widest thing in it — not three equal
+   thirds of 48rem. Equal thirds sized every lane to the address, so "Female"
+   and "English" each ended in 150px of nothing while the block ran the whole
+   width of the banner and left the boxes beside it squeezed. Content-sized
+   lanes put the same three icons on the same three x-positions all the way
+   down and set one gap between them, which is the arrangement the design has:
+   the facts read as a paragraph of six, not as a sparse table. */
+.ch__facts {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  gap: var(--space-2) var(--space-7);
+  /* A backstop for the widest screens, where the third lane would otherwise
+     take an address halfway across the banner and leave the first two
+     stranded on the far left. */
+  max-width: 48rem;
+  font-size: var(--font-size-body-sm);
+  color: var(--color-text-secondary);
+}
+
+.ch__fact { display: inline-flex; align-items: center; gap: var(--space-2); min-width: 0; }
+
+.ch__fact-icon {
+  flex: none;
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+  color: var(--color-text-disabled);
+}
+
+.ch__fact-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Content-sized lanes want less room than equal ones did: the two fixed
+   lanes come to about 24rem between them and the longest address in the
+   roster asks for 17rem more, so three lanes fit from 42rem and two from
+   28rem. Measured, not guessed — below each of these the address is the
+   value that gives out first, and it is the one that can stand a lane of
+   its own. */
+@container (width < 42rem) {
+  .ch__facts { grid-template-columns: auto minmax(0, 1fr); }
+}
+@container (width < 28rem) {
+  .ch__facts { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ============================================================================
+   THE THREE READ-OUTS — Primary Provider · Patient Balance · Special Triggers
+
+   Three bordered read-outs across the end of the banner, all built from the
+   same pair: a small muted label with its value on the line below it. Label
+   ABOVE value rather than beside it, because the values are the part that is
+   scanned, and a leading label pushes every one of them to a different
+   x-position.
+
+   Four boxes stood here before — Flags, Notes, Alert Note, Provider — one of
+   them holding nothing but the flag chips and another nothing but the quick
+   note. Both of those belong WITH something rather than beside it: a flag is
+   read with the name it qualifies, and a quick note is read with the alert it
+   sits under. Folding them back leaves three boxes carrying the three
+   questions a desk asks — who is responsible for this patient, what is
+   outstanding on the account, and what has to be read before they are
+   touched — and it gives the identity block the width the four were taking.
+
+   White with a hairline rather than a sunken fill: these sit on a card on a
+   grey ground, and a grey box inside a white card on a grey page reads as a
+   hole in the card rather than as a panel on it.
+   ========================================================================= */
+
+/* A group that claims the room it needs, not a half of the row: these sit
+   BESIDE identity, and the flex-basis is what each of the three needs to hold
+   its longest value without wrapping it. */
+.ch__boxes {
+  flex: 1 1 28rem;
+  max-width: 38rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: var(--space-3);
+}
+
+.ch__box {
+  /* Widths proportional to what each box holds, not equal thirds: the
+     provider box carries three pairs and a person's full name, the balance
+     box two short amounts. Equal thirds wrapped "Dr. Amara Mensah" onto two
+     lines while the box beside it held four characters. */
+  flex: 1 1 7rem;
+  min-width: 6.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+}
+
+.ch__box--provider { flex: 1.5 1 10rem; }
+
+/* Special Triggers is the widest: it holds sentences, where its neighbours
+   hold a name and two numbers. It also keeps a permanent warm tint — a box
+   that colours itself only when it has something to say is a box people stop
+   looking at. */
+.ch__box--warn {
+  flex: 2 1 13rem;
+  border-color: var(--color-status-warning-border);
+  background-color: var(--color-status-warning-surface);
+}
+
+/* --- Label-over-value pairs ---------------------------------------------- */
+
+.ch__pair { display: flex; flex-direction: column; gap: 0; min-width: 0; }
+
+.ch__pair-label {
+  color: var(--color-fact-label);
+  font-size: var(--font-size-fact-label);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--line-height-tight);
+}
+
+/* One step over its label, not two. At 14px medium the six values in this row
+   were the second-loudest thing in the banner after the patient's name, and
+   they are the quietest kind of content there is: facts you check rather than
+   read. 13px carries them and lets the label sit right under them.
+
+   Values wrap rather than truncate. Everything that lands here is short — a
+   provider's name, a date, an amount — and "Dr. Amara Me…" on a chart banner
+   is the one kind of truncation that is actively unhelpful: it hides which of
+   two doctors with the same first name this is. */
+.ch__pair-value {
+  min-width: 0;
+  color: var(--color-fact-value);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-normal);
+  overflow-wrap: break-word;
+}
+
+/* The portal pair is the one carrying controls rather than text, and the one
+   whose label is short enough to sit BESIDE its value. Doing that costs the
+   box a whole line, which is the difference between the three boxes standing
+   as tall as the identity block beside them and standing taller than it. */
+.ch__pair--portal {
+  flex-direction: row;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+}
+
+.ch__pair--portal .ch__pair-value {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+  white-space: normal;
+}
+
+/* An action set as text: the weight of a link, the size of a label. A filled
+   button here would be the heaviest object in a row of read-outs, and it is
+   not the heaviest thing in the banner. */
+.ch__pair-link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-text-link);
+  font-size: var(--font-size-body-sm);
+  cursor: pointer;
+}
+.ch__pair-link:hover { text-decoration: underline; }
+.ch__pair-link:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--radius-sm); }
+
+/* An amount is set exactly like every other value in the row — one fact among
+   several, not a headline. All it gets of its own is tabular figures, so the
+   patient's balance and the insurers' stack digit over digit. NOT red: a red
+   number in a banner claims something is wrong, and an outstanding balance is
+   the normal state of an account. Billing states it to the penny. */
+.ch__amount { font-family: var(--font-family-numeric); font-variant-numeric: tabular-nums; }
+
+/* --- Special Triggers ----------------------------------------------------- */
+
+.ch__box-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  /* One height whether or not the head carries buttons — without it a head
+     with tools stands 2px taller than one without, and boxes in a row show
+     every pixel of that. */
+  min-height: 1.25rem;
+}
+
+.ch__box-label {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  color: var(--color-fact-label);
+  font-size: var(--font-size-fact-label);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--line-height-tight);
+}
+
+/* How many alerts stand behind the one on show — a footnote to the label, set
+   like one. */
+.ch__box-count { color: var(--color-status-warning-text); font-variant-numeric: tabular-nums; }
+
+.ch__box-tools { margin-left: auto; display: inline-flex; align-items: center; gap: var(--space-1); }
+
+.ch__box-tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+}
+.ch__box-tool:hover { background-color: var(--color-bg-surface-hover); color: var(--color-text-primary); }
+.ch__box-tool:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.ch__box-tool .ui-icon { width: var(--icon-size-xs); height: var(--icon-size-xs); }
+
+.ch__box-body { flex: 1; display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
+
+/* Two lines at most: the boxes beside it are three pairs tall and a row is
+   only as short as its tallest member. The full text is one press away in the
+   composer. */
+.ch__box-note {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--color-status-warning-text);
+  font-size: var(--font-size-body-sm);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-normal);
+  text-align: left;
+  cursor: pointer;
+}
+.ch__box-note:hover { text-decoration: underline; }
+.ch__box-note:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--radius-sm); }
+
+/* The quick note is a real field, not a preview of one — it is typed in where
+   it is read, with no chrome around it until it is focused. */
+.ch__inline-edit {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-body-sm);
+  line-height: var(--line-height-normal);
+  resize: none;
+}
+.ch__inline-edit::placeholder { color: var(--color-text-tertiary); }
+.ch__inline-edit:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--radius-sm); }
+
+/* ============================================================================
+   THE ACTION RAIL
+
+   The chart-wide actions — print and message — as a column of icon buttons
+   banked against the right edge of the banner. They are not in the module's
+   own action row because they mean the same thing whichever section is open,
+   and a control that moves when the panel changes gets hunted for every time.
+
+   Outlined in the brand rather than in grey, which is what separates them
+   from the read-outs they sit beside: everything to their left is something
+   to look at, and these are the only things in the banner to press.
+   ========================================================================= */
+
+.ch__rail {
+  flex: none;
+  /* The hairline runs the full height of the banner row — that is what makes
+     the rail read as part of the banner rather than as two buttons that were
+     left near its edge. The BUTTONS do not: they are centred against that
+     hairline at a size of their own. */
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  margin-left: auto;
+  padding-left: var(--space-5);
+  border-left: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.ch__rail-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* A fixed square, not a share of the banner's height. Dividing the rail
+     between the buttons was written when there were three of them and it was
+     already the wrong rule: taking "Refer out" away handed each survivor half
+     a tall banner, and the aspect ratio dutifully made them that wide too —
+     two slabs the size of the read-out boxes beside them, with a 16px icon
+     adrift in the middle. An icon button's size comes from its icon and its
+     target, and neither of those knows how tall the patient's address is. */
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  border: var(--border-width-thin) solid var(--color-border-brand-subtle);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-bg-surface);
+  color: var(--color-brand-text);
+  cursor: pointer;
+}
+.ch__rail-btn:hover {
+  background-color: var(--color-brand-surface);
+  border-color: var(--color-brand-solid);
+}
+.ch__rail-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.ch__rail-btn .ui-icon { width: var(--icon-size-sm); height: var(--icon-size-sm); }
+
+/* ============================================================================
+   THE SIDEBAR
+   ========================================================================= */
+
+.ch__side {
+  flex: none;
+  width: 13rem;
+  display: flex;
+  flex-direction: column;
+  border-right: var(--border-width-thin) solid var(--color-border-subtle);
+  overflow: hidden;
+}
+
+/* The list is the only thing in the column that scrolls, so a short screen
+   shortens the list rather than the card. */
+.ch__nav { flex: 1; min-height: 0; overflow-y: auto; padding: var(--space-4) 0; }
+
+.ch__nav-list { list-style: none; margin: 0; padding: 0; }
+
+.ch__nav-link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  width: 100%;
+  padding: var(--space-4) var(--space-5);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-body);
+  text-align: left;
+  cursor: pointer;
+}
+
+.ch__nav-link:hover { background-color: var(--color-bg-surface-hover); color: var(--color-text-primary); }
+.ch__nav-link:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.ch__nav-link .ui-icon {
+  flex: none;
+  width: var(--icon-size-md);
+  height: var(--icon-size-md);
+  color: var(--color-text-tertiary);
+}
+
+/* A bar down the outer edge of the row, with the row tinted behind it. It
+   reads as "you are in this branch" — a marker in a margin — where a filled
+   pill reads as a button somebody has pressed, and nobody presses a location.
+   The bar is on the outside edge because that is the edge the eye runs down
+   when it scans a list of sections. */
+.ch__nav-link--active {
+  background-color: var(--color-brand-surface);
+  color: var(--color-brand-text);
+  font-weight: var(--font-weight-medium);
+}
+.ch__nav-link--active .ui-icon { color: var(--color-brand-text); }
+
+.ch__nav-link--active::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: var(--border-width-thick);
+  background-color: var(--color-brand-solid);
+}
+
+.ch__nav-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* No count pill on a section — same call as the chart's own rail, and for the
+   same reason: the rail names places, and the list behind one is its tally. */
+
+/* ============================================================================
+   THE PANEL
+   ========================================================================= */
+
+.ch__panel {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* The one scrolling region on the page. */
+.ch__workspace {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-6) var(--space-6) var(--space-9);
+}
+
+/* The module head is drawn by the shared workspace
+   (js/screens/chart-workspace.js) and belongs to the module contract, so it
+   is set out under THE MODULES below rather than here. */
+
+
+.ch__modal-grid { margin-bottom: var(--space-6); }
+
+/* --- The flag manager ---------------------------------------------------------
+   Adding is one row across the top of the dialog: the dropdown takes the width
+   that is going, the button takes what it needs. The two are baseline-aligned
+   rather than stretched, because <ui-select> carries a label slot the button
+   does not — stretching put the button's top edge level with the label and its
+   text half a line below the field it acts on.
+
+   The rule under the row is doing the work a heading would otherwise do: it
+   says the table below is a different act from the chooser above, without
+   adding a second title to a dialog that already has one. */
+
+.ch__flag-add {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-3);
+  padding-bottom: var(--space-5);
+  margin-bottom: var(--space-5);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.ch__flag-add ui-select { flex: 1 1 auto; min-width: 0; }
+.ch__flag-add ui-button { flex: 0 0 auto; }
+
+/* THE NOTE WRAPS. <ui-data-table> documents `wrap: true` as the escape from
+   its one-line default, but the modifier it puts on the cell
+   (.ui-table__cell--wrap, 0-1-0) is outranked by the base rule that sets it
+   (.ui-table tbody td, 0-1-2) in components/data-table.css — so the sentence
+   ran off the side of the dialog on one clipped line. Restated here at a
+   weight that wins, and scoped to this table on purpose: every other table in
+   the app has been laid out against the nowrap that is actually in force, and
+   making `wrap` work everywhere at once would re-flow rows on a dozen screens.
+   That is worth doing, as its own change. */
+#flagTable .ui-table__cell--wrap { white-space: normal; }
+
+/* Removing a standing clinical fact, drawn the same as every other row action
+   in the chart (see .alg__row-edit): quiet until it is pointed at, so a table
+   of five flags is not a column of five red buttons. */
+.ch__flag-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-9);
+  height: var(--space-9);
+  border-radius: var(--radius-md);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+}
+.ch__flag-remove:hover {
+  background-color: var(--color-bg-surface-hover);
+  color: var(--color-status-critical-text);
+}
+.ch__flag-remove:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.ch__flag-remove .ui-icon { width: var(--icon-size-md); height: var(--icon-size-md); }
+
+/* --- The print pick list -------------------------------------------------------
+   "Which sections?" is still asked as a field of tick boxes rather than a
+   column: the labels are short, and a column of sixteen turns a small dialog
+   into a scroll.
+
+   But it is a GRID now rather than a wrapping row. Sixteen items of very
+   nearly the same length, each free to take its own width, came out of the
+   wrap lopsided — every row of two had a ragged inner edge, and that edge is
+   exactly the line the eye runs down while it ticks its way through a list.
+   Fixed lanes give the list one left margin and one right, and the labels
+   stop looking like they are in two different columns of two different
+   widths. */
+
+.ch__print-picks {
+  display: grid;
+  /* Two lanes at the dialog's normal width, one when it is narrow. Never
+     three: a row of tick-box-plus-one-word repeated three times stops reading
+     as a list of sections and starts reading as a toolbar. */
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: var(--space-3);
+}
+
+.ch__print-pick {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+  font-size: var(--font-size-body-sm);
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+
+.ch__print-pick:hover {
+  background-color: var(--color-bg-surface-hover);
+  border-color: var(--color-border-default);
+}
+.ch__print-pick .ui-icon {
+  flex: none;
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+  color: var(--color-text-tertiary);
+}
+
+/* A ticked section says so twice — in the box, and in the tile around it.
+   Sixteen identical white cards told apart only by a 16px mark at the far
+   left of each is a list you have to read twice to audit; tinting the whole
+   tile makes the SHAPE of the selection visible, which answers "am I printing
+   the right pack?" before a single label has been read. */
+.ch__print-pick:has(input:checked) {
+  border-color: var(--color-border-brand-subtle);
+  background-color: var(--color-brand-surface-subtle);
+}
+.ch__print-pick:has(input:checked):hover {
+  background-color: var(--color-brand-surface);
+}
+.ch__print-pick:has(input:checked) .ui-icon { color: var(--color-brand-text); }
+
+/* The ring goes round the tile, not round the 16px box inside it: the tile is
+   what the pointer targets, so it is what the keyboard should land on too. */
+.ch__print-pick:has(input:focus-visible) {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* One line of instruction, because "Print chart" alone does not say that this
+   dialog is a chooser rather than a confirmation. */
+.ch__print-lede {
+  margin: 0 0 var(--space-4);
+  font-size: var(--font-size-body-sm);
+  color: var(--color-text-secondary);
+}
+
+/* Select all / Clear, above the list they act on, with the running count
+   banked against the far end of the same line and a rule under both — the
+   same device the flag manager uses to say "the chooser above, the thing it
+   acts on below" without adding a second heading. */
+.ch__print-tools {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+  padding-bottom: var(--space-4);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.ch__print-count {
+  margin: 0 0 0 auto;
+  font-size: var(--font-size-body-sm);
+  color: var(--color-text-tertiary);
+}
+
+.ch #alertTitle { margin-bottom: var(--space-6); }
+
+/* ============================================================================
+   NARROWER VIEWPORTS
+   ========================================================================= */
+
+@media (max-width: 1250px) {
+  /* Three read-outs squeezed into a third of the row wrap among themselves —
+     Special Triggers drops onto a second line of its own — and the facts
+     beside them fall to a single column. Below this the boxes take a band of
+     their own, where all three fit across and the facts above get their three
+     lanes back: two full-width bands rather than two half-width columns that
+     have each run out of room.
+
+     The rail goes with them, laid along the band's end rather than left in a
+     column beside the identity block, where it would set the height of a band
+     it is not part of. */
+  .ch__boxes { flex-basis: 100%; max-width: none; order: 1; }
+  .ch__rail {
+    flex-direction: row;
+    align-self: auto;
+    margin-left: 0;
+    padding-left: 0;
+    border-left: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .ch__side { width: 3.25rem; }
+  .ch__side .ch__nav-label { display: none; }
+  .ch__side .ch__nav-link { justify-content: center; padding: var(--space-4) 0; }
+}
+
+/* ============================================================================
+   PRINT — a printed chart shows the patient and the section, not the controls
+   that only mean something on screen.
+   ========================================================================= */
+
+@media print {
+  .pt__bar,
+  .ch__side,
+  .ch__rail,
+  .ch__flags-add,
+  .ch__box-tools { display: none !important; }
+
+  .ch, .ch__page, .ch__body, .ch__panel, .ch__workspace {
+    height: auto;
+    overflow: visible;
+    display: block;
+  }
+
+  .ch__banner, .ch__body { border: none; }
+
+  /* Paper has no scrollport to stick to: a fixed band would print once at
+     the top of the first sheet and leave the rest of the section headless. */
+  .ch__module-head { position: static; }
+
+  /* Printing reflects whatever is on screen — a masked field prints masked.
+     Reveal it first if the printed page needs the real value. */
+}
+
+/* ============================================================================
+   THE MODULES
+
+   Everything below this line renders INSIDE the frame above it. First the
+   contract — the head the shell draws around every module, and the placeholder
+   it draws for one that has no file yet — and then each module's own rules,
+   under its own prefix. A module never names a shell class except
+   .ch__module-head and the slots in it, which is the whole reason the frame
+   above could be swapped out without any of this changing.
+   ========================================================================= */
+
+/* --- The module head, and why it is stuck to the top -------------------------
+   The head is the answer to "what am I looking at" — the section's name, its
+   view switch, and the one or two buttons that act on the whole section. In a
+   chart those questions are asked again halfway down a long table, and a head
+   that had scrolled away answered neither: the reader lost the section name
+   at the same moment they lost the Add button, and got both back only by
+   scrolling to the top and back down again.
+
+   So it sticks. It is still a child of the workspace and still in flow, which
+   is what keeps its resting position exactly where it was; the negative
+   margins bleed it out to the workspace's own padding edges so that when it
+   is stuck, rows scrolling underneath disappear behind an opaque band that
+   reaches both gutters instead of sliding through the padding beside it. The
+   padding then gives back, on the head's own box, the inset the margins took
+   away — the head sits where it always did, and is now a surface rather than
+   a transparent row.
+
+   z-index clears --z-sticky by two, because the two things that can scroll up
+   underneath it are themselves sticky: a table's header band (--z-sticky) and
+   a sticky first column's header cell (--z-sticky + 1). Anything less and the
+   section title is overlapped by the column titles of its own table. */
+.ch__module-head {
+  position: sticky;
+  /* Negative by exactly the workspace's own padding-top, because a sticky
+     offset is resolved against the scroll container's CONTENT edge — top: 0
+     would park the band one inset below the top of the scrollport and let
+     rows scroll through the strip above it. */
+  top: calc(var(--space-6) * -1);
+  z-index: calc(var(--z-sticky) + 2);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-4) var(--space-5);
+  margin: calc(var(--space-6) * -1) calc(var(--space-6) * -1) var(--space-5);
+  padding: var(--space-6) var(--space-6) var(--space-5);
+  /* The surface it is stuck to. It was the page grey, which was right while
+     the workspace was a pane on the page ground; inside the chart's own
+     white card that grey read as a band laid over the card. */
+  background-color: var(--color-bg-surface);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+/* Once something IS underneath it — see watchScroll() in
+   js/screens/chart-workspace.js for the flag. --elevation-raised is the level
+   the tokens reserve for exactly this: attached to the page, content passing
+   beneath. At the top of a module there is nothing below the head yet, so it
+   stays flat and the band reads as the first thing on the page rather than as
+   a layer floating over one. */
+.ch__workspace[data-scrolled] .ch__module-head {
+  box-shadow: var(--elevation-raised);
+}
+
+/* A module's own view switch, drawn by the shell between the heading and the
+   actions so it is in the same place in every module that has one. */
+.ch__module-tabs { flex: none; }
+
+/* --- ONE HEIGHT FOR THE BAND, IN EVERY MODULE --------------------------------
+   What a module puts in its head is its own business, and each of those things
+   is a different height: a tab strip is 36px, a button 28px, a search field
+   32px, and a title on its own is only its own line-height. Left to size
+   itself the band was 46px in Visit Notes, 55px in Allergies, 59px in
+   Documents and 63px in Orders — so the first row of the record landed at
+   four different heights, and moving between sections shifted the whole table
+   up and down under the reader's eye.
+
+   The fix is a floor rather than a fixed height: every slot in the head is at
+   least as tall as the tallest thing that ever sits in one, which is the
+   primary tab strip (a control plus the hairline box drawn around it — see
+   .ui-tabs--primary in css/components/overlay.css). A head with nothing but a
+   title is now the same height as a head with a strip and two buttons, the
+   band's own padding is untouched, and anything taller than the floor still
+   grows the row as it always did.
+
+   It is set on the slots and not on the head itself, so the band's own
+   padding stays wherever the shell puts it and the rhythm does not have to be
+   restated as a sum every time that padding is touched. */
+.ch__module-title:not(.u-sr-only),
+.ch__module-tabs,
+.ch__module-actions {
+  min-height: calc(var(--control-height-md) + 2 * var(--border-width-thin));
+}
+
+.ch__module-title {
+  min-width: 0;
+  /* Flex so the min-height above centres the words in the taller box rather
+     than leaving them sitting at the top of it. */
+  display: flex;
+  align-items: center;
+  font-size: var(--font-size-title-page);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  color: var(--color-text-primary);
+}
+
+/* Modules fill this from their own definition — the shell provides the slot
+   and never assumes what goes in it. It holds a module's whole-module buttons
+   and, since each module's toolbar was folded into this row, whatever narrows
+   what is on screen: a search box, a date filter, a completed toggle. */
+.ch__module-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+/* At phone width the head is already wrapping the title, the strip and this
+   group onto lines of their own; a 16rem search box on its own line then has
+   no reason not to use the line. */
+@media (max-width: 640px) {
+  .ch__module-actions { width: 100%; }
+  .ch__module-actions .ord__search,
+  .ch__module-actions .ord__status-filter { width: 100%; }
+}
+
+.ch__module-body { min-height: 0; }
+
+/* --- The panel heading row ---------------------------------------------------
+   What is left of the toolbar every module used to draw directly under its
+   head. Seven modules each drew one, each under its own name, and each
+   holding the same three things: a tab strip, whatever narrows the list, and
+   the button that acts on the whole section. All three now sit in the module
+   head itself, on the row with the section's name — one band of furniture
+   above the record instead of two, and the heading row no longer ends in
+   empty space while its own controls sit under it.
+
+   The one row still drawn inside a panel is Billing's, which names the record
+   a tab is showing ("Cards on file") above the table rather than acting on
+   it. min-height is a control's height rather than a heading's, so a panel
+   that heads its table this way leaves the table at the same y as a panel
+   that does not. */
+.bl__auth-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-6);
+  min-height: var(--control-height-md);
+  margin-bottom: var(--space-6);
+}
+
+/* One search field, one width, wherever the chart offers one — in a module
+   head (Forms, Documents, Tasks, Medication, Prescriptions, Orders' lab
+   worklist, Billing's Prior Auth). */
+.ord__search { width: 16rem; }
+
+/* --- The quiet micro-label ---------------------------------------------------
+   Nine names for one thing: the word above a value, or over a short list.
+   They were nine separate copies of the same five declarations, and two of
+   them (gEstimator's) had already drifted a size up and were spelling
+   --letter-spacing-wide out as 0.04em by hand. Each name keeps its own
+   margins below — those genuinely differ by where the label sits — and
+   nothing else.
+
+   NOT CAPITALS. Capitals were doing the separating here, and they cost more
+   than they returned: a capitalised word is read letter by letter rather than
+   by its shape, and this label is the one word on the row nobody needs to
+   read twice. Worse, the chart header alone stacks seven of them within an
+   inch of the patient's name — set in capitals they were the loudest thing in
+   the band, above the name itself. Size, weight and colour separate a label
+   from its value perfectly well, and they do it without shouting. */
+.ch__box-label,
+.ch__pair-label,
+.ch__alerts-summary-title,
+.fs__eyebrow,
+.frm__view-label,
+.est__party-title,
+.est__due-label,
+.gst__party-title,
+.gst__due-label {
+  font-size: var(--font-size-fact-label);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-tertiary);
+}
+
+/* --- The empty region --------------------------------------------------------
+   A panel with nothing in it yet. The dashed frame is this codebase's mark for
+   "this area is empty", the same one .ch__placeholder wears; everything inside
+   it now speaks in <ui-data-table>'s empty-state vocabulary — body text in
+   secondary, one --icon-size-lg glyph in tertiary above it — because the two
+   land side by side in the chart and had no reason to be a different size, a
+   different grey and a different padding from each other. */
+.ord__report-empty,
+.vt__empty,
+.bl__est-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-10) var(--space-6);
+  border: var(--border-width-thin) dashed var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-body);
+  text-align: center;
+}
+
+.ord__report-empty .ui-icon,
+.vt__empty .ui-icon,
+.bl__est-empty .ui-icon {
+  width: var(--icon-size-lg);
+  height: var(--icon-size-lg);
+  color: var(--color-text-tertiary);
+}
+
+/* --- The two-column field grid, and the row of buttons under it --------------
+   Every modal in the chart lays its fields out two to a row and puts its
+   buttons bottom right. That was six copies of the grid and six of the button
+   row, which had drifted into three alignments, two gaps between buttons and
+   two breakpoints at which the columns collapse. One of each now; a modal that
+   needs a field across the full width says so with its own --wide class. */
+.ch__modal-grid,
+.cn__field-grid,
+.ord__field-grid,
+.vt__field-grid,
+.bl__auth-field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5) var(--space-6);
+  align-items: start;
+}
+
+.cn__modal-actions,
+.ord__modal-actions,
+.frm__modal-actions,
+.doc__modal-actions,
+.vt__modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-4);
+  margin-top: var(--space-7);
+}
+
+/* One width at which a two-column field grid becomes one column. */
+@media (max-width: 560px) {
+  .ch__modal-grid,
+  .cn__field-grid,
+  .ord__field-grid,
+  .vt__field-grid,
+  .bl__auth-field-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* --- Not-built-yet placeholder --------------------------------------------- */
+
+.ch__placeholder {
+  max-width: 34rem;
+  margin: var(--space-10) auto;
+  padding: var(--space-10) var(--space-9);
+  border: var(--border-width-thin) dashed var(--color-border-strong);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+  text-align: center;
+}
+
+.ch__placeholder-mark {
+  display: inline-grid;
+  place-items: center;
+  width: var(--space-11);
+  height: var(--space-11);
+  margin-bottom: var(--space-6);
+  border-radius: var(--radius-full);
+  background-color: var(--color-bg-surface-sunken);
+  color: var(--color-text-tertiary);
+}
+
+.ch__placeholder-mark .ui-icon { width: var(--icon-size-lg); height: var(--icon-size-lg); }
+
+.ch__placeholder-title {
+  font-size: var(--font-size-title-card);
+  line-height: var(--line-height-tight);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.ch__placeholder-body {
+  margin-top: var(--space-4);
+  color: var(--color-text-secondary);
+  line-height: var(--line-height-normal);
+}
+
+
+/* ============================================================================
+   TABLES IN THE CHART
+
+   Every table in the chart is a card in its own right. On a worklist screen a
+   table sits inside .ui-table-card, and the card is what carries the curve —
+   the wrap stays square there because the card already rounds and clips it.
+   The chart has no such card: each module renders a bare <ui-data-table> into
+   a panel, so the wrap IS the outermost box and the square corners it keeps
+   for the worklists left every chart table reading as a cut-off rectangle
+   next to the rounded sidebar, header and workspace around it.
+
+   So in here the wrap takes the curve itself. Its own `overflow: auto` clips
+   the sticky header band to it, which is the point: the table is a rounded
+   object from its first header cell to its last row, matching every other
+   card on the page. One rule, every module — the vitals grid reuses
+   .ui-table-wrap directly and is rounded by the same line.
+   ========================================================================= */
+
+.ch .ui-table-wrap {
+  border-radius: var(--radius-lg);
+}
+
+/* ============================================================================
+   PROFILE CARD GRID — shared by Profile · Clinical and Profile · Billing.
+   Neither module gets a stylesheet of its own (the shell only loads
+   screen-chart.css), so their classes are namespaced `fs__` and live here
+   rather than colliding with the shell's `ch__` ones.
+   ========================================================================= */
+
+/* --- Grid ------------------------------------------------------------------- */
+
+.fs__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-6);
+  align-items: start;
+}
+
+.fs__col { display: flex; flex-direction: column; gap: var(--space-6); min-width: 0; }
+
+.fs__card {
+  min-width: 0;
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+  overflow: hidden;
+  /* Named, so the aligned label/value rows further down can ask how wide the
+     card they are in actually is. The name keeps the query honest if another
+     container is ever declared between here and there. */
+  container: fs-card / inline-size;
+}
+
+.fs__card-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  /* One height for every card head, whether or not it carries an add button.
+     Without it a head with a "+" in it stands 2px taller than a head with
+     only a title, and since the cards are stacked in three columns that 2px
+     compounds down the page — the reason no two columns of the Clinical
+     module ever lined up with each other. */
+  min-height: 2.375rem;
+  padding: var(--space-4) var(--space-5);
+  /* A faint tint on the head, so the title band reads as the card's label and
+     the white below it reads as the card's content. It is the same sunken
+     surface the repeating section heads use — one grey for "this is a head",
+     rather than a second one invented here — and it is light enough that a
+     column of cards still reads as a column of white cards with a lid on
+     each, not as a stack of grey bars. */
+  background-color: var(--color-bg-surface-sunken);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+/* The same three rungs .ui-title-section reads, plus the line-height it reads
+   too — which this rule used to leave off. Without it a card title fell back
+   to the page's 1.5 body leading, so the one line in the head sat in a taller
+   line box than the head's own min-height was drawn around: the title rode a
+   fraction low against the "+" and the grip beside it, and did so on every
+   profile card, Insurance and Clinical alike. Weight and colour are stated
+   here rather than inherited so all three are managed in one place. */
+.fs__card-title {
+  font-size: var(--font-size-title-section);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-snug);
+  color: var(--color-text-primary);
+}
+
+/* A fact the whole card is qualified by — the day a set of vitals was taken.
+   It rides the title in brackets rather than repeating itself down the body
+   once per row, and it is quieter than the title because it is not the name
+   of the card, it is a note about it. */
+.fs__title-note {
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-tertiary);
+}
+
+/* --- The drag handle ---------------------------------------------------------
+   The only part of a card that starts a drag, which is why it is a button and
+   not decoration: the cards hold text people copy into notes, and a card that
+   is draggable everywhere cannot have a line selected in it. It stays visible
+   rather than appearing on hover — a control nobody can see is a control
+   nobody finds, and this is the one that makes the layout theirs. */
+
+.fs__grip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1rem;
+  height: 1.25rem;
+  margin-left: calc(var(--space-2) * -1);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-disabled);
+  cursor: grab;
+}
+.fs__grip:hover { color: var(--color-text-secondary); }
+.fs__grip:active { cursor: grabbing; }
+.fs__grip:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.fs__grip .ui-icon { width: var(--icon-size-sm); height: var(--icon-size-sm); }
+
+/* The card being carried, and the card it would land above. The drop marker
+   is a line on the top edge rather than a fill, because "insert here" is a
+   position between two cards, not a target you hit. */
+.fs__card--dragging { opacity: 0.4; }
+
+.fs__card--drop { box-shadow: inset 0 var(--space-1) 0 0 var(--color-brand-solid); }
+
+.fs__add {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  /* The hit area is round because the glyph in it is, and a square hover
+     behind a ringed icon reads as two shapes fighting. */
+  border-radius: var(--radius-full);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+}
+.fs__add:hover { background-color: var(--color-bg-surface-hover); color: var(--color-text-primary); }
+.fs__add:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.fs__add .ui-icon { width: var(--icon-size-md); height: var(--icon-size-md); }
+
+.fs__view {
+  margin-left: auto;
+  color: var(--color-status-info-text);
+  font-size: var(--font-size-body-sm);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+}
+.fs__view:hover { text-decoration: underline; }
+.fs__view:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* A right-aligned action group inside a .fs__card-head — e.g. a per-card
+   "Make Primary" link beside a shared "Check Eligibility" button — rather
+   than one card-head action baked in, like .fs__add and .fs__view are. */
+.fs__card-actions { margin-left: auto; display: flex; align-items: center; gap: var(--space-4); }
+
+.fs__card-action-link {
+  color: var(--color-status-info-text);
+  font-size: var(--font-size-body-sm);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.fs__card-action-link:hover { text-decoration: underline; }
+.fs__card-action-link:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.fs__card-body { padding: var(--space-5); }
+
+.fs__eyebrow { margin: 0 0 var(--space-3); }
+
+/* A GROUP HEADING INSIDE A CARD — "Open", "Recently Closed", "Upcoming".
+   These are the bottom rung of the title ladder (tokens.css), and they had
+   been drawn at the label-pair rung instead: 12px medium tertiary, the same
+   thing every date on the card was set in, so "Open" read as another line of
+   data rather than as the name of the four lines under it. An eyebrow is
+   what the ladder calls this, and .u-eyebrow is what it looks like — one
+   word, scanned, never read twice, so capitals cost nothing here. */
+.fs__group {
+  margin: 0 0 var(--space-4);
+  font-size: var(--font-size-title-eyebrow);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+/* A second group in the same card is a new section, not a new paragraph. */
+.fs__group:not(:first-child) {
+  margin-top: var(--space-6);
+  padding-top: var(--space-6);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+/* --- List / items ------------------------------------------------------------ */
+
+.fs__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* A hairline between entries, and the reason these cards became readable.
+   Nearly every row here is TWO lines — a headline and the fact under it — and
+   with nothing but a gap between them the eye had no way to tell the second
+   line of one entry from the first line of the next: four immunisations read
+   as eight loose lines. The rule is drawn between entries rather than under
+   every one, so the last row does not end in a stray line above the card's
+   own bottom edge, and it spans the bullet gutter too — a rule that starts
+   half an inch in reads as an indent, not a divider.
+
+   Single-line lists opt out below: a rule between "K21.9 GORD" and "I10
+   Essential hypertension" separates things the eye had already separated. */
+.fs__list > .fs__item + .fs__item {
+  padding-top: var(--space-4);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+/* The bullet is placed against the first LINE of the entry, not the top of
+   its box, and the box grew a top inset when it grew a rule — so the offset
+   has to grow with it or the mark floats in the gap above the rule instead of
+   sitting beside the word it marks. */
+.fs__list > .fs__item + .fs__item::before { top: calc(0.5em + var(--space-4)); }
+
+/* A bullet in front of the primary line, positioned by hand rather than with
+   list-style so it lines up with the text's cap-height instead of sitting on
+   the baseline. */
+.fs__item { position: relative; padding-left: var(--space-6); }
+
+.fs__item::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.5em;
+  width: 5px;
+  height: 5px;
+  border-radius: var(--radius-full);
+  /* Tertiary, not disabled. The bullet marks where an entry STARTS, which is
+     the one job it has, and at --color-text-disabled on white it was faint
+     enough that the entries ran together — the mark that was supposed to
+     separate them was the least visible thing on the row. */
+  background-color: var(--color-text-tertiary);
+}
+
+.fs__item-line {
+  margin: 0;
+  font-size: var(--font-size-body-sm);
+  line-height: var(--line-height-snug);
+  color: var(--color-text-primary);
+}
+
+/* The colon between headline segments, and the hyphen between a code and its
+   name. They are punctuation, not information: at full text colour they read
+   as a third segment of their own, so they sit one step back and the eye
+   passes over them the way it passes over a comma. */
+.fs__sep,
+.fs__dash { color: var(--color-text-tertiary); }
+
+/* NOT BOLD. Every headline on these cards used to be set in <strong> at the
+   browser's 700 — heavier than the card title above it, which is 600 — and
+   the line under it at 11px tertiary, so the page read as loud and faint at
+   once with nothing in between. The reference EMR settles it the other way:
+   one weight throughout the card, and COLOUR says which line is the entry
+   and which lines describe it. Primary for the headline, secondary for the
+   details, tertiary for the names inside them. Three steps, no shouting. */
+.fs__item-line strong { font-weight: var(--font-weight-regular); }
+
+.fs__item-line--brand { color: var(--color-text-brand); }
+
+.fs__code {
+  font-family: var(--font-family-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-tertiary);
+}
+
+.fs__muted { color: var(--color-text-secondary); font-weight: var(--font-weight-regular); }
+
+/* ============================================================================
+   NOTES MODULE (cn__) — Notes / Alert Notes tabs.
+
+   The table itself is <ui-data-table> — the same component the patient
+   directory and the scheduler use — so only the things that component does
+   not already provide live here: the tab/Add-button row, the status+info
+   cell, the row-action menu, and the Add-note modal's own layout.
+   ========================================================================= */
+
+/* Tab strip + Add button share the row, so the primary action always sits
+   beside whichever tab it is about to add to. Geometry: the shared toolbar
+   rule. */
+
+.cn__panel[hidden] { display: none; }
+
+/* Badge + optional "why inactive" info icon, inline in the Status cell. */
+.cn__status-cell { display: flex; align-items: center; gap: var(--space-3); white-space: nowrap; }
+
+.cn__info {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-8);
+  height: var(--space-8);
+  border-radius: var(--radius-full);
+  color: var(--color-text-tertiary);
+  cursor: help;
+}
+.cn__info:hover { background-color: var(--color-bg-surface-hover); color: var(--color-text-secondary); }
+.cn__info .ui-icon { width: var(--icon-size-sm); height: var(--icon-size-sm); }
+.cn__info:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+
+/* --- Row action menu — appended to <body>, positioned by JS -------------- */
+
+
+/* --- Add Notes / Add Alert Notes modal ------------------------------------- */
+
+.cn__field-grid { margin-top: var(--space-6); }
+
+
+/* THE SUPPORTING LINE.
+
+   This was 11px tertiary — the faintest rung the system has — and it was
+   carrying the reaction to an anaphylactic allergy, the finding of a
+   colonoscopy and the date a medication started. tokens.css already settled
+   this in its LABEL PAIR note: the half that carries the fact is READ, not
+   scanned, and gets 12px secondary. Tertiary at 11px reads as switched off,
+   and a clinical record is the last place that should. */
+.fs__item-meta {
+  margin: var(--space-2) 0 0;
+  font-size: var(--font-size-body-sm);
+  line-height: var(--line-height-snug);
+  color: var(--color-text-secondary);
+  /* ONE LINE, and an ellipsis when it will not fit — the reference's shape,
+     and the reason its cards stay the height they look. A wrapped detail line
+     turns a three-line entry into five and the column below it moves. Nothing
+     is actually lost: the full text is on the element's title, and every card
+     that can run long has a View All that shows it whole. */
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* ...and the two halves of that line. "Onset Date", "Due", "Finding" are the
+   NAME of the fact and are scanned past; the fact itself is what someone came
+   to the card to read. Colour alone separates them — no second size, no
+   capitals — so the line still reads as one sentence when you actually read
+   it. The hyphen belongs to the name and travels with it. */
+.fs__meta-label { color: var(--color-text-tertiary); }
+
+.fs__item-meta--empty { font-style: italic; }
+
+/* --- Aligned label / value rows ---------------------------------------------
+   Vitals and Social History are not lists of headlines with a note under
+   them; they are a fixed set of NAMES against their values, and setting them
+   as "Blood pressure: 128/82 mmHg" in one bold run made the label as loud as
+   the reading. Two columns instead: the name in the fact-label grey, the
+   value primary and a weight up, and because the names line up the values
+   line up too — which is the whole reason a vitals panel is worth scanning. */
+.fs__pair {
+  display: grid;
+  grid-template-columns: minmax(0, 6.5rem) auto minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: baseline;
+  margin: 0;
+  font-size: var(--font-size-body-sm);
+  line-height: var(--line-height-snug);
+}
+
+/* Rows of a set, not separate entries: they sit closer together than two
+   entries would, and there is no rule between them. */
+.fs__pair + .fs__pair { margin-top: var(--space-3); }
+
+.fs__pair-label { color: var(--color-fact-label); }
+
+.fs__pair-value {
+  color: var(--color-fact-value);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.fs__pair-value--empty { color: var(--color-text-tertiary); font-style: italic; }
+
+/* A reading taken at some other time than the rest of the set says so under
+   itself, starting under the VALUE — the note belongs to the reading, not to
+   the name of it. */
+.fs__item-meta--pair {
+  margin-top: var(--space-1);
+  padding-left: calc(6.5rem + var(--space-4) + 1ch + var(--space-4));
+}
+
+/* Whether the two columns fit is decided by how much room THIS CARD got, and
+   a viewport query cannot tell that: the grid drops from three columns to two
+   at 1280px, so a card is NARROWER at 1300px than it is at 1200px. Same
+   reasoning, and the same mechanism, as .ch__id-main above. Below 20rem the
+   name column would leave the value nowhere to go, so the pair stacks. */
+@container fs-card (width < 20rem) {
+  .fs__pair { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .fs__pair .fs__dash { display: none; }
+  .fs__item-meta--pair { padding-left: 0; }
+}
+
+.fs__empty {
+  list-style: none;
+  padding-left: 0;
+  font-size: var(--font-size-body-sm);
+  color: var(--color-text-tertiary);
+}
+
+/* Social history routinely runs long — it scrolls inside its own card rather
+   than stretching the column past Vaccine beside it. */
+.fs__list--scroll { max-height: 14rem; overflow-y: auto; padding-right: var(--space-2); }
+
+.fs__item--tight { padding-bottom: 0; }
+
+@media (max-width: 1280px) {
+  .fs__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 860px) {
+  .fs__grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media print {
+  .fs__add, .fs__view, .fs__card-actions { display: none !important; }
+  .fs__list--scroll { max-height: none; overflow: visible; }
+  /* On screen a detail line clips to keep the columns steady and a tooltip
+     carries the rest. Paper has no tooltip, and a printed chart that ends a
+     note in an ellipsis is a chart with a fact missing from it. */
+  .fs__item-meta,
+  .fs__pair-value {
+    overflow: visible;
+    white-space: normal;
+    text-overflow: clip;
+  }
+}
+
+/* ============================================================================
+   PROFILE · CLINICAL / PROFILE · BILLING
+
+   Same fs__ card-grid language as Face Sheet — these two modules simply have
+   more section TYPES than Face Sheet did, not a different visual system.
+   ========================================================================= */
+
+/* Denser row spacing for Alerts and Problems, which carry their own
+   click/expand affordance and don't need as much air as a plain fact list. */
+/* The Alerts list, and only that one. Its rows are .fs__alert rather than
+   .fs__item — each one draws its own left rail and its own border — so it
+   takes neither the bullet nor the hairline the entry lists take, and it
+   closes the gap between rows to sit them as a stack of bars. */
+.fs__list--tight { gap: var(--space-3); }
+
+/* --- Problems — expand-in-place, same idea as the old header alert list --- */
+
+.fs__expand {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+}
+.fs__expand:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--radius-sm); }
+
+.fs__expand-chevron { flex: none; color: var(--color-text-tertiary); }
+
+/* A problem with no note has nothing to expand, so it gets no chevron — and
+   an empty box the width of one, so its badge starts where every other badge
+   in the card starts. */
+.fs__expand-chevron--none {
+  display: inline-block;
+  width: var(--icon-size-md);
+  height: var(--icon-size-md);
+}
+
+.fs__expand[disabled] { cursor: default; }
+
+/* An item that carries a chevron does not also carry a bullet. Two markers in
+   front of one line is the sort of thing that reads as a rendering fault, and
+   the chevron is the one that means something — the alert list has said the
+   same with .fs__alert::before since it was built. The row then starts at the
+   card's text edge like every other list in these modules. */
+.fs__item:has(> .fs__expand) { padding-left: 0; }
+.fs__item:has(> .fs__expand)::before { display: none; }
+
+/* Aligns under the label, past the chevron and the gap that follows it. */
+.fs__item-meta--indent { padding-left: calc(var(--icon-size-md) + var(--space-3)); }
+
+/* --- Alerts — the full list, not just the header's top-priority preview --- */
+
+.fs__alert {
+  padding-left: 0;
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-left-width: var(--space-1);
+  border-radius: var(--radius-sm);
+}
+.fs__alert::before { display: none; }
+
+.fs__alert--critical { border-left-color: var(--color-status-critical-solid); }
+.fs__alert--warning { border-left-color: var(--color-status-warning-solid); }
+.fs__alert--neutral { border-left-color: var(--color-status-neutral-solid); }
+
+.fs__alert-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-3);
+  text-align: left;
+  cursor: pointer;
+}
+.fs__alert-head:hover { background-color: var(--color-bg-surface-hover); }
+.fs__alert-head:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.fs__alert-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-body-sm);
+  font-weight: var(--font-weight-medium);
+}
+
+.fs__alert-chevron { flex: none; color: var(--color-text-tertiary); }
+
+.fs__alert-body {
+  padding: 0 var(--space-3) var(--space-3);
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-secondary);
+  line-height: var(--line-height-normal);
+}
+
+/* --- Summary / Notes -------------------------------------------------------- */
+
+.fs__prose {
+  margin: 0;
+  font-size: var(--font-size-body-sm);
+  color: var(--color-text-secondary);
+  line-height: var(--line-height-normal);
+}
+
+/* --- Payer key/value pairs --------------------------------------------------
+   The label column sizes to its content so values line up without a
+   hardcoded width — same idea as .ch__pairs used before it was removed from
+   the header. */
+.fs__kv {
+  display: grid;
+  /* A floor under the label column, not a fixed width: a card of short labels
+     ("Race", "Email") and a card of long ones ("Preferred electronic clinical
+     lab") sat side by side with their value columns 40px apart, which read as
+     two different layouts rather than one repeated one. minmax lets a long
+     label still take the room it needs. */
+  grid-template-columns: minmax(7.5rem, auto) 1fr;
+  gap: var(--space-1) var(--space-4);
+  margin: var(--space-2) 0 0;
+  font-size: var(--font-size-2xs);
+}
+.fs__kv dt { color: var(--color-fact-label); font-size: var(--font-size-fact-label); font-weight: var(--font-weight-regular); }
+.fs__kv dd { margin: 0; color: var(--color-text-secondary); min-width: 0; }
+
+/* --- Tables — aging balances, authorizations -------------------------------- */
+
+.fs__table-wrap { overflow-x: auto; }
+
+.fs__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-2xs);
+}
+
+.fs__table th, .fs__table td {
+  padding: var(--space-2) var(--space-3);
+  text-align: right;
+  white-space: nowrap;
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.fs__table thead th {
+  color: var(--color-text-tertiary);
+  font-weight: var(--font-weight-medium);
+}
+
+.fs__table th[scope='row'] {
+  text-align: left;
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+/* First column (row headers / Eff date) reads left, everything numeric reads
+   right — a balance column aligned left is the one thing that makes an aging
+   table hard to scan. */
+.fs__table td:first-child, .fs__table th:first-child { text-align: left; }
+
+/* The outer columns give up their cell inset so the table's first and last
+   text edges sit on the card body's own edges — a table in a card otherwise
+   reads as inset by an extra 6px from every list and paragraph beside it. */
+.fs__table th:first-child, .fs__table td:first-child { padding-left: 0; }
+.fs__table th:last-child, .fs__table td:last-child { padding-right: 0; }
+
+.fs__table-total { font-weight: var(--font-weight-semibold); color: var(--color-text-primary); }
+
+/* --- Billing's two-column grid ----------------------------------------------
+   Billing has five sections, not sixteen — two columns reads better than
+   three mostly-empty ones. */
+.fs__grid--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+@media (max-width: 860px) {
+  .fs__grid--2 { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* A field that should span both columns of a .fs__grid--2 form — e.g. the
+   Add Insurance modal's Insurance Name and Relationship rows. */
+.fs__field--wide { grid-column: 1 / -1; }
+
+/* --- Quick Select from Formulary --------------------------------------------
+   The drugs this clinic writes most often, drawn under the Medication Name box
+   in the Add Medication modal so the common case is a press rather than a
+   typed-out strength.
+
+   A sunken panel rather than loose buttons on the form: these are an offer
+   beside the field, not a required answer, and the recess is what says so
+   without a paragraph of help text. Same treatment the anaesthesia record's
+   cart gets (.enc__np-formulary in css/screen-clinic-visit.css) — one
+   formulary should not look like two different things in two places.
+
+   Two per row where there is room, one where there is not. The cart on the
+   anaesthesia record stacks its three full width; six drugs stacked would push
+   the Start Date field off the bottom of the dialog, and a quick-select you
+   have to scroll to reach has already lost to typing.
+   -------------------------------------------------------------------------- */
+
+.fs__formulary {
+  padding: var(--space-5);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+}
+
+.fs__formulary-legend {
+  margin: 0 0 var(--space-4);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+}
+
+.fs__formulary-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: var(--space-3);
+}
+
+.fs__drug {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  width: 100%;
+  padding: var(--space-4) var(--space-5);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+  text-align: left;
+  cursor: pointer;
+}
+
+.fs__drug:hover {
+  border-color: var(--color-border-strong);
+  background-color: var(--color-bg-surface-hover);
+}
+
+.fs__drug:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* The row that was pressed, said in the border rather than in a fill: the
+   panel is already sunken and a filled row inside it reads as disabled. */
+.fs__drug--picked {
+  border-color: var(--color-border-brand);
+  background-color: var(--color-bg-surface-hover);
+}
+
+.fs__drug strong {
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+.fs__drug span {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-tertiary);
+}
+
+/* ============================================================================
+   THE FIELD GRID (fs__fields) — Profile's read-only record.
+
+   The label pair that css/tokens.css describes, finally drawn the way it
+   describes it. .fs__kv, the older pair, sets BOTH halves at 11px with the
+   value in secondary grey, which is the arrangement the token comment was
+   written to end: the two halves weigh the same, so a card of them is a wall
+   of even grey that has to be read line by line to find one fact in it.
+
+   Here the label is 12px secondary and the value 14px primary, one weight
+   step heavier — the value is what somebody came for, the label only says
+   what it means. Stacked rather than side by side, and six pairs to a row
+   rather than one, so a section is a band scanned across at a glance instead
+   of a column read down.
+
+   .fs__kv is deliberately left alone: Clinical and Insurance are dense lists
+   inside narrow cards, where a stacked pair would double their height. This
+   grid is for a section running the full width of the workspace.
+   ========================================================================= */
+
+/* A column of full-width sections. Same gap as .fs__col so a stack and a
+   two-column grid can sit in one panel without a seam between them. */
+.fs__stack { display: flex; flex-direction: column; gap: var(--space-7); min-width: 0; }
+
+.fs__fields {
+  display: grid;
+  /* A fixed count per breakpoint rather than auto-fill, because the divider
+     below is drawn by counting children — auto-fill would put a rule down the
+     left edge of whichever field happened to start a row. */
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  row-gap: var(--space-9);
+  margin: 0;
+}
+
+/* The hairline BETWEEN fields, not around them: a rule on every field's left
+   edge, dropped from the one that opens each row. It is what makes twelve
+   pairs read as twelve fields rather than as one paragraph of alternating
+   grey and black. */
+.fs__field {
+  min-width: 0;
+  padding-inline: var(--space-7);
+  border-left: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.fs__fields > .fs__field:nth-child(6n + 1),
+.fs__fields > .fs__field--wide {
+  padding-left: 0;
+  border-left: none;
+}
+
+.fs__field-label {
+  margin: 0 0 var(--space-2);
+  color: var(--color-fact-label);
+  font-size: var(--font-size-fact-label);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--line-height-tight);
+}
+
+.fs__field-value {
+  margin: 0;
+  color: var(--color-fact-value);
+  font-size: var(--font-size-fact-value);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-snug);
+  /* Record numbers, member IDs and email addresses are long unbroken strings
+     in a column a sixth of the workspace wide. Wrapping them is ugly;
+     overflowing the divider into the next field is worse. */
+  overflow-wrap: anywhere;
+}
+
+/* "Nothing on file" is a fact too, but a quieter one — at the value's own
+   weight an em dash reads as an entry rather than as the absence of one. */
+.fs__field-value--empty {
+  color: var(--color-text-tertiary);
+  font-weight: var(--font-weight-regular);
+}
+
+/* The grid narrows in steps rather than continuously, and the divider rule
+   is restated at each step because the count it depends on has changed. The
+   breakpoints are the workspace's, not the viewport's — the chart sidebar
+   takes about 240px before this grid sees any of it. */
+@media (max-width: 1440px) {
+  .fs__fields { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .fs__fields > .fs__field { padding-left: var(--space-7); border-left: var(--border-width-thin) solid var(--color-border-subtle); }
+  .fs__fields > .fs__field:nth-child(4n + 1),
+  .fs__fields > .fs__field--wide { padding-left: 0; border-left: none; }
+}
+
+@media (max-width: 1120px) {
+  .fs__fields { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .fs__fields > .fs__field { padding-left: var(--space-7); border-left: var(--border-width-thin) solid var(--color-border-subtle); }
+  .fs__fields > .fs__field:nth-child(3n + 1),
+  .fs__fields > .fs__field--wide { padding-left: 0; border-left: none; }
+}
+
+@media (max-width: 860px) {
+  .fs__fields { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: var(--space-7); }
+  .fs__fields > .fs__field { padding-left: var(--space-6); border-left: var(--border-width-thin) solid var(--color-border-subtle); }
+  .fs__fields > .fs__field:nth-child(2n + 1),
+  .fs__fields > .fs__field--wide { padding-left: 0; border-left: none; }
+}
+
+/* --- A record section, and its two kinds of head ------------------------------
+   .fs__card and .fs__card-head are shared with Clinical and Insurance, which
+   are dense cards three to a row; a record section runs the full width of the
+   workspace and takes a deeper inset than they do. Head and body take the
+   SAME horizontal inset, so a section title and the first label under it sit
+   on one left edge — the rail the whole tab is read down. */
+.fs__section > .fs__card-head { padding: var(--space-8) var(--space-8) var(--space-6); }
+.fs__section > .fs__card-body { padding: var(--space-8); }
+
+/* A head over a section that occurs once. No rule under it: with one of a
+   thing there is nothing to tell apart, and a line under every title turns a
+   page of sections into a page of ledger rows. The head's own padding is the
+   separation. */
+.fs__card-head--plain {
+  padding-bottom: 0;
+  border-bottom: none;
+  /* No tint either. This head has no rule and no bottom padding — the tint
+     would end mid-air against the body it runs into, which reads as a
+     rendering fault rather than as a head. */
+  background-color: transparent;
+}
+
+.fs__section > .fs__card-head--plain { padding-bottom: 0; }
+
+/* A head over a section that REPEATS — "Primary Insurance", "Secondary
+   Insurance", one per policy. The tint and the rule are what say "here is
+   another one of these" as the eye comes down the page; every head being
+   tinted would say nothing at all. */
+.fs__card-head--band { background-color: var(--color-bg-surface-sunken); }
+
+/* Buttons rather than text links sit in these heads now, and a button is
+   taller than the line of text beside it — the head grows to it rather than
+   the button being squeezed to the head. */
+.fs__section > .fs__card-head--band { padding-block: var(--space-5); }
+
+/* --- Card faces (fs__scan / fs__face) ----------------------------------------
+   The front and back of an insurance card, drawn from the policy record
+   rather than photographed — this prototype has no upload, and two dashed
+   empty boxes tell the reader less about the coverage than the card itself
+   does. The caption says which side it is and says it is a rendering; see
+   the note in js/screens/chart-profile.js for why that admission is not
+   optional.
+   ========================================================================= */
+
+/* Flex rather than grid, because a card is a FIXED shape: 1fr grid tracks
+   would stretch the pair across whatever width the workspace happens to be
+   and the face would stop reading as a card. They sit at their own size,
+   side by side, and wrap when there is no room for two. */
+.fs__scans {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-7);
+  /* Only present under a field grid on the Insurance tab; on the Card tab it
+     is the whole body and the margin would be a second inset. */
+  margin-top: var(--space-8);
+}
+
+.fs__card-body > .fs__scans:first-child { margin-top: 0; }
+
+.fs__scan {
+  flex: 0 1 22rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+}
+
+.fs__face {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  /* ID-1, the size every insurance card in the world is cut to. */
+  aspect-ratio: 1.586;
+  padding: var(--card-padding);
+  border: var(--border-width-thin) solid var(--color-border-brand-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-brand-surface);
+  overflow: hidden;
+}
+
+.fs__face-brand {
+  margin: 0;
+  color: var(--color-brand-text);
+  font-size: var(--font-size-title-section);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-snug);
+}
+
+/* Pushed down to meet the numbers rather than left under the payer name.
+   A card's identifying block — who, then which policy — reads as one thing
+   at the foot of the face; split across the middle it reads as two. */
+.fs__face-holder {
+  margin: auto 0 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+}
+
+/* Pushed to the foot of the face by `margin-top: auto`, which is where the
+   numbers sit on a real card and the reason a card can be read at a glance
+   from a wallet: the same fact is always in the same place. */
+.fs__face-pairs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2) var(--space-6);
+  margin: 0;
+}
+
+.fs__face-pairs dt {
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-title-eyebrow);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+}
+
+.fs__face-pairs dd {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-body-sm);
+  font-weight: var(--font-weight-medium);
+  overflow-wrap: anywhere;
+}
+
+/* The back is the same card turned over: no brand tint, because the tint is
+   how the front is recognised at a glance in a stack of two. */
+.fs__face--back {
+  border-color: var(--color-border-subtle);
+  background-color: var(--color-bg-surface-sunken);
+}
+
+/* The magnetic stripe. Full bleed, the way it is on the card. */
+.fs__face-stripe {
+  height: var(--space-9);
+  margin: calc(var(--card-padding) * -1) calc(var(--card-padding) * -1) 0;
+  background-color: var(--color-bg-surface-inverse);
+}
+
+.fs__face-note {
+  margin: 0 0 auto;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-body-sm);
+  line-height: var(--line-height-normal);
+}
+
+/* Above the face, and set exactly as a field label is set — the face is a
+   slot in the record like every other slot on the two tabs beside it, and
+   the eye should not have to learn a second way of reading one. */
+.fs__scan-caption {
+  order: -1;
+  color: var(--color-fact-label);
+  font-size: var(--font-size-fact-label);
+  line-height: var(--line-height-tight);
+}
+
+/* --- The card thumbnail (fs__thumb) ------------------------------------------
+   A cell in the Cards table, not a picture of the card: at 40px there is no
+   room for a member ID, and a face shrunk to fit would only be a smear of
+   the colour it is at full size. What it has to carry is which SIDE this row
+   is, which the two shapes say instantly — the tinted face with the card mark
+   on it, and the grey one with the stripe across the top.
+   ========================================================================= */
+
+.fs__thumb {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* ID-1 again, at the size a table row can hold. */
+  width: 2.75rem;
+  height: 1.75rem;
+  border: var(--border-width-thin) solid var(--color-border-brand-subtle);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-brand-surface);
+  color: var(--color-brand-text);
+  overflow: hidden;
+}
+
+.fs__thumb .ui-icon { width: var(--icon-size-sm); height: var(--icon-size-sm); }
+
+.fs__thumb--back {
+  align-items: flex-start;
+  border-color: var(--color-border-subtle);
+  background-color: var(--color-bg-surface-sunken);
+}
+
+.fs__thumb-stripe {
+  width: 100%;
+  height: var(--space-3);
+  background-color: var(--color-bg-surface-inverse);
+}
+
+/* Said once under the pair, not twice under the halves. */
+.fs__scan-note {
+  margin: var(--space-6) 0 0;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-body-sm);
+}
+
+/* ============================================================================
+   ORDERS MODULE (ord__) — four worklists and one viewer. Every section reuses
+   <ui-data-table>, Lab included: the list of a patient's labs is scanned as a
+   grid like the rest of them, and what makes Lab different is only that a row
+   opens the report/requisition viewer below — the one piece of this module
+   with markup of its own.
+   ========================================================================= */
+
+/* Geometry lives with the shared toolbar rule near the top of this file. */
+.ord__panel[hidden] { display: none; }
+.ord__med-tabs { margin-bottom: var(--space-6); }
+.ord__med-tabs .ui-tabs { border-bottom: none; }
+
+/* --- During Procedure --------------------------------------------------------
+   The second record on the Medication page, read back from the anaesthesia
+   log. It is a tab beside the list now, not a section under it — so it needs
+   no heading of its own, and no standing note above it either: the tab names
+   the record, and a paragraph restating what the tab just said is a line the
+   reader has to step over every time they open the table. Both panels are now
+   the record and nothing else. */
+
+/* --- Medication cell (Prescriptions and Medication) ------------------------- */
+
+.ord__med { display: flex; flex-direction: column; gap: var(--space-2); }
+.ord__med-name { color: var(--color-brand-text); font-weight: var(--font-weight-medium); }
+.ord__med-meta { font-size: var(--font-size-caption); color: var(--color-text-secondary); }
+.ord__med-meta--muted { color: var(--color-text-tertiary); }
+
+
+/* --- Modal field grid + actions (Add Medication / Add Lab Test / Upload) --- */
+
+
+.ord__field-wide { grid-column: 1 / -1; }
+
+
+/* --- Repeatable Test rows (Add Lab Test) ------------------------------------ */
+
+.ord__test-group { margin-top: var(--space-7); }
+
+.ord__test-group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-4);
+}
+
+.ord__add-row {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-link);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+}
+.ord__add-row .ui-icon { width: var(--icon-size-sm); height: var(--icon-size-sm); }
+.ord__add-row:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--radius-sm); }
+
+.ord__test-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: var(--space-4);
+  align-items: center;
+  margin-bottom: var(--space-4);
+}
+
+.ord__test-row-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-8);
+  height: var(--space-8);
+  border-radius: var(--radius-full);
+  background-color: var(--color-bg-surface-sunken);
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-caption);
+}
+
+.ord__test-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-9);
+  height: var(--space-9);
+  border-radius: var(--radius-md);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+}
+.ord__test-remove:hover:not(:disabled) { background-color: var(--color-status-critical-surface); color: var(--color-status-critical-text); }
+.ord__test-remove:disabled { color: var(--color-text-disabled); cursor: not-allowed; opacity: 0.5; }
+.ord__test-remove:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.ord__test-remove .ui-icon { width: var(--icon-size-sm); height: var(--icon-size-sm); }
+
+/* --- Lab: master/detail layout ---------------------------------------------- */
+
+/* --- Lab: the worklist -------------------------------------------------------
+   Lab is a <ui-data-table> like the other three sections and nothing but the
+   table is drawn in the panel: the search and the status filter went up into
+   the module head, beside Upload Results and Add Lab Test, the way every other
+   module that narrows a list keeps its controls. They were the last strip in
+   the chart still drawn under the head, which left this one table starting a
+   row lower down the page than the same table anywhere else. The list before
+   that was a 20rem column of cards beside the report; it was the one section
+   of the chart that could not be read down a column, and the report it was
+   pinned next to had a third of the page to draw a full-width lab report in.
+
+   Wide enough for "Received" plus the multi-select's own furniture, and no
+   wider — it is a filter, not a field anyone types into. .ord__search's own
+   16rem and the head's phone-width rules cover the search box beside it. */
+.ord__status-filter { width: 10rem; }
+
+@media (max-width: 640px) {
+  .ord__status-filter { width: 100%; }
+}
+
+/* The name is the row's way through to the result. Medium weight because it
+   is also what the eye scans the column by; the link colour is the shared
+   .ui-text-link's. */
+.ord__lab-name { font-weight: var(--font-weight-medium); }
+
+/* --- Lab: detail / report viewer -------------------------------------------- */
+
+.ord__lab-detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  min-width: 0;
+}
+
+/* The way back to the list. A quiet text button above the report rather than
+   a button in the head row: leaving a detail is not one of the module's
+   actions, it is the reverse of the click that opened it. */
+.ord__lab-back {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-caption);
+  cursor: pointer;
+}
+.ord__lab-back:hover { color: var(--color-text-primary); }
+.ord__lab-back:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--radius-sm); }
+.ord__lab-back .ui-icon { width: var(--icon-size-sm); height: var(--icon-size-sm); }
+
+.ord__lab-detail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+}
+.ord__lab-detail-head .ui-tabs { border-bottom: none; }
+
+.ord__lab-detail-nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+}
+
+.ord__lab-detail-nav button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-9);
+  height: var(--space-9);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.ord__lab-detail-nav button:hover:not(:disabled) { background-color: var(--color-bg-surface-hover); }
+.ord__lab-detail-nav button:disabled { color: var(--color-text-disabled); cursor: not-allowed; }
+.ord__lab-detail-nav button:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.ord__lab-detail-nav .ui-icon { width: var(--icon-size-md); height: var(--icon-size-md); }
+
+.ord__report-card {
+  padding: var(--space-8);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+  transform-origin: top left;
+}
+
+
+.ord__meta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5) var(--space-8);
+  padding-bottom: var(--space-7);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+@media (max-width: 560px) {
+  .ord__meta-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+.ord__meta-item { display: flex; justify-content: space-between; gap: var(--space-5); font-size: var(--font-size-body); }
+.ord__meta-item dt { color: var(--color-fact-label); font-size: var(--font-size-fact-label); font-weight: var(--font-weight-regular); }
+.ord__meta-item dd { margin: 0; font-weight: var(--font-weight-medium); text-align: right; }
+
+.ord__report-title { margin-top: var(--space-7); font-size: var(--font-size-title-section); font-weight: var(--font-weight-semibold); color: var(--color-text-primary); }
+.ord__report-sample { margin-top: var(--space-2); font-size: var(--font-size-caption); color: var(--color-text-tertiary); }
+.ord__report-panel { margin-top: var(--space-6); margin-bottom: var(--space-4); font-size: var(--font-size-body); font-weight: var(--font-weight-semibold); }
+.ord__report-prose { margin-top: var(--space-4); line-height: var(--line-height-normal); color: var(--color-text-secondary); }
+
+.ord__out-of-range { color: var(--color-status-critical-text); font-weight: var(--font-weight-semibold); }
+
+.ord__report-toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  padding-top: var(--space-5);
+}
+
+.ord__zoom { display: flex; align-items: center; gap: var(--space-3); color: var(--color-text-secondary); font-size: var(--font-size-caption); }
+.ord__zoom button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-8);
+  height: var(--space-8);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+.ord__zoom button:hover { background-color: var(--color-bg-surface-hover); }
+.ord__zoom button:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.ord__zoom .ui-icon { width: var(--icon-size-xs); height: var(--icon-size-xs); }
+.ord__zoom span { min-width: 3ch; text-align: center; font-variant-numeric: tabular-nums; }
+
+.ord__toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-left: auto;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-caption);
+  cursor: pointer;
+}
+.ord__toolbar-btn + .ord__toolbar-btn { margin-left: var(--space-6); }
+.ord__toolbar-btn:hover { color: var(--color-text-primary); }
+.ord__toolbar-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--radius-sm); }
+.ord__toolbar-btn .ui-icon { width: var(--icon-size-sm); height: var(--icon-size-sm); }
+
+/* --- Print: the report card only --------------------------------------------
+   A standard "print just this element" trick — everything else is hidden for
+   the duration of the print, then the class comes off on `afterprint`. */
+@media print {
+  body.ord--printing .ch__side,
+  body.ord--printing .ch__header,
+  body.ord--printing .ch__module-head,
+  body.ord--printing .ord__lab-back,
+  body.ord--printing .ord__lab-detail-head,
+  body.ord--printing .ord__report-toolbar,
+  body.ord--printing .pt__bar {
+    display: none !important;
+  }
+}
+
+/* ============================================================================
+   FORMS
+
+   A search box and an Assign button share a row above a <ui-data-table>,
+   the same worklist grammar Notes and the patient directory both use. The
+   row-action menu is this module's own copy of the same pattern chart-notes
+   established — every screen in this app keeps it local rather than shared.
+   ========================================================================= */
+
+/* Geometry and the search width: the shared toolbar rule. */
+
+.frm__name {
+  color: var(--color-text-link);
+  font-size: inherit;
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+}
+.frm__name:hover { text-decoration: underline; }
+.frm__name:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--radius-sm); }
+
+
+#frmCategory { margin-bottom: var(--space-6); }
+
+/* ============================================================================
+   DOCUMENTS MODULE (doc__) — the patient's file drawer.
+
+   The table is <ui-data-table>, so only what that component does not provide
+   lives here: the search + Upload row, the selection bar, the name link and
+   the two dialogs.
+
+   The row "⋮" opens the shared .ui-row-menu, same as every other worklist in
+   the app. It used to be a private copy of that panel, on the argument that a
+   menu behaving identically everywhere was worth the duplicated lines — which
+   was right about the goal and wrong about how to get there: the copies in
+   this file had drifted to three widths and two corner radii, and none of
+   them closed on scroll or restored focus to the trigger the way the shared
+   one does. */
+
+/* Search left, Upload right — the shared toolbar rule places both. */
+
+/* --- Name link — same treatment as .frm__name and the patient directory, so
+       "this cell opens the record" reads the same everywhere. --------------- */
+
+.doc__name {
+  color: var(--color-text-link);
+  font-size: inherit;
+  font-weight: var(--font-weight-medium);
+  text-align: left;
+  cursor: pointer;
+}
+.doc__name:hover { text-decoration: underline; }
+.doc__name:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm);
+}
+
+/* --- Row action + its menu -------------------------------------------------- */
+
+
+/* --- Upload dialog ----------------------------------------------------------
+   One column, not two: three fields where each is wider than it is tall, and
+   the reference stacks them. */
+
+.doc__form { display: grid; gap: var(--space-6); }
+
+.doc__form-error {
+  margin: 0;
+  font-size: var(--font-size-body-sm);
+  color: var(--color-status-critical-text);
+}
+.doc__form-error[hidden] { display: none; }
+
+
+/* --- Preview dialog ---------------------------------------------------------
+   There is no file behind these records, so the dialog shows what IS known
+   and says plainly that the page itself is missing. A blank grey rectangle
+   pretending to be a viewer would read as a failed load. */
+
+.doc__preview { text-align: center; }
+
+.doc__preview-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-11);
+  height: var(--space-11);
+  margin-bottom: var(--space-6);
+  border-radius: var(--radius-full);
+  background-color: var(--color-bg-surface-sunken);
+  color: var(--color-text-tertiary);
+}
+.doc__preview-mark .ui-icon { width: var(--icon-size-lg); height: var(--icon-size-lg); }
+
+.doc__preview-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5) var(--space-6);
+  margin: 0;
+  text-align: left;
+}
+
+.doc__preview-meta dt {
+  font-size: var(--font-size-fact-label);
+  color: var(--color-fact-label);
+  font-weight: var(--font-weight-regular);
+}
+.doc__preview-meta dd {
+  margin: 0;
+  font-size: var(--font-size-body-sm);
+  color: var(--color-text-primary);
+}
+
+.doc__preview-note {
+  margin: var(--space-7) 0 0;
+  font-size: var(--font-size-body-sm);
+  color: var(--color-text-tertiary);
+}
+
+@media (max-width: 640px) {
+  .doc__preview-meta { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ============================================================================
+   PRESCRIPTIONS MODULE (rx__) — the ScriptSure window, and the dialog behind
+   Add Prescription.
+
+   TWO PIECES, AND THE SEAM BETWEEN THEM IS THE POINT. The chrome (rx__ss) is
+   ours: the frame itself and the patient strip the vendor session is scoped
+   to. That belongs to the host application precisely because it is what nobody
+   can check from inside somebody else's document. There was a title bar above
+   the frame too, naming the tenant and the connection state; it was a second
+   heading over a section the module title already names, so it is gone.
+
+   The INTERIOR (rx__stub) is not ours, and is held open rather than drawn. The
+   section used to carry a mock-up of the vendor's own window — a toolbar, a
+   view strip and demo tables — and the more convincingly it was drawn the more
+   it read as a specification for a UI this product does not own.
+
+   Every colour here is one of this product's semantic tokens. Inventing a
+   second palette to make the frame look like another vendor's software would
+   hard-code values the design system does not own, and it would be a lie about
+   a window that is not there. What says "this belongs to someone else" is
+   structure instead: a border the content does not cross, and a sentence
+   inside it saying so in words.
+
+   The stub is the same block in both places. The section body and the dialog
+   are answering one question, and a reader who has just pressed Add
+   Prescription should recognise what they are looking at instantly rather than
+   reading it twice in two different shapes. The modifier only trims the
+   padding: a dialog is already a held-open space, so it does not need the
+   section's.
+   ========================================================================= */
+
+.rx__ss {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* --- The frame ---------------------------------------------------------------
+   Where the vendor document will be. The border is the seam, drawn so a reader
+   can see exactly how much of this screen stops being ours. */
+
+.rx__ss-frame {
+  padding: var(--space-6);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+}
+
+/* Inside the frame, not above it: an e-prescribing window with the wrong chart
+   open is the failure this strip exists to make visible, and a copy of our own
+   header outside the frame would prove nothing about what the vendor thinks it
+   is looking at. */
+.rx__ss-patient {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2) var(--space-5);
+  padding-bottom: var(--space-5);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+}
+.rx__ss-patient strong {
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.rx__stub {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-10) var(--space-6);
+  text-align: center;
+}
+
+/* No border and no ground of its own. It used to be a dashed, sunken card,
+   which was right when it WAS the section — but it now sits inside the
+   ScriptSure frame, whose border is already the seam, and a second outline
+   within a few pixels of the first read as two nested boxes rather than one
+   held-open space. The frame says "reserved"; this says what for.
+
+   The dialog keeps the same treatment for the same reason: a modal is already
+   a held-open space, so an outline inside one has nothing left to say. */
+
+.rx__stub-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-11);
+  height: var(--space-11);
+  border-radius: var(--radius-full);
+  background-color: var(--color-bg-surface);
+  color: var(--color-text-tertiary);
+  flex: none;
+}
+.rx__stub-mark .ui-icon { width: var(--icon-size-lg); height: var(--icon-size-lg); }
+
+
+.rx__stub-line {
+  max-width: 46ch;
+  margin: 0;
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+}
+
+/* The second sentence is quieter than the first on purpose. The first is what
+   is true of the screen; the second is where the reader should go instead, and
+   it is only read by somebody who did not already know. */
+.rx__stub-note {
+  max-width: 60ch;
+  margin: 0;
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-normal);
+  color: var(--color-text-tertiary);
+}
+.rx__stub-note strong { color: var(--color-text-secondary); font-weight: var(--font-weight-medium); }
+
+.rx__stub--modal { padding: var(--space-8) var(--space-4); }
+
+/* ============================================================================
+   VITALS MODULE (vt__)
+
+   The row grid reuses .ui-table / .ui-table-wrap directly rather than the
+   <ui-data-table> element — see the note at the top of chart-vitals.js for
+   why: an expandable per-metric note row needs a real <td colspan>, which
+   the component's row model has no way to express. Everything below is
+   either a small addition (the note row's own layout) or an override that
+   undoes a default the component's normal single-line rows rely on but this
+   one specifically cannot use.
+   ========================================================================= */
+
+/* The date filter sits in the module head with Print and Add Vitals, placed
+   by .ch__module-actions. Narrower than a search box: a date is a fixed
+   length, and a field sized for one reads as one. */
+.vt__date-filter { width: 10rem; }
+
+.vt__table-wrap { max-height: 100%; }
+
+/* --- Row actions: Edit, and the note toggle ---------------------------------
+   Two text buttons rather than the "⋮" row menu the worklists use. A menu is
+   worth its extra press when a row has four or five things you can do to it;
+   this row has two, and both are things a reader reaches for while their eye
+   is still on the numbers. They also read as a pair — one corrects the row,
+   the other opens what was written about it — which a menu would hide behind
+   a control that says neither.
+
+   Right-aligned and held on one line: the actions sit at the far edge of a
+   table whose every other column is a number, and a wrapped "View Note" would
+   pull the row taller than the seven readings beside it. */
+
+.vt__row-actions {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.vt__row-action {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-link);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+}
+.vt__row-action + .vt__row-action { margin-left: var(--space-6); }
+.vt__row-action:hover { text-decoration: underline; }
+.vt__row-action:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--radius-sm); }
+.vt__row-action .ui-icon { width: var(--icon-size-sm); height: var(--icon-size-sm); }
+
+/* --- Expanded note row -------------------------------------------------------
+   Overrides the single-line row contract .ui-table sets for every OTHER row:
+   this one has to wrap and grow, and it is not itself a clickable row.
+
+   The selector below is deliberately as long as `.ui-table tbody td` itself
+   (element for element) plus one extra class — `.vt__note-row td` alone LOSES
+   that specificity fight and `white-space: nowrap` wins, which is exactly
+   what happened here: the text never wrapped, just ran on and overflowed
+   into the next column. Nothing was cut off; it had nowhere to go. */
+.vt__table tbody tr.vt__note-row td {
+  height: auto;
+  padding: var(--space-6) var(--space-7);
+  white-space: normal;
+  background-color: var(--color-bg-surface-sunken);
+}
+.vt__table tbody tr.vt__note-row:hover td { background-color: var(--color-bg-surface-sunken); }
+
+.vt__note-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-6) var(--space-8);
+}
+
+@media (max-width: 640px) {
+  .vt__note-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* A grid item's default min-width is auto (its content's intrinsic width),
+   not 0 — so a long, unbroken note paragraph was overflowing its own column
+   into the next one instead of wrapping. minmax(0, 1fr) on the TRACK alone
+   does not fix that; the ITEM needs it too. */
+.vt__note-item { min-width: 0; }
+
+.vt__note-item h4 {
+  margin-bottom: var(--space-2);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.vt__note-item p {
+  margin: 0;
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-normal);
+  color: var(--color-text-secondary);
+}
+
+.vt__note-empty { color: var(--color-text-tertiary); font-style: italic; }
+
+/* --- Empty state -------------------------------------------------------------- */
+
+
+/* --- Add Vitals modal --------------------------------------------------------- */
+
+
+/* --- Print: the vitals table only -------------------------------------------- */
+@media print {
+  body.vt--printing .ch__side,
+  body.vt--printing .ch__header,
+  body.vt--printing .ch__module-actions,
+  body.vt--printing .vt__row-action,
+  body.vt--printing .pt__bar {
+    display: none !important;
+  }
+
+  /* The heading stays: "Vitals" over the table is what the printed page is,
+     and it is the one part of the head that is not a control. */
+}
+
+/* ============================================================================
+   ALERTS AND DUE RECOMMENDATIONS — the boot-time digest opened from
+   patient-chart.js.
+
+   The dialog wore a solid green header bar for a while. It was dropped: this
+   thing opens on every chart entry, and a colour-blocked banner across the
+   top of something that appears unprompted twenty times a day reads as a
+   product announcement, not as a chart. It takes the same plain head every
+   other dialog in the EHR takes, and the only colour left inside it is
+   colour that means something — the priority rails, and the red on a date
+   that has passed.
+   ========================================================================= */
+
+.ch__alerts-summary-section + .ch__alerts-summary-section {
+  margin-top: var(--space-7);
+}
+
+.ch__alerts-summary-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0 0 var(--space-4);
+}
+
+/* The one line under the heading. No panel, no tint behind it — it is a
+   sentence in the body text, with a coloured glyph only when there is
+   genuinely something pressing to point at. */
+
+.ch__digest-lede {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-6);
+  font-size: var(--font-size-body-sm);
+  color: var(--color-text-secondary);
+}
+
+.ch__digest-lede-icon {
+  flex: none;
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+  transform: translateY(0.125rem);
+}
+
+/* The glyph carries the severity; the sentence stays in body ink. A whole
+   line set in red is the register of an error message, and this is a summary
+   of a chart that is doing nothing wrong. */
+.ch__digest-lede--critical { color: var(--color-text-primary); }
+.ch__digest-lede--critical .ch__digest-lede-icon { color: var(--color-status-critical-text); }
+
+.ch__digest-lede--warning { color: var(--color-text-primary); }
+.ch__digest-lede--warning .ch__digest-lede-icon {
+  color: var(--color-status-warning-text-strong);
+}
+
+/* --- The alert rows --------------------------------------------------------
+   Three lines with one job each: severity and title, the sentence, then who
+   said it and when. The rail on the left and the glyph inside it both carry
+   the priority, because colour on its own is unreadable to anyone who cannot
+   separate red from amber.
+
+   These rows are flat on purpose — no hover fill, no pointer cursor, nothing
+   that reads as clickable. In this dialog there is nothing to click. */
+
+.ch__digest-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Softly rounded rather than the 2px the rest of the chart's list rows take.
+   These sit inside a dialog, on their own, with air around them — they read
+   as cards there rather than as rows in a table, and a card that is nearly
+   square-cornered inside a rounded dialog looks like it was cropped out of
+   one. The severity rail is drawn as an inset stripe instead of a thick left
+   border: a 4px border under an 8px radius tapers into a wedge at both ends,
+   which is the sort of shape nobody chooses on purpose. */
+.ch__digest-alert {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-4) var(--space-4) var(--space-6);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+}
+
+.ch__digest-alert::after {
+  content: '';
+  position: absolute;
+  top: var(--space-4);
+  bottom: var(--space-4);
+  left: var(--space-2);
+  width: var(--space-1);
+  border-radius: var(--radius-full);
+  background-color: currentColor;
+}
+
+.ch__digest-alert-mark {
+  display: flex;
+  flex: none;
+  margin-top: 0.0625rem;
+}
+.ch__digest-alert-mark .ui-icon {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}
+
+/* One colour per row, set on the row itself: the rail takes it through
+   currentColor and the glyph inherits it. The text inside sets its own ink,
+   so nothing else picks the tint up. */
+.ch__digest-alert--critical { color: var(--color-status-critical-text); }
+.ch__digest-alert--warning { color: var(--color-status-warning-text-strong); }
+.ch__digest-alert--neutral { color: var(--color-status-neutral-solid); }
+
+.ch__digest-alert-main { min-width: 0; flex: 1; }
+
+.ch__digest-alert-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+/* Wraps rather than truncates. A digest exists to be read in one pass, and an
+   alert title cut off at the ellipsis is the one line in it you cannot afford
+   to guess at. */
+.ch__digest-alert-title {
+  margin: 0;
+  font-size: var(--font-size-body-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.ch__digest-alert-body {
+  margin: var(--space-2) 0 0;
+  font-size: var(--font-size-body-sm);
+  color: var(--color-text-secondary);
+  line-height: var(--line-height-normal);
+}
+
+.ch__digest-alert-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-3) 0 0;
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-tertiary);
+}
+
+.ch__digest-alert-meta-icon {
+  flex: none;
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}
+
+/* --- The Due cell ----------------------------------------------------------
+   Date above, distance below. "01 Oct 2025" costs the reader a subtraction
+   before it means anything; "11 months overdue" is the half of the cell that
+   decides whether anyone acts on it. */
+
+/* The recommendations table is NOT rounded to match the cards above it.
+   components/data-table.css spells out why the wrap is square: it scrolls
+   with `overflow: auto`, so a radius clips the sticky header band and leaves
+   the first and last header cells a different shape from the rest of their
+   own row. Two rows of recommendations is not worth re-earning that. */
+
+.ch__due {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.ch__due-overdue {
+  color: var(--color-status-critical-text);
+  font-weight: var(--font-weight-semibold);
+}
+
+.ch__due-note {
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-tertiary);
+}
+
+.ch__due-note--overdue { color: var(--color-status-critical-text); }
+
+/* "I have read this" sits right, "I need to do something about this" sits
+   left — two different answers, kept apart so neither is clicked by reflex.
+   The margin does the splitting rather than space-between, so a chart with
+   nothing to review (where the left button is not rendered) leaves the
+   remaining button where the footer always puts a lone button: on the
+   right. */
+.ch__alerts-summary-modal .ch__alerts-summary-foot { width: 100%; }
+.ch__alerts-summary-review { margin-right: auto; }
+
+/* ============================================================================
+   FORMS — fill-out / view dialog
+
+   One dialog renders a schema two ways: FILL is a grid of real controls,
+   VIEW is the same grid as plain label/value pairs. Both share the section
+   fieldset/legend treatment, so switching between them (fill it out, then
+   reopen it later to read it back) does not reflow the form's shape.
+   ========================================================================= */
+
+.frm__form-section {
+  margin: 0 0 var(--space-8);
+  padding: 0;
+  border: none;
+}
+
+.frm__form-section-title {
+  padding: 0 0 var(--space-4);
+  margin-bottom: var(--space-5);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+  width: 100%;
+  font-size: var(--font-size-title-section);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.frm__form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-6);
+}
+
+.frm__form-field--wide { grid-column: 1 / -1; }
+
+.frm__check-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4) var(--space-6);
+  margin-top: var(--space-3);
+}
+
+/* ui-checkbox is display: block everywhere else in the app, which is fine
+   in a single-column stack. As a CSS grid item here it would stretch to
+   fill the full column width by default (grid-item stretch, and a grid
+   item's outer display is always blockified — display: inline-block would
+   not override that) while its label content stays left-aligned and much
+   narrower — a "click" in that empty right-hand strip would land on
+   nothing. justify-self shrinks the grid AREA to the item's content
+   instead, so the clickable box matches what is actually drawn. */
+.frm__check-grid ui-checkbox { justify-self: start; }
+
+@media (max-width: 720px) {
+  .frm__form-grid, .frm__check-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* --- View mode -------------------------------------------------------------- */
+
+.frm__view .frm__form-grid { gap: var(--space-5) var(--space-6); }
+
+.frm__view-label { margin: 0 0 var(--space-1); }
+
+.frm__view-value {
+  margin: 0;
+  font-size: var(--font-size-body-sm);
+  color: var(--color-text-primary);
+  line-height: var(--line-height-normal);
+  white-space: pre-line;
+}
+
+/* --- Print / Download as PDF -------------------------------------------------
+   Hidden on screen; built on demand by printForm() and shown only for the
+   duration of the print. Download as PDF is the same mechanism as Print —
+   this prototype has no server and bundles no PDF library, so "download" is
+   the browser's own print-to-PDF rather than a fabricated one-click export;
+   see the comment on printForm() in chart-forms.js. */
+.frm__print-sheet { display: none; }
+
+.frm__print-head {
+  margin-bottom: var(--space-8);
+  padding-bottom: var(--space-6);
+  border-bottom: var(--border-width-thick) solid var(--color-text-primary);
+}
+.frm__print-head h1 {
+  margin: 0 0 var(--space-5);
+  font-size: var(--font-size-heading-lg);
+  font-weight: var(--font-weight-semibold);
+}
+
+.frm__print-meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-5) var(--space-7);
+  margin: 0;
+}
+.frm__print-meta dt {
+  font-size: var(--font-size-fact-label);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-tertiary);
+}
+.frm__print-meta dd { margin: 0; font-size: var(--font-size-body-sm); }
+
+.frm__print-note {
+  display: flex;
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-6);
+  border-radius: var(--radius-md);
+  background-color: var(--color-status-info-surface);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-caption);
+}
+.frm__print-note .ui-icon { flex: none; color: var(--color-status-info-text); }
+
+/* The usual "print just this element" trick — everything else hidden for
+   the duration of the print, then the class comes off on `afterprint`. Same
+   pattern as .ord--printing and .vt--printing. */
+@media print {
+  body.frm--printing .ch__side,
+  body.frm--printing .ch__header,
+  body.frm--printing .pt__bar,
+  body.frm--printing .ch__module-head,
+  body.frm--printing .frm__list-view {
+    display: none !important;
+  }
+  body.frm--printing .frm__print-sheet { display: block; }
+}
+
+/* ============================================================================
+   VISIT NOTES (vn__) — a single read-only worklist of past appointments. The
+   module renders the table alone: the chart sidebar's own "Visit Notes" entry
+   already names the section, so a heading above the table only repeated it.
+   ========================================================================= */
+
+/* ============================================================================
+   BILLING (bl__) — the chart sidebar's own top-level Billing section: a tab
+   strip over the billing lifecycle (Invoice, Claims, Ledger, Prior Auth,
+   Patient Payment, Payment Methods, gEstimator). Distinct from Profile >
+   Insurance's card grid (fs__ classes, chart-profile-billing.js).
+   ========================================================================= */
+
+.bl__panel[hidden] { display: none; }
+
+/* Row "⋮" — same shape as every other worklist's row action in this app. */
+
+
+.bl__muted { color: var(--color-text-secondary); font-weight: var(--font-weight-regular); }
+
+/* --- Prior Auth toolbar: title + search/Add, one row ------------------------ */
+
+.bl__auth-toolbar-title {
+  margin: 0;
+  font-size: var(--font-size-title-section);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+/* --- gEstimator ----------------------------------------------------------
+   Two things share this tab: the estimates ON FILE, which is the reason to
+   come here, and a quick unverified figure underneath them. The list needs the
+   full width — a saved estimate carries a payer, a date of service, codes and
+   two money columns — so the 40rem cap belongs to the quick form alone. */
+
+.bl__gestimator { max-width: 64rem; }
+
+.bl__est-heading {
+  margin: 0 0 var(--space-3);
+  font-size: var(--font-size-title-section);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.bl__est-list { display: flex; flex-direction: column; gap: var(--space-4); }
+
+.bl__est-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  padding: var(--space-5) var(--space-6);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+}
+
+.bl__est-main { flex: 1; min-width: 0; }
+
+.bl__est-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin: 0 0 var(--space-2);
+}
+
+.bl__est-open {
+  color: var(--color-text-link);
+  background: none;
+  font: inherit;
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+.bl__est-open:hover { text-decoration: underline; }
+.bl__est-open:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--radius-sm); }
+
+.bl__est-meta {
+  margin: 0;
+  font-size: var(--font-size-body-sm);
+  color: var(--color-text-secondary);
+}
+.bl__est-meta--faint { color: var(--color-text-tertiary); }
+
+/* The two money figures read as a pair: what the plan recognises, and what
+   that leaves the patient. Right-aligned so several cards compare down the
+   column rather than having to be read one at a time. */
+.bl__est-figures {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-1);
+  font-variant-numeric: tabular-nums;
+}
+.bl__est-allowed { font-size: var(--font-size-body-sm); color: var(--color-text-secondary); }
+.bl__est-due { font-weight: var(--font-weight-semibold); }
+.bl__est-due--pending { color: var(--color-text-tertiary); font-weight: var(--font-weight-regular); }
+
+.bl__est-actions { flex: none; display: flex; align-items: center; gap: var(--space-3); }
+
+
+.bl__est-empty p { margin: 0; }
+
+/* The quick form, kept but demoted: it prices a procedure with no eligibility
+   response behind it, so it sits under the documents rather than above them. */
+.bl__est-quick {
+  max-width: 40rem;
+  margin-top: var(--space-8);
+  padding-top: var(--space-7);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.bl__est-doc-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.bl__est-back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-secondary);
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
+.bl__est-back:hover { color: var(--color-text-primary); }
+.bl__est-back:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--radius-sm); }
+
+
+.bl__gestimator-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: var(--space-5);
+  align-items: end;
+}
+
+@media (max-width: 720px) {
+  .bl__gestimator-form { grid-template-columns: minmax(0, 1fr); }
+}
+
+.bl__gestimator-result {
+  margin-top: var(--space-6);
+  padding: var(--space-5);
+  border-radius: var(--radius-md);
+  background-color: var(--color-status-warning-surface);
+}
+.bl__gestimator-result p { margin: 0 0 var(--space-2); }
+.bl__gestimator-result p:last-child { margin-bottom: 0; }
+
+.bl__gestimator-note {
+  margin: var(--space-6) 0 0;
+  font-size: var(--font-size-body-sm);
+  color: var(--color-text-tertiary);
+}
+
+/* ============================================================================
+   A SAVED ESTIMATE, AS A DOCUMENT
+
+   Rendered by js/lib/estimate-document.js. It reproduces gEstimator's Step 2
+   with every control taken out, because a saved estimate is a record of what
+   somebody was quoted and there is nothing on it left to decide. Bordered like
+   a sheet of paper rather than the app's own surfaces, so it reads as a copy of
+   something rather than as a screen that might still be edited.
+   ========================================================================= */
+
+.est {
+  display: block;
+  padding: var(--card-padding);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+}
+
+.est__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+  padding-bottom: var(--space-5);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.est__ref { margin: 0; font-weight: var(--font-weight-medium); }
+.est__coverage { display: flex; align-items: center; gap: var(--space-4); margin: 0; }
+.est__saved { font-size: var(--font-size-body-sm); color: var(--color-text-tertiary); }
+
+.est__parties {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: var(--space-5);
+  margin: var(--space-6) 0;
+}
+
+.est__party {
+  padding: var(--space-5);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+}
+
+.est__party-title { margin: 0 0 var(--space-4); }
+
+.est__party dl { display: flex; flex-direction: column; gap: var(--space-2); margin: 0; }
+.est__party dl > div { display: flex; justify-content: space-between; gap: var(--space-4); }
+.est__party dt { font-size: var(--font-size-fact-label); color: var(--color-fact-label); font-weight: var(--font-weight-regular); }
+.est__party dd { margin: 0; font-size: var(--font-size-body-sm); text-align: right; }
+
+.est__section { margin-top: var(--space-7); }
+
+.est__section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-5);
+  flex-wrap: wrap;
+}
+
+.est__section-title {
+  margin: 0;
+  font-size: var(--font-size-title-section);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.est__section-note {
+  margin: var(--space-3) 0 var(--space-4);
+  font-size: var(--font-size-body-sm);
+  color: var(--color-text-secondary);
+}
+
+.est__basis { font-size: var(--font-size-body-sm); color: var(--color-text-secondary); }
+
+/* Which way the estimate was run, stated per table. The same figures with the
+   deductible left off produce a different number, and the document is the only
+   place that answer survives. */
+.est__applied,
+.est__not-applied {
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-medium);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+}
+.est__applied { background-color: var(--color-status-success-surface); color: var(--color-status-success-text); }
+.est__not-applied { background-color: var(--color-bg-surface-active); color: var(--color-text-tertiary); }
+
+.est__table-wrap { margin-top: var(--space-4); overflow-x: auto; }
+
+.est__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-body-sm);
+}
+.est__table th,
+.est__table td {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+  text-align: left;
+  white-space: nowrap;
+}
+.est__table thead th {
+  background-color: var(--color-bg-table-head);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+}
+.est__table tfoot th,
+.est__table tfoot td {
+  border-bottom: none;
+  border-top: var(--border-width-thick) solid var(--color-border-default);
+  font-weight: var(--font-weight-semibold);
+}
+.est__num { text-align: right; font-variant-numeric: tabular-nums; }
+.est__info { white-space: normal; min-width: 18rem; color: var(--color-text-secondary); }
+.est__remaining { display: block; font-size: var(--font-size-2xs); color: var(--color-text-tertiary); }
+.est__empty { margin: var(--space-4) 0 0; font-size: var(--font-size-body-sm); color: var(--color-text-tertiary); }
+
+/* --- The estimate on paper ----------------------------------------------------
+   Download hands an estimate over as a PDF now, rendered into the shared sheet
+   — see js/lib/print-document.js. On screen the rates table is a horizontal
+   scroller whose cells never wrap, which is right for a panel sitting beside a
+   chart sidebar. Paper has nothing to scroll: at Letter width the table ran
+   about 110px past the page, and what fell off the right-hand edge was the last
+   two columns — "% of allowed" and "Line allowed", which is to say the money.
+
+   So everything that was making it wide is let go. The table sizes to its
+   content, the cells wrap, and the Information column stops reserving 18rem it
+   does not have. Scoped to .print-doc: the screen's own scroller is untouched,
+   and so is any other print of this chart.
+   -------------------------------------------------------------------------- */
+@media print {
+  .print-doc .est__table-wrap { overflow-x: visible; }
+
+  .print-doc .est__table {
+    table-layout: auto;
+    font-size: var(--font-size-2xs);
+  }
+
+  .print-doc .est__table th,
+  .print-doc .est__table td {
+    padding: var(--space-2) var(--space-3);
+    white-space: normal;
+  }
+
+  .print-doc .est__info { min-width: 0; }
+
+  /* A row split across a page break is a line of an estimate read as two. */
+  .print-doc .est__table tr { break-inside: avoid; page-break-inside: avoid; }
+}
+
+.est__due {
+  margin-top: var(--space-7);
+  padding: var(--space-6);
+  border-radius: var(--radius-md);
+  background-color: var(--color-brand-surface);
+}
+.est__due--pending { background-color: var(--color-bg-surface-sunken); }
+
+.est__due-label { margin: 0; }
+
+.est__due-amount {
+  margin: var(--space-2) 0 var(--space-5);
+  font-size: var(--font-size-heading-lg);
+  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.est__due-pending { margin: var(--space-2) 0 0; font-weight: var(--font-weight-medium); }
+.est__due-note {
+  margin: var(--space-3) 0 0;
+  font-size: var(--font-size-body-sm);
+  color: var(--color-text-secondary);
+}
+
+.est__due-work { display: flex; flex-direction: column; gap: var(--space-2); margin: 0; }
+.est__due-work > div { display: flex; justify-content: space-between; gap: var(--space-5); }
+.est__due-work dt { font-size: var(--font-size-fact-label); color: var(--color-fact-label); font-weight: var(--font-weight-regular); }
+.est__due-work dd { margin: 0; font-size: var(--font-size-body-sm); font-variant-numeric: tabular-nums; }
+
+.est__note { margin: var(--space-3) 0 0; color: var(--color-text-secondary); }
+
+.est__foot {
+  margin-top: var(--space-7);
+  padding-top: var(--space-5);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+  font-size: var(--font-size-body-sm);
+  color: var(--color-text-tertiary);
+}
+.est__foot p { margin: 0; }
+.est__sent { margin-top: var(--space-2) !important; color: var(--color-status-success-text); }
+
+@media print {
+  /* The document is the only thing worth the paper. */
+  .ch__sidebar,
+  .ch__header,
+  .pt__bar,
+  .ch__module-head,
+  .bl__est-doc-bar { display: none !important; }
+
+  .est { border: none; padding: 0; }
+  .est__section { break-inside: avoid; }
+}
+
+/* --- New Authorization modal ------------------------------------------------ */
+
+.bl__auth-form-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr);
+  gap: var(--space-7);
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .bl__auth-form-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+.bl__auth-patient-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  margin-bottom: var(--space-6);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+}
+
+
+.bl__auth-field--wide { grid-column: 1 / -1; }
+
+.bl__auth-check-coverage { align-self: end; margin-bottom: var(--space-1); }
+
+.bl__auth-attach {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-6);
+  color: var(--color-text-brand);
+  font-size: var(--font-size-body-sm);
+  cursor: pointer;
+}
+.bl__auth-attach:hover { text-decoration: underline; }
+
+.bl__auth-context {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  position: sticky;
+  top: 0;
+}
+
+.bl__ctx-card {
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+}
+
+.bl__ctx-card h4 {
+  margin: 0 0 var(--space-3);
+  font-size: var(--font-size-body-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+}
+
+.bl__ctx-card ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--font-size-body-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.bl__ctx-empty {
+  margin: 0;
+  font-size: var(--font-size-body-sm);
+  color: var(--color-text-tertiary);
+  font-style: italic;
+}
+
+/* ============================================================================
+   APPOINTMENTS MODULE (.apt__)
+
+   A worklist, so it uses <ui-data-table> and the shared table language rather
+   than a bespoke grid. Only the cells that stack two lines — the provider and
+   their role, the date over the time — and the row menu need styles of their
+   own; everything else is the component.
+   ========================================================================= */
+
+
+/* --- The row's three tiers ----------------------------------------------------
+
+   A row on this table is fifteen words wide, and it is only readable because
+   the words are not all worth the same:
+
+     1  the provider's name — dark and semibold, what the eye lands on;
+     2  what the visit is — the date, the type, the reason — dark at body
+        weight, because that is the content of the row;
+     3  the context around it — the role under the name, the time under the
+        date, the duration, the location — 12px and secondary, present when
+        wanted and passed over when not.
+
+   The name used to be set in brand green at medium weight. Nothing about it
+   is a link, and green is this product's action colour: fifteen green names
+   down a column spent the accent on the one thing in the row that was never
+   clickable. Start wears it now instead — see startCell().
+   -------------------------------------------------------------------------- */
+
+.apt__provider { display: flex; flex-direction: column; gap: var(--space-2); }
+.apt__provider-name {
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-semibold);
+}
+.apt__provider-role { font-size: var(--font-size-caption); color: var(--color-text-secondary); }
+
+.apt__when { display: flex; flex-direction: column; gap: var(--space-2); }
+/* Tabular figures on both lines: a date column whose digits line up is
+   scanned down, one whose digits shift is read row by row. */
+.apt__when-date {
+  font-weight: var(--font-weight-medium);
+  font-variant-numeric: tabular-nums;
+}
+.apt__when-time {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Location — a real value, but the same value repeated down most of the
+   column. Tier three, so it stops competing with the reason beside it, and
+   12px like the rest of that tier: the clinic name is the longest string on
+   the row and the one the table can least afford at full size. */
+.apt__meta {
+  /* A block with a ceiling, which is what actually holds this column: the
+     column reports the width of its widest cell, so capping the cell caps the
+     column. 11rem is two lines for the longest clinic name and one for
+     everything else — and the row is two lines tall either way. */
+  display: block;
+  max-width: 11rem;
+  /* Said here rather than left to the column's own `wrap: true`, which does
+     not work: .ui-table tbody td sets white-space: nowrap at a specificity
+     .ui-table__cell--wrap cannot reach, so the escape hatch the component
+     documents has never opened. Fixing that rule would start wrapping
+     thirty-nine columns across fifteen screens at once, which is not this
+     change's to make — so this cell says it for itself. */
+  white-space: normal;
+  font-size: var(--font-size-body-sm);
+  color: var(--color-text-secondary);
+}
+
+/* The same ceiling on the reason, which truncates instead of wrapping: a
+   sentence broken over two lines in a 14px column reads as two facts. */
+.apt__reason {
+  display: block;
+  max-width: 19rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+
+/* --- Marks, not pills ---------------------------------------------------------
+
+   One dot, worn by the type (in its kind's ink) and by a settled status (in
+   its own). Six pixels of colour says as much as a pill in a column where
+   every row carries one, and leaves the badge free to mean "this row wants
+   something from you" — which is the whole point of the split. See
+   typeCell() and STATUS_QUIET in chart-appointments.js.
+   -------------------------------------------------------------------------- */
+
+.apt__type,
+.apt__status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.apt__dot {
+  flex: none;
+  width: var(--space-3);
+  height: var(--space-3);
+  border-radius: var(--radius-full);
+  background-color: currentColor;
+}
+
+/* The tint lands on the dot only — the type's own label stays in the body ink
+   it shares with the reason, so colour here marks a category rather than
+   re-colouring the text of every row. */
+.apt__type--info .apt__dot { color: var(--color-status-info-solid); }
+.apt__type--brand .apt__dot { color: var(--color-brand-solid); }
+.apt__type--warning .apt__dot { color: var(--color-status-warning-solid); }
+
+/* A settled status colours its word as well as its dot: it is the status, not
+   a category the status belongs to, so the colour is the value. */
+.apt__status { font-weight: var(--font-weight-medium); white-space: nowrap; }
+.apt__status--success { color: var(--color-status-success-text); }
+.apt__status--info { color: var(--color-status-info-text); }
+.apt__status--neutral { color: var(--color-text-secondary); }
+
+
+/* --- Add Appointment modal ---------------------------------------------------
+   The dialog itself is the scheduler's booking form and is dressed by
+   css/components/appointment-form.css, which this screen links. What is left
+   here is the one thing that form does not carry: the line reminding the reader
+   that a booking made in a chart is the same booking the schedule shows.
+
+   .apt__field-grid, .apt__field-wide and .apt__modal-actions went with the old
+   dialog — a two-column grid of typed boxes and a right-aligned button row —
+   and are not needed by the shared form, which brings its own grid and hoists
+   its actions into the modal's pinned footer.
+   -------------------------------------------------------------------------- */
+
+.apt__modal-note {
+  display: flex;
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-md);
+  background-color: var(--color-status-info-surface);
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+}
+.apt__modal-note .ui-icon { flex: none; color: var(--color-status-info-text); }
+
+
+.apt__panel[hidden] { display: none; }
+
+/* ============================================================================
+   TASKS (ctk__) — work owed on this patient, and what they are due back for.
+
+   The frame is shared with Orders and Prescriptions (.ord__panel, .ord__search)
+   because all three are the same shape: a tab strip, a search box and one
+   action in the module head, over a table. What lives here is only the cell shapes
+   those tables do not provide, and the two dialogs' field grid.
+   ========================================================================= */
+
+/* IDs are how a row is named out loud and in a phone call, so they read as
+   identifiers rather than prose — same treatment as .tsk__id on the worklist. */
+.ctk__id {
+  font-family: var(--font-family-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: inherit;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-link);
+}
+
+/* Two-line cell: the thing, and the fact that saves opening it. Used by both
+   tables so a row scans the same on either tab. */
+.ctk__stack { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
+.ctk__stack strong { font-weight: var(--font-weight-medium); color: var(--color-text-primary); }
+
+/* The second line truncates rather than wrapping. It is context, not content —
+   letting it run to three lines makes every row a different height and buries
+   the subject it is supposed to support. The full text is on the title. */
+.ctk__detail {
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Seven columns, measured against the panel the chart sidebar leaves behind.
+   Proportions rather than rem widths so the split holds at every window size —
+   and so Status and Actions, the two the list exists for, can never be the
+   ones pushed off the right-hand edge. */
+#panel-tasks .ui-table,
+#panel-recalls .ui-table { table-layout: fixed; }
+
+#panel-tasks th:nth-child(1) { width: 9%; }   /* Task */
+#panel-tasks th:nth-child(2) { width: 33%; }  /* Subject over type and detail */
+#panel-tasks th:nth-child(3) { width: 10%; }  /* Priority */
+#panel-tasks th:nth-child(4) { width: 16%; }  /* Assigned to over who raised it */
+#panel-tasks th:nth-child(5) { width: 11%; }  /* Due — "Overdue 12 d" sets it */
+#panel-tasks th:nth-child(6) { width: 11%; }  /* Status */
+#panel-tasks th:nth-child(7) { width: 10%; }  /* Complete */
+
+#panel-recalls th:nth-child(1) { width: 9%; }   /* Recall */
+#panel-recalls th:nth-child(2) { width: 27%; }  /* Due for over interval */
+#panel-recalls th:nth-child(3) { width: 17%; }  /* Provider over location */
+#panel-recalls th:nth-child(4) { width: 11%; }  /* Due */
+#panel-recalls th:nth-child(5) { width: 13%; }  /* Last contacted */
+#panel-recalls th:nth-child(6) { width: 11%; }  /* Status */
+#panel-recalls th:nth-child(7) { width: 12%; }  /* Mark booked */
+
+.ctk__due { font-family: var(--font-family-numeric); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* A recall nobody has contacted yet reads as a gap, not as a blank cell —
+   an empty cell says "the column was not filled in". */
+.ctk__never { color: var(--color-text-tertiary); font-style: italic; }
+
+.ctk__row-buttons { display: inline-flex; gap: var(--space-3); justify-content: flex-end; }
+
+/* A finished task keeps its row but stops offering an action — the button
+   would be a control with nothing left to do. */
+.ctk__done {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--font-size-2xs);
+  color: var(--color-status-success-text);
+  white-space: nowrap;
+}
+.ctk__done .ui-icon { width: var(--icon-size-sm); height: var(--icon-size-sm); }
+
+/* --- The two dialogs ------------------------------------------------------- */
+
+/* Neither asks which patient, so both say whose chart they are filing into.
+   A drawer covers the header that would otherwise answer it. */
+.ctk__for {
+  margin-bottom: var(--space-6);
+  padding-bottom: var(--space-6);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+  font-size: var(--font-size-body);
+  color: var(--color-text-secondary);
+}
+.ctk__for strong { color: var(--color-text-primary); font-weight: var(--font-weight-semibold); }
+
+.ctk__form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5) var(--space-6);
+  align-items: end;
+}
+
+.ctk__field--wide { grid-column: 1 / -1; }
+
+@media (max-width: 640px) {
+  .ctk__form { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ============================================================================
+   gESTIMATOR (gst__) — the two-step patient estimate, opened from a policy's
+   action menu on Profile · Insurance.
+
+   Everything here lives inside one <ui-modal> whose body is rebuilt per view.
+   The tables reuse .fs__table for their type scale and rules but override its
+   right-aligned default: an estimate is mostly words (match type, place of
+   service, the payer's own wording) with a handful of money columns, and
+   right-aligning the words makes it unreadable.
+   ========================================================================= */
+
+.gst__lead {
+  margin-bottom: var(--space-6);
+  font-size: var(--font-size-body);
+  color: var(--color-text-secondary);
+}
+
+/* --- Stepper ---------------------------------------------------------------
+   Two steps, shown as state rather than as a progress bar: a bar implies a
+   percentage, and "halfway through an estimate" is not a real quantity. */
+
+.gst__steps {
+  display: flex;
+  gap: var(--space-5);
+  margin-bottom: var(--space-7);
+  padding: 0;
+  list-style: none;
+}
+
+.gst__step {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+}
+
+.gst__step-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: var(--space-9);
+  height: var(--space-9);
+  border-radius: var(--radius-full);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+}
+.gst__step-num .ui-icon { width: var(--icon-size-sm); height: var(--icon-size-sm); }
+
+.gst__step-body { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
+.gst__step-label {
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+}
+.gst__step-hint { font-size: var(--font-size-caption); color: var(--color-text-tertiary); }
+
+/* The step you are on is held down, not merely tinted — which step is live has
+   to survive being read in greyscale. */
+.gst__step--on {
+  border-color: var(--color-border-brand);
+  border-width: var(--border-width-thick);
+  background-color: var(--color-brand-surface);
+}
+.gst__step--on .gst__step-label { color: var(--color-brand-text); }
+.gst__step--on .gst__step-num {
+  border-color: var(--color-brand-solid);
+  color: var(--color-brand-text);
+}
+
+.gst__step--done .gst__step-num {
+  border-color: var(--color-status-success-text);
+  color: var(--color-status-success-text);
+}
+
+/* --- Response banner -------------------------------------------------------- */
+
+.gst__banner {
+  padding-bottom: var(--space-5);
+  margin-bottom: var(--space-6);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+}
+.gst__banner-title {
+  font-size: var(--font-size-title-card);
+  line-height: var(--line-height-tight);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+.gst__banner-sub {
+  margin-top: var(--space-1);
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+}
+.gst__banner-coverage {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  margin-top: var(--space-4);
+}
+
+/* --- Patient / encounter / insurance blocks --------------------------------- */
+
+.gst__parties {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: var(--space-6);
+  margin-bottom: var(--space-7);
+}
+
+.gst__party {
+  padding: var(--space-5);
+  background-color: var(--color-bg-surface-sunken);
+  border-radius: var(--radius-md);
+  min-width: 0;
+}
+.gst__party-title { margin-bottom: var(--space-4); }
+.gst__party .fs__kv {
+  grid-template-columns: 6.5rem minmax(0, 1fr);
+  gap: var(--space-2) var(--space-4);
+}
+
+/* --- Sections --------------------------------------------------------------- */
+
+.gst__section { margin-bottom: var(--space-7); }
+
+.gst__section-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+  margin-bottom: var(--space-4);
+}
+
+.gst__section-title {
+  font-size: var(--font-size-title-section);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+.gst__section-head .gst__section-title { margin-bottom: 0; }
+
+.gst__section-note {
+  margin-bottom: var(--space-4);
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+}
+
+/* --- Place-of-service basis toggle ------------------------------------------ */
+
+.gst__basis { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
+.gst__basis-label { font-size: var(--font-size-caption); color: var(--color-text-secondary); }
+
+.gst__basis-btn {
+  padding: var(--space-2) var(--space-5);
+  font-size: var(--font-size-caption);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-full);
+  background-color: var(--color-bg-surface);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.gst__basis-btn:hover { background-color: var(--color-bg-surface-hover); }
+.gst__basis-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.gst__basis-btn[aria-pressed='true'] {
+  border-color: var(--color-border-brand);
+  background-color: var(--color-brand-surface);
+  color: var(--color-brand-text);
+  font-weight: var(--font-weight-medium);
+}
+
+/* --- Tables ----------------------------------------------------------------- */
+
+/* Words read left; only the money columns read right. */
+.gst__table th, .gst__table td { text-align: left; }
+.gst__table .gst__num, .gst__table th.gst__num { text-align: right; white-space: nowrap; }
+.gst__table tfoot th { text-align: right; color: var(--color-text-primary); }
+.gst__table tfoot td { font-weight: var(--font-weight-semibold); color: var(--color-text-primary); }
+
+/* The payer's own wording. It is the one column allowed to wrap — quoting it
+   back to a patient means having all of it, not the first forty characters. */
+.gst__table .gst__info {
+  white-space: normal;
+  min-width: 16rem;
+  color: var(--color-text-secondary);
+}
+
+.gst__remaining { display: block; font-size: var(--font-size-2xs); color: var(--color-text-tertiary); }
+
+/* --- Procedure repeater ----------------------------------------------------- */
+
+.gst__proc-head,
+.gst__proc-row {
+  display: grid;
+  grid-template-columns: 2rem 10rem 5rem minmax(0, 1fr) 11rem 5rem;
+  gap: var(--space-4);
+  align-items: center;
+}
+
+.gst__proc-head {
+  padding: 0 0 var(--space-2);
+  font-size: var(--font-size-caption);
+  color: var(--color-text-tertiary);
+}
+
+.gst__proc-rows { display: flex; flex-direction: column; gap: var(--space-4); }
+.gst__proc-index { font-size: var(--font-size-caption); color: var(--color-text-tertiary); }
+
+@media (max-width: 900px) {
+  .gst__proc-head { display: none; }
+  .gst__proc-row { grid-template-columns: minmax(0, 1fr); }
+}
+
+.gst__add-line {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+  padding: var(--space-3) 0;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-link);
+  cursor: pointer;
+}
+.gst__add-line:hover { text-decoration: underline; }
+.gst__add-line:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm);
+}
+.gst__add-line .ui-icon { width: var(--icon-size-sm); height: var(--icon-size-sm); }
+
+/* --- The figure ------------------------------------------------------------- */
+
+.gst__due {
+  padding: var(--space-6);
+  margin-bottom: var(--space-7);
+  border-radius: var(--radius-md);
+  border: var(--border-width-thin) solid var(--color-border-brand);
+  background-color: var(--color-brand-surface);
+}
+
+/* Nothing applied yet is a DIFFERENT state from "the patient owes nothing", so
+   it does not get the confident brand treatment. */
+.gst__due--pending {
+  border-color: var(--color-border-subtle);
+  background-color: var(--color-bg-surface-sunken);
+}
+
+/* .gst__due-label draws the shared micro-label and adds nothing to it. */
+
+.gst__due-amount {
+  margin-top: var(--space-2);
+  font-size: var(--font-size-heading-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-brand-text);
+}
+
+.gst__due-pending {
+  margin-top: var(--space-2);
+  font-size: var(--font-size-body);
+  color: var(--color-text-primary);
+}
+.gst__due-note {
+  margin-top: var(--space-3);
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+}
+
+.gst__due-work {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-2) var(--space-6);
+  margin-top: var(--space-5);
+  font-size: var(--font-size-caption);
+}
+.gst__due-work dt { color: var(--color-fact-label); font-size: var(--font-size-fact-label); font-weight: var(--font-weight-regular); }
+.gst__due-work dd { margin: 0; text-align: right; color: var(--color-text-primary); }
+
+.gst__sent {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+  font-size: var(--font-size-caption);
+  color: var(--color-status-success-text);
+}
+.gst__sent .ui-icon { width: var(--icon-size-sm); height: var(--icon-size-sm); }
+
+/* --- The policy action menu trigger ----------------------------------------- */
+
+.fs__card-menu {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--font-size-caption);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.fs__card-menu:hover {
+  background-color: var(--color-bg-surface-hover);
+  color: var(--color-text-primary);
+}
+.fs__card-menu:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.fs__card-menu .ui-icon { width: var(--icon-size-sm); height: var(--icon-size-sm); }
+
+/* --- Three-column field grid, for Encounter Information --------------------- */
+
+.fs__grid--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+@media (max-width: 860px) {
+  .fs__grid--3 { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* --- Add card --------------------------------------------------------------
+   Two full-width fields, then the three short ones that describe the same
+   card on one row — the shape of the card itself, which is what the person
+   holding it is reading off. */
+
+.bl__card-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5) var(--space-6);
+  align-items: end;
+}
+
+.bl__card-wide { grid-column: 1 / -1; }
+
+.bl__card-expiry {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5);
+  align-items: end;
+}
+
+.bl__card-default { grid-column: 1 / -1; }
+
+.bl__card-error {
+  grid-column: 1 / -1;
+  font-size: var(--font-size-caption);
+  color: var(--color-status-critical-text);
+}
+.bl__card-error[hidden] { display: none; }
+
+@media (max-width: 640px) {
+  .bl__card-form { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ============================================================================
+   ALLERGIES (alg__) — the maintained allergy record and its add drawer.
+
+   The table is a plain <ui-data-table>; only the row's edit affordance and the
+   drawer's form grid are ours. The grid is the same two-column shape the Tasks
+   drawer uses (.ctk__form), because they are the same kind of thing — a short
+   form in a side panel — and a second geometry for it would be a second thing
+   to keep in step.
+   ========================================================================= */
+
+.alg__for {
+  margin-bottom: var(--space-6);
+  padding-bottom: var(--space-6);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+  font-size: var(--font-size-body);
+  color: var(--color-text-secondary);
+}
+.alg__for strong { color: var(--color-text-primary); font-weight: var(--font-weight-semibold); }
+
+.alg__form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-6);
+  align-items: start;
+}
+
+.alg__field--wide { grid-column: 1 / -1; }
+
+@media (max-width: 640px) {
+  .alg__form { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* The pencil that opens a row. Same target size and states as the "⋮" every
+   other chart table carries, so the two read as one family of row action. */
+.alg__row-edit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-9);
+  height: var(--space-9);
+  border-radius: var(--radius-md);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+}
+.alg__row-edit:hover {
+  background-color: var(--color-bg-surface-hover);
+  color: var(--color-text-primary);
+}
+.alg__row-edit:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.alg__row-edit .ui-icon { width: var(--icon-size-md); height: var(--icon-size-md); }
+
+/* ============================================================================
+   DIAGNOSES (dx__) — the maintained problem list and the window that writes
+   to it.
+
+   Almost nothing here is new. The table is a plain <ui-data-table>, the form
+   grid is the same two-column shape Allergies and Tasks use, and the row
+   pencil is the same object .alg__row-edit is — it is repeated rather than
+   shared only because the two modules are otherwise independent, and a
+   selector list joining them would tie a change in one to the other.
+
+   What IS new is the segmented switch, and it is here rather than in
+   css/components/ because it is a two-answer control this one form asks for
+   twice. If a third screen wants it, that is the moment it becomes a
+   component.
+   ========================================================================= */
+
+.dx__form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-6);
+  align-items: start;
+}
+
+.dx__field--wide { grid-column: 1 / -1; }
+
+/* Hidden while the diagnosis is Active. `display: none` rather than the
+   attribute's own weak default, which a grid item overrides. */
+.dx__resolve[hidden] { display: none; }
+
+@media (max-width: 640px) {
+  .dx__form { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* --- The segmented switch ---------------------------------------------------
+   Real radios wearing a two-part button: one bordered group, a divider down
+   the middle, the chosen half filled in the brand colour. The inputs are moved
+   off-screen rather than hidden, because a display:none input is not focusable
+   and the arrow keys that move between them are the reason these are radios
+   and not two buttons.
+   -------------------------------------------------------------------------- */
+
+.dx__seg-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+  padding: 0;
+  border: 0;
+}
+
+.dx__seg {
+  display: inline-flex;
+  align-self: start;
+  overflow: hidden;
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+}
+
+.dx__seg-option {
+  display: inline-flex;
+  margin: 0;
+}
+
+/* Same shape as .ui-choice__input in components/forms.css, deliberately: a
+   1px transparent input still inside its label, NOT one taken out of the hit
+   test. Everything that drives a radio in this app — a click on the label, a
+   test calling check() — goes through the input itself. */
+.dx__seg-option input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  opacity: 0;
+  cursor: inherit;
+}
+
+.dx__seg-option span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: var(--space-11);
+  padding: 0 var(--space-6);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.dx__seg-option + .dx__seg-option span {
+  border-left: var(--border-width-thin) solid var(--color-border-default);
+}
+
+.dx__seg-option span:hover { background-color: var(--color-bg-surface-hover); }
+
+.dx__seg-option input:checked + span {
+  background-color: var(--color-brand-solid);
+  color: var(--color-text-inverse);
+  font-weight: var(--font-weight-semibold);
+}
+
+.dx__seg-option input:checked + span:hover {
+  background-color: var(--color-brand-solid-hover);
+}
+
+/* The ring is drawn on the label, since the input it belongs to is a pixel
+   off-screen. */
+.dx__seg-option input:focus-visible + span {
+  outline: var(--border-width-thick) solid var(--color-border-focus);
+  outline-offset: -2px;
+}
+
+/* --- The two long columns ---------------------------------------------------
+   Nine columns, seven of them short. Capping the content of these two is what
+   stops either one taking the width the other needs; see the COLUMNS comment
+   in js/screens/chart-diagnoses.js for why the table's own `truncate` cannot
+   do this job. The diagnosis wraps past its cap because the wording IS the
+   value and half of it is no use; the note ellipses at its own and keeps the
+   sentence in a title, because a note is context and the row is readable
+   without it.
+   -------------------------------------------------------------------------- */
+
+.dx__name {
+  display: block;
+  max-width: 20rem;
+  /* Set here rather than through the table's own `wrap` column flag, which
+     loses to `.ui-table tbody td` on specificity and has therefore never
+     wrapped anything. */
+  white-space: normal;
+}
+
+.dx__note {
+  display: block;
+  max-width: 13rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --- The head, and the row -------------------------------------------------- */
+
+.dx__status-filter { width: 10rem; }
+
+@media (max-width: 640px) {
+  .ch__module-actions .dx__status-filter { width: 100%; }
+}
+
+/* The pencil that opens a row. Same target size and states as the "⋮" every
+   other chart table carries, so the two read as one family of row action —
+   and here it is the affordance that does the editing rather than a stub. */
+.dx__row-edit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-9);
+  height: var(--space-9);
+  border-radius: var(--radius-md);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+}
+.dx__row-edit:hover {
+  background-color: var(--color-bg-surface-hover);
+  color: var(--color-text-primary);
+}
+.dx__row-edit:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.dx__row-edit .ui-icon { width: var(--icon-size-md); height: var(--icon-size-md); }
+
+/* ============================================================================
+   HISTORY (hst__) — past medical, surgical and social behind one tab strip.
+
+   Almost nothing here is new either. The tables are plain <ui-data-table>s,
+   the "⋮" is the shared .ui-row-menu-btn, and the form grid is the same
+   two-column shape Allergies and Diagnoses use. Two things are:
+
+   THE UNANSWERED ROW. Social History draws all nine questions for every
+   patient, so most charts have rows that are a question and four dashes. At
+   full contrast those read as loudly as the answers beside them and the table
+   becomes hard to scan for what is actually recorded — but greying them out
+   of legibility would be worse, because the unanswered questions are the
+   reason the panel is drawn in full. One step back, not two: the row is set
+   in the secondary text colour and its dashes in the tertiary, so the eye
+   sorts answered from unanswered without either disappearing.
+
+   THE THREE FORMS IN ONE DIALOG. All three field sets are drawn up front and
+   the two that do not belong to the open tab are hidden, so switching tabs
+   never rebuilds a field under an open dialog. `display: none` rather than
+   [hidden]'s own weak default, which a grid item overrides.
+   ========================================================================= */
+
+.hst__form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-6);
+  align-items: start;
+}
+
+.hst__form[hidden] { display: none; }
+
+.hst__field--wide { grid-column: 1 / -1; }
+
+@media (max-width: 640px) {
+  .hst__form { grid-template-columns: minmax(0, 1fr); }
+}
+
+.hst__row--unanswered td { color: var(--color-text-secondary); }
+
+/* The question itself keeps full contrast — it is the half of the row that is
+   real, and the point of drawing the row at all. */
+.hst__row--unanswered td:first-child { color: var(--color-text-primary); }
+
+/* --- Social History on the Clinical card ------------------------------------
+   The same aligned pairs Vitals uses, but the questions have longer names than
+   the readings do: "Exposure to Violence" wrapped to two lines in the 6.5rem
+   label column and took its dash and its answer out of line with the eight
+   rows above and below it. The point of setting these as columns is that they
+   line up, so this one card gets a wider name column. Scoped to the card
+   rather than given its own modifier class: it is a fact about what is in this
+   card, not a variant anything else can ask for. */
+[data-pc-card='social-history'] .fs__pair {
+  grid-template-columns: minmax(0, 8.5rem) auto minmax(0, 1fr);
+}

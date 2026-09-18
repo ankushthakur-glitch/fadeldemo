@@ -1,0 +1,929 @@
+/* ============================================================================
+   FORMS & CONSENTS — the list of what is outstanding, and one document open
+
+   Two shapes in one file, because they are two views of one screen:
+   .pp-forms is the list, .pp-form-doc is a form being filled in or read back.
+
+   THE LIST IS ONE TABLE UNDER TWO STRIPS, laid out the way Health Records
+   lays out Medications: the records across the top, the sub-tabs inside the
+   panel with the table under them. Almost nothing here is table styling: the
+   table is the portal's own .pp-table inside .pp-table-wrap (components.css),
+   the same one Medications, Billing and Reports draw, so it scrolls sideways
+   when the columns outrun the well rather than dropping a column. What is
+   left in this section is the panel the table sits in, the two lines inside
+   the first cell, and the row of controls in the last.
+   ========================================================================= */
+
+/* NO max-width. The table runs the full width of the well, as every other
+   table in the portal does — five columns capped at 76rem left a gutter down
+   the right of a screen whose whole job is a list. What needs a limit is
+   TEXT, and the two cells that carry any set their own below. */
+.pp-forms {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pp-gap-block);
+}
+
+/* The Forms / Consents strip, and NO rule under it — the same as
+   .pp-meds__bar, for the same reason. A rule had a job when the tabs were an
+   underlined strip; it has none now that they are a boxed group with an edge
+   of their own, and under a panel that also has one it left three horizontal
+   lines stacked within an inch of each other: the rule, the sub-tab track,
+   and the top of the table. The gap does the separating. */
+.pp-forms__bar {
+  display: flex;
+  align-items: center;
+}
+
+.pp-forms__bar .pp-tabs {
+  margin-bottom: 0;
+}
+
+/* --- The panel: the sub-tabs and the table, inside one edge --------------------- */
+
+/* The panel owns the border and the radius, so the wrap inside it gives up
+   both — two nested rounded boxes read as a mistake. The wrap keeps the
+   sideways scroll, which is why it is still there at all. Identical to
+   .pp-meds__panel, and deliberately so: it is the same arrangement of the
+   same parts, and a second set of rules that merely resembled it would drift.
+   */
+.pp-forms__panel {
+  overflow: hidden;
+  border: 1px solid var(--pp-line);
+  border-radius: var(--pp-radius);
+  background-color: var(--pp-surface);
+}
+
+/* The band the sub-tabs sit in. Tighter than a card's own padding on all
+   three sides: the pill is not content sitting inside the panel, it is the
+   panel's own switch, and a full inset on every side leaves it floating in a
+   band of its own rather than reading as the top of the table. */
+.pp-forms__panel > .pp-seg {
+  margin: var(--pp-space-2) var(--pp-space-3);
+}
+
+.pp-forms__panel .pp-table-wrap {
+  border: none;
+  border-radius: 0;
+}
+
+/* Five columns, one of them a sentence: below this the wrap scrolls rather
+   than the description folding to one word a line. */
+.pp-forms__table {
+  min-width: 52rem;
+}
+
+/* --- The first cell — the name, and the line under it -------------------------- */
+
+/* A <th scope="row">, so a screen reader reading across "02/12/2026 …
+   Completed … View" says which form it is reading about. It is padded and
+   ruled with the rest of the row by components.css; what it needs back is the
+   alignment and the weight a <th> helps itself to. */
+.pp-forms__name-cell {
+  text-align: left;
+  font-weight: var(--pp-weight-regular);
+}
+
+/* The name is the link, as the reference draws it, and it goes to the same
+   place the button at the end of the row does. */
+.pp-forms__name {
+  display: block;
+  color: var(--pp-text-link);
+  font-weight: var(--pp-weight-medium);
+}
+
+/* Category, signature, which visit, when it was sent — the facts with no
+   column of their own. --pp-text-muted rather than --pp-text-faint: the faint
+   grey is for placeholders, text a person can ignore, and a due-by or a
+   signature warning is not that. */
+.pp-forms__meta {
+  display: block;
+  max-width: 22rem;
+  margin-top: 0.125rem;
+  color: var(--pp-text-muted);
+  font-size: var(--pp-size-xs);
+  line-height: var(--pp-leading-normal);
+}
+
+/* The description reads as a sentence, so the CELL is capped rather than
+   left to run the width of a wide monitor — a 90-character line is a line the
+   eye loses its place in. The table still fills the well; the columns either
+   side take the room this one gives back. */
+.pp-forms__about {
+  max-width: 30rem;
+  color: var(--pp-text-muted);
+  white-space: normal;
+}
+
+/* --- The last cell — what the row can do --------------------------------------- */
+
+/* A pending row has one control; a settled one has one and two glyphs. They
+   stay on ONE line — nowrap, hard against the right edge, so the eye finishes
+   every row in the same place and no row is taller than the record it is
+   acting on. Three spelled-out actions is what made this column stack three
+   deep; see glyphAction() in js/screens/forms.js for what came off and why. */
+.pp-forms__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: nowrap;
+  gap: var(--pp-space-1);
+}
+
+/* Withdrawing a consent is the one control in this column that takes a
+   permission away, so it is the one that is not drawn in the action colour.
+   Red on the INK AND THE EDGE, never the fill — a solid red button in a table
+   cell reads as an alarm about the row it sits on, and there is nothing wrong
+   with a consent that is in force. The dialog it opens is where the
+   consequences are spelled out; this only has to look unlike Edit. */
+.pp-forms__undo {
+  border-color: var(--pp-red-fg);
+  color: var(--pp-red-fg);
+}
+
+.pp-forms__undo:hover {
+  background-color: var(--pp-red-bg);
+}
+
+/* ============================================================================
+   ONE FORM
+   ========================================================================= */
+
+/* NO max-width, for the same reason the list above has none: a form is the
+   whole screen while it is open, and a column capped at 58rem left two thirds
+   of a wide monitor empty beside a field asking for a ZIP code.
+
+   What keeps it readable is the GRID, not a cap on the document: short fields
+   pack four to a row rather than one stretching the width of the well. */
+.pp-form-doc {
+  width: 100%;
+}
+
+/* The arrow, the name, and — reading back — which version. One line, no rule
+   under it: the first section card's own edge is what separates the heading
+   from the form, and a border as well made two lines across the screen inside
+   an inch of each other. */
+/*
+ * THE HEAD STAYS, AND SO DOES THE BAR OF BUTTONS AT THE FOOT.
+ *
+ * A form here is nine sections long. Scrolled into the middle of one, the two
+ * things a patient needs are the two a long page normally takes away: what
+ * this document is with the way out of it, and the button that sends it. So
+ * the answers scroll BETWEEN them — the head pinned to the top of the well,
+ * the actions to the bottom — and neither is ever more than a glance away.
+ *
+ * The scrolling ancestor is .pp-content (shell.css), so `top: 0` pins to the
+ * top of the well rather than of the page.
+ *
+ * The negative margins are what make a bar span the WELL rather than the
+ * document inside it: pulled out to the well's padding edge and given that
+ * padding back, so the ground behind a pinned bar reaches the sides of the
+ * screen instead of stopping short with content sliding through the gap. They
+ * have to match .pp-content's padding, which steps down once — see the width
+ * query at the foot of this file.
+ */
+.pp-form-doc__head {
+  position: sticky;
+  /*
+   * NEGATIVE, and it has to be: a sticky child pins inside its scroll
+   * container's CONTENT box, so `top: 0` in a well with 20px of padding parks
+   * the bar 20px down and leaves a strip above it where the answers scroll
+   * past in the open. Pulling the pin up by exactly that padding puts the bar
+   * against the well's edge, which is where the eye reads it as a fixed
+   * toolbar rather than as a card that has come loose. The margin below does
+   * the same job for the bar's ground; the two have to stay in step.
+   */
+  top: calc(-1 * var(--pp-pad-screen));
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-3);
+  min-height: var(--pp-btn-h);
+  margin: calc(-1 * var(--pp-pad-screen)) calc(-1 * var(--pp-pad-screen)) var(--pp-gap-block);
+  padding: var(--pp-space-3) var(--pp-pad-screen);
+  border-bottom: 1px solid var(--pp-line);
+  background-color: var(--pp-canvas);
+}
+
+/* Back to the list. Icon-only, named for a screen reader by aria-label: the
+   word beside it was the third thing on a line whose job is to say what this
+   document is. It is a LINK, not history.back() — the address is shareable,
+   and a patient arriving from a notification has no history to go back to. */
+.pp-form-doc__back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  margin-left: -0.25rem;
+  border-radius: var(--pp-radius-ctl);
+  color: var(--pp-text-muted);
+}
+
+.pp-form-doc__back:hover {
+  background-color: var(--pp-surface-hover);
+  color: var(--pp-text-strong);
+  text-decoration: none;
+}
+
+/* --pp-size-h2, the size .pp-section-title gives the <h1> on Documents and
+   Messages. This is the same thing — the name of the screen you are on —
+   and it belongs at their size rather than at --pp-size-h1, which the portal
+   keeps for pages that ARE a single document: the login card and a visit
+   summary. A form is a screen in the shell like any other. Over section
+   titles at --pp-size-h3, h2 is hierarchy enough. */
+.pp-form-doc__title {
+  min-width: 0;
+  font-size: var(--pp-size-h2);
+  font-weight: var(--pp-weight-semibold);
+  color: var(--pp-text-strong);
+  line-height: var(--pp-leading-h2);
+}
+
+/* Which version is being read. Pushed to the end of the line, so the name of
+   the document is never moved about by the length of a date. */
+.pp-form-doc__head .pp-badge {
+  margin-left: auto;
+}
+
+/* --- Sections ------------------------------------------------------------------
+   A <section> named by its own <h2> in BOTH modes — the same headings in the
+   same order whether the form is being filled in or read back, so a patient
+   reading their answers is reading the form they filled in. Not a <fieldset>:
+   see the block above fillSection() in js/screens/forms.js for what a
+   <legend> does to the layout under it. */
+
+/* --pp-pad-card, the same inset every other card body in the portal takes.
+   1.25rem was a fifth more room than a .pp-card__body gets for the same job,
+   and on a form of eight sections that difference is a screenful. */
+.pp-form-doc__section {
+  min-width: 0;
+  margin-bottom: var(--pp-gap-block);
+  padding: var(--pp-pad-card);
+  border: 1px solid var(--pp-line);
+  border-radius: var(--pp-radius);
+  background-color: var(--pp-surface);
+}
+
+/* The heading and the rule under it, with a short stroke of the practice's
+   colour at the start of the line — the marker the reference puts beside
+   every section title. Green rather than the reference's blue: this portal
+   has one accent and it is the brand, and a second one introduced for a
+   decorative bar would be the only blue on the screen.
+
+   --pp-size-h3, the size .pp-card__title takes for the same job: naming a
+   block of content on a screen whose <h1> has already said what the page is.
+   At h2 a form of eight sections was eight 18px headings competing with the
+   document's own title, and the marker, the weight and the rule already
+   separate them from the fields — the size did not have to as well. */
+.pp-form-doc__section-title {
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-3);
+  width: 100%;
+  margin-bottom: var(--pp-space-4);
+  padding: 0 0 var(--pp-space-2);
+  border-bottom: 1px solid var(--pp-line);
+  font-size: var(--pp-size-h3);
+  font-weight: var(--pp-weight-semibold);
+  line-height: var(--pp-leading-h3);
+  color: var(--pp-text-strong);
+}
+
+.pp-form-doc__section-title::before {
+  content: '';
+  flex: none;
+  align-self: stretch;
+  width: 3px;
+  min-height: 1.1em;
+  border-radius: var(--pp-radius-pill);
+  background-color: var(--pp-action);
+}
+
+/* auto-fit, not a column count.
+ *
+ * The reference packs short fields four to a row on a wide screen and folds
+ * them to one on a phone, and a count written out per breakpoint is the same
+ * rule stated three times and got wrong once. 16rem is about the narrowest a
+ * labelled input reads at; under that the track count drops on its own, which
+ * is the whole of the responsive behaviour. Fields that need the full row —
+ * prose, option lists, a consent's statement — say so with --wide. */
+.pp-form-doc__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: var(--pp-space-4) var(--pp-space-5);
+  align-items: start;
+}
+
+.pp-form-doc__field--wide {
+  grid-column: 1 / -1;
+}
+
+/* A fieldset used as a field: no border, no padding, and its legend has to be
+   pulled back into the flow — a <legend> is not a block box by default. */
+fieldset.pp-form-doc__field {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+/* .pp-field's own gap, because a legend is doing a label's job: a question
+   sitting further from its options than a label sits from its input is the
+   same relationship drawn two different distances on one screen. */
+fieldset.pp-form-doc__field > legend {
+  padding: 0;
+  margin-bottom: var(--pp-space-2);
+}
+
+/* Muted for the same reason as the row facts above: "from your record" is the
+   answer to why a field cannot be typed in, so it has to be readable. */
+.pp-form-doc__hint {
+  color: var(--pp-text-muted);
+  font-size: var(--pp-size-xs);
+}
+
+/* --- Choices ------------------------------------------------------------------- */
+
+.pp-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--pp-space-2) var(--pp-space-4);
+}
+
+/* Long option lists — race, conditions, previous procedures — in columns
+   rather than one wrapped row. Fourteen conditions in a wrapped row is a
+   block of text you read to find the one you have; in columns it is a list
+   you scan. auto-fill so the column count follows the width. */
+.pp-choices--grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: var(--pp-space-2) var(--pp-space-4);
+}
+
+/* The shared .pp-check is one line; an option that wraps needs its box to
+   stay beside the first line rather than centre itself against two. */
+.pp-form-doc .pp-check {
+  align-items: flex-start;
+  line-height: var(--pp-leading-normal);
+}
+
+.pp-form-doc .pp-check input {
+  margin-top: 0.15rem;
+}
+
+/* --- Read-back ------------------------------------------------------------------ */
+
+.pp-form-doc__answers {
+  grid-template-columns: minmax(12rem, 20rem) minmax(0, 1fr);
+  gap: var(--pp-space-3) var(--pp-space-5);
+}
+
+/* Two label/value pairs to a row once the section is wide enough for them —
+   the same shape .pp-defs--two-up gives Profile and Insurance. Read back at
+   full width one pair to a row leaves a "Yes" sitting alone at the end of a
+   1,200-pixel line, which is a long way for the eye to travel to read three
+   letters. */
+@media (width >= 75rem) {
+  .pp-form-doc__answers {
+    grid-template-columns:
+      minmax(10rem, max-content) minmax(0, 1fr)
+      minmax(10rem, max-content) minmax(0, 1fr);
+  }
+}
+
+.pp-form-doc__answers dt {
+  color: var(--pp-text-muted);
+}
+
+/* --- The foot --------------------------------------------------------------------
+
+   Buttons at the right end, the portal's convention for a card foot, and
+   nothing else. A paragraph used to sit at the left of it explaining that
+   answers are sent on submit and that Save & continue later keeps them on
+   this device — three lines restating what three plainly-labelled buttons
+   already say, on every form and every consent.
+
+   NO padding under it either. The well it sits in already ends in
+   --pp-pad-screen, and a second inset on top of that left the submit button
+   floating an inch clear of the bottom of the page. */
+
+/* The other half of the pair above: pinned to the bottom of the well and
+   ground to the sides of it. */
+.pp-form-doc__foot {
+  position: sticky;
+  bottom: calc(-1 * var(--pp-pad-screen));
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--pp-space-3);
+  margin: var(--pp-gap-block) calc(-1 * var(--pp-pad-screen)) calc(-1 * var(--pp-pad-screen));
+  padding: var(--pp-space-3) var(--pp-pad-screen);
+  border-top: 1px solid var(--pp-line);
+  background-color: var(--pp-canvas);
+}
+
+.pp-form-doc__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-2);
+}
+
+/* ============================================================================
+   THE WITHDRAW DIALOG
+
+   Body only — the box, the head and the foot are .pp-modal in components.css.
+   Laid out like the cancellation dialog it is a sibling of: an alert saying
+   what stops, the facts of what is about to be withdrawn, then the footnote
+   that nothing is deleted.
+   ========================================================================= */
+
+/* Which consent is about to go, in the same label/value shape the rest of the
+   screen gives it. */
+.pp-revoke__facts {
+  margin: var(--pp-space-4) 0;
+  padding: var(--pp-pad-card);
+  border-radius: var(--pp-radius);
+  background-color: var(--pp-surface-sunk);
+}
+
+/* Smaller than the alert above it: a footnote to the warning, not a second
+   warning competing with the first. */
+.pp-revoke__note {
+  margin: 0;
+  color: var(--pp-text);
+  font-size: var(--pp-size-sm);
+  line-height: var(--pp-leading-loose);
+}
+
+/* Outside .pp-modal__body so it does not inherit that block's scroll — a
+   two-line textarea that scrolls out of sight above the button it feeds is how
+   a reason gets typed and then not sent. The horizontal padding matches
+   .pp-modal__body's so the field still lines up with the text above it. */
+.pp-revoke__reason {
+  padding: 0 var(--pp-pad-card) var(--pp-pad-card);
+}
+
+/* ============================================================================
+   NARROW SCREENS
+   ========================================================================= */
+
+/* No breakpoint for the field grid — auto-fit already drops a column every
+   time the well loses room for one, at whatever width that happens to be.
+   What follows is the two things a width query is still the only way to say. */
+
+@media (width < 48rem) {
+  /* The description is the column a narrow well can spare — the row still
+     names the form, says when it is due and what state it is in, and the
+     sentence is on the form itself once it is opened. Dropping it is what
+     keeps the other four on screen without a sideways scroll. */
+  .pp-forms__table th:nth-child(2),
+  .pp-forms__table td:nth-child(2) {
+    display: none;
+  }
+
+  .pp-forms__table {
+    min-width: 34rem;
+  }
+
+  .pp-form-doc__answers {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--pp-space-1) 0;
+  }
+
+  .pp-form-doc__answers dd {
+    margin-bottom: var(--pp-space-3);
+  }
+}
+
+/* ============================================================================
+   THE SIGNATURE BLOCK
+
+   A bordered panel rather than another field in the grid. Signing is the last
+   thing that happens on the form and the thing the patient is actually held
+   to, so it is given an edge of its own instead of arriving as a forty-first
+   input.
+
+   Laid out as the reference draws it: the title, then a row carrying the
+   Draw / Upload switch on the left and Clear Signature on the right, then the
+   thing they act on — a pad or a drop zone — filling the width underneath.
+   ========================================================================= */
+
+.pp-sign {
+  min-width: 0;
+  margin: var(--pp-gap-block) 0 0;
+  padding: var(--pp-pad-card);
+  border: 1px solid var(--pp-line);
+  border-radius: var(--pp-radius);
+  background-color: var(--pp-surface);
+}
+
+/* Closer to what follows than a section title is, because it has no rule
+   under it to hold the two apart — the same gap without the line reads as a
+   heading that has come adrift from its block. */
+.pp-sign__title {
+  padding: 0;
+  margin-bottom: var(--pp-space-3);
+  color: var(--pp-text-strong);
+  font-size: var(--pp-size-h3);
+  font-weight: var(--pp-weight-semibold);
+  line-height: var(--pp-leading-h3);
+}
+
+/* The switch and the clear, one line, opposite ends. Wraps rather than
+   crushing the pair when the well is a phone's width. */
+.pp-sign__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pp-space-3);
+  margin-bottom: var(--pp-space-3);
+}
+
+/* --- Draw / Upload --------------------------------------------------------------
+   Two radios wearing a segmented control: a bordered group with a divider
+   down the middle, the chosen half tinted and in the action colour. The
+   radios themselves are off-screen rather than display:none — a hidden input
+   is not focusable, and the arrow keys that move between radios are the
+   reason these are radios at all. */
+
+.pp-sign__modes {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid var(--pp-line-strong);
+  border-radius: var(--pp-radius-ctl);
+  background-color: var(--pp-surface);
+}
+
+.pp-sign__mode {
+  display: inline-flex;
+  margin: 0;
+}
+
+.pp-sign__mode input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.pp-sign__mode span {
+  display: inline-flex;
+  align-items: center;
+  height: 2.25rem;
+  padding: 0 var(--pp-space-5);
+  color: var(--pp-text-muted);
+  font-size: var(--pp-size-sm);
+  font-weight: var(--pp-weight-medium);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.pp-sign__mode + .pp-sign__mode span {
+  border-left: 1px solid var(--pp-line-strong);
+}
+
+.pp-sign__mode span:hover {
+  color: var(--pp-text-strong);
+}
+
+.pp-sign__mode input:checked + span {
+  background-color: var(--pp-surface-tint);
+  color: var(--pp-action);
+  font-weight: var(--pp-weight-semibold);
+}
+
+/* The ring has to be drawn on the label, since the input it belongs to is a
+   pixel off-screen. */
+.pp-sign__mode input:focus-visible + span {
+  outline: 2px solid var(--pp-focus);
+  outline-offset: -2px;
+}
+
+/* Clear reads as a link, as the reference draws it: it undoes rather than
+   does, and a third button beside the switch would compete with the two that
+   choose how to sign. */
+.pp-sign__clear {
+  margin-left: auto;
+  color: var(--pp-text-link);
+  font-size: var(--pp-size-sm);
+  font-weight: var(--pp-weight-medium);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.pp-sign__clear:hover {
+  color: var(--pp-action-hover);
+}
+
+.pp-sign__clear:focus-visible {
+  outline: 2px solid var(--pp-focus);
+  outline-offset: 2px;
+  border-radius: var(--pp-radius-sm);
+}
+
+/*
+ * THE PAD.
+ *
+ * A fixed height in rem rather than an aspect ratio: a signature is written
+ * at roughly one size whatever the width of the paper, and a pad that grows
+ * taller on a wide screen just adds blank space above and below the stroke.
+ * touch-action: none is what stops a finger-drawn signature scrolling the
+ * page instead of drawing — without it the pad is unusable on a phone, which
+ * is the device most likely to be drawing on it.
+ */
+.pp-sign__pad {
+  position: relative;
+  background-color: var(--pp-white);
+  border: 1px dashed var(--pp-line-strong);
+  border-radius: var(--pp-radius-sm);
+}
+
+.pp-sign__canvas {
+  display: block;
+  width: 100%;
+  height: 10rem;
+  border-radius: var(--pp-radius-sm);
+  cursor: crosshair;
+  touch-action: none;
+}
+
+.pp-sign__canvas:focus-visible {
+  outline: 2px solid var(--pp-focus);
+  outline-offset: 2px;
+}
+
+/* The line people sign on. Behind the canvas in stacking order and inert, so
+   it can never eat a pointer event meant for the pad. */
+.pp-sign__baseline {
+  position: absolute;
+  right: var(--pp-space-4);
+  bottom: var(--pp-space-3);
+  margin: 0;
+  color: var(--pp-text-faint);
+  font-size: var(--pp-size-xs);
+  pointer-events: none;
+}
+
+/* --- The upload zone -------------------------------------------------------------
+   The portal's own .pp-drop, dashed and shorter: this one holds a signature,
+   not a photograph of an insurance card, and at the full height it dwarfed
+   the pad it is an alternative to. */
+
+.pp-sign__drop {
+  width: 100%;
+  min-height: 10rem;
+  gap: var(--pp-space-2);
+  border-style: dashed;
+  background-color: var(--pp-surface-sunk);
+}
+
+.pp-sign__drop-note {
+  color: var(--pp-text-muted);
+  font-size: var(--pp-size-xs);
+}
+
+/* What was attached, shown at the size it will be signed at — an upload
+   nobody can see is an upload nobody can check before submitting. */
+.pp-sign__upload {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pp-space-3);
+  margin: var(--pp-space-3) 0 0;
+}
+
+.pp-sign__upload-image {
+  max-width: 22rem;
+  max-height: 7rem;
+  padding: var(--pp-space-2);
+  border: 1px solid var(--pp-line);
+  border-radius: var(--pp-radius-sm);
+  background-color: var(--pp-white);
+  object-fit: contain;
+}
+
+.pp-sign__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--pp-space-4);
+  margin-top: var(--pp-space-2);
+}
+
+/* The live region that says whether the form is signed yet. It carries the
+   reason Submit is disabled, which a disabled button cannot say for itself. */
+.pp-sign__state {
+  margin: 0;
+  color: var(--pp-text-muted);
+  font-size: var(--pp-size-sm);
+}
+
+.pp-sign__confirm {
+  margin-top: var(--pp-space-3);
+  align-items: flex-start;
+}
+
+/* ============================================================================
+   THE SIGNATURE, READ BACK
+   ========================================================================= */
+
+.pp-signed__image {
+  display: block;
+  max-width: 22rem;
+  height: auto;
+  margin-bottom: var(--pp-space-3);
+  padding: var(--pp-space-3);
+  border-bottom: 1px solid var(--pp-line-strong);
+  background-color: var(--pp-white);
+}
+
+/* The stand-in when a version carries a name but no image — the seeded
+   completions from before the pad existed. Set in the signature face so it
+   reads as a signature rather than as another answer. */
+.pp-signed__name {
+  max-width: 22rem;
+  margin: 0 0 var(--pp-space-3);
+  padding: var(--pp-space-3) var(--pp-space-3) var(--pp-space-2);
+  border-bottom: 1px solid var(--pp-line-strong);
+  font-family: var(--pp-font-signature);
+  font-size: var(--pp-size-h2);
+  line-height: var(--pp-leading-h2);
+  font-style: italic;
+}
+
+.pp-signed__facts {
+  margin-top: var(--pp-space-3);
+}
+
+/* ============================================================================
+   THE PROSE A CONSENT IS ACTUALLY ABOUT
+   ========================================================================= */
+
+/* Set on a tinted ground with a rule down the left, so it reads as the
+   document being agreed to rather than as help text under a field. */
+.pp-form-doc__statement {
+  margin: 0;
+  padding: var(--pp-space-3) var(--pp-space-4);
+  border-left: 3px solid var(--pp-line-tint);
+  background-color: var(--pp-surface-tint);
+  border-radius: 0 var(--pp-radius-sm) var(--pp-radius-sm) 0;
+  color: var(--pp-text);
+  font-size: var(--pp-size-sm);
+  line-height: var(--pp-leading-loose);
+}
+
+.pp-form-doc__optional {
+  color: var(--pp-text-muted);
+  font-weight: var(--pp-weight-regular);
+}
+
+/* The banner over a corrected or drafted form. */
+.pp-form-doc__notice {
+  margin-bottom: var(--pp-gap-block);
+}
+
+.pp-form-doc__reason {
+  margin: 0 0 var(--pp-space-4);
+  color: var(--pp-text);
+  font-size: var(--pp-size-sm);
+}
+
+/* A link that is a real <button> — it acts on this page rather than going
+   anywhere, and a link with no href is not focusable. */
+.pp-link--button {
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+}
+
+/* ============================================================================
+   THE DEEP-LINK FLASH
+
+   A notification about a form scrolls its row into view and marks it. The
+   tint fades rather than snapping off, so somebody arriving mid-scroll still
+   sees where they were sent.
+
+   The CELLS carry it, not the row: a <tr> in a collapsed-border table takes
+   neither a box-shadow nor a reliable background, so the ring the cards used
+   is a left edge on the first cell instead. It survives the sideways scroll
+   the wrap allows, which a full-width outline would not.
+   ========================================================================= */
+
+.pp-form-row--spot > * {
+  animation: pp-spot 2.6s ease-out;
+}
+
+.pp-form-row--spot > *:first-child {
+  animation-name: pp-spot-edge;
+}
+
+@keyframes pp-spot {
+  0%,
+  55% {
+    background-color: var(--pp-surface-tint);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+
+@keyframes pp-spot-edge {
+  0%,
+  55% {
+    background-color: var(--pp-surface-tint);
+    box-shadow: inset 3px 0 0 var(--pp-line-tint);
+  }
+  100% {
+    background-color: transparent;
+    box-shadow: inset 3px 0 0 transparent;
+  }
+}
+
+/* Somebody who has asked for less motion still needs to be told which row.
+   The tint is held steady instead of animated. */
+@media (prefers-reduced-motion: reduce) {
+  .pp-form-row--spot > * {
+    animation: none;
+    background-color: var(--pp-surface-tint);
+  }
+
+  .pp-form-row--spot > *:first-child {
+    box-shadow: inset 3px 0 0 var(--pp-line-tint);
+  }
+}
+
+/* The hover fill would paint over the flash on the row somebody has just been
+   sent to — and the pointer is often already on it, since the scroll moved
+   the row under it. */
+.pp-table tbody tr.pp-form-row--spot:hover > * {
+  background-color: var(--pp-surface-tint);
+}
+
+/* ============================================================================
+   NARROW SCREENS, PART TWO
+
+   Everything here overrides a rule written ABOVE it — the section card's
+   padding, the signature panel's, the switch inside it. Same specificity, so
+   the later one wins and these have to sit at the foot of the file rather
+   than with the rest of the width queries near the middle of it.
+   ========================================================================= */
+
+/* .pp-content drops to --pp-space-4 here (shell.css), so the two pinned bars
+   have to bleed by that instead — a negative margin that no longer matches
+   the padding it cancels leaves a bar either short of the edge or overhanging
+   it into a sideways scroll. */
+@media (width < 60rem) {
+  .pp-form-doc__head {
+    top: calc(-1 * var(--pp-space-4));
+    margin: calc(-1 * var(--pp-space-4)) calc(-1 * var(--pp-space-4)) var(--pp-gap-block);
+    padding: var(--pp-space-3) var(--pp-space-4);
+  }
+
+  .pp-form-doc__foot {
+    bottom: calc(-1 * var(--pp-space-4));
+    margin: var(--pp-gap-block) calc(-1 * var(--pp-space-4)) calc(-1 * var(--pp-space-4));
+    padding: var(--pp-space-3) var(--pp-space-4);
+  }
+}
+
+@media (width < 48rem) {
+  /* Section padding comes in further on a phone: on a 360px screen the
+     card's own inset was costing an eighth of the width of every field
+     inside it. */
+  .pp-form-doc__section,
+  .pp-sign {
+    padding: var(--pp-space-3);
+  }
+
+  /* The switch and the clear stop sharing one line: the pair of modes takes
+     the width and the link drops under it, rather than both being squeezed. */
+  .pp-sign__bar {
+    justify-content: flex-start;
+  }
+
+  .pp-sign__modes {
+    width: 100%;
+  }
+
+  .pp-sign__mode {
+    flex: 1;
+  }
+
+  .pp-sign__mode span {
+    flex: 1;
+    justify-content: center;
+    padding: 0 var(--pp-space-3);
+  }
+
+  .pp-sign__clear {
+    margin-left: 0;
+  }
+}

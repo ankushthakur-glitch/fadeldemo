@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MediNova EHR — Patient Chart</title>
+    <link rel="icon" type="image/svg+xml" href="../assets/img/favicon.svg" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="../css/reset.css" />
+    <link rel="stylesheet" href="../css/tokens.css" />
+    <link rel="stylesheet" href="../css/base.css" />
+    <link rel="stylesheet" href="../css/ui-kit.css" />
+    <!-- One sheet for the whole chart: the shell at the top of it, then every
+         module underneath. The top bar's own rules come from
+         css/components/app-bar.css by way of ui-kit.css, which is why the
+         chrome above the chart is the same object it is on every other
+         screen. -->
+    <!-- The booking dialog the Appointments module opens. It is the
+         scheduler's own Appointment form — the same field sets, the same When
+         panel, the same open-slot buttons — minus the patient picker, because
+         the chart already knows whose appointment this is. Shared rather than
+         re-cut here so the two cannot drift apart. -->
+    <link rel="stylesheet" href="../css/components/appointment-form.css" />
+    <link rel="stylesheet" href="../css/screen-chart.css" />
+
+    <script type="module" src="../js/main.js"></script>
+    <script type="module" src="../js/screens/patient-chart.js"></script>
+    <script src="../js/open-me-properly.js"></script>
+  </head>
+
+  <body class="ch">
+    <!-- The app's own bar, the same one every other screen wears. -->
+    <header class="pt__bar">
+      <img
+        class="pt__logo"
+        src="../assets/img/medinova-logo.svg"
+        width="158"
+        height="32"
+        alt="MediNova Gastroenterology Clinic"
+      />
+
+      <ui-main-nav active="patient"></ui-main-nav>
+
+      <div class="pt__bar-actions">
+        <ui-time-clock></ui-time-clock>
+
+        <button type="button" class="pt__icon-action" aria-label="Notifications">
+          <svg class="ui-icon" aria-hidden="true"><use href="#i-bell"></use></svg>
+        </button>
+        <ui-avatar name="Amara Mensah" size="sm"></ui-avatar>
+      </div>
+    </header>
+
+    <!-- Two cards on a grey ground: who the patient is, then the chart
+         itself. The gap between them is what makes the banner stay put in the
+         eye while the card below it changes fifteen times a visit. -->
+    <div class="ch__page">
+      <section
+        class="ch__banner"
+        id="chartHeader"
+        aria-label="Patient summary"
+        data-testid="chart--header"
+      ></section>
+
+      <div class="ch__body">
+        <aside
+          class="ch__side"
+          id="chartSide"
+          aria-label="Patient chart navigation"
+          data-testid="chart--sidebar"
+        ></aside>
+
+        <div class="ch__panel">
+          <!-- THE ONLY THING THAT CHANGES. One module at a time renders here
+               and the frame around it stays put.
+
+               tabindex="0" because this is the page's scrolling region: a
+               module can render content with nothing focusable in it, and a
+               keyboard user still has to be able to scroll it. -->
+          <main
+            class="ch__workspace"
+            id="chartWorkspace"
+            tabindex="0"
+            data-testid="chart--workspace"
+          ></main>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= PATIENT FLAGS =================
+         A flag is a standing fact that changes how the person in front of you
+         is treated, and it rides in the banner on every section of the chart —
+         which is exactly why setting one has to be a deliberate act rather
+         than a free-text box. The vocabulary is fixed (FLAG_TYPES in
+         data/patient-chart.js).
+
+         This used to be a tick list of the whole vocabulary — seven boxes,
+         answered all at once. It read as a form about flags in general rather
+         than a list of what THIS chart carries, and the two questions a person
+         opens it with are "what is on here" and "take that one off". So it is
+         now a table of the flags actually set, with the note that says what
+         each one asks of a reader, and one row per flag with its own Remove.
+         Adding is a separate, deliberate act above it: choose from the
+         dropdown — which offers only what is not already on the chart — and
+         press Add. Nothing is written to the record until Save flags, so a
+         mis-click in here is undone by Cancel.
+
+         The "+" beside the chips on the banner opens this. -->
+    <ui-modal id="flagModal" heading="Patient flags" size="md">
+
+      <div class="ch__flag-add" data-testid="chart--flag-add-row">
+        <ui-select
+          id="flagChoice"
+          label="Add a flag"
+          label-hidden
+          placeholder="Select a flag"
+          data-testid="chart--flag-choice"
+        ></ui-select>
+        <ui-button variant="secondary" icon="plus" id="flagAdd" data-testid="chart--flag-add-new"
+          >Add flag</ui-button
+        >
+      </div>
+
+      <ui-data-table
+        id="flagTable"
+        empty-text="No flags on this chart. Add one above."
+        data-testid="chart--flag-table"
+      ></ui-data-table>
+
+      <div slot="footer">
+        <ui-button variant="tertiary" id="flagCancel" data-testid="chart--flag-cancel"
+          >Cancel</ui-button
+        >
+        <ui-button variant="primary" id="flagSave" data-testid="chart--flag-save"
+          >Save flags</ui-button
+        >
+      </div>
+    </ui-modal>
+
+    <!-- ================= PRINT CHART =================
+         "Print chart summary" used to call window.print() on whichever section
+         happened to be open, which meant the printout was whatever the reader
+         had last clicked and there was no way to ask for two sections at once.
+         A chart is printed for a reason — a referral pack, a records request,
+         a patient asking for their medication list — and each of those reasons
+         names a different handful of sections.
+
+         So the button asks which ones. The tick list is CHART_NAV itself, so a
+         section added to the chart is offered here without anybody
+         remembering to add it twice. -->
+    <ui-modal id="printModal" heading="Print chart" size="md">
+
+      <p class="ch__print-lede">
+        Tick the sections to include. The order on the sheet follows the chart.
+      </p>
+
+      <div class="ch__print-tools">
+        <ui-button size="xs" variant="outline" id="printAll"
+          data-testid="chart--print-all">Select all</ui-button>
+        <ui-button size="xs" variant="outline" id="printNone"
+          data-testid="chart--print-none">Clear</ui-button>
+        <!-- The running count is the only feedback that the two buttons above
+             did anything, and it is what tells a reader who ticked their way
+             down the grid whether they are printing a pack or the lot. -->
+        <p class="ch__print-count" id="printCount" aria-live="polite"
+          data-testid="chart--print-count"></p>
+      </div>
+
+      <div class="ch__print-picks" id="printPicks" data-testid="chart--print-picks"></div>
+
+      <div slot="footer">
+        <ui-button variant="tertiary" id="printCancel" data-testid="chart--print-cancel"
+          >Cancel</ui-button
+        >
+        <ui-button variant="primary" icon="printer" id="printConfirm"
+          data-testid="chart--print-confirm">Print</ui-button>
+      </div>
+    </ui-modal>
+
+    <ui-modal id="alertModal" heading="Add alert note" size="md">
+
+      <div class="ch__modal-grid">
+        <ui-select
+          id="alertCategory"
+          label="Category"
+          options="Clinical,Administrative,Scheduling,Billing"
+          value="Clinical"
+          data-testid="chart--alert-category"
+        ></ui-select>
+        <ui-select
+          id="alertPriority"
+          label="Priority"
+          options="High,Medium,Low"
+          value="Medium"
+          data-testid="chart--alert-priority"
+        ></ui-select>
+      </div>
+
+      <ui-input
+        id="alertTitle"
+        label="Subject"
+        placeholder="e.g. Anaphylaxis to penicillin"
+        required
+        data-testid="chart--alert-title"
+      ></ui-input>
+
+      <ui-textarea
+        id="alertBody"
+        label="Detail"
+        rows="4"
+        placeholder="What should the next person to open this chart do differently?"
+        data-testid="chart--alert-body"
+      ></ui-textarea>
+
+      <div slot="footer">
+        <ui-button variant="tertiary" id="alertCancel" data-testid="chart--alert-cancel"
+          >Cancel</ui-button
+        >
+        <ui-button variant="primary" id="alertSave" data-testid="chart--alert-save"
+          >Add alert note</ui-button
+        >
+      </div>
+    </ui-modal>
+
+    <!-- The read-only digest shown on entering the chart. Distinct from
+         #alertModal above, which composes a new note. Body is filled in by
+         patient-chart.js; only the frame (heading, footer) lives here. -->
+    <ui-modal
+      id="alertsSummaryModal"
+      class="ch__alerts-summary-modal"
+      heading="Alerts and Due Recommendations"
+      size="md"
+    >
+      <div id="alertsSummaryBody"></div>
+
+      <!-- Two buttons, because "I have read this" and "I need to do something
+           about this" are different answers and the dialog used to offer only
+           the first. The secondary lands on Profile · Clinical, which is where
+           both of these lists are actually maintained. -->
+      <div slot="footer" class="ch__alerts-summary-foot">
+        <ui-button
+          variant="tertiary"
+          icon="stethoscope"
+          class="ch__alerts-summary-review"
+          id="alertsSummaryGoClinical"
+          data-testid="chart--alerts-summary-clinical"
+          >Review in chart</ui-button
+        >
+        <ui-button
+          variant="primary"
+          id="alertsSummaryClose"
+          data-testid="chart--alerts-summary-close"
+          >Got it</ui-button
+        >
+      </div>
+    </ui-modal>
+  </body>
+</html>

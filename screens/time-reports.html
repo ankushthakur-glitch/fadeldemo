@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MediNova EHR — Time Report</title>
+    <link rel="icon" type="image/svg+xml" href="../assets/img/favicon.svg" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="../css/reset.css" />
+    <link rel="stylesheet" href="../css/tokens.css" />
+    <link rel="stylesheet" href="../css/base.css" />
+    <link rel="stylesheet" href="../css/ui-kit.css" />
+    <link rel="stylesheet" href="../css/components/hub.css" />
+    <link rel="stylesheet" href="../css/screen-patient.css" />
+    <link rel="stylesheet" href="../css/screen-leads.css" />
+    <link rel="stylesheet" href="../css/screen-reports.css" />
+
+    <script type="module" src="../js/main.js"></script>
+    <script type="module" src="../js/screens/time-reports.js"></script>
+    <script src="../js/open-me-properly.js"></script>
+  </head>
+
+  <body class="pt">
+    <header class="pt__bar">
+      <img class="pt__logo" src="../assets/img/medinova-logo.svg" width="158" height="32"
+        alt="MediNova Gastroenterology Clinic" />
+      <ui-main-nav active="reports"></ui-main-nav>
+      <div class="pt__bar-actions">
+        <ui-time-clock></ui-time-clock>
+        <button type="button" class="pt__icon-action" aria-label="Notifications">
+          <svg class="ui-icon" aria-hidden="true"><use href="#i-bell"></use></svg>
+        </button>
+        <ui-avatar name="Amara Mensah" size="sm"></ui-avatar>
+      </div>
+    </header>
+
+    <div class="ui-page-head ui-page-head--flush rep__head">
+      <!-- NO BACK ARROW. It used to point at the Reports hub, because the hub
+           was where the timesheet was listed. The hub is gone — Reports is
+           the practice's twelve reports now, and this is not one of them: a
+           timesheet has corrections, an audit trail and a payroll export, and
+           it is opened from the clock in the header band above, from whatever
+           screen the person happened to be on. An arrow back to a list this
+           screen is not on would send them somewhere they have never been. -->
+      <div class="ui-page-head__lead">
+        <h1 class="ui-page-head__title">Time Report</h1>
+      </div>
+
+      <!-- THE PERIOD NAVIGATOR RIDES IN THE HEADER BAND, beside the actions.
+
+           It used to have a bar of its own under the title, and that bar was
+           the whole width of the screen spent on three controls and a date
+           label — on a report whose point is the table, the first row of the
+           page was a row about the page. Which timesheet and which week are
+           the same kind of question the header's other controls answer, so
+           they now stand where a list screen's search and filter always
+           stand, and the reader's first line of the body is the report.
+
+           The dates the numbers cover are not lost with the bar: the printout
+           carries them in its own header (.rep__print-head below), which is
+           the one place the reader has no screen to look at. -->
+      <div class="ui-page-head__actions">
+        <ui-filter id="rWho" label="" panel-label="Filter by employee"
+          data-testid="time-report--who">
+          <!-- One name or none: a timesheet is read for one person, and none
+               chosen is the whole practice. -->
+          <ui-filter-group name="employee" label="Employee" single></ui-filter-group>
+        </ui-filter>
+
+        <!-- Two controls, not one long list: the unit being reported (a day, a
+             week, a pay period) and then which one. A single flat dropdown of
+             every week and every pay period is unreadable by the second month. -->
+        <div class="rep__period">
+          <ui-select id="rPeriod" label="Period" label-hidden
+            options="Day,Week,Pay period,Month,Custom range"
+            value="Week" data-testid="time-report--period"></ui-select>
+
+          <div class="rep__nav" data-nav="Day" hidden>
+            <ui-input id="navDay" label="Date" label-hidden type="date"
+              data-testid="time-report--nav-day"></ui-input>
+          </div>
+          <div class="rep__nav" data-nav="Week" hidden>
+            <ui-input id="navWeek" label="Week containing" label-hidden type="date"
+              data-testid="time-report--nav-week"></ui-input>
+          </div>
+          <div class="rep__nav" data-nav="Pay period" hidden>
+            <ui-select id="navPeriod" label="Pay period" label-hidden
+              data-testid="time-report--nav-period"></ui-select>
+          </div>
+          <div class="rep__nav" data-nav="Month" hidden>
+            <ui-input id="navMonth" label="Month" label-hidden type="month"
+              data-testid="time-report--nav-month"></ui-input>
+          </div>
+          <!-- The two ends of a custom range read as one control, so their
+               labels come off and an en dash sits between them: in a header
+               row a pair of stacked "From"/"To" fields is twice the height of
+               everything beside it. The names survive as the fields' own
+               accessible labels. -->
+          <div class="rep__nav rep__nav--custom" data-nav="Custom range" hidden>
+            <ui-input id="navFrom" label="From" label-hidden type="date"
+              data-testid="time-report--from"></ui-input>
+            <span class="rep__nav-sep" aria-hidden="true">—</span>
+            <ui-input id="navTo" label="To" label-hidden type="date"
+              data-testid="time-report--to"></ui-input>
+          </div>
+        </div>
+
+        <!-- Manual entry and adjustment are administrator actions; the screen
+             removes them entirely for anyone else rather than showing a
+             control that refuses. -->
+        <ui-button variant="outline" icon="plus" id="addEntry" hidden
+          data-testid="time-report--add">Add entry</ui-button>
+        <ui-button variant="outline" icon="download"
+          data-testid="time-report--export">Export CSV</ui-button>
+        <ui-button variant="outline" icon="printer"
+          data-testid="time-report--print">Print</ui-button>
+      </div>
+    </div>
+
+
+    <main class="ui-page-body rep__body">
+      <!-- Only ever seen on paper, and the ONLY place the range is written
+           out in words now that the navigator is three controls in the header
+           band. A printout torn off the tray has no period picker, so the
+           range is written here.
+
+           The practice's own name is NOT repeated here: every printed page in
+           this product now carries the practice letterhead above it — see
+           js/lib/print-letterhead.js — and this block used to say the name a
+           second line below it. -->
+      <div class="rep__print-head" aria-hidden="true">
+        <p class="rep__print-title">Time Report</p>
+        <p class="rep__print-meta" data-print-meta></p>
+      </div>
+
+      <!-- A shift with no clock-out cannot be paid, so the exceptions are
+           surfaced before the totals rather than left to be spotted in a
+           table: the totals are wrong until these are fixed. -->
+      <div class="ui-alert ui-alert--warning rep__exceptions" id="repExceptions" hidden
+        data-testid="time-report--exceptions">
+        <span class="ui-alert__icon"><svg class="ui-icon" aria-hidden="true"><use href="#i-warning"></use></svg></span>
+        <p class="ui-alert__body"><span data-exception-text></span></p>
+        <button type="button" class="rep__exceptions-btn" id="exceptionsToggle"
+          data-testid="time-report--exceptions-toggle">Show only these</button>
+      </div>
+
+      <section class="rep__stats" aria-label="Summary">
+        <div class="rep__stat">
+          <p class="rep__stat-label">Hours worked</p>
+          <p class="rep__stat-value" data-testid="time-report--total">0h 0m</p>
+        </div>
+        <div class="rep__stat">
+          <p class="rep__stat-label">Regular</p>
+          <p class="rep__stat-value" data-testid="time-report--regular">0h 0m</p>
+        </div>
+        <div class="rep__stat">
+          <p class="rep__stat-label">Overtime</p>
+          <p class="rep__stat-value" data-testid="time-report--overtime">0h 0m</p>
+        </div>
+        <div class="rep__stat">
+          <p class="rep__stat-label">Break time</p>
+          <p class="rep__stat-value" data-testid="time-report--breaks">0h 0m</p>
+        </div>
+        <div class="rep__stat">
+          <p class="rep__stat-label">Shifts</p>
+          <p class="rep__stat-value" data-testid="time-report--shifts">0</p>
+        </div>
+        <div class="rep__stat">
+          <p class="rep__stat-label">Days worked</p>
+          <p class="rep__stat-value" data-testid="time-report--days">0</p>
+        </div>
+        <div class="rep__stat">
+          <p class="rep__stat-label">Avg per day</p>
+          <p class="rep__stat-value" data-testid="time-report--avg">0h 0m</p>
+        </div>
+      </section>
+
+      <!-- The all-employees view. One row per person is the report a manager
+           signs off; the entry-level table below it is the evidence. Hidden
+           when a single employee is selected, where it would be one row
+           repeating the tiles above it. -->
+      <section class="rep__detail" id="repSummary" aria-label="Hours by employee" hidden>
+        <h2 class="rep__detail-title">Hours by employee</h2>
+        <div class="rep__table-wrap">
+          <table class="ui-table" data-testid="time-report--summary-table">
+            <thead>
+              <tr>
+                <th scope="col">Employee</th>
+                <th scope="col">Role</th>
+                <th scope="col" class="ui-table__cell--numeric">Days</th>
+                <th scope="col" class="ui-table__cell--numeric">Shifts</th>
+                <th scope="col" class="ui-table__cell--numeric">Break</th>
+                <th scope="col" class="ui-table__cell--numeric">Regular</th>
+                <th scope="col" class="ui-table__cell--numeric">Overtime</th>
+                <th scope="col" class="ui-table__cell--numeric">Total</th>
+              </tr>
+            </thead>
+            <tbody data-summary-rows></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="rep__detail" aria-label="Time entry details">
+        <h2 class="rep__detail-title">Time entry details</h2>
+        <div class="rep__table-wrap">
+          <table class="ui-table" data-testid="time-report--table">
+            <thead>
+              <tr>
+                <th scope="col">Date</th>
+                <th scope="col">Employee</th>
+                <th scope="col">Clock in</th>
+                <th scope="col">Clock out</th>
+                <th scope="col" class="ui-table__cell--numeric">Break</th>
+                <th scope="col" class="ui-table__cell--numeric">Total</th>
+                <th scope="col">Status</th>
+                <th scope="col">Notes</th>
+                <th scope="col"><span class="u-sr-only">Actions</span></th>
+              </tr>
+            </thead>
+            <tbody data-rows></tbody>
+          </table>
+        </div>
+        <p class="rep__empty" data-empty hidden data-testid="time-report--empty">
+          No time entries in this range.
+        </p>
+        <div data-foot="entries"></div>
+      </section>
+    </main>
+
+    <!-- ================= MODAL: adjust / add a time entry =================
+         One dialog for both, because they are the same six facts about a
+         shift. What changes is whether an entry already exists to correct. -->
+    <ui-modal id="modalEntry" heading="Adjust time entry" size="md">
+      <div class="rep__form" data-testid="time-report--form">
+        <ui-select id="fEmployee" label="Employee" required
+          data-testid="time-report--f-employee"></ui-select>
+        <!-- One shift is often worked the same way for a run of days — a week
+             covered for somebody, a badge that failed all week. Adding takes a
+             range and writes one entry per day in it; correcting an existing
+             entry keeps a single date, because a shift that happened on
+             Tuesday cannot be moved onto five days. The To field is hidden in
+             that mode and the label above reverts to "Date". -->
+        <!-- Both dates in ONE grid cell, so the form keeps its pairs whichever
+             mode it is in: From/To, then clock in/out, then break/reason. With
+             the To field as a cell of its own, hiding it in adjust mode shunted
+             every field after it into the wrong column. -->
+        <div class="rep__form-range">
+          <ui-input id="fDate" label="Date" type="date" required
+            data-testid="time-report--f-date"></ui-input>
+          <ui-input id="fDateTo" label="To date" type="date"
+            data-testid="time-report--f-date-to"></ui-input>
+        </div>
+        <ui-input id="fIn" label="Clock in" type="time" required
+          data-testid="time-report--f-in"></ui-input>
+        <ui-input id="fOut" label="Clock out" type="time" required
+          data-testid="time-report--f-out"></ui-input>
+        <ui-input id="fBreak" label="Break (minutes)" type="number"
+          data-testid="time-report--f-break"></ui-input>
+        <ui-select id="fReason" label="Reason" required
+          data-testid="time-report--f-reason"></ui-select>
+        <ui-input id="fNotes" label="Shift notes" class="rep__form-wide"
+          data-testid="time-report--f-notes"></ui-input>
+        <ui-textarea id="fNote" label="Note for the record" rows="2"
+          hint="Kept with the change. Required when the reason is Other."
+          data-testid="time-report--f-note"></ui-textarea>
+      </div>
+
+      <!-- What Save is about to do, in words. A range that quietly wrote nine
+           entries — two of them onto days already recorded — would be found
+           weeks later in somebody's pay. -->
+      <p class="rep__preview" id="entryPreview" hidden data-testid="time-report--preview"></p>
+
+      <!-- What the clock actually saw. Kept in front of whoever is changing it,
+           because the whole point of the overlay is that the punch survives. -->
+      <div class="rep__original" id="entryOriginal" hidden data-testid="time-report--original"></div>
+
+      <div class="rep__audit" id="entryAudit" hidden data-testid="time-report--audit"></div>
+
+      <p class="rep__form-error" id="entryError" role="alert" hidden
+        data-testid="time-report--form-error"></p>
+
+      <div class="ui-modal__actions">
+        <ui-button variant="tertiary" data-close data-testid="time-report--cancel">Cancel</ui-button>
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="primary" id="entrySave" data-testid="time-report--save">Save</ui-button>
+      </div>
+    </ui-modal>
+  </body>
+</html>

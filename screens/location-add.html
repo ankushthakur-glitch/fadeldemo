@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MediNova EHR — Add Location</title>
+    <link rel="icon" type="image/svg+xml" href="../assets/img/favicon.svg" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="../css/reset.css" />
+    <link rel="stylesheet" href="../css/tokens.css" />
+    <link rel="stylesheet" href="../css/base.css" />
+    <link rel="stylesheet" href="../css/ui-kit.css" />
+    <link rel="stylesheet" href="../css/screen-patient.css" />
+    <link rel="stylesheet" href="../css/screen-leads.css" />
+    <link rel="stylesheet" href="../css/screen-settings.css" />
+    <link rel="stylesheet" href="../css/screen-practice.css" />
+
+    <script type="module" src="../js/main.js"></script>
+    <script type="module" src="../js/screens/location-add.js"></script>
+    <script src="../js/open-me-properly.js"></script>
+  </head>
+
+  <body class="pt">
+    <header class="pt__bar">
+      <img class="pt__logo" src="../assets/img/medinova-logo.svg" width="158" height="32"
+        alt="MediNova Gastroenterology Clinic" />
+      <ui-main-nav active="settings"></ui-main-nav>
+      <div class="pt__bar-actions">
+        <ui-time-clock></ui-time-clock>
+        <button type="button" class="pt__icon-action" aria-label="Notifications">
+          <svg class="ui-icon" aria-hidden="true"><use href="#i-bell"></use></svg>
+        </button>
+        <ui-avatar name="Amara Mensah" size="sm"></ui-avatar>
+      </div>
+    </header>
+
+    <div class="ui-page-head ui-page-head--flush set__head">
+      <div class="ui-page-head__lead">
+        <a class="ui-page-head__back" href="practice-settings.html?tab=locations"
+           data-testid="loc--back" aria-label="Back to locations">
+          <svg class="ui-icon" aria-hidden="true"><use href="#i-caret-left"></use></svg>
+        </a>
+        <h1 class="ui-page-head__title" data-testid="loc--title">Add New Location</h1>
+      </div>
+    </div>
+
+    <main class="prc__page">
+      <form id="locationForm" novalidate></form>
+    </main>
+
+    <footer class="prc__foot">
+      <span class="prc__foot-note" id="formStatus" role="status"></span>
+      <ui-button variant="outline" data-testid="loc--cancel">Cancel</ui-button>
+      <ui-button variant="primary" data-testid="loc--save">Save</ui-button>
+    </footer>
+  </body>
+</html>

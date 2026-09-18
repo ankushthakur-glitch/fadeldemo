@@ -1,0 +1,113 @@
+/* ============================================================================
+   ui-slider — pick a value in a range.
+
+   A real <input type="range"> underneath, so the arrow keys, Home/End and
+   screen-reader announcements all come free. The only thing CSS adds is the
+   filled portion of the track, painted with a gradient stop driven by a custom
+   property the component recomputes on input.
+
+   WebKit and Firefox need different pseudo-elements for the same two parts;
+   both blocks below are the same design said twice.
+   ========================================================================= */
+
+ui-slider { display: block; }
+
+.ui-slider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  width: 100%;
+}
+
+.ui-slider--md {
+  --slider-track-h: var(--space-3); /* 6px */
+  --slider-thumb: 1.125rem; /* 18px */
+}
+.ui-slider--sm {
+  --slider-track-h: var(--space-2); /* 4px */
+  --slider-thumb: 0.875rem; /* 14px */
+}
+
+.ui-slider__adornment {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-md);
+}
+.ui-slider__adornment .ui-icon {
+  width: var(--icon-size-md);
+  height: var(--icon-size-md);
+}
+
+.ui-slider__value {
+  flex-shrink: 0;
+  min-width: 2.5rem;
+  text-align: right;
+  font-size: var(--font-size-md);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-secondary);
+}
+
+.ui-slider__input {
+  flex: 1;
+  min-width: 0;
+  height: 1.25rem;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.ui-slider__input:focus { outline: none; }
+
+.ui-slider__input::-webkit-slider-runnable-track {
+  height: var(--slider-track-h);
+  border-radius: var(--radius-full);
+  background: linear-gradient(
+    to right,
+    var(--color-brand-solid) 0% var(--slider-fill, 50%),
+    var(--color-bg-track) var(--slider-fill, 50%) 100%
+  );
+}
+
+/* Centre the thumb on the track: margin = −(thumb − track) / 2 */
+.ui-slider__input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  margin-top: calc((var(--slider-track-h) - var(--slider-thumb)) / 2);
+  width: var(--slider-thumb);
+  height: var(--slider-thumb);
+  border-radius: var(--radius-full);
+  background-color: var(--color-bg-surface);
+  border: var(--border-width-thick) solid var(--color-brand-solid);
+  box-shadow: var(--shadow-xs);
+}
+.ui-slider__input:focus-visible::-webkit-slider-thumb {
+  box-shadow: var(--focus-ring);
+}
+
+.ui-slider__input::-moz-range-track {
+  height: var(--slider-track-h);
+  border-radius: var(--radius-full);
+  background-color: var(--color-bg-track);
+}
+.ui-slider__input::-moz-range-progress {
+  height: var(--slider-track-h);
+  border-radius: var(--radius-full);
+  background-color: var(--color-brand-solid);
+}
+.ui-slider__input::-moz-range-thumb {
+  width: var(--slider-thumb);
+  height: var(--slider-thumb);
+  border-radius: var(--radius-full);
+  background-color: var(--color-bg-surface);
+  border: var(--border-width-thick) solid var(--color-brand-solid);
+  box-shadow: var(--shadow-xs);
+}
+.ui-slider__input:focus-visible::-moz-range-thumb {
+  box-shadow: var(--focus-ring);
+}
+
+.ui-slider--disabled { opacity: 0.5; }
+.ui-slider--disabled .ui-slider__input { cursor: not-allowed; }

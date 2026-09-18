@@ -1,0 +1,863 @@
+/* ============================================================================
+   COMMUNICATIONS — one inbox for every conversation.
+
+   Two panels inside one card. The conversation list on the left is a fixed
+   width and never moves, because you work down it; the thread on the right
+   takes whatever is left. Both scroll independently, so reading a long thread
+   never scrolls the list you found it in out of reach.
+
+   THE ONE THING WORTH KNOWING ABOUT THE MESSAGE STREAM
+   A bubble is sized by its content up to a ceiling (--comm-bubble-max), not by
+   its column. Left-aligned incoming and right-aligned outgoing then read as
+   two voices rather than as one full-width transcript, which is the whole
+   reason a chat looks like a chat.
+   ========================================================================= */
+
+.comm {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  /* THE SHELL IS THE CANVAS, NOT A SURFACE — the same sentence every other
+     screen now says (see .pt in screen-patient.css).
+
+     This screen spent a while painted white, on the argument that the card's
+     own hairline and radius were enough to say "card" and a tinted page was
+     just the largest area of colour on a screen made of white panels. That
+     held while the product was one unbroken sheet of paper. It stopped
+     holding the moment the app grew a dark green lid and a green-cast grey
+     ground under it: a white page here does not read as a restrained version
+     of the canvas, it reads as the one screen that did not get the new
+     chrome — the bar changes colour above it and the ground under it does
+     not, so the join at the top of the window is the only place in the
+     product where those two facts disagree.
+
+     Nothing about the layout moves for this. The white stays with the card,
+     which is the object you work in; the gutter around it goes back to being
+     a margin that does a job. */
+  background-color: var(--color-bg-page);
+
+  /* A bubble stops growing here. Past roughly this width the eye loses the
+     start of the next line, which is why every chat client has such a limit. */
+  --comm-bubble-max: 34rem;
+}
+
+.comm__spacer { flex: 1; }
+
+/* --- The card ---------------------------------------------------------------- */
+
+.comm__shell {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  /*
+     AN EVEN FRAME, MEASURED FROM WHAT YOU SEE.
+
+     Twenty each side, twenty below, and eight on top — because the header band
+     already contributes its own twelve of bottom padding, so eight is what it
+     takes to make the distance from the tab strip to the card's edge the same
+     twenty as everywhere else. Measuring the gap from the band's box instead of
+     from the last thing drawn in it is how a header ends up looking like it has
+     drifted away from the page.
+
+     The frame earns that care again now the ground behind it is the canvas
+     rather than more white: every one of those four gaps is visible, so an
+     uneven one would be too.
+  */
+  margin: var(--space-4) var(--space-8) var(--space-8);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-xl);
+  background-color: var(--color-bg-surface);
+  overflow: hidden;
+}
+
+
+/* --- The four filters ------------------------------------------------------- */
+
+/* The four kinds are the shared primary strip (components/overlay.css), not a
+   screen-local underline row: the tablist is hand-built because all four tabs
+   drive one list, but the thing on screen is the same control every other
+   screen's sections are drawn with. */
+
+/* No count on a tab. The unread rows in the list below say the same thing with
+   a name attached, which is the version you can act on. */
+
+/* --- Two panels ------------------------------------------------------------- */
+
+.comm__cols {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 24rem minmax(0, 1fr);
+}
+
+/* ======================== LEFT: THE CONVERSATIONS ========================= */
+
+.comm__list-pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.comm__search {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-6);
+}
+.comm__search ui-input { flex: 1; min-width: 0; }
+/* No shape override here. This field used to be a pill — the one pill-shaped
+   input in the product — on the argument that the rounded end reads as "type
+   and the list under you narrows". It read instead as a field borrowed from
+   somewhere else: every other search box in the EHR is the ui-input rounded
+   rectangle, and a single odd one costs more in consistency than the shape
+   ever bought in meaning. It inherits the standard radius now. */
+
+/* The two quick filters stand under the search box instead of hiding behind a
+   filter button. They share the search row's left edge and the thread rows'
+   gutter, so the field, the chips and the list below all start on one line. */
+.comm__quick {
+  flex: none;
+  display: flex;
+  gap: var(--space-4);
+  padding: 0 var(--space-6) var(--space-6);
+}
+
+/* aria-pressed carries the state; the fill only shows it. Off is the sunken
+   grey of a control waiting to be used, on is the brand surface — the same
+   pair the tab strip above uses, so "this is narrowing your list" reads the
+   same way in both places. */
+.comm__quick-chip {
+  padding: var(--space-2) var(--space-6);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-full);
+  background-color: var(--color-bg-surface-sunken);
+  font-family: inherit;
+  font-size: var(--font-size-body-sm);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.comm__quick-chip:hover { border-color: var(--color-border-strong); }
+.comm__quick-chip:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.comm__quick-chip[aria-pressed='true'] {
+  border-color: var(--color-brand-solid);
+  background-color: var(--color-brand-surface);
+  color: var(--color-brand-text);
+  font-weight: var(--font-weight-medium);
+}
+
+/* --- One conversation ------------------------------------------------------- */
+
+.comm__threads {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  /* No gutter: the rows run the full width of the pane and carry the twelve
+     inside themselves instead, which is how the referral queue draws its list.
+     The padding the rows use is the SAME twelve the search row above them
+     uses, so the field, the chips and every row still start on one line. */
+}
+
+.comm__threads-empty {
+  padding: var(--space-9) var(--space-6);
+  font-size: var(--font-size-body);
+  color: var(--color-text-tertiary);
+  text-align: center;
+}
+
+/*
+   A ROW IN A LIST, marked down its left edge.
+
+   Drawn the way the referral queue draws its cards, because the two screens
+   are the same object seen twice — a worklist on the left, the item you picked
+   filling the right — and a clinician moving between them should not have to
+   learn two shapes for "this is the one I have open". This list used to be a
+   column of inset rounded cards, which said "a small copy of the thing on the
+   right"; the referral queue's flat rows, hairline-divided, with a three-pixel
+   rail down the selected one, say "an entry in a queue", and that is the truer
+   sentence for both.
+
+   The rail is there in both states — transparent when the row is closed — so
+   nothing shifts by a pixel when you pick one, and the hairline underneath
+   stays through hover and selection alike: a divided list stays divided.
+*/
+
+.comm__row {
+  position: relative;
+  display: flex;
+  gap: var(--space-5);
+  width: 100%;
+  padding: var(--space-6);
+  border: none;
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+  border-left: 3px solid transparent;
+  background: none;
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+/* Hover is the selected row's green with most of it taken away: the row you
+   are pointing at and the row that is open differ in weight alone, not in hue,
+   and the pale rail previews the solid one selection draws. */
+.comm__row:hover {
+  border-left-color: var(--color-border-brand-subtle);
+  background-color: var(--color-brand-surface-subtle);
+}
+.comm__row:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.comm__row--on,
+.comm__row--on:hover {
+  border-left-color: var(--color-brand-solid);
+  background-color: var(--color-brand-surface);
+}
+
+.comm__row-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.comm__row-top {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.comm__row-name {
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.comm__row-marks {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* Grey, not the link blue the reference draws. A timestamp is not a link, and
+   at 11px the blue clears neither white (3.52:1) nor the selected row's tint
+   (3.13:1) — a pair we would be introducing ourselves rather than inheriting
+   from MediNova, so it is not ours to spend. */
+.comm__row-when {
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+}
+
+.comm__row-members {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-family-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-tertiary);
+}
+
+/* The second line: what was last said, and how much of it is unread. The
+   count sits at the END of that line rather than centred against the whole
+   row, so it reads as "…and n of these are new" instead of floating beside
+   the name. */
+.comm__row-bottom {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.comm__row-preview {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Urgent is drawn in the critical colour wherever it appears — the row, the
+   bubble — so the mark means one thing in both places. */
+.comm__urgent { color: var(--color-status-critical-text); }
+
+/* The DARKENED blue, not Primary/500: white on Primary/500 is 3.5:1, and an
+   unread count is the one number on the row that has to be readable. Same
+   reasoning the info badge tokens already carry. */
+.comm__row-unread {
+  flex: none;
+  min-width: 1.25rem;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-full);
+  background-color: var(--color-status-info-solid);
+  font-family: var(--font-family-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--font-size-2xs);
+  line-height: 1.25rem;
+  color: var(--color-text-inverse);
+  text-align: center;
+}
+
+/* A group has no face of its own, so it gets the group mark on a tinted
+   circle. The sizes mirror .ui-avatar's exactly, so a list of groups and
+   people keeps one left edge. */
+.comm__group-avatar {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  background-color: var(--color-status-info-surface);
+  color: var(--color-status-info-text);
+}
+.comm__group-avatar--sm { width: var(--control-height-sm); height: var(--control-height-sm); }
+.comm__group-avatar--md { width: var(--control-height-md); height: var(--control-height-md); }
+.comm__group-avatar--lg { width: var(--control-height-lg); height: var(--control-height-lg); }
+
+/* ========================= RIGHT: THE CONVERSATION ======================== */
+
+.comm__conv { display: flex; min-height: 0; flex-direction: column; }
+
+.comm__blank {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  padding: var(--space-10);
+  text-align: center;
+}
+.comm__blank h2 {
+  margin: 0;
+  font-size: var(--font-size-heading-md);
+  line-height: var(--line-height-tight);
+  color: var(--color-text-primary);
+}
+.comm__blank p {
+  margin: 0;
+  max-width: 26rem;
+  font-size: var(--font-size-body);
+  color: var(--color-text-tertiary);
+}
+.comm__blank-icon {
+  width: var(--space-11);
+  height: var(--space-11);
+  color: var(--color-border-strong);
+}
+
+.comm__pane {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* --- Who you are talking to ------------------------------------------------- */
+
+/*
+   ON THE PAGE, not in a panel of its own.
+
+   The head used to sit in a sunken box, which put two greys on the right-hand
+   side — one behind the name and one behind the messages — and neither of them
+   meant anything different from the other. The transcript below is the thing
+   that is inset now, so the head simply sits on the surface above it: who you
+   are talking to reads as a heading rather than as a card.
+*/
+/* Twenty from the card's edge — the same twenty the card keeps from the page,
+   and the same twenty the header band keeps from the window. One inset, so the
+   name, the transcript and the composer all start on one line down the left. */
+.comm__conv-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  padding: var(--space-8) var(--space-8) var(--space-6);
+}
+
+.comm__conv-who { min-width: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+
+.comm__conv-name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0;
+  font-size: var(--font-size-heading-md);
+  line-height: var(--line-height-tight);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.comm__conv-mrn {
+  font-family: var(--font-family-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--font-size-body-sm);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-tertiary);
+}
+
+/* LABELLED, not iconified. A phone glyph and a mail glyph beside two strings
+   of characters is a puzzle the eye solves from the shape of the value, not
+   from the icon; the words are shorter to read than the glyph is to decode,
+   and they let the value itself take the ink. */
+.comm__conv-contact {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-8);
+  margin: 0;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-tertiary);
+}
+.comm__conv-contact span { display: inline-flex; align-items: baseline; gap: var(--space-2); }
+.comm__conv-contact b {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+/*
+   A LINK wearing the outline button's clothes, not a <ui-button>: it goes to
+   another page, so it has to be middle-clickable and copyable like every other
+   route into a chart. .ui-btn sets width:100% because it is normally the only
+   child of an inline-flex <ui-button>; on a bare anchor in a flex row that
+   would stretch it, hence the one override.
+*/
+.comm__profile {
+  flex: none;
+  width: auto;
+  text-decoration: none;
+}
+
+/*
+   A ROW, not the overlapping face-pile the reference draws.
+
+   A pile works because the reference has photographs, where the covered part
+   of a face is still recognisably a face. These avatars are INITIALS, and any
+   overlap worth seeing eats a letter: "HW" under the next circle reads "HV".
+   So they sit side by side, small, and the +n carries the rest.
+*/
+
+/* .comm__faces / .comm__faces-rest were the hand-laid avatar row; it is
+   <ui-avatar-group> now. */
+
+/* --- The messages ----------------------------------------------------------- */
+
+/*
+   THE TRANSCRIPT IS A PANEL, laid on the page.
+
+   Bubbles need a ground to sit on. Floated straight onto the white surface an
+   incoming bubble has to be tinted or outlined to exist at all, which spends a
+   colour on "this is a message" — a fact the shape already carries. Give them
+   a ground and a plain white bubble reads as a bubble, leaving the tint free to
+   mean the one thing worth meaning here: whose message it is.
+
+   The ground is the app's own canvas tone, not the sunken grey it used to be.
+   Sunken is the well a table or a code block sits in, and at this size — most
+   of the window, most of the time — that much grey stopped reading as depth
+   and started reading as the screen being dirty. The canvas tone is a shade
+   off white: enough for a white bubble to have an edge without a border, not
+   enough to be a slab. The hairline round the panel is what draws the window
+   now, rather than the fill.
+
+   It is also what makes the scroll legible. The panel's top and bottom edges
+   are fixed, so a stream scrolling under them reads as a transcript running
+   past a window, rather than as text sliding under the composer.
+*/
+.comm__stream {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  margin: 0 var(--space-8);
+  padding: var(--space-8);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-page);
+}
+.comm__stream:focus-visible { outline: none; box-shadow: inset var(--focus-ring); }
+
+/* A rule with the day sitting in a gap in it. Bare centred text was enough
+   while the stream was white on white, but on the panel's tinted ground a grey
+   word between two bubbles reads as a message somebody sent — the rule is what
+   makes it a divider. It is drawn in the hairline colour, so it separates
+   without competing with the bubble edges either side. */
+.comm__day {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  margin: var(--space-4) 0 0;
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+.comm__day::before,
+.comm__day::after {
+  content: '';
+  flex: 1;
+  height: var(--border-width-thin);
+  background-color: var(--color-border-default);
+}
+
+.comm__msg {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  max-width: var(--comm-bubble-max);
+}
+.comm__msg--in { align-self: flex-start; }
+.comm__msg--out { align-self: flex-end; }
+
+/* The name lives INSIDE the bubble now, as its first line. Above the bubble
+   it was a caption floating on the panel with nothing tying it to the message
+   it named — the gap between a name and its bubble looked the same as the gap
+   between two messages. Inside, it is unambiguously part of what was said. */
+.comm__msg-author {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+  font-size: var(--font-size-caption);
+}
+.comm__msg-author-name {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+}
+
+.comm__bubble {
+  position: relative;
+  padding: var(--space-6) var(--space-7);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+  font-size: var(--font-size-body);
+  color: var(--color-text-primary);
+}
+
+/*
+   THE TAIL.
+
+   A square top corner and a small triangle beside it, on the side the message
+   came from. It is the one mark that survives being glanced at: alignment tells
+   you whose message it is only once you have found the column edges, and the
+   tint tells you only if you remember which tint is yours, but a bubble
+   pointing left is pointing at the person who is not you.
+
+   Drawn with a border triangle rather than a rotated square: a rotated square
+   has to be clipped or it shows its far corner through the bubble, and the
+   clip is what makes rotated tails go ragged at fractional zoom levels.
+*/
+.comm__bubble::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  width: 0;
+  height: 0;
+  /* The colour is the bubble's own, restated. A pseudo-element cannot inherit
+     a background, and `currentColor` here would be the text colour. */
+  border-top: var(--space-4) solid var(--color-bg-surface);
+}
+
+.comm__msg--in .comm__bubble { border-start-start-radius: 0; }
+.comm__msg--in .comm__bubble::before {
+  left: calc(var(--space-4) * -1);
+  border-left: var(--space-4) solid transparent;
+}
+
+/* Mine is tinted rather than solid: a whole column of solid brand-green
+   bubbles would out-shout the messages I am supposed to be reading. */
+.comm__msg--out .comm__bubble {
+  border-start-end-radius: 0;
+  background-color: var(--color-status-info-surface);
+}
+.comm__msg--out .comm__bubble::before {
+  right: calc(var(--space-4) * -1);
+  border-top-color: var(--color-status-info-surface);
+  border-right: var(--space-4) solid transparent;
+}
+
+/* An assistant draft keeps its corners and loses its tail: the tail says a
+   person on one side of the conversation said this, and nobody said this. */
+.comm__msg--ai .comm__bubble {
+  border-start-end-radius: var(--radius-lg);
+  background-color: var(--color-brand-surface);
+  border: var(--border-width-thin) dashed var(--color-brand-solid);
+}
+.comm__msg--ai .comm__bubble::before { display: none; }
+
+.comm__bubble-body p { margin: 0 0 var(--space-3); line-height: var(--line-height-normal); }
+.comm__bubble-body p:last-child { margin-bottom: 0; }
+.comm__bubble-body strong { font-weight: var(--font-weight-semibold); }
+
+.comm__list { margin: var(--space-3) 0; padding-left: var(--space-9); }
+.comm__list li { margin-bottom: var(--space-2); line-height: var(--line-height-normal); }
+
+/* An assistant draft is marked, and marked in the corner rather than inline:
+   nobody should have to read a bubble to find out a machine wrote it. */
+.comm__bubble-ai {
+  position: absolute;
+  top: calc(var(--space-4) * -1);
+  right: calc(var(--space-4) * -1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-height-sm);
+  height: var(--control-height-sm);
+  border-radius: var(--radius-full);
+  background-color: var(--color-brand-solid);
+  color: var(--color-text-inverse);
+}
+
+/* Bottom-right, inside the bubble, and pulled tight to its corner: a
+   timestamp is a footnote on the message, and a footnote set at the same
+   spacing as the text is another line of it. */
+.comm__meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-4);
+  margin: var(--space-3) 0 calc(var(--space-2) * -1);
+  font-family: var(--font-family-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-tertiary);
+}
+.comm__seen { display: inline-flex; align-items: center; gap: var(--space-2); }
+.comm__meta .ui-icon { width: var(--icon-size-sm); height: var(--icon-size-sm); }
+
+/* --- Writing one ------------------------------------------------------------ */
+
+/* The row is just a layout: the field and the send button are two objects on
+   it, not one control with a button embedded in its corner. */
+.comm__composer {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  margin: var(--space-6) var(--space-8) var(--space-8);
+}
+
+.comm__composer-field {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4) var(--space-3) var(--space-7);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-full);
+  background-color: var(--color-bg-surface);
+}
+/* The shell carries the focus state and the inner control's own ring is
+   suppressed — the same one-border-one-ring rule .ui-input already follows,
+   for the same reason: stacked rings read as an error state. */
+.comm__composer-field:focus-within {
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px var(--color-brand-surface);
+}
+
+.comm__composer-input {
+  flex: 1;
+  min-width: 0;
+  height: var(--control-height-md);
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: var(--font-size-body);
+  color: var(--color-text-primary);
+}
+.comm__composer-input:focus { outline: none; }
+.comm__composer-input:focus-visible { box-shadow: none; }
+.comm__composer-input::placeholder { color: var(--color-text-tertiary); }
+
+.comm__composer-btn {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-height-md);
+  height: var(--control-height-md);
+  border: none;
+  /* Round, because they sit inside a pill: a square hover patch in a rounded
+     field breaks the one edge the field has. */
+  border-radius: var(--radius-full);
+  background: none;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+}
+.comm__composer-btn:hover {
+  background-color: var(--color-bg-surface-hover);
+  color: var(--color-text-primary);
+}
+.comm__composer-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.comm__composer-btn--ai:hover { color: var(--color-brand-text); }
+
+/*
+   THE ONE BUTTON ON THIS ROW WITH A WORD ON IT.
+
+   Send is not a trim on the field — it is the act the whole screen exists for,
+   and the only one of these controls that puts something in front of another
+   person. A bare paper-plane glyph asks you to know the glyph; the fill plus
+   the word asks nothing. The three trims stay iconic INSIDE the field, so the
+   difference in treatment is also the difference in consequence.
+*/
+.comm__send {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  height: var(--control-height-lg);
+  padding: 0 var(--space-8);
+  border: none;
+  border-radius: var(--radius-md);
+  background-color: var(--color-brand-solid);
+  font-family: inherit;
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-inverse);
+  cursor: pointer;
+}
+.comm__send:hover { background-color: var(--color-brand-solid-hover); }
+.comm__send:focus-visible { outline: none; box-shadow: var(--focus-ring-solid); }
+
+/* ============================ NEW CHAT PANEL ============================== */
+
+.comm__new { position: relative; flex: none; }
+
+/*
+   Anchored to its button rather than centred as a dialog, because the list it
+   filters is the list right beside it: choosing three people to message is a
+   sidebar job, and a full modal would cover the very conversations you are
+   checking you have not already started.
+*/
+.comm__new-panel {
+  position: absolute;
+  top: calc(100% + var(--space-4));
+  right: 0;
+  z-index: var(--z-dropdown);
+  width: 25rem;
+  display: flex;
+  flex-direction: column;
+  /*
+     One gap for the whole panel, and it is the card gap rather than the tight
+     one: the four things stacked here — pick a type, pick people, read what is
+     still missing, act — are four separate decisions, not four rows of a form.
+     Ten pixels ran them together; twelve, against the sixteen of the panel's
+     own inset, gives the stack an inside-smaller-than-outside rhythm, which is
+     what makes a boxed group read as a group.
+  */
+  gap: var(--space-6);
+  padding: var(--space-7);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+  box-shadow: var(--elevation-overlay);
+}
+
+.comm__new-head { display: flex; gap: var(--space-5); }
+.comm__new-head ui-select { flex: 0 0 9rem; }
+.comm__new-head ui-input { flex: 1; min-width: 0; }
+
+.comm__new-picked { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+
+/*
+   The ROSTER scrolls, and it is capped in its own right rather than left to
+   fill whatever the panel has spare.
+
+   The panel is absolutely positioned inside .comm__shell, which clips its
+   overflow — so a panel that grew with the roster would have its Start Chat
+   button cut off by the bottom of the card, and a group of eleven clinicians
+   would be a group you could not create. Capping the list here bounds the
+   whole panel no matter how many people the practice has.
+
+   The two full-bleed hairlines are what the cap was missing. A list that stops
+   mid-name with nothing around it reads as a drawing bug; the same list
+   between two rules reads as a window onto something longer, and it tells the
+   eye where the panel's scrolling part ends and its fixed part — the hint and
+   the two buttons — begins. They run edge to edge because the negative margin
+   already takes the list past the panel's inset, so the rules divide the whole
+   panel rather than floating inside it.
+
+   The height is picked to land in the GAP between two rows, not through one.
+   Ten pixels of the next avatar showing is a peek that says "keep going";
+   twenty pixels is a name sliced through its middle, which says "broken". At
+   40px a row and roughly 33px for the section label, 13rem shows four whole
+   people and the top rim of the fifth.
+*/
+.comm__new-body {
+  max-height: 13rem;
+  overflow-y: auto;
+  margin: 0 calc(var(--space-7) * -1);
+  padding: 0 var(--space-7);
+  border-block: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+/* Indented to the row text's own inset rather than the panel's, so the label
+   and the names it heads share one left edge instead of stepping. */
+.comm__new-label {
+  margin: var(--space-5) var(--space-4) var(--space-3);
+  font-size: var(--font-size-label);
+  color: var(--color-text-tertiary);
+}
+
+/*
+   A fixed row height rather than padding around whatever the avatar happens to
+   be: the cap above is only honest about where it cuts if every row is the
+   same height, and a roster you are scanning down wants one rhythm, not one
+   per name length.
+*/
+.comm__pick {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  width: 100%;
+  height: 2.5rem;
+  padding: 0 var(--space-4);
+  border: none;
+  border-radius: var(--radius-md);
+  background: none;
+  text-align: left;
+  font-family: inherit;
+  font-size: var(--font-size-body);
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+.comm__pick:hover { background-color: var(--color-bg-surface-hover); }
+.comm__pick:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.comm__pick-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.comm__pick-role {
+  margin-left: auto;
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+}
+
+.comm__new-none,
+.comm__new-hint {
+  margin: 0;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-tertiary);
+}
+/* "Nobody matches that search" stands where the rows would have been, so it is
+   given a row's worth of room rather than being pinned to the top rule. */
+.comm__new-none { padding: var(--space-6) var(--space-4); }
+/* Empty most of the time. Reserving the line stops the panel jumping a row
+   taller the moment the requirement is met. */
+.comm__new-hint { min-height: 1.25rem; }
+
+.comm__new-foot { display: flex; align-items: center; gap: var(--space-4); }
+
+/* --- Notices ---------------------------------------------------------------- */
+
+/* The toast host moved to the shared .ui-toast-region in
+   css/components/toast.css — see js/lib/toast.js. */

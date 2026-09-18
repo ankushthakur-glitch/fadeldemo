@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MediNova EHR — Medication Inventory</title>
+    <link rel="icon" type="image/svg+xml" href="../assets/img/favicon.svg" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="../css/reset.css" />
+    <link rel="stylesheet" href="../css/tokens.css" />
+    <link rel="stylesheet" href="../css/base.css" />
+    <link rel="stylesheet" href="../css/ui-kit.css" />
+    <link rel="stylesheet" href="../css/screen-patient.css" />
+    <link rel="stylesheet" href="../css/screen-settings.css" />
+    <link rel="stylesheet" href="../css/screen-medication.css" />
+
+    <script type="module" src="../js/main.js"></script>
+    <script type="module" src="../js/screens/medication-inventory.js"></script>
+    <script src="../js/open-me-properly.js"></script>
+  </head>
+
+  <body class="pt">
+    <header class="pt__bar">
+      <img class="pt__logo" src="../assets/img/medinova-logo.svg" width="158" height="32"
+        alt="MediNova Gastroenterology Clinic" />
+      <ui-main-nav active="inventory"></ui-main-nav>
+      <div class="pt__bar-actions">
+        <ui-time-clock></ui-time-clock>
+        <button type="button" class="pt__icon-action" aria-label="Notifications">
+          <svg class="ui-icon" aria-hidden="true"><use href="#i-bell"></use></svg>
+        </button>
+        <ui-avatar name="Amara Mensah" size="sm"></ui-avatar>
+      </div>
+    </header>
+
+    <!-- ==================================================================
+         INVENTORY IS THE COUNT SHEET.
+
+         The tab strip that stood here is gone. It offered two documents —
+         the day's count and the lot register — and a strip is the right
+         control for two views somebody switches between all day. This is not
+         that: the count sheet is what Inventory is opened for, and the
+         register is a desk job done when a delivery arrives.
+
+         So the lead slot carries the screen's NAME and the sheet's DATE,
+         which is what the card used to say inside its own border. The date
+         belongs beside the title rather than over the table: it is the one
+         fact that qualifies everything below it, and read once at the top of
+         the screen it does not have to be repeated in a band of its own.
+
+         The register still exists and is still reached by ?med= and
+         ?status= — see showList() in js/screens/medication-inventory.js. It
+         has no button on this screen any more.
+         ================================================================== -->
+    <!-- THE STANDARD LIST HEADER.
+
+         The screen's name in the lead slot, the sheet's controls in the
+         action slot — the same two-slot band every list in the EHR uses. The
+         whole band goes away on the lot drill-down, which is a page you
+         arrived at rather than a view you switched to. -->
+    <div class="ui-page-head ui-page-head--flush med__head" id="medHead">
+      <div class="ui-page-head__lead med__lead">
+        <h1 class="ui-page-head__title">Inventory</h1>
+
+        <!-- WHICH DAY IS ON THE DESK. That is the whole of it.
+
+             A running commentary sat here too — "nothing counted yet, 8 lines
+             to work through", and the tally of lines that did not reconcile.
+             It is gone from view: under a one-word title it read as a second
+             heading competing with the first, and every one of its states is
+             already on the sheet itself, said where it applies. A line that
+             does not add up is tinted and carries a signed figure in its own
+             Discrepancy cell, which is nearer the problem than a count of
+             problems at the top of the screen.
+
+             It survives as the sheet's live region, off-screen: it changes as
+             each line is filed, and a screen-reader user working down the
+             table has no other way to be told the line they just saved is two
+             ampoules short — a tint and a column they have moved past cannot
+             tell them. -->
+        <p class="med__sheet-line" id="countSheetLine">
+          <span class="med__sheet-date" id="countDateLabel" data-testid="cnt--heading"></span>
+          <span class="u-sr-only" id="countStatus" data-testid="cnt--status" role="status"></span>
+        </p>
+      </div>
+
+      <!-- THE COUNT SHEET's controls.
+
+           A DATE, NOT A RANGE. The report this replaced read across one,
+           because an administration log is a stream and "the last fortnight of
+           propofol" is a fair question of it. A count is not a stream — it is
+           a document: one drawer, counted once, signed by the two people who
+           counted it. A sheet spanning two days would report the sum of two
+           reconciliations that were each meant to be answered on their own day.
+
+           So this field is not a filter over rows that exist regardless. It is
+           WHICH SHEET IS ON THE DESK, and every figure below is fetched for
+           it — the counts filed that day, and the closing figures the day
+           before handed it. There is nothing behind a funnel here for the same
+           reason: a count sheet narrowed to three of its drugs is not a count.
+
+           Print sits beside it because a counted drawer is signed on paper,
+           and Export because the same figures are what a stock take is
+           reconciled against in a spreadsheet.
+
+           "Add standard meds" is deliberately NOT here. A button that drops a
+           fixed list of drugs onto the sheet answers for a drawer it has never
+           seen — and a line nobody put there is a line nobody counts, which is
+           exactly the row a missing ampoule hides behind. What the drawer
+           holds is added to it one drug at a time, by somebody looking at it. -->
+      <div class="ui-page-head__actions" id="countActions">
+        <!-- No `size` on it, so it stands at the same 34px the three buttons
+             beside it do. At `sm` it was six pixels shorter than everything
+             it shares a row with, and a row of controls that do not agree
+             about their own height reads as one of them having gone wrong. -->
+        <ui-input id="countDate" type="date" label="Sheet date" label-hidden
+          data-testid="cnt--date"></ui-input>
+
+        <ui-button variant="outline" icon="printer" id="countPrint"
+          data-testid="cnt--print">Print</ui-button>
+        <ui-button variant="outline" icon="download" id="countExport"
+          data-testid="cnt--export">Export CSV</ui-button>
+        <ui-button variant="primary" icon="plus" id="countAdd"
+          data-testid="cnt--add">Add Medication</ui-button>
+      </div>
+
+      <!-- MEDICATION MANAGEMENT's controls, in the standard order: search,
+           then what narrows the list, then the screen's own action. -->
+      <div class="ui-page-head__actions med__filters" id="stockActions" hidden>
+        <ui-input
+          id="medSearch"
+          label="Search medications"
+          label-hidden
+          icon="search"
+          placeholder="Search name, type, manufacturer or lot"
+          data-testid="med--search"
+        ></ui-input>
+
+        <!-- Status and Type were two dropdowns held permanently open across
+             the header. They are the standard panel now, like every other list
+             in the product — and the second of them is called Type here and
+             Medication Type in the column beside it, because two names for one
+             thing is how a filter stops being trusted. -->
+        <ui-filter id="medFilter" label="Filters" panel-label="Filter medications"
+          data-testid="med--filter">
+          <ui-filter-group name="status" label="Status"></ui-filter-group>
+          <ui-filter-group name="type" label="Type"></ui-filter-group>
+        </ui-filter>
+
+        <ui-button variant="primary" icon="plus" id="medAdd" data-testid="med--add">
+          Add Medication
+        </ui-button>
+      </div>
+    </div>
+
+    <!-- ==================================================================
+         VIEW 1 — THE MEDICATION LIST
+
+         One row per MEDICATION, not per lot. Both views exist because they
+         answer different questions: this one is "how much have we got and
+         what needs reordering", the detail is "which box do I open".
+
+         Listing one row per lot here would repeat Paracetamol three times and
+         make the drill-down a copy of the list.
+         ================================================================== -->
+    <!-- role="tabpanel" came off with the strip. A panel that claims to be
+         controlled by a tab, on a screen with no tabs on it, is a region
+         pointing at a control that does not exist — which axe reports and a
+         screen reader announces as a tab list of one. It is a plain region
+         with a name now. -->
+    <div id="panel-stock" class="med__view" role="region"
+      aria-label="Medication Management" hidden>
+      <main class="ui-list-body med__body">
+        <div class="ui-table-card">
+          <ui-data-table
+            id="medTable"
+            empty-text="No medication matches those filters."
+            data-testid="med--table"
+          ></ui-data-table>
+          <div id="medFoot"></div>
+        </div>
+      </main>
+    </div>
+
+    <!-- ==================================================================
+         VIEW 3 — THE DAILY COUNT SHEET
+
+         One row per counted MEDICATION, on one date. The row is a FORM, not a
+         record: what was in the drawer when the day started, what went into
+         it, what was given and by whom, what was destroyed and who watched,
+         what is in there now — and the difference between the arithmetic and
+         the count.
+
+         Nothing on it is pre-filled from the day's sedation records, on
+         purpose. A count that opens holding the answer is a count nobody
+         makes, and a drawer that always agrees with itself is a drawer nobody
+         is really counting. The one figure that IS carried in is the start,
+         because it was counted — by the shift that handed the drawer over.
+         ================================================================== -->
+    <div id="panel-count" class="med__view" role="region" aria-label="Daily Count Sheet">
+      <main class="ui-list-body med__body">
+        <!-- NO TITLE BAND INSIDE THE CARD.
+
+             The date and the day's standing were drawn here, above the table
+             and inside the same border. They are in the page head now, beside
+             the screen's name — the same two facts, read once, without a band
+             of chrome between the reader and the first line to be counted.
+
+             The paper keeps them: @media print in css/screen-medication.css
+             keeps the head's lead slot and drops its buttons, so a printed
+             sheet still carries the date it belongs to. -->
+        <div class="ui-table-card med__count-card">
+          <ui-data-table
+            id="countTable"
+            empty-text="No medication is being counted. Add the first one to start the sheet."
+            data-testid="cnt--table"
+          ></ui-data-table>
+        </div>
+      </main>
+    </div>
+
+    <!-- ==================================================================
+         VIEW 2 — ONE MEDICATION'S LOTS
+
+         Reached by the medication name, and deep-linkable as ?med=<id> so a
+         "reorder Infliximab" task can point straight at it.
+         ================================================================== -->
+    <div id="detailView" class="med__view" hidden>
+      <!-- The same two slots, with the back arrow and the medication's name
+           filling the lead one: this is a page arrived at from a row rather
+           than a tab, so it keeps a title where the tabbed views do not. -->
+      <div class="ui-page-head ui-page-head--flush">
+        <div class="ui-page-head__lead">
+          <!-- ?view=stock, not the bare path: this arrow goes back to the
+               REGISTER this page was opened from, and the bare path is the
+               count sheet now. -->
+          <a class="ui-page-head__back" href="medication-inventory.html?view=stock"
+            data-testid="med--detail-back"
+            aria-label="Back to medication list">
+            <svg class="ui-icon" aria-hidden="true"><use href="#i-caret-left"></use></svg>
+          </a>
+          <h1 class="ui-page-head__title" id="detailTitle" data-testid="med--detail-title"></h1>
+        </div>
+
+        <div class="ui-page-head__actions">
+          <!-- Recording waste was reachable only from a lot's row menu, which
+               is two clicks and a guess: the nurse holding a broken ampoule
+               knows the drug, not which of its boxes it came out of. This
+               button asks the question they can answer and opens the waste
+               dialog on the lot the screen already tells them to open next —
+               first-expiring, the same box every other rule here points at.
+               The row menu keeps its own entry, for the case where the box IS
+               the thing being written off and the nurse is looking at it. -->
+          <ui-button variant="outline" icon="trash" id="detailWaste" data-testid="med--detail-waste">
+            Record Wastage
+          </ui-button>
+          <ui-button variant="primary" icon="plus" id="detailAdd" data-testid="med--detail-add">
+            Add Stock
+          </ui-button>
+        </div>
+      </div>
+
+      <main class="ui-list-body med__body">
+        <!-- The three facts the header of the reference screen carries. Total
+             Quantity is the sum of USABLE lots, so it can be lower than the
+             numbers in the rows below it — the expired ones do not count. -->
+        <dl class="med__facts" data-testid="med--facts">
+          <div class="med__fact">
+            <dt>Medication Name</dt>
+            <dd id="factName" data-testid="med--fact-name"></dd>
+          </div>
+          <div class="med__fact">
+            <dt>Medication Type</dt>
+            <dd id="factType" data-testid="med--fact-type"></dd>
+          </div>
+          <div class="med__fact">
+            <dt>Total Quantity</dt>
+            <dd id="factTotal" data-testid="med--fact-total"></dd>
+          </div>
+          <div class="med__fact">
+            <dt>Reorder at</dt>
+            <dd id="factThreshold" data-testid="med--fact-threshold"></dd>
+          </div>
+          <!-- Only once there is any. A permanent "Wasted: 0" trains the eye
+               to skip the chip, which is the one place it must not be skipped
+               when the number stops being zero. -->
+          <div class="med__fact med__fact--waste" id="factWastedWrap" hidden>
+            <dt>Wasted</dt>
+            <dd id="factWasted" data-testid="med--fact-wasted"></dd>
+          </div>
+        </dl>
+
+        <p class="ui-alert ui-alert--warning med__note" id="detailNote" data-testid="med--detail-note" hidden></p>
+
+        <div class="ui-table-card">
+          <ui-data-table
+            id="lotTable"
+            empty-text="No stock has been booked in for this medication."
+            data-testid="med--lot-table"
+          ></ui-data-table>
+          <div id="lotFoot"></div>
+        </div>
+      </main>
+    </div>
+
+    <!-- ================= THE COUNT SHEET'S MEDICATION =================
+         Adding a drug to the sheet, and correcting one already on it.
+
+         The name and the strength are typed rather than picked. A drawer holds
+         whatever the practice buys, and a fixed list is a list the next
+         delivery is not on — which is how a drug ends up counted under the
+         closest wrong name, or not counted at all.
+
+         The unit and the category are the opposite case. A unit is one of a
+         handful of measures, and typed freehand it gives you "mcg", "µg" and
+         "ug" as three spellings of one column — which is exactly the
+         arithmetic this sheet exists to protect.
+
+         There is no start count here, and there cannot be. A drug that has
+         just gone onto the sheet was never counted OUT of it, so it has
+         nothing to carry forward: the opening figure is something somebody has
+         to go and read off the drawer, on the sheet, in the open. -->
+    <ui-modal id="countMedModal" heading="Add medication to the sheet" size="md">
+      <div class="med__form">
+        <ui-input
+          label="Medication Name"
+          placeholder="As it reads on the vial"
+          required
+          id="countMedName"
+          data-testid="cnt--m-name"
+        ></ui-input>
+
+        <div class="med__form-row">
+          <!-- WHAT TELLS TWO LINES OF ONE DRUG APART.
+               A 10 mg vial of Versed and a 2 mg vial are counted separately,
+               because they are not interchangeable units — one line for both
+               would be a count of two different things added together. -->
+          <ui-input
+            label="Strength"
+            placeholder="e.g. 100 mcg/2 mL"
+            id="countMedStrength"
+            data-testid="cnt--m-strength"
+          ></ui-input>
+          <ui-select
+            label="Unit"
+            placeholder="Select"
+            required
+            id="countMedUnit"
+            data-testid="cnt--m-unit"
+          ></ui-select>
+        </div>
+
+        <!-- Why the drawer holds it, which is not the same question as what it
+             does. It is what decides how tightly a line is counted. -->
+        <ui-select
+          label="Category"
+          placeholder="Select"
+          id="countMedCategory"
+          data-testid="cnt--m-category"
+        ></ui-select>
+      </div>
+
+      <div class="ui-modal__actions">
+        <ui-button variant="outline" id="countMedCancel" data-testid="cnt--m-cancel">Cancel</ui-button>
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="primary" id="countMedSave" data-testid="cnt--m-save">Add</ui-button>
+      </div>
+    </ui-modal>
+
+    <!-- ================= TAKING A LINE OFF THE SHEET =================
+         Only ever reached for a medication nothing has been filed against. A
+         line that HAS been counted is refused outright rather than confirmed —
+         see openRemove in js/screens/medication-count.js — because a filed
+         count is a signed reconciliation of a controlled drawer, and deleting
+         the line it was filed on would take the record with it. A drug that is
+         no longer stocked stops being counted by being counted to zero. -->
+    <ui-modal id="countRemoveModal" heading="Remove this medication from the sheet?" size="sm">
+      <p class="med__adjust-lead" id="countRemoveLead" data-testid="cnt--remove-lead"></p>
+
+      <div class="ui-modal__actions">
+        <ui-button variant="outline" id="countRemoveCancel" data-testid="cnt--remove-cancel">Cancel</ui-button>
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="primary" id="countRemoveConfirm" data-testid="cnt--remove-confirm">
+          Remove medication
+        </ui-button>
+      </div>
+    </ui-modal>
+
+    <!-- ================= ADD NEW STOCK =================
+         One dialog for both entry points. Opened from the list it asks which
+         medication; opened from a medication it already knows, so the two
+         top fields are shown filled and locked rather than removed — the
+         person booking a box in needs to see WHICH medication they are
+         booking it against. -->
+    <ui-modal id="stockModal" heading="Add New Stock" size="lg">
+      <div class="med__form">
+        <div class="med__form-row">
+          <ui-select
+            label="Medication Name"
+            placeholder="Select"
+            id="stockMedication"
+            required
+            data-testid="med--f-medication"
+          ></ui-select>
+          <!-- Never typed. The type is a property of the medication, so it
+               follows the choice above and is read-only either way — two
+               fields that can disagree about what a drug is would be worse
+               than one. -->
+          <ui-input
+            label="Medication Type"
+            id="stockType"
+            readonly
+            placeholder="Follows the medication"
+            data-testid="med--f-type"
+          ></ui-input>
+        </div>
+
+        <div class="med__form-row">
+          <!-- Typed, not picked from a list. A delivery arrives from whoever
+               packed it, and a fixed dropdown means the first manufacturer not
+               on it cannot be booked in at all — which is how a box ends up
+               filed under the closest wrong name. -->
+          <ui-input
+            label="Manufacturer"
+            placeholder="Who made it"
+            id="stockManufacturer"
+            required
+            data-testid="med--f-manufacturer"
+          ></ui-input>
+          <!-- Who it was bought FROM, which is often not who made it: a
+               wholesaler ships six manufacturers' boxes, and the reorder call
+               goes to the wholesaler. -->
+          <ui-input
+            label="Vendor"
+            placeholder="Who it was bought from"
+            id="stockVendor"
+            data-testid="med--f-vendor"
+          ></ui-input>
+        </div>
+
+        <div class="med__form-row">
+          <ui-input
+            label="Lot Number"
+            placeholder="LOT-000-00"
+            required
+            id="stockLot"
+            data-testid="med--f-lot"
+          ></ui-input>
+          <ui-input
+            label="Expiry Date"
+            type="date"
+            required
+            id="stockExpiry"
+            data-testid="med--f-expiry"
+          ></ui-input>
+        </div>
+
+        <div class="med__form-row">
+          <ui-input
+            label="Quantity"
+            type="number"
+            placeholder="0"
+            required
+            id="stockQuantity"
+            data-testid="med--f-quantity"
+          ></ui-input>
+          <span></span>
+        </div>
+
+        <!-- Threshold was a field here and is gone. It is the reorder point for
+             the MEDICATION, not for the box being booked in, so every delivery
+             was an invitation to change it by accident. It is set where it
+             belongs, on Edit medication. -->
+
+      </div>
+
+      <div class="ui-modal__actions">
+        <ui-button variant="outline" id="stockCancel" data-testid="med--f-cancel">Cancel</ui-button>
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="primary" id="stockSave" data-testid="med--f-save">Add</ui-button>
+      </div>
+    </ui-modal>
+
+    <!-- ================= ADJUST A LOT =================
+         Stock leaves the shelf as well as arriving on it. Without this the
+         only number that can ever change is the one going up, which is not an
+         inventory — it is a delivery log. -->
+    <ui-modal id="adjustModal" heading="Adjust quantity" size="sm">
+      <div class="med__form">
+        <p class="med__adjust-lead" id="adjustLead" data-testid="med--adjust-lead"></p>
+
+        <ui-input
+          label="New quantity"
+          type="number"
+          required
+          id="adjustQuantity"
+          data-testid="med--adjust-quantity"
+        ></ui-input>
+
+        <!-- Required. A count that changed for no recorded reason is the
+             thing an audit cannot answer. -->
+        <ui-select
+          label="Reason"
+          placeholder="Select"
+          id="adjustReason"
+          required
+          data-testid="med--adjust-reason"
+        ></ui-select>
+
+      </div>
+
+      <div class="ui-modal__actions">
+        <ui-button variant="outline" id="adjustCancel" data-testid="med--adjust-cancel">Cancel</ui-button>
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="primary" id="adjustSave" data-testid="med--adjust-save">Save</ui-button>
+      </div>
+    </ui-modal>
+
+    <!-- ================= RECORD WASTE =================
+         Separate from Adjust because it is a different kind of fact. A
+         dispensed unit reached a patient; a wasted one did not, and somebody
+         has to account for it — so this asks how many, what happened, and
+         whose name goes against it, and keeps the answers as a log. -->
+    <ui-modal id="wasteModal" heading="Record waste" size="md">
+      <div class="med__form">
+        <p class="med__adjust-lead" id="wasteLead" data-testid="med--waste-lead"></p>
+
+        <div class="med__form-row">
+          <ui-input
+            label="Units wasted"
+            type="number"
+            required
+            id="wasteQuantity"
+            data-testid="med--waste-quantity"
+          ></ui-input>
+          <!-- Named, not assumed, and typed rather than picked: the person who
+               wasted it is often not the person at the keyboard, and is often
+               not a system user at all — an agency nurse, a delivery driver,
+               a locum. A dropdown of staff cannot name any of them. -->
+          <ui-input
+            label="Wasted by"
+            placeholder="Who wasted it"
+            id="wasteBy"
+            required
+            data-testid="med--waste-by"
+          ></ui-input>
+        </div>
+
+        <!-- Typed, not chosen. "What happened" off a list of eight gives the
+             same eight answers forever; the useful sentence is always the one
+             nobody thought to add to the list. -->
+        <ui-input
+          label="Reason"
+          placeholder="What happened"
+          id="wasteReason"
+          required
+          data-testid="med--waste-reason"
+        ></ui-input>
+
+        <!-- What has already been written off this lot, so the same breakage
+             is not recorded twice by two people. -->
+        <div class="med__history" id="wasteHistory" data-testid="med--waste-history" hidden></div>
+
+      </div>
+
+      <div class="ui-modal__actions">
+        <ui-button variant="outline" id="wasteCancel" data-testid="med--waste-cancel">Cancel</ui-button>
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="primary" id="wasteSave" data-testid="med--waste-save">
+          Record waste
+        </ui-button>
+      </div>
+    </ui-modal>
+
+    <!-- ================= EDIT MEDICATION =================
+         The medication, not a lot: its name, what kind of drug it is, and the
+         reorder point. All three are true of every box on the shelf, which is
+         why they are edited once here rather than re-answered on each
+         delivery — see the note where Threshold used to sit in Add Stock. -->
+    <ui-modal id="medicationModal" heading="Edit medication" size="md">
+      <div class="med__form">
+        <ui-input
+          label="Medication Name"
+          required
+          id="medicationName"
+          data-testid="med--m-name"
+        ></ui-input>
+
+        <div class="med__form-row">
+          <ui-select
+            label="Medication Type"
+            placeholder="Select"
+            id="medicationType"
+            required
+            data-testid="med--m-type"
+          ></ui-select>
+          <ui-input
+            label="Threshold"
+            type="number"
+            placeholder="0"
+            id="medicationThreshold"
+            data-testid="med--m-threshold"
+          ></ui-input>
+        </div>
+
+      </div>
+
+      <div class="ui-modal__actions">
+        <ui-button variant="outline" id="medicationCancel" data-testid="med--m-cancel">Cancel</ui-button>
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="primary" id="medicationSave" data-testid="med--m-save">Save</ui-button>
+      </div>
+    </ui-modal>
+
+    <!-- ================= LOT DETAILS =================
+         Everything recorded against one box, including the FULL waste log
+         rather than a total. Six wasted in one go is a dropped tray; six
+         wasted across four occasions is a process problem, and the lot table's
+         single figure cannot tell those apart. -->
+    <ui-modal id="lotModal" heading="Lot details" size="md">
+      <dl class="med__lot-facts" id="lotFacts" data-testid="med--lot-facts"></dl>
+
+      <h3 class="med__lot-subhead">Waste log</h3>
+      <div id="lotWaste" data-testid="med--lot-waste"></div>
+
+      <div class="ui-modal__actions">
+        <ui-button variant="outline" id="lotClose" data-testid="med--lot-close">Close</ui-button>
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="primary" id="lotWasteAdd" data-testid="med--lot-waste-add">
+          Record waste
+        </ui-button>
+      </div>
+    </ui-modal>
+  </body>
+</html>

@@ -1,0 +1,177 @@
+/* ============================================================================
+   ui-toast and ui-notification-toast — a card that floats over the window.
+
+   Two shapes from the same family. ui-toast leads with a status icon and
+   reports on something that already happened ("Note signed"). Its sibling
+   ui-notification-toast has no icon and ends in text-link actions, because it
+   is asking rather than telling ("Dr Okafor shared a chart — View / Dismiss").
+
+   Both take --elevation-overlay: they are detached from the page, not attached
+   to it, and the shadow is the only thing saying so.
+   ========================================================================= */
+
+ui-toast,
+ui-notification-toast { display: block; }
+
+.ui-toast {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-6);
+  width: 100%;
+  max-width: 28rem;
+  padding: var(--space-6) var(--space-7);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface-raised);
+  box-shadow: var(--elevation-overlay);
+}
+
+.ui-toast--brand { --toast-accent: var(--color-brand-solid); }
+.ui-toast--success { --toast-accent: var(--color-status-success-solid); }
+.ui-toast--warning { --toast-accent: var(--color-status-warning-text-strong); }
+.ui-toast--critical { --toast-accent: var(--color-status-critical-solid); }
+.ui-toast--neutral { --toast-accent: var(--color-status-neutral-solid); }
+
+.ui-toast__icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--toast-accent);
+}
+.ui-toast__icon .ui-icon {
+  width: var(--icon-size-md);
+  height: var(--icon-size-md);
+}
+
+.ui-toast__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.ui-toast__title {
+  margin: 0;
+  font-size: var(--font-size-title-section);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.ui-toast__desc {
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-snug);
+  color: var(--color-text-secondary);
+}
+
+.ui-toast__action {
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.ui-toast__close {
+  display: inline-flex;
+  flex-shrink: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+.ui-toast__close:hover { color: var(--color-text-primary); }
+.ui-toast__close:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.ui-toast__close .ui-icon {
+  width: var(--icon-size-md);
+  height: var(--icon-size-md);
+}
+
+/* --- ui-notification-toast ------------------------------------------------ */
+
+.ui-notif-toast {
+  display: flex;
+  align-items: center;
+  gap: var(--space-7);
+  width: 100%;
+  max-width: 28rem;
+  padding: var(--space-6) var(--space-7);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface-raised);
+  box-shadow: var(--elevation-overlay);
+}
+
+.ui-notif-toast__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.ui-notif-toast__title {
+  margin: 0;
+  font-size: var(--font-size-title-section);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.ui-notif-toast__desc {
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-snug);
+  color: var(--color-text-secondary);
+}
+
+/* Actions read left to right with the one you probably want on the right. */
+.ui-notif-toast__actions {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+/* --- The toast region ------------------------------------------------------
+   One fixed container, bottom-right, rather than a fresh positioned div per
+   message. Two notifications in quick succession then stack in the order they
+   were raised instead of printing on top of one another.
+
+   Column-reverse so the newest sits at the bottom, nearest where the eye
+   already is after an action, and older ones ride up out of the way. */
+
+.ui-toast-region {
+  position: fixed;
+  right: var(--layout-gutter);
+  /* Top right, clear of the chrome it reports about.
+     A report belongs where the eye goes back to after an action, and in this
+     product that is the top of the window — the same corner the bell and the
+     avatar sit in. The offset clears the two strips every screen puts there:
+     the app bar (.pt__bar, 3.25rem) and the page head under it (~4rem), which
+     is where the search box and the screen's primary button live. Covering
+     the button someone is about to press again is the one thing a report in
+     this corner must not do. On a screen with neither strip it simply sits a
+     little lower than the gutter. */
+  top: calc(7.25rem + var(--layout-gutter));
+  z-index: var(--z-toast);
+  display: flex;
+  /* Newest nearest the top edge, older ones pushed down under it. */
+  flex-direction: column-reverse;
+  gap: var(--space-4);
+  width: min(26rem, calc(100vw - var(--space-10)));
+  /* The region spans a corner of the window at all times; without this it
+     would swallow clicks aimed at whatever is underneath it. The toasts
+     themselves take their pointer events back. */
+  pointer-events: none;
+}
+
+/* The two live regions inside it are structure for screen readers only; the
+   toasts themselves are the flex items. */
+.ui-toast-region__live { display: contents; }
+.ui-toast-region ui-toast,
+.ui-toast-region ui-notification-toast { pointer-events: auto; }
+
+/* A toast reports on what just happened on screen; on paper it is a floating
+   box over the top corner of the first page, describing an action nobody
+   reading the printout took. Every screen that used to hide its own status
+   line at print time is covered here once. */
+@media print {
+  .ui-toast-region { display: none !important; }
+}

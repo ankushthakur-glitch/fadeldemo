@@ -1,0 +1,116 @@
+/* ============================================================================
+   RESET — flatten browser defaults so the portal starts from a known baseline.
+   Makes no design decisions and uses no tokens.
+
+   This is the patient portal's OWN copy. The portal is deliberately standalone
+   (see patient/README.md): nothing under /css, /js or /screens is loaded here,
+   so the EHR's design system can move without dragging the portal with it.
+   ========================================================================= */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+figure,
+blockquote,
+dl,
+dd,
+ol,
+ul {
+  margin: 0;
+}
+
+ol[role='list'],
+ul[role='list'] {
+  list-style: none;
+  padding: 0;
+}
+
+/* Headings take their size from component classes, not browser defaults. */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+img,
+picture,
+svg,
+video,
+canvas {
+  display: block;
+  max-width: 100%;
+}
+
+input,
+button,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  background: none;
+  border: none;
+  padding: 0;
+}
+
+/* THE PRODUCT IS SET IN ONE TYPEFACE, AND THESE FIVE ARE THE LAST HOLES IN IT.
+   The UA stylesheet hard-codes `font-family: monospace` on every one of them,
+   at a specificity nothing inherits past — so a bare <code> in a screen came
+   out in the platform's mono however carefully the screen was set. It is not
+   the token that was wrong; the declaration simply never reached these tags.
+   The UA also shrinks them to `medium`, which is why the size is put back too.
+
+   `inherit` rather than the token, so a <code> inside a heading, a badge or a
+   table cell takes THAT context's size and face rather than resetting to the
+   body's. Where these need to read as a distinct thing — an ICD code, a
+   message ID — the screens tint them or set them on a ground; see
+   .enc__dx-row code in screen-clinic-visit.css. */
+code,
+kbd,
+samp,
+pre,
+tt {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+/* Respect the OS "reduce motion" setting — also what Playwright leans on for
+   deterministic screenshots. The login carousel checks this in JS too, so it
+   stops advancing rather than just snapping between slides. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

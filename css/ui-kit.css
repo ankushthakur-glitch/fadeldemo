@@ -1,0 +1,63 @@
+/* ============================================================================
+   THE COMPONENT LIBRARY, IN ONE LINK
+
+   Every ui-* component's stylesheet, in one file, so a page can pull the whole
+   library with a single <link> instead of eighteen. Screens that only need a
+   handful still link those directly — this is for the gallery and for any page
+   assembling something new, where guessing the dependency list up front is how
+   you end up with an unstyled control at the bottom of the screen.
+
+   @import rather than a concatenated build because there is no build step
+   here. It costs one round trip per file on first load and nothing after that,
+   which is the right trade for a prototype that has to stay editable.
+
+   Order matters only in that tokens.css must already be in the cascade. Link
+   reset.css, tokens.css and base.css before this file.
+   ========================================================================= */
+
+/* The app bar comes first: it is the furniture every clinician screen hangs
+   under, and <ui-main-nav> paints its tabs. */
+@import url('components/app-bar.css');
+
+@import url('components/button.css');
+@import url('components/indicators.css');
+@import url('components/forms.css');
+@import url('components/select-menu.css');
+@import url('components/alert.css');
+@import url('components/data-table.css');
+@import url('components/pagination.css');
+@import url('components/overlay.css');
+@import url('components/row-menu.css');
+@import url('components/filter.css');
+@import url('components/signature.css');
+@import url('components/time-clock.css');
+
+/* Ported from the Figma component library */
+@import url('components/avatar-group.css');
+@import url('components/breadcrumb.css');
+@import url('components/command-bar.css');
+@import url('components/date-picker.css');
+@import url('components/divider.css');
+@import url('components/file-progress.css');
+@import url('components/flag.css');
+@import url('components/menu.css');
+@import url('components/message.css');
+@import url('components/progress-bar.css');
+@import url('components/spinner.css');
+@import url('components/section-label.css');
+@import url('components/selection-card.css');
+@import url('components/slider.css');
+@import url('components/text-link.css');
+@import url('components/toast.css');
+@import url('components/tooltip.css');
+
+/* Not a ui-* component and not from Figma: the practice letterhead that every
+   screen's printed page carries at the top of it. It lives here because it is
+   furniture the whole product shares — see the file's own header, and
+   js/lib/print-letterhead.js for what builds it. */
+@import url('components/print-letterhead.css');
+
+/* Its other half: the sheet a Download button renders a document into when
+   that document is not the thing already on screen. See
+   js/lib/print-document.js. */
+@import url('components/print-document.css');

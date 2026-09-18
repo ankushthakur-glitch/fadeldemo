@@ -1,0 +1,992 @@
+/* ============================================================================
+   TASK MANAGEMENT (tsk__)
+
+   Five worklists behind one tab strip. Almost everything on this screen is a
+   <ui-data-table>, so what lives here is only the frame around them: the tab
+   strip, the toolbar, the cell shapes the tables do not provide, and the row
+   menu.
+   ========================================================================= */
+
+/* The page header is .ui-page-head in base.css — one band, every screen.
+   Nothing was different about this one, so nothing is redeclared here. */
+
+/* The strip used to be bottom-aligned underline tabs, which needed a margin
+   under the button to line it up and the strip's own rule suppressed so it did
+   not draw a second edge under the header's. Primary tabs are segments centred
+   on the row, so both corrections are gone rather than kept and re-tuned. */
+
+/* The gutter is .ui-list-body in base.css. What is added here is that the
+   open worklist FILLS it: five tab panels, one deep, each holding a table
+   card that has to scroll inside itself. Without this the body sat at its
+   natural height in a shell that clips, and a long worklist ran off the
+   bottom of the window with its last rows unreachable. */
+.tsk__body > div { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.tsk__body > div[hidden] { display: none; }
+/* The gap is for the one worklist that puts anything above its card — the
+   Recalls note. Without it the note's lower edge and the table's upper edge
+   were the same line, and the two read as one box with a rule through it. The
+   other four panels hold a single child, so the gap costs them nothing. */
+.tsk__body > div > div {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+/* --- The task detail panel (tsk__pane) ---------------------------------------
+   A COLUMN OF THE WORKLIST CARD, not a sheet floating over it.
+
+   It began as an overlay pinned to the card's right edge, which put the panel
+   on top of the last three columns: Assigned to, Due and Status disappeared
+   under it, and the pager underneath ran on beneath the panel as if the table
+   were still that wide. The panel now takes its own column INSIDE the card, so
+   the two share one bordered rectangle — the table keeps its full width and
+   scrolls sideways within what is left of it, the pager shortens with it, and
+   the seam between list and detail is a single rule rather than a shadow.
+
+   The negative margin laps the panel's left border over the table's right one
+   so the seam is one hairline and not two. Both are the same colour; the
+   overlap is what stops it reading as a 2px rule where nothing else on the
+   screen has one.
+
+   The row direction is set by a class rather than :has(), because the class is
+   put there by the same line of JavaScript that moves the panel into the open
+   tab — one place deciding one thing. */
+
+.tsk__body > div.tsk__split { flex-direction: row; }
+/* The list side has to be allowed to shrink. Without min-width a flex item
+   floors at the width of its content, and a fifteen-column table's content is
+   very wide indeed — the panel would be pushed off the right of the screen. */
+.tsk__body > div.tsk__split > div { min-width: 0; }
+
+.tsk__pane {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  width: min(27rem, 45%);
+  min-height: 0;
+  overflow: hidden;
+  margin-left: calc(var(--border-width-thin) * -1);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  background-color: var(--color-bg-surface);
+  animation: tsk-pane-in var(--duration-base) var(--ease-out);
+}
+.tsk__pane[hidden] { display: none; }
+
+@keyframes tsk-pane-in {
+  from { transform: translateX(var(--space-9)); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tsk__pane { animation: none; }
+}
+
+/* The one part of the panel that does not scroll: which task this is, and the
+   way out. It wears the header band's own ground, so the strip lines up with
+   the table's header row beside it and the two read as one band across the
+   card rather than as a title bar stuck on top of a box. */
+.tsk__pane-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-shrink: 0;
+  /* Locked to the table header's own height rather than padded to roughly the
+     same size: the th beside it is a fixed --density-head-height box, so any
+     padding-driven height here lands a couple of pixels out and the two bottom
+     rules run at different levels across the card. Border-box means the height
+     swallows the hairline, exactly as it does on the th. */
+  height: var(--density-head-height);
+  padding: 0 var(--space-6);
+  border-bottom: var(--border-width-thin) solid var(--color-border-default);
+  background-color: var(--color-bg-surface-sunken);
+}
+
+.tsk__pane-id {
+  color: var(--color-text-link);
+  font-family: var(--font-family-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+}
+
+.tsk__pane-close {
+  display: inline-flex;
+  margin-left: auto;
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.tsk__pane-close:hover { background-color: var(--color-bg-surface-hover); color: var(--color-text-primary); }
+.tsk__pane-close:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* Everything below the header scrolls as one column: a task with a paragraph
+   of description and six timeline entries is taller than the card, and paging
+   the timeline separately from the facts it belongs to helps nobody. */
+.tsk__pane-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-7) var(--space-6) var(--space-8);
+}
+
+.tsk__pane-title {
+  margin: 0 0 var(--space-7);
+  font-size: var(--font-size-title-card);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-snug);
+  color: var(--color-text-primary);
+}
+
+/* A quiet label with its glyph, used over the description and over the
+   timeline — the two stretches of prose in the panel. Section labels rather
+   than headings because neither is a heading anyone needs to navigate by. */
+.tsk__pane-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+}
+.tsk__pane-label .ui-icon { width: var(--icon-size-sm); height: var(--icon-size-sm); }
+
+.tsk__pane-desc {
+  margin: 0 0 var(--space-7);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-normal);
+}
+
+/* --- The six facts ---------------------------------------------------------
+   One bordered block with hairlines between the rows, not six loose pairs. The
+   facts are read as a set — who owns it, when it is due, which patient — and a
+   frame around them says so, as well as keeping the three editable rows
+   visibly inside the same object as the three that are not. */
+
+.tsk__facts {
+  margin: 0 0 var(--space-7);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.tsk__fact {
+  display: grid;
+  grid-template-columns: 8.5rem minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-4);
+  min-height: var(--control-height-md);
+  padding: var(--space-4) var(--space-5);
+}
+.tsk__fact + .tsk__fact { border-top: var(--border-width-thin) solid var(--color-border-subtle); }
+
+.tsk__fact-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-fact-label);
+}
+.tsk__fact-label .ui-icon {
+  width: var(--icon-size-md);
+  height: var(--icon-size-md);
+  color: var(--color-text-tertiary);
+}
+
+.tsk__fact-value {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-fact-value);
+  font-weight: var(--font-weight-medium);
+}
+
+/* The three facts that can be changed from here wear a caret. It is the whole
+   value that is the button, not a separate control beside it: the target is
+   then the thing you were already looking at, and a row that cannot be edited
+   simply has no caret rather than a greyed one. */
+.tsk__fact-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  max-width: 100%;
+  margin: calc(var(--space-2) * -1) calc(var(--space-3) * -1);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.tsk__fact-edit:hover { background-color: var(--color-bg-surface-hover); }
+.tsk__fact-edit:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* The caret alone, not every glyph in the button — the Priority row holds its
+   own mark in here too, and a rule on `.ui-icon` greyed the one thing in the
+   panel whose colour is carrying meaning. */
+.tsk__fact-caret {
+  flex-shrink: 0;
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+  color: var(--color-text-tertiary);
+}
+
+/* The priority mark, beside the ID in the header and inside the Priority row.
+   Shape carries the meaning (see the icon sprite); the colour is a second
+   channel on top of it, never the only one. */
+.tsk__prio {
+  display: inline-flex;
+  flex-shrink: 0;
+  width: var(--icon-size-lg);
+  height: var(--icon-size-lg);
+}
+.tsk__prio--critical { color: var(--color-status-critical-solid); }
+.tsk__prio--warning { color: var(--color-status-warning-solid); }
+.tsk__prio--neutral { color: var(--color-text-tertiary); }
+
+/* --- The two actions -------------------------------------------------------
+   Side by side and equal width, because they are the two things this panel
+   exists to let you do. The primary one changes with the task's status: an
+   open task offers Start, one in progress offers Complete, and a finished one
+   offers to reopen — the button says what happens next rather than listing
+   every state the task could be moved to. */
+
+.tsk__pane-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5);
+  margin-bottom: var(--space-8);
+}
+.tsk__pane-actions ui-button { display: block; }
+
+/* --- Timeline ----------------------------------------------------------------
+   Same construction as the claim history on Billing: a round mark per entry
+   with the connector drawn between them, so it stops after the last one rather
+   than trailing into white space. The mark holds a glyph here because the
+   panel's whole point is telling apart what the system did from what a
+   colleague did. */
+
+.tsk__tl { display: flex; flex-direction: column; }
+
+.tsk__tl-item {
+  position: relative;
+  padding: 0 0 var(--space-7) var(--space-10);
+}
+.tsk__tl-item:last-child { padding-bottom: 0; }
+
+.tsk__tl-mark {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-9);
+  height: var(--space-9);
+  border-radius: var(--radius-full);
+  background-color: var(--color-bg-surface-sunken);
+  color: var(--color-text-tertiary);
+}
+.tsk__tl-mark .ui-icon { width: var(--icon-size-sm); height: var(--icon-size-sm); }
+.tsk__tl-mark--person {
+  background-color: var(--color-brand-surface);
+  color: var(--color-text-brand);
+}
+
+/* The connector runs from one mark to the next, so the last item has none. */
+.tsk__tl-item:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  left: calc(var(--space-9) / 2 - 0.5px);
+  top: var(--space-9);
+  bottom: var(--space-2);
+  width: 1px;
+  background-color: var(--color-border-subtle);
+}
+
+.tsk__tl-text {
+  padding-top: var(--space-2);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-body-sm);
+  line-height: var(--line-height-normal);
+}
+.tsk__tl-when {
+  margin-top: var(--space-1);
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-2xs);
+}
+
+/* What the person moving the task had to say about it, under the step it
+   belongs to. Indented behind a rule and set apart from the fixed phrase above
+   it, because the two are different kinds of statement: "A. Mensah completed
+   this task" is the system reporting, and this is a person talking. */
+.tsk__tl-comment {
+  margin-top: var(--space-2);
+  padding-left: var(--space-3);
+  border-left: 2px solid var(--color-border-subtle);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-body-sm);
+  line-height: var(--line-height-normal);
+  white-space: pre-wrap;
+}
+
+/* --- The panel's two lists -------------------------------------------------
+   TIMELINE AND COMMENTS, behind a switch rather than stacked.
+
+   The panel is a column, and everything in it is already a scroll: six facts,
+   two buttons, then the trail. Adding a thread underneath would have put the
+   one thing people open a task to read — what was last said about it — below
+   everything else in the panel, on the tasks where the trail is longest.
+
+   The switch takes the SECONDARY shape, the pill on a sunk track the Orders
+   sub-tabs and the Scheduler's Unsigned / Signed wear, because the primary
+   strip is already on this screen above the worklist behind it. The two tabs
+   split the track evenly: there are two of them, they are read as a pair, and
+   a ragged pair in a narrow column reads as one tab with something after it.
+
+   NO COUNT ON THE TAB. <ui-tabs> does not draw one and this does not want one
+   — see the note in js/components/ui-tabs.js: a tab is a place, and the thread
+   itself answers "how many" the moment it opens. */
+
+.tsk__pane-tabs { margin-bottom: var(--space-6); }
+
+.tsk__pane-tabs .ui-tabs {
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+}
+
+.tsk__pane-tabs .ui-tabs__tab {
+  /* Half the track each, and the button short so the GROUP comes to the
+     standard small-control height — the track is the control, the tabs inside
+     it are its parts. Same measure as .tsk__subtabs. */
+  flex: 1;
+  justify-content: center;
+  min-height: calc(
+    var(--control-height-sm) - var(--space-1) * 2 - var(--border-width-thin) * 2
+  );
+  padding: 0 var(--space-5);
+  border: var(--border-width-thin) solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-body-sm);
+  font-weight: var(--font-weight-medium);
+}
+.tsk__pane-tabs .ui-tabs__tab:hover { color: var(--color-text-primary); }
+
+.tsk__pane-tabs .ui-tabs__tab--selected,
+.tsk__pane-tabs .ui-tabs__tab--selected:hover {
+  border-color: var(--color-border-subtle);
+  background-color: var(--color-bg-surface);
+  color: var(--color-text-brand);
+}
+
+/* --- The thread -------------------------------------------------------------
+   A face, a name, a time and the words — the shape every issue tracker uses,
+   and the one nobody has to be taught. The avatar column is what makes a run
+   of comments scannable by WHO rather than by reading each one: the box you
+   write in wears your own face in the same column, so it reads as your entry
+   waiting to be written rather than as a form above a list. */
+
+.tsk__cmt-new {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-4);
+  margin-bottom: var(--space-7);
+}
+.tsk__cmt-field { min-width: 0; }
+
+/* COLLAPSED TO ONE LINE until somebody is in it — see the note on
+   commentComposer(). The height is animated rather than swapped so the thread
+   below slides out of the way instead of jumping, and the grab handle only
+   appears once there is a box worth resizing. */
+.tsk__cmt-new .ui-input__control {
+  min-height: var(--space-9);
+  height: var(--space-9);
+  resize: none;
+  transition: height var(--duration-fast) ease;
+}
+.tsk__cmt-new--open .ui-input__control {
+  height: calc(var(--space-11) * 2);
+  resize: vertical;
+}
+
+/* The buttons come with the box. A Comment button standing under a line
+   nobody has typed in is a control that cannot do anything yet, and the
+   shortcut beside it is an instruction for a box that is not open. */
+.tsk__cmt-send { display: none; }
+
+.tsk__cmt-new--open .tsk__cmt-send {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}
+
+.tsk__cmt-hint {
+  margin-right: auto;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-2xs);
+}
+/* The keys as keys. A shortcut set in the body face reads as prose and gets
+   skipped; in a key cap it is read as something to press. */
+.tsk__cmt-hint kbd {
+  padding: 0 var(--space-2);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-bg-surface-sunken);
+  font-family: inherit;
+  font-size: inherit;
+}
+
+/* How many, and which way round. Newest first is right for a column this
+   narrow and wrong from what a reader expects of a conversation, so the thread
+   says so rather than leaving it to be inferred from the stamps. */
+.tsk__cmt-count {
+  margin: 0 0 var(--space-5);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-medium);
+}
+.tsk__cmt-count span {
+  color: var(--color-text-tertiary);
+  font-weight: var(--font-weight-regular);
+}
+
+.tsk__cmts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+/* EACH COMMENT IS AN OBJECT, not a paragraph in a run of them. Flat text under
+   a name was legible one comment at a time and a wall at four: nothing said
+   where one person stopped and the next began, so the eye had to read the
+   names to find the edges. A quiet fill and a radius do that work instead, and
+   your own comments take the brand tint — the cheapest way to find your last
+   word in a thread is that it is the differently coloured one. */
+.tsk__cmt {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-4);
+}
+
+.tsk__cmt-body {
+  min-width: 0;
+  padding: var(--space-5) var(--space-6);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+}
+.tsk__cmt--own .tsk__cmt-body { background-color: var(--color-brand-surface-subtle); }
+
+.tsk__cmt-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+.tsk__cmt-who {
+  color: var(--color-text-primary);
+  font-size: var(--font-size-body-sm);
+  font-weight: var(--font-weight-semibold);
+}
+.tsk__cmt-when {
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-2xs);
+}
+
+/* pre-wrap, for the same reason the trail's comment keeps it: somebody who
+   pressed Enter twice meant two paragraphs, and a thread that reflows them
+   into one is a thread that edits what people said. */
+.tsk__cmt-text {
+  margin-top: var(--space-2);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-body-sm);
+  line-height: var(--line-height-normal);
+  white-space: pre-wrap;
+}
+
+/* The invitation, with the glyph the tab it sits behind is named for. */
+.tsk__cmt-empty {
+  display: flex;
+  gap: var(--space-4);
+  margin: 0;
+  padding: var(--space-6);
+  border: var(--border-width-thin) dashed var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-body-sm);
+  line-height: var(--line-height-normal);
+}
+.tsk__cmt-empty .ui-icon {
+  flex: none;
+  width: var(--icon-size-md);
+  height: var(--icon-size-md);
+  margin-top: var(--space-1);
+}
+
+/* The task this step dialog is about, above the comment box — the dialog is
+   opened from a row menu as often as from the panel, and from a row menu
+   nothing else on screen says which task is being moved. */
+.tsk__step-subject {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-body-sm);
+  line-height: var(--line-height-normal);
+}
+
+/* --- The header's controls -----------------------------------------------------
+   The search box and the filter panel live in the page header now, in the
+   action slot every other worklist in the EHR keeps them in — see the comment
+   in tasks.html. The panel itself is <ui-filter>, the same control every list
+   in the product uses; all this screen sets is how wide its search box is. */
+
+.tsk__search-host ui-input { width: 18rem; }
+
+/* Future-dated is a box in the filter panel now, with the rest of them — it
+   hides rows, so it is a filter and counts towards the badge like one. The
+   filter-shaped toggle it used to be is gone. */
+
+/* --- Sub-tabs (Orders) ------------------------------------------------------------
+   The switch between Lab orders and E-prescriptions: the SECONDARY level,
+   inside the section the primary strip opened. It used to be two buttons of
+   this screen's own wearing role="tab" — a private copy of a shape the
+   product already has, and one that answered none of the keys the tabs
+   pattern promises. It is a <ui-tabs> now, and what is left here is only the
+   shape the host gives it.
+
+   A PILL ON A SUNK TRACK, the same switch as the Scheduler's Unsigned /
+   Signed and deliberately NOT the divided box the header strip wears: two
+   segmented strips of the same shape stacked would read as one level, and the
+   eye could not tell which of them moved it further. See the note on the two
+   levels in js/components/ui-tabs.js. */
+
+/* The band the switch sits in, inside the card's top edge. Tighter than the
+   card's own padding would be on all three sides: this is not content inside
+   the panel, it is the panel's own control, and a full gutter around it makes
+   it float in a band rather than read as the top of the table. The same
+   measure the encounters queue uses (.sch__subtabs). */
+.tsk__subtabs {
+  flex: none;
+  display: flex;
+  align-items: center;
+  margin: var(--space-5) var(--space-6);
+}
+
+.tsk__subtabs .ui-tabs {
+  width: fit-content;
+  max-width: 100%;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+}
+
+.tsk__subtabs .ui-tabs__tab {
+  /* The BUTTON is short so the GROUP comes to the standard small-control
+     height — the track is the control here, the tabs inside it are its
+     parts. */
+  min-height: calc(
+    var(--control-height-sm) - var(--space-1) * 2 - var(--border-width-thin) * 2
+  );
+  padding: 0 var(--space-6);
+  /* Transparent on every tab, coloured on the open one: a border that
+     appeared only when a tab was chosen would widen it by two pixels and
+     shove its neighbour sideways under the pointer that just clicked it. */
+  border: var(--border-width-thin) solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
+}
+
+.tsk__subtabs .ui-tabs__tab:hover { color: var(--color-text-primary); }
+
+/* The fill and the ink say which one is open — the weight does not, for the
+   reason above: a heavier word is a wider tab. */
+.tsk__subtabs .ui-tabs__tab--selected,
+.tsk__subtabs .ui-tabs__tab--selected:hover {
+  border-color: var(--color-border-subtle);
+  background-color: var(--color-bg-surface);
+  color: var(--color-text-brand);
+}
+
+/* --- Table shell ------------------------------------------------------------------
+   ONE CARD SHAPE, FIVE WORKLISTS, AND IT IS A ROUNDED ONE.
+
+   The worklist card in base.css is square-cornered, for a reason that is
+   explained at length in components/data-table.css: the wrap used to carry the
+   radius itself, `overflow: auto` clipped the sticky header band to it, and
+   the first and last header cells arrived a different shape from the rest of
+   the row. Giving the corners up was the cheap way out of that.
+
+   The radius lives on the CARD here instead of on the wrap, and the card is
+   not the scroll container — the wrap inside it still is, so the header stays
+   stuck to the top of the rows while this element merely clips what pokes out
+   of its corners. Nothing about the band changes as the table scrolls under
+   it: the header is always at the top of the wrap, so its two outer cells are
+   always the same rounded shape, and the seam the old rule was avoiding never
+   forms. The pager below is clipped by the same box, so the table above it and
+   the footer under it close into one rounded rectangle rather than a square
+   one — which is the shape everything else on this screen already has.
+
+   Said once, for all five tabs. Each panel used to be free to be whatever its
+   painter drew, and the corners were the one thing that showed it: Recalls put
+   an alert with --radius-md above a square card, and Orders put a pill-shaped
+   sub-tab track above one. Both now sit over a card of the same curve.
+   ---------------------------------------------------------------------------- */
+
+/* The rounded, clipping card this screen used to declare for itself is
+   .ui-table-card in base.css now — every list in the product has the curve,
+   said in one place. Nothing left to add here. */
+
+/* ORDERS: THE SWITCH LIVES INSIDE THE CARD.
+
+   Lab orders / E-prescriptions used to be a pill track floating on the page
+   above a bordered, rounded table — a rounded thing over a rounded thing, with
+   a gap and two edges between them, which reads as two objects that happen to
+   be stacked rather than as a switch belonging to the rows it changes.
+
+   This is the encounters queue's shape (.sch__card in screen-scheduler.css):
+   one border and one radius around the switch, the rows and the pager
+   together. The children give their own frames up to it — the table's wrap
+   loses its border entirely, the pager keeps only the rule that separates it
+   from the last row — so no child has to know which corner of the card it is
+   sitting in. `overflow: hidden` is what clips them to the curve, and it is
+   safe over a sticky header for the reason set out above: the card is not the
+   scroll container, the wrap inside it is.
+
+   Only Orders needs this, because only Orders has a second level to switch
+   between. The other four worklists are one list each and their table is the
+   card. */
+.tsk__card {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+}
+
+/* The inner panel is still .ui-table-card — it wants the flex column that
+   welds the table to its footer — but the corners and the frame are the outer
+   card's now, so it gives both up. */
+.tsk__card .ui-table-card {
+  border-radius: 0;
+  overflow: visible;
+}
+
+.tsk__card .ui-table-wrap {
+  border: none;
+  border-radius: 0;
+}
+
+/* The pager keeps the one rule that matters — the line against the last row —
+   and loses the rest of its box to the card. */
+.tsk__card .ui-pager {
+  border: none;
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: 0;
+}
+
+/* SPLIT: the card and the detail panel are ONE rounded object.
+
+   With a task open the worklist gives up its right-hand corners and the panel
+   beside it takes them, so the curve runs round the outside of the pair and
+   the seam between them stays the single hairline the negative margin makes.
+   Two separately rounded boxes touching would draw four corners down the
+   middle of the card and read as a table with a floating sheet parked on it —
+   which is the reading the panel was moved inside the card to stop. */
+.tsk__body > div.tsk__split .ui-table-card {
+  border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+}
+.tsk__pane {
+  border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+}
+
+
+
+/* --- Cell shapes -------------------------------------------------------------------
+   Two-line cells: the thing, and the one fact that stops you having to open
+   it. Both use the same shape so a row scans the same on every tab. */
+
+/* THE PATIENT CELL — initials, name, and the identity line beneath it.
+
+   Laid out across rather than down, because the avatar sits beside the two
+   lines it belongs to rather than above them. It is the same shape the
+   encounters queue draws (.sch__vn-patient in screen-scheduler.css); the two
+   stayed the same by being written the same way, not by coincidence, and a
+   change to one is a change worth making to both.
+
+   The text column takes `min-width: 0` so a long name ellipsises inside the
+   column instead of forcing the column wider — without it a flex child refuses
+   to shrink below its content and one Nicholas Clausnitzer pushes every other
+   column along the row. */
+.tsk__patient { display: flex; align-items: center; gap: var(--space-4); }
+.tsk__patient-text { min-width: 0; display: flex; flex-direction: column; gap: var(--space-1); }
+
+/* The name is a link into the chart, so it is coloured like one — but it is
+   also a table cell, and an underline on every row would draw eleven of them
+   down the column. It appears on hover, where it means something. */
+.tsk__patient-name {
+  display: block;
+  color: var(--color-text-link);
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tsk__patient-name:hover { text-decoration: underline; }
+
+/* Date of birth, age and sex — the three facts that tell two patients with the
+   same name apart. */
+.tsk__patient-sub {
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+}
+
+.tsk__subject { display: flex; flex-direction: column; gap: var(--space-1); }
+
+/* The same shape where the top line is a badge rather than words. It packs to
+   the left rather than stretching, because a column that stretches its child
+   would draw a pill the full width of the Status column. */
+.tsk__status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+}
+
+.tsk__subject strong { font-weight: var(--font-weight-medium); color: var(--color-text-primary); }
+
+.tsk__mrn,
+.tsk__detail {
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-tertiary);
+}
+
+.tsk__mrn { font-family: var(--font-family-numeric); font-variant-numeric: tabular-nums; }
+
+/* IDs are how a row is referred to out loud and in a phone call, so they read
+   as identifiers rather than prose. */
+.tsk__id {
+  color: var(--color-text-link);
+  font-family: var(--font-family-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: inherit;
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+}
+.tsk__id:hover { text-decoration: underline; }
+.tsk__id:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--radius-sm); }
+
+.tsk__due { font-family: var(--font-family-numeric); font-variant-numeric: tabular-nums; }
+
+/* A dot before the source, as in the reference — the label alone in a column
+   of labels does not separate "the system did this" from "a person did". */
+/* Layout comes from <ui-status-dot>; only the tone colours are still ours. */
+.tsk__source--brand { color: var(--color-text-brand); }
+.tsk__source--success { color: var(--color-status-success-text); }
+.tsk__source--neutral { color: var(--color-text-tertiary); }
+
+.tsk__row-buttons { display: inline-flex; gap: var(--space-3); justify-content: flex-end; }
+
+/* --- Row action and menu -------------------------------------------------------- */
+
+
+/* Body-parented and positioned by JS, so the table's own overflow cannot clip
+   it — the same pattern the chart and scheduler row menus use. */
+.tsk__dropdown {
+  position: absolute;
+  z-index: var(--z-dropdown);
+  min-width: 11rem;
+  padding: var(--space-3);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+  box-shadow: var(--elevation-overlay);
+}
+
+.tsk__dropdown-item {
+  display: block;
+  width: 100%;
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-body);
+  text-align: left;
+  cursor: pointer;
+}
+.tsk__dropdown-item:hover { background-color: var(--color-bg-surface-hover); }
+.tsk__dropdown-item--danger { color: var(--color-status-critical-text); }
+.tsk__dropdown-item--danger:hover { background-color: var(--color-status-critical-surface); }
+
+/* --- Dialogs ---------------------------------------------------------------------- */
+
+.tsk__form { display: grid; gap: var(--space-6); }
+.tsk__pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-6); }
+
+.tsk__form-error {
+  margin: 0;
+  font-size: var(--font-size-body-sm);
+  color: var(--color-status-critical-text);
+}
+.tsk__form-error[hidden] { display: none; }
+
+.tsk__confirm { margin: 0; font-size: var(--font-size-body-sm); color: var(--color-text-secondary); }
+
+/* The picker and its one-click shortcut share a row, the two boxes level
+   with each other: that alignment is what makes the row read as one control
+   with a shortcut rather than two things that happen to sit side by side.
+
+   The offset is measured rather than eyeballed — one label line plus the
+   .ui-field gap is exactly how far the control sits below the top of the
+   field. The house pattern elsewhere is align-items: flex-end, which is the
+   same thing until the field grows an error message underneath, at which
+   point the button slides down to sit beside the error instead of beside
+   the box it belongs to. This one does not move. */
+.tsk__recipients-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+.tsk__recipients-row ui-select { flex: 1; min-width: 0; }
+.tsk__recipients-row ui-button {
+  margin-top: calc(var(--font-size-label) * var(--line-height-caption) + var(--space-2));
+}
+
+/* NO RECIPIENT CHIPS. The picker takes several names, and shows them itself:
+   select-menu.js draws a face over the multiple <select> reading back what has
+   been ticked, so a chip row underneath would say the same thing twice.
+
+   WHAT IS UNDERNEATH INSTEAD is the one thing the field cannot say — that two
+   names mean two tasks. It is drawn from the second recipient on (see
+   paintFanout() in tasks.js) and carries no line of its own when it is not
+   there: `hidden` takes it out of the field's flex flow, gap and all, so a
+   dialog with one recipient in it has no gap held open for a sentence that
+   is not being said.
+
+   Caption-sized and tertiary, the same weight as a field hint, because it is
+   one: a consequence of the answer above it, not a warning about it. */
+.tsk__fanout {
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-caption);
+  color: var(--color-text-tertiary);
+}
+
+/* --- Segmented priority ----------------------------------------------------
+   Three answers, three buttons. The controls underneath are real radios in a
+   real fieldset — arrow keys, "2 of 3", and the mutual exclusion all come
+   from the browser — and everything here is paint over the top of them. The
+   input is not display:none, which would take it out of the focus order:
+   it is a zero-opacity box the size of nothing, still focusable, with the
+   ring drawn on the <span> that stands in for it.
+
+   The chosen segment carries the same tone the priority badge carries in the
+   worklist, so the colour a task will wear is the colour you pick it in. */
+.tsk__seg { border: none; padding: 0; margin: 0; min-width: 0; }
+
+.tsk__seg-track {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+}
+
+.tsk__seg-item {
+  flex: 1;
+  position: relative;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.tsk__seg-item input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.tsk__seg-item span {
+  display: block;
+  padding: var(--space-3) var(--space-2);
+  border-radius: var(--radius-sm);
+  text-align: center;
+  font-size: var(--font-size-body-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tsk__seg-item:hover span { background-color: var(--color-bg-surface-hover); }
+.tsk__seg-item input:focus-visible + span { outline: none; box-shadow: var(--focus-ring); }
+
+.tsk__seg-item input:checked + span {
+  background-color: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  box-shadow: var(--shadow-xs);
+}
+.tsk__seg-item[data-tone='warning'] input:checked + span {
+  background-color: var(--color-status-warning-surface);
+  color: var(--color-status-warning-text-strong);
+}
+.tsk__seg-item[data-tone='critical'] input:checked + span {
+  background-color: var(--color-status-critical-surface);
+  color: var(--color-status-critical-text);
+}
+
+.tsk__checks {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+  gap: var(--space-4);
+  max-height: 14rem;
+  overflow-y: auto;
+  padding: var(--space-4);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.tsk__check {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  font-size: var(--font-size-body-sm);
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+
+/* Tests has no <ui-select> to carry its own disabled look, so the patient-
+   first gate (tasks.js: gatePatientFirst) applies one by hand. */
+.tsk__checks--disabled {
+  opacity: 0.55;
+  background-color: var(--color-bg-surface-sunken);
+}
+.tsk__checks--disabled .tsk__check { cursor: not-allowed; }
+
+@media (max-width: 900px) {
+  .tsk__head { flex-wrap: wrap; gap: var(--space-4); }
+  .tsk__search-host ui-input { width: 100%; }
+  .tsk__pair { grid-template-columns: minmax(0, 1fr); }
+  .tsk__recipients-row { flex-wrap: wrap; }
+  .tsk__recipients-row ui-select { flex-basis: 100%; }
+  .tsk__recipients-row ui-button { margin-top: 0; }
+  .tsk__body { padding: var(--space-6) var(--space-5) var(--space-8); }
+}

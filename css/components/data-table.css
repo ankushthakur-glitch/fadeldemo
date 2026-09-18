@@ -1,0 +1,226 @@
+/* ============================================================================
+   ui-data-table — the centrepiece of every worklist screen.
+   Sticky header, 36px rows at compact density, tight cells, sortable columns,
+   row selection, and truncation rather than wrapping.
+   ========================================================================= */
+
+ui-data-table { display: block; min-width: 0; }
+
+/*
+ * SQUARE CORNERS, AND THE HEADER IS WHY.
+ *
+ * The wrap used to carry --radius-lg, and `overflow: auto` clipped the sticky
+ * header band to it — so the first column's header cell arrived with a rounded
+ * top-left corner and the last with a rounded top-right, while every other
+ * cell in that band was square. A header row is one band across the table;
+ * two of its cells being a different shape from the rest is a seam, and it is
+ * the most-looked-at row on the screen.
+ *
+ * Rounding one corner of a data grid also fights what the grid is: a ruled
+ * rectangle of rows and columns whose whole legibility comes from its edges
+ * lining up.
+ *
+ * None of which means the CARD is square. .ui-table-card in base.css carries
+ * --radius-lg and clips the wrap and the pager to it, so the object as a whole
+ * is a rounded rectangle while the header band inside it stays one shape all
+ * the way across — the curve is applied once, to the box that draws no rows,
+ * instead of separately to two boxes that do.
+ */
+.ui-table-wrap {
+  position: relative;
+  overflow: auto;
+  background-color: var(--color-bg-surface);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.ui-table {
+  width: 100%;
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-snug);
+}
+
+/* --- Header ---------------------------------------------------------------- */
+
+.ui-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  height: var(--density-head-height);
+  background-color: var(--color-bg-table-head);
+  border-bottom: var(--border-width-thin) solid var(--color-border-default);
+  padding: 0 var(--density-cell-padding-x);
+  text-align: left;
+  /* MediNova sets column headers in sentence case at body size — not the
+     uppercase micro-label many systems use. Matching the file. */
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  letter-spacing: var(--letter-spacing-normal);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+/* The select column now draws the shared .ui-choice__box, so the only thing
+   left for this file to say is where it sits: middle-aligned against the row
+   rather than baseline-aligned, which is where an inline-flex box lands and
+   reads as a tick floating above the rule. */
+.ui-table__check { vertical-align: middle; cursor: pointer; }
+
+.ui-table__sort {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+}
+
+.ui-table__sort:hover { color: var(--color-text-primary); }
+.ui-table__sort:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.ui-table__sort .ui-icon {
+  width: var(--icon-size-xs);
+  height: var(--icon-size-xs);
+  color: var(--color-text-tertiary);
+}
+/* The active sort direction is announced by aria-sort on the <th>; we read it
+   from there to tint the icon, so markup and styling stay in step. */
+th[aria-sort='ascending'] .ui-table__sort .ui-icon,
+th[aria-sort='descending'] .ui-table__sort .ui-icon { color: var(--color-brand-text); }
+
+/* --- Body ------------------------------------------------------------------ */
+
+.ui-table tbody td {
+  height: var(--density-row-height);
+  padding: var(--density-cell-padding-y) var(--density-cell-padding-x);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+  color: var(--color-text-primary);
+  vertical-align: middle;
+  /* Rows stay one line tall. A wrapped cell silently breaks the row rhythm,
+     which is the thing that makes a long worklist scannable. Long values
+     truncate instead — see .ui-table__cell--truncate. */
+  white-space: nowrap;
+}
+
+.ui-table tbody tr:last-child td { border-bottom: none; }
+.ui-table tbody tr:hover td { background-color: var(--color-bg-surface-hover); }
+
+.ui-table tbody tr[aria-selected='true'] td {
+  background-color: var(--color-bg-surface-selected);
+}
+
+/* Keyboard row navigation — the focused row is outlined, not just tinted. A
+   hairline rather than a 2px band, to match the ring on every other control;
+   the tint carries the rest of the signal across a full-width row. */
+.ui-table tbody tr:focus-visible {
+  outline: var(--border-width-thin) solid var(--color-border-focus);
+  outline-offset: calc(-1 * var(--border-width-thin));
+}
+.ui-table tbody tr:focus-visible td { background-color: var(--color-bg-surface-selected); }
+
+/* Long values truncate; pair with title="…" so the full text stays reachable. */
+.ui-table__cell--truncate {
+  max-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The opt-in escape from the single-line default above — a postal address,
+   a clinic name with its fax number underneath. `height` on a table cell is
+   a floor, not a ceiling, so the row simply grows to fit; every other cell
+   in it stays vertically centred against the taller one. */
+.ui-table__cell--wrap { white-space: normal; }
+
+/* Numeric columns right-align and use tabular figures so digits line up. */
+.ui-table__cell--numeric {
+  text-align: right;
+  font-family: var(--font-family-numeric);
+  font-variant-numeric: tabular-nums;
+}
+
+.ui-table__cell--actions { width: var(--space-11); text-align: right; }
+
+/*
+ * A column that should take its content's width and no more.
+ *
+ * `width: 1%` is the table-layout idiom for "as narrow as you can make it":
+ * an auto-laid-out table treats a percentage smaller than the content as a
+ * floor, shrinks the column to the content, and hands the slack to the
+ * columns that have something to say with it.
+ *
+ * It exists because of what auto layout does with the OPPOSITE case. A
+ * truncating column carries `max-width: 0`, which reads as "give me nothing
+ * and I will ellipsise" — so the free width lands on whichever column has
+ * neither, and on the Locations table that was a 32px colour swatch sitting
+ * in 200px of nothing while the address beside it truncated mid-word. A
+ * swatch, a toggle, a status pill and a date are all fixed-size things; say
+ * so, and the text gets the room.
+ */
+.ui-table__cell--narrow { width: 1%; white-space: nowrap; }
+
+/* Sticky first column for wide clinical tables. */
+.ui-table--sticky-first td:first-child,
+.ui-table--sticky-first th:first-child {
+  position: sticky;
+  left: 0;
+  z-index: var(--z-sticky);
+  background-color: var(--color-bg-surface);
+  border-right: var(--border-width-thin) solid var(--color-border-subtle);
+}
+.ui-table--sticky-first thead th:first-child {
+  z-index: calc(var(--z-sticky) + 1);
+  background-color: var(--color-bg-table-head);
+}
+
+/* --- Empty / loading / error states ---------------------------------------- */
+
+.ui-table__state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-10) var(--space-6);
+  text-align: center;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-body);
+}
+
+.ui-table__state .ui-icon {
+  width: var(--icon-size-lg);
+  height: var(--icon-size-lg);
+  color: var(--color-text-tertiary);
+}
+
+.ui-table__state--error { color: var(--color-status-critical-text); }
+
+/* Skeleton shimmer for the loading state. */
+.ui-table__skeleton-stack {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.ui-table__skeleton {
+  height: var(--space-6);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-bg-surface-active);
+  animation: ui-pulse var(--duration-base) var(--ease-in-out) infinite alternate;
+}
+
+@keyframes ui-pulse {
+  to { opacity: 0.45; }
+}
+
+/* --- Toolbar ---------------------------------------------------------------
+   Pagination is components/pagination.css — a footer under the table, not
+   part of the table component. */
+
+.ui-table__toolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+}
+

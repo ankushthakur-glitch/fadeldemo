@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Payment History — MediNova Clinic Patient Portal</title>
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="css/reset.css" />
+    <link rel="stylesheet" href="css/tokens.css" />
+    <link rel="stylesheet" href="css/base.css" />
+    <link rel="stylesheet" href="css/components.css" />
+    <link rel="stylesheet" href="css/shell.css" />
+    <link rel="stylesheet" href="css/select-menu.css" />
+    <link rel="stylesheet" href="css/screen-billing.css" />
+
+    <script src="js/guard.js"></script>
+    <script type="module" src="js/screens/billing-payment-history.js"></script>
+    <script type="module" src="js/lib/select-menu.js"></script>
+    <script type="module" src="js/comments.js"></script>
+    <script src="js/open-me-properly.js"></script>
+  </head>
+
+  <body class="pp-app">
+    <header class="pp-topbar" id="topbar"></header>
+
+    <div class="pp-body">
+      <nav class="pp-side pp-scroll" id="sidenav" aria-label="Portal sections"></nav>
+
+      <main class="pp-main">
+        <div class="pp-content pp-content--fill pp-billing">
+          <h1 class="pp-sr-only">Payment History</h1>
+
+          <!-- Statements / Payment History. Drawn by lib/billing-tabs.js,
+               which owns the list. Cards and Insurance were tabs here once and
+               are Profile tabs now — see lib/profile-tabs.js. -->
+          <div id="tabs"></div>
+
+          <div class="pp-table-wrap pp-scroll">
+            <table class="pp-table" data-testid="payments--table">
+              <caption class="pp-sr-only">Payments taken on your account</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Process Date</th>
+                  <th scope="col">Note</th>
+                  <th scope="col">Amount</th>
+                  <th scope="col">Status</th>
+                </tr>
+              </thead>
+              <tbody id="rows"></tbody>
+            </table>
+          </div>
+
+          <!-- The pager. Drawn by lib/pagination.js, which owns the page
+               maths and the wording; this is only where it goes. -->
+          <div id="foot"></div>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MediNova EHR — Complications Tracker</title>
+    <link rel="icon" type="image/svg+xml" href="../assets/img/favicon.svg" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="../css/reset.css" />
+    <link rel="stylesheet" href="../css/tokens.css" />
+    <link rel="stylesheet" href="../css/base.css" />
+    <link rel="stylesheet" href="../css/ui-kit.css" />
+    <link rel="stylesheet" href="../css/screen-patient.css" />
+    <link rel="stylesheet" href="../css/screen-complications.css" />
+
+    <script type="module" src="../js/main.js"></script>
+    <script type="module" src="../js/screens/complications.js"></script>
+    <script src="../js/open-me-properly.js"></script>
+  </head>
+
+  <body class="pt cx">
+    <header class="pt__bar">
+      <img class="pt__logo" src="../assets/img/medinova-logo.svg" width="158" height="32"
+        alt="MediNova Gastroenterology Clinic" />
+      <ui-main-nav active="complications"></ui-main-nav>
+      <div class="pt__bar-actions">
+        <ui-time-clock></ui-time-clock>
+        <button type="button" class="pt__icon-action" aria-label="Notifications">
+          <svg class="ui-icon" aria-hidden="true"><use href="#i-bell"></use></svg>
+        </button>
+        <ui-avatar name="Amara Mensah" size="sm"></ui-avatar>
+      </div>
+    </header>
+
+    <div class="ui-page-head ui-page-head--flush cx__head">
+      <!-- The same bare band the patient directory carries: a title on the
+           left, the screen's controls on the right, and nothing else. The
+           subject mark and the strapline that used to sit here were saying
+           what the title already says, and they made this one section's head
+           taller than every other section's for no gain. -->
+      <div class="ui-page-head__lead">
+        <h1 class="ui-page-head__title">Complications Tracker</h1>
+      </div>
+
+      <div class="ui-page-head__actions">
+        <!-- THE FILTERS LIVE BEHIND THIS FUNNEL, the way Inventory's usage
+             report and Billing's claim list do. Five controls in a bar above
+             a three-card summary and an eight-column table pushed the first
+             complication below the fold — and this is a log that is read,
+             not one that is configured.
+
+             The button carries its own state. A funnel that is actually
+             narrowing the list has to look different from one merely offered,
+             or rows go missing with nothing on screen saying why — which
+             matters more here than anywhere, because the count and the rate
+             above the table move with it. -->
+        <ui-filter id="cxFilter" label="Filters" panel-label="Filter complications"
+          width="19rem" data-testid="cx--filter">
+          <ui-filter-fields name="who" label="Patient">
+            <ui-input id="fPatient" icon="search" label="Patient" label-hidden size="sm"
+              placeholder="Search patient name…" data-testid="cx--f-patient"></ui-input>
+          </ui-filter-fields>
+
+          <ui-filter-fields name="when" label="Date range">
+            <div class="ui-filter-group__fields--pair">
+              <ui-input id="fFrom" type="date" label="From" size="sm"
+                data-testid="cx--f-from"></ui-input>
+              <ui-input id="fTo" type="date" label="To" size="sm"
+                data-testid="cx--f-to"></ui-input>
+            </div>
+          </ui-filter-fields>
+
+          <ui-filter-group name="physician" label="Physician"></ui-filter-group>
+          <ui-filter-group name="type" label="Complication type"></ui-filter-group>
+        </ui-filter>
+        <ui-button variant="outline" icon="printer" id="printBtn"
+          data-testid="cx--print">Print Report</ui-button>
+        <ui-button variant="primary" icon="plus" id="recordBtn" data-testid="cx--record">
+          Record Complication
+        </ui-button>
+      </div>
+    </div>
+
+    <main class="ui-page-body cx__body">
+      <!-- ==================================================================
+           THE THREE FIGURES
+
+           HOW MANY, HOW OFTEN, and WHICH ONE — the three questions a unit is
+           asked about its complications, in the order they get asked.
+
+           All three move with the filters. A summary that stayed at the
+           practice total while the table underneath it showed one physician's
+           month would be answering a question nobody asked; the rate's
+           denominator narrows with it, so "Dr Mensah's rate over July" is the
+           cases SHE ran in July, not the whole unit's.
+           ================================================================== -->
+      <section class="cx__stats" aria-label="Complication summary">
+        <div class="cx__stat" data-testid="cx--stat-total">
+          <div class="cx__stat-body">
+            <p class="cx__stat-label">Total Complications</p>
+            <p class="cx__stat-figure"><span class="cx__stat-value" id="statTotal">—</span></p>
+          </div>
+          <span class="cx__stat-icon cx__stat-icon--critical" aria-hidden="true">
+            <svg class="ui-icon"><use href="#i-vitals"></use></svg>
+          </span>
+        </div>
+
+        <div class="cx__stat" data-testid="cx--stat-rate">
+          <div class="cx__stat-body">
+            <p class="cx__stat-label">Complication Rate</p>
+            <!-- The denominator rides on the figure line rather than under it.
+                 A bare percentage hides whether it came off six cases or six
+                 hundred, and those are not the same claim — but said on a
+                 third line it becomes the small grey type the dashboard's
+                 tiles dropped, so it sits beside the number instead. -->
+            <p class="cx__stat-figure">
+              <span class="cx__stat-value" id="statRate">—</span>
+              <span class="cx__stat-meta" id="statRateMeta"></span>
+            </p>
+          </div>
+          <span class="cx__stat-icon cx__stat-icon--warning" aria-hidden="true">
+            <svg class="ui-icon"><use href="#i-trending"></use></svg>
+          </span>
+        </div>
+
+        <div class="cx__stat" data-testid="cx--stat-common">
+          <div class="cx__stat-body">
+            <p class="cx__stat-label">Most Common Type</p>
+            <p class="cx__stat-figure"><span class="cx__stat-value cx__stat-value--text" id="statCommon">—</span></p>
+          </div>
+          <span class="cx__stat-icon cx__stat-icon--brand" aria-hidden="true">
+            <svg class="ui-icon"><use href="#i-users"></use></svg>
+          </span>
+        </div>
+      </section>
+
+      <!-- Table and pager are one card, the same object every other worklist
+           in the EHR is built from — see .ui-table-card in base.css. The row
+           that used to sit above it carried a result count and Print; the
+           count is what the pager's own range line says, and Print acts on
+           the whole screen, so it has gone to the header where every other
+           screen keeps its actions. -->
+      <div class="ui-table-card">
+        <ui-data-table
+          id="cxTable"
+          empty-text="No complications match these filters."
+          data-testid="cx--table"
+        ></ui-data-table>
+        <div id="cxFoot"></div>
+      </div>
+    </main>
+
+    <!-- ==================================================================
+         THE PRINTED REPORT
+
+         Screen-hidden, paper-only. Print Report calls window.print() and this
+         is what comes out: the figures, the rows as a plain bordered table,
+         and somewhere to sign.
+
+         It is a SEPARATE block rather than a print stylesheet over the screen
+         because the two are genuinely different documents — the screen has a
+         pager, sortable headers and a row of buttons, none of which survive
+         being printed, and a signed report has a masthead and a signature
+         block, neither of which belongs on screen.
+         ================================================================== -->
+    <section class="cx__report" id="printReport" aria-hidden="true">
+      <header class="cx__report-head">
+        <!-- The practice name has come off the front of this title: the
+             printed page now carries the practice letterhead above it — see
+             js/lib/print-letterhead.js — and the masthead was saying it
+             twice, once in a logo and once in a title. -->
+        <h2 class="cx__report-title">Complications Report</h2>
+        <p class="cx__report-meta" id="reportMeta"></p>
+      </header>
+
+      <div class="cx__report-tiles" id="reportTiles"></div>
+
+      <table class="cx__report-table">
+        <thead>
+          <tr>
+            <th scope="col">Date</th>
+            <th scope="col">Patient</th>
+            <th scope="col">Procedure</th>
+            <th scope="col">Physician</th>
+            <th scope="col">Complication Type</th>
+            <th scope="col">Severity</th>
+            <th scope="col">Notes</th>
+          </tr>
+        </thead>
+        <tbody id="reportRows"></tbody>
+      </table>
+
+      <div class="cx__report-sign">
+        <div class="cx__report-sign-line">Authorized Signature</div>
+        <div class="cx__report-sign-line">Date</div>
+      </div>
+    </section>
+
+    <!-- ================= DRAWER: record / edit a complication =================
+         A drawer rather than a centred dialog: what is being recorded is about
+         a case that is on the list behind it, and the person filling this in
+         is reading that list to find it. A modal blanks the very thing the
+         first field is asking about.
+
+         The fields are the five the reference screen carries and no more.
+         Everything else this record needs — patient, procedure type, the
+         endoscopist, the date the case ran — is a property of the procedure
+         picked at the top, so asking again would be asking somebody to retype
+         facts the system already holds and can therefore disagree with.
+         ================================================================== -->
+    <ui-modal id="recordDrawer" variant="drawer" size="md" heading="Record Complication">
+      <div class="cx__form">
+        <!-- A SEARCH BOX, NOT A DROPDOWN.
+             The list is every case the unit has completed and it only ever
+             grows. Picking last Tuesday's ERCP out of a plain <select> means
+             scrolling fifty-odd entries whose labels all start with a name you
+             may not remember — so this searches patient, procedure and
+             physician at once, and shows the date beside each so two cases for
+             the same patient can be told apart. -->
+        <div class="ui-field cx__combo" id="procedureField">
+          <label class="ui-field__label" for="procedureInput">
+            Procedure<span class="ui-field__required" aria-hidden="true"> *</span>
+          </label>
+          <div class="ui-input cx__combo-shell">
+            <svg class="ui-icon" aria-hidden="true"><use href="#i-search"></use></svg>
+            <input
+              type="text"
+              id="procedureInput"
+              class="ui-input__control"
+              role="combobox"
+              aria-expanded="false"
+              aria-autocomplete="list"
+              aria-controls="procedureList"
+              autocomplete="off"
+              placeholder="Search patient, procedure or physician"
+              data-testid="cx--f-procedure"
+            />
+            <button type="button" class="cx__combo-clear" id="procedureClear" hidden
+              aria-label="Clear the chosen procedure" data-testid="cx--f-procedure-clear">
+              <svg class="ui-icon" aria-hidden="true"><use href="#i-close"></use></svg>
+            </button>
+            <span class="cx__combo-caret" aria-hidden="true">
+              <svg class="ui-icon"><use href="#i-caret-down"></use></svg>
+            </span>
+          </div>
+          <ul class="cx__combo-panel" id="procedureList" role="listbox"
+            aria-label="Completed procedures" hidden></ul>
+          <p class="ui-field__hint ui-field__hint--error" id="procedureError" hidden></p>
+        </div>
+
+        <ui-select id="typeField" label="Complication Type" placeholder="Select complication type…"
+          required data-testid="cx--f-type"></ui-select>
+
+        <ui-select id="severityField" label="Severity" placeholder="Select severity…"
+          data-testid="cx--f-severity"></ui-select>
+
+        <ui-input id="dateField" type="date" label="Date of Occurrence"
+          data-testid="cx--f-date"></ui-input>
+
+        <ui-textarea id="notesField" label="Notes" rows="5"
+          placeholder="Describe the complication, treatment, and outcome…"
+          data-testid="cx--f-notes"></ui-textarea>
+      </div>
+
+      <div class="ui-modal__actions">
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="outline" id="formCancel" data-testid="cx--f-cancel">Cancel</ui-button>
+        <ui-button variant="primary" id="formSave" data-testid="cx--f-save">
+          Record Complication
+        </ui-button>
+      </div>
+    </ui-modal>
+
+    <!-- ================= CONFIRM A DELETION =================
+         The bin on a row destroys a safety record, and a mis-aimed click on a
+         32px target is not consent. It names the case rather than saying "this
+         complication", because the row it was fired from is behind a scrim by
+         the time anybody reads it. -->
+    <ui-modal id="deleteModal" size="sm" heading="Delete this complication?">
+      <p class="cx__confirm" id="deleteLead" data-testid="cx--delete-lead"></p>
+
+      <div class="ui-modal__actions">
+        <ui-button variant="outline" id="deleteCancel" data-testid="cx--delete-cancel">
+          Cancel
+        </ui-button>
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="danger" id="deleteConfirm" data-testid="cx--delete-confirm">
+          Delete
+        </ui-button>
+      </div>
+    </ui-modal>
+  </body>
+</html>

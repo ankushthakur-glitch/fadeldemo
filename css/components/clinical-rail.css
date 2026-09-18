@@ -1,0 +1,736 @@
+/* ========================================================================
+   THE CLINICAL DATA RAIL
+   ========================================================================
+
+   The standing clinical picture — diagnoses, allergies, medications, the
+   histories, labs — as a column of collapsible cards in a rail that folds to a
+   spine. Drawn by js/lib/clinical-rail.js and mounted by two screens: the
+   procedure's step run (screens/encounter.html) and the clinic visit
+   (screens/clinic-visit.html).
+
+   WHY IT IS A COMPONENT AND NOT A SCREEN'S OWN RULES
+   There were two of these. The step run had this rail; the clinic visit had a
+   second, differently-styled panel in its LEFT column rendering the same
+   fourteen sections — numbered rows and a spelled-out severity on one, neither
+   on the other. One patient's allergy list is one thing, so it is one file.
+
+   WHY THE CLASS NAMES STILL SAY `encv__`
+   They are the procedure screen's prefix, and this rail was its markup first.
+   Renaming them would touch every rule below and every line of the module that
+   draws them, to change nothing anybody can see. The prefix is a scar.
+
+   WHAT IS NOT HERE
+   Anything about which COLUMN the rail occupies. The grid tracks, what a
+   collapsed track measures, and what an opened rail does on a narrow window are
+   each screen's own business — a screen with two rails and a screen with one do
+   not want the same answer. See .encv__cols in css/screen-encounter.css and
+   .enc__cols in css/screen-clinic-visit.css.
+
+   THE CONTRACT with a host screen: an <aside class="encv__rail encv__rail--right">
+   inside the screen's grid, carrying data-collapsed, with the grid itself
+   carrying data-right="open|collapsed". The module fills in everything inside.
+   ======================================================================== */
+
+/* --- A rail ------------------------------------------------------------------
+   Both rails are the same object: a bordered card that scrolls its own
+   contents, with a handle pinned to the edge that faces the centre column.
+   -------------------------------------------------------------------------- */
+
+.encv__rail {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-bg-surface);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-xl);
+}
+
+.encv__rail-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* Collapsed: the body goes, the spine stays. `display: none` rather than
+   `visibility`, because a 2.5rem column with 22rem of content still inside it
+   is a horizontal scrollbar waiting to happen. */
+.encv__rail[data-collapsed='true'] .encv__rail-body { display: none; }
+.encv__rail[data-collapsed='false'] .encv__rail-spine { display: none; }
+
+/* --- The spine ---------------------------------------------------------------
+   What a collapsed rail is: its name, rotated to read up the column, so it
+   still says which panel this is. Bottom-to-top rather than top-to-bottom
+   because that is the direction the eye already reads a rotated label in on
+   this side of a layout.
+   -------------------------------------------------------------------------- */
+
+.encv__rail-spine {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6) 0;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  cursor: pointer;
+  background: none;
+  border: 0;
+}
+.encv__rail-spine:hover { color: var(--color-text-primary); }
+
+/* --- The handle --------------------------------------------------------------
+   A nub half-off the rail's inner edge — the shape the reference uses, and the
+   reason it hangs outside rather than sitting inside the padding: inside, it
+   reads as the first control of the panel's content and gets mistaken for a
+   section toggle. Outside, on the seam between two columns, it can only mean
+   "this seam moves".
+   -------------------------------------------------------------------------- */
+
+.encv__rail-handle {
+  position: absolute;
+  top: 50%;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-9);
+  height: var(--space-11);
+  margin-top: calc(var(--space-11) / -2);
+  padding: 0;
+  color: var(--color-text-secondary);
+  background-color: var(--color-bg-surface-sunken);
+  border: 0;
+  cursor: pointer;
+  /* The reference's shape: a vertical hexagon — pointed top and bottom, flat
+     down the sides. Drawn with clip-path, because no border-radius makes that
+     outline.
+
+     Two consequences the rules below have to live with. An outer box-shadow is
+     clipped away by the path, so the shape carries a fill instead of an
+     elevation. And the focus ring has to be an INSET shadow, which is clipped
+     to the hexagon and therefore traces its outline rather than boxing it. */
+  clip-path: polygon(50% 0, 100% 22%, 100% 78%, 50% 100%, 0 78%, 0 22%);
+  transition:
+    color var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
+}
+
+/* Centred on the seam, half its width over each side. */
+.encv__rail--left .encv__rail-handle { right: calc(var(--space-9) / -2); }
+.encv__rail--right .encv__rail-handle { left: calc(var(--space-9) / -2); }
+
+.encv__rail-handle:hover {
+  color: var(--color-brand-text);
+  background-color: var(--color-brand-surface);
+}
+.encv__rail-handle:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 var(--border-width-thick) var(--color-border-focus);
+}
+.encv__rail-handle .ui-icon { width: var(--icon-size-sm); height: var(--icon-size-sm); }
+/* ======================= RIGHT: THE CLINICAL PICTURE ===================== */
+
+.encv__rail-title {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-5) var(--space-1);
+  font-size: var(--font-size-title-section);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+/* Expand all / collapse all. A text button rather than an icon: it is the one
+   control on this rail whose effect is not guessable from a glyph, and the word
+   it shows is also the only thing telling you which way it will go. */
+.encv__rail-action {
+  flex: none;
+  padding: var(--space-1) var(--space-2);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text-link);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+}
+.encv__rail-action:hover { background-color: var(--color-bg-surface-hover); }
+.encv__rail-action:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.encv__rail[data-collapsed='true'] .encv__rail-title { display: none; }
+
+/* --- A clinical section, as a card -----------------------------------------
+   Thirteen records you consult ONE of, not one list of everything. Each gets an
+   edge, so a collapsed section reads as a closed drawer rather than a heading
+   with nothing under it, and the open one is visibly a thing with contents.
+   -------------------------------------------------------------------------- */
+
+.encv__card {
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+}
+
+.encv__card-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+}
+
+/* The rule appears only when there is something under it to separate. */
+.encv__card--open .encv__card-head {
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.encv__card-spacer { flex: 1; }
+
+.encv__card-title {
+  font-size: var(--font-size-title-card);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  color: var(--color-text-primary);
+}
+
+.encv__card-flag {
+  flex: none;
+  width: var(--space-2);
+  height: var(--space-2);
+  border-radius: var(--radius-full);
+  background-color: var(--color-status-critical-solid);
+}
+
+/* The accordion control, and the only one. It used to be the whole heading, with
+   the caret along for decoration; the caret is the button now. A 24px target
+   rather than the 12px glyph it draws, because the icon is the affordance but a
+   glyph-sized hit area is not one. */
+.encv__card-caret {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-9);
+  height: var(--space-9);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+.encv__card-caret:hover {
+  background-color: var(--color-bg-surface-hover);
+  color: var(--color-text-primary);
+}
+.encv__card-caret:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* The glyph turns; the button does not, or its hover square would rotate with
+   it — square, so invisible, until it is not. */
+.encv__card-caret .ui-icon {
+  width: var(--icon-size-xs);
+  height: var(--icon-size-xs);
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+.encv__card--open .encv__card-caret .ui-icon { transform: rotate(180deg); }
+
+/* --- Copy, for the whole section -------------------------------------------
+   Always visible, unlike the per-item buttons below. It is the one a clinician
+   reaches for — the whole allergy list into a referral — and a control found
+   only by hovering is not one that can be found at all, least of all on a touch
+   screen. Quiet rather than hidden: tertiary ink at the smallest size.
+   -------------------------------------------------------------------------- */
+
+.encv__copy {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: color var(--duration-fast) var(--ease-out);
+}
+.encv__copy .ui-icon { width: var(--icon-size-xs); height: var(--icon-size-xs); }
+
+.encv__copy:hover {
+  background-color: var(--color-bg-surface-hover);
+  color: var(--color-text-primary);
+}
+.encv__copy:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.encv__copy.is-copied { color: var(--color-status-success-text); }
+
+/* --- The items -------------------------------------------------------------
+   A numbered list on one grid: `n. · text · flag · copy`, with the detail line
+   dropping to a second row that starts at the TEXT column. The number and the
+   count in the heading answer different questions — "how many allergies" and
+   "which one am I being asked about on the phone".
+   -------------------------------------------------------------------------- */
+
+ol.encv__items {
+  list-style: none;
+  /* `ol.` rather than a bare class: the reset zeroes ol/ul padding at
+     specificity (0,1,1) via its [role='list'] rule, which outranks a lone
+     class. Matching the type selector lets this file's padding win. */
+  margin: 0;
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+ol.encv__items[hidden] { display: none; }
+
+.encv__item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: baseline;
+  gap: var(--space-1) var(--space-2);
+}
+
+.encv__item-num {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.encv__item-text {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-primary);
+  line-height: var(--line-height-snug);
+}
+.encv__item--critical .encv__item-text { font-weight: var(--font-weight-medium); }
+
+/* Severity in words, not only in colour. Anaphylaxis and a rash were a red bar
+   and a grey one; on a greyscale printout, or to anyone who cannot separate
+   those two colours, they were the same row. */
+.encv__item-severity {
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-status-critical-surface);
+  color: var(--color-status-critical-text);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+}
+
+/* --- Copy, for one row -----------------------------------------------------
+   On hover, as asked. It is a refinement on top of the section copy above,
+   which is always visible — so the capability is discoverable even though this
+   particular affordance is not, and nothing is reachable ONLY by hovering. It
+   appears on keyboard focus too, or it would be a button that can be tabbed to
+   and never seen.
+   -------------------------------------------------------------------------- */
+
+.encv__item-copy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-7);
+  height: var(--space-7);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+.encv__item-copy .ui-icon { width: var(--icon-size-xs); height: var(--icon-size-xs); }
+
+.encv__item:hover .encv__item-copy,
+.encv__item-copy:focus-visible,
+.encv__item-copy.is-copied { opacity: 1; }
+
+.encv__item-copy:hover {
+  background-color: var(--color-bg-surface-hover);
+  color: var(--color-text-primary);
+}
+.encv__item-copy:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.encv__item-copy.is-copied { color: var(--color-status-success-text); }
+
+/* Column 2 onward, so the reaction lines up under the allergen rather than
+   under its number. */
+.encv__item-meta {
+  grid-column: 2 / -1;
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-tertiary);
+  line-height: var(--line-height-snug);
+}
+
+
+/* ======================= THE TAB STRIP ===================================
+   Two panels, one rail. "What is true of this patient now" and "what we wrote
+   the last time we saw them" are two different questions, and the rail answers
+   both — see the note at the head of js/lib/clinical-rail.js.
+
+   THE CONTROL IS `.ui-tabs--primary`, the product's own segmented strip: one
+   bordered box, hairlines between the cells, the open one tinted. It is what
+   the Scheduler wears over Appointments / Encounters / Wait List and what every
+   screen wears over its own sections, and the rail wears it for the reason the
+   rail exists at all — a clinician should not have to work out twice what a tab
+   looks like. Everything about how it is painted lives in
+   css/components/overlay.css; the rules below only make it fit a 21rem column.
+
+   The strip lives INSIDE .encv__rail-title rather than in a row of its own. The
+   bar already had the shape it needed, a name on the left and the rail's one
+   action on the right, and a second row would cost a rail this narrow a third
+   of its header height to say the same thing twice.
+   ======================================================================== */
+
+.encv__rail-tabs {
+  /* `fit-content` on the component would let two long labels push the Expand
+     all off the row; `min-width: 0` lets the box shrink instead, and the cells
+     ellipsis inside it. */
+  min-width: 0;
+}
+
+/* A page header gives a tab 34px of height and 16px of padding each side. A
+   rail 21rem wide, sharing its header row with a text button, does not have
+   that to spend: at page sizing the two cells alone are wider than the column.
+   Everything else about the control — the border, the hairline, the tint, the
+   brand ink — is untouched, because those are what make it the same control. */
+.encv__rail-tabs .ui-tabs__tab {
+  min-height: var(--space-11);
+  padding: 0 var(--space-5);
+  font-size: var(--font-size-body-sm);
+  /* BOTH CELLS ARE SET AT THE SAME WEIGHT, and it has to be said here because
+     of where this strip lives. `.encv__rail-title` is a section heading, so it
+     carries --font-weight-semibold, and a <button> inherits type from its
+     parent — which left the CLOSED tab wearing the heading's 600 while the open
+     one took the strip's own --font-weight-medium and came out lighter than it.
+     The state was reading backwards, and the two labels were set in two
+     different faces besides. Pinning medium on both puts the whole strip in one
+     face and leaves the tint and the brand ink to say which tab is open, which
+     is what the control does everywhere else (css/components/overlay.css). It
+     also costs nothing in layout: the open cell was already at this weight, so
+     no cell changes width when the selection moves. */
+  font-weight: var(--font-weight-medium);
+  min-width: 0;
+}
+
+.encv__rail-tabs .ui-tabs__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The second panel is a sibling of the first and inherits every one of its
+   rules — it IS a rail body. All that separates them is which one is showing,
+   and `hidden` has to outrank the `display: flex` above to do it. */
+.encv__rail-body[hidden] { display: none; }
+
+/* The clinical panel's gap is sized for fourteen collapsed drawers, which need
+   air between them to read as separate things. This one holds a header and a
+   run of open cards that are already divided by their own borders and
+   hairlines, so it sits a step tighter — the extra gap only bought scrolling.
+   Its padding comes down with it, for the same reason. */
+.encv__rail-body--encounters {
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5) var(--space-5);
+}
+
+/* ======================= THE ENCOUNTER TAB ===============================
+   The patient's appointments — what is coming and what has already happened —
+   or one of them opened. Never both: pressing a row replaces the list, and the
+   caret at the top of the detail is the way out. A rail 21rem wide has no room
+   for a master-detail split, and a list that stayed visible above the thing it
+   opened would push that thing below the fold on the first section.
+
+   ONE ROW TREATMENT, NOT TWO. Rows used to be painted differently depending on
+   whether a note sat behind them — white and pressable, or sunken grey and
+   inert. Every row opens now, so the difference had no meaning left, and while
+   it lasted it made the panel read as two lists that happened to be stacked.
+   What a row IS gets said by its badge; what a row DOES is the same for all of
+   them.
+
+   IT IS SET LIKE THE TAB BESIDE IT, and that is the whole rule.
+
+   A heading here is --font-size-title-card at semibold, which is exactly what
+   .encv__card-title is on the Clinical data tab: the date on a list row, and
+   the section title on an opened one, are the same size and weight as
+   "Diagnosis" or "Medical History" one tab across. The two panels are one rail.
+   A clinician switching between them should not feel the type change under
+   them, and a second scale invented for this side would be a second answer to
+   a question the rail had already answered.
+
+   This was briefly set two steps smaller — 14px medium — to quieten a list
+   that was fifteen rows long. It quietened it by making it a different
+   component, which is the wrong trade: the loudness was never the type, it was
+   a green "Confirmed" badge on every row of a list where every visit had gone
+   ahead. Those came off (see STATUS_TONES in js/lib/clinical-rail.js) and the
+   type went back.
+
+   Under the heading, unchanged and deliberately much quieter:
+     11px tertiary    what was written and what the visit was; a section's
+                      fuller name
+     12px             the recorded text itself
+   ======================================================================== */
+
+ol.encv__enc-list {
+  list-style: none;
+  /* `ol.` for the same reason ol.encv__items needs it — see the note there. */
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  /* Close enough to read as one list rather than a stack of separate cards.
+     Every row has a border of its own; the gap only has to keep two of them
+     from touching. */
+  gap: var(--space-2);
+}
+
+/* The whole row is the control, not a "View" link at the far edge of it: a 3rem
+   target on the right of a narrow rail is a hit area nobody should have to aim
+   at, and there is nothing else on the row to press. */
+.encv__enc-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-4) var(--space-4) var(--space-5);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
+}
+
+/* Hover moves the surface, not the border. A brand-coloured edge appearing
+   under the pointer on a list this long reads as a selection being made rather
+   than as a row being pointed at. */
+.encv__enc-row:hover { background-color: var(--color-bg-surface-hover); }
+.encv__enc-row:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.encv__enc-when {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  /* No gap. Two tight lines read as one block with a date over its detail;
+     spaced apart they read as two facts that happen to share a card, and the
+     row grows by a third for nothing. */
+  gap: 0;
+}
+
+/* The date leads, because a visit is remembered by when it was. Same size and
+   weight as a clinical section's title on the other tab — see the note at the
+   head of this block. */
+.encv__enc-date {
+  font-size: var(--font-size-title-card);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-snug);
+  color: var(--color-text-primary);
+}
+
+/* The time and the activity — what tells this row from the one under it. */
+.encv__enc-note {
+  font-size: var(--font-size-2xs);
+  line-height: var(--line-height-snug);
+  color: var(--color-text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The badge sits between the text and the caret and must not be squeezed by a
+   long activity name — the status is the shortest thing on the row and the
+   first thing scanned down the column. */
+.encv__enc-row ui-badge { flex: none; }
+
+/* The caret says the row opens, quietly. It is tertiary at rest and takes the
+   brand only under the pointer, so a column of fifteen rows is not a column of
+   fifteen arrows competing with the dates. */
+.encv__enc-chevron {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-text-tertiary);
+}
+.encv__enc-chevron .ui-icon { width: var(--icon-size-xs); height: var(--icon-size-xs); }
+.encv__enc-row:hover .encv__enc-chevron { color: var(--color-text-brand); }
+
+/* --- One appointment, opened ------------------------------------------------ */
+
+/* The way back, what you are looking at, and where it stands — on one line. The
+   caret points left because that is the direction it moves you in, the same
+   promise the rail's own handle makes with the same glyph. */
+.encv__enc-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.encv__enc-back {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-8);
+  height: var(--space-8);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.encv__enc-back:hover {
+  background-color: var(--color-bg-surface-hover);
+  color: var(--color-text-primary);
+}
+.encv__enc-back:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.encv__enc-back .ui-icon { width: var(--icon-size-sm); height: var(--icon-size-sm); }
+
+/* The opened appointment's own heading, on the same scale as everything else on
+   the rail. It is a heading, not a breadcrumb: it names the visit whose record
+   is underneath it. */
+.encv__enc-head-text {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: var(--font-size-title-card);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-snug);
+  color: var(--color-text-primary);
+}
+
+/* The note type or the activity, in the same line and the same size, set back
+   in weight and ink — it qualifies the date rather than competing with it. */
+.encv__enc-head-text span {
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-tertiary);
+}
+
+.encv__enc-head ui-badge { flex: none; }
+
+/* Who took it and what it was. One quiet line under the heading rather than two
+   more labelled facts: it is context for what follows, not part of what gets
+   imported.
+
+   Pulled up against the heading by the panel's own gap, so the two read as one
+   header block rather than as a heading and a first item. */
+.encv__enc-meta {
+  margin: calc(var(--space-4) * -1 + var(--space-1)) 0 var(--space-1);
+  /* Indented to the heading, not to the caret, so the header hangs off one
+     edge. */
+  padding-left: calc(var(--space-8) + var(--space-3));
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-tertiary);
+  line-height: var(--line-height-snug);
+}
+.encv__enc-meta:empty { display: none; }
+
+/* --- A section of what was opened ------------------------------------------
+   The same card as a clinical section, set the same way — .encv__card-title's
+   size, weight and ink, on purpose. It keeps a class of its own only so the
+   heading and the body can be spaced for a card that is always open, where a
+   clinical section's is spaced for one that is usually shut.
+   -------------------------------------------------------------------------- */
+
+/* Tighter than a clinical section's head. That one is a row you press, so it
+   carries a caret and the height to hit it with; this one is a label over text
+   that is already showing, and 10px of it was air between a heading and the
+   thing it names. */
+.encv__enc-card-head { padding: var(--space-3) var(--space-5); }
+
+.encv__enc-card-title {
+  min-width: 0;
+  font-size: var(--font-size-title-card);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-snug);
+  color: var(--color-text-primary);
+}
+
+/* A section's contents. Even padding all round: the hairline above already
+   separates it from the heading, so a heavier top inset only pushed the first
+   fact away from the one thing it belongs to.
+
+   The gap is what separates one fact from the next, so it has to be larger than
+   the gap INSIDE a fact — between its label and its value — or the eye pairs
+   the wrong two lines. Four to one is enough to be unambiguous at 11px. */
+.encv__enc-body {
+  padding: var(--space-4) var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* A labelled fact: what it is, over what it says. Stacked and not side by side
+   because the rail is 21rem wide and "Hospitalisation / Major Diagnostic
+   Procedure" is not a column heading it can afford. */
+.encv__enc-fact {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+/* Quiet, because a label is known before it is read: its job is to be found
+   when looked for and to stay out of the way when not. */
+.encv__enc-fact-label {
+  font-size: var(--font-size-2xs);
+  line-height: var(--line-height-snug);
+  color: var(--color-text-tertiary);
+}
+
+/* The answer, in the ink the panel exists for. Primary rather than secondary:
+   these are the four or five facts somebody opened this card to read, and the
+   tertiary label beside them is already carrying the contrast. */
+.encv__enc-fact-value {
+  font-size: var(--font-size-body-sm);
+  line-height: var(--line-height-body);
+  color: var(--color-text-primary);
+  overflow-wrap: anywhere;
+}
+
+/* Prose — a reason for coming, an assessment. Secondary, a step back from the
+   facts, because it is a sentence to be read rather than a value to be found. */
+.encv__enc-para {
+  margin: 0;
+  font-size: var(--font-size-body-sm);
+  line-height: var(--line-height-body);
+  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+}
+
+/* Import and Copy are the same control as the Clinical data tab's Copy, in the
+   same ink — tertiary at rest, and the panel's own text colour under the
+   pointer. It was link blue for a while, which made the loudest thing on a card
+   the button rather than the record; a control that is always in the same place
+   on every card does not need colour to be found. */
+.encv__enc-import { color: var(--color-text-tertiary); }
+
+/* Nothing on record. A sentence rather than an empty panel, because "this
+   patient has never been here" and "the rail failed to load" look identical
+   when the answer to both is blank space. */
+.encv__enc-empty {
+  margin: 0;
+  padding: var(--space-6) var(--space-2);
+  font-size: var(--font-size-body-sm);
+  color: var(--color-text-tertiary);
+  line-height: var(--line-height-body);
+}

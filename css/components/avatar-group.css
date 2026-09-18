@@ -1,0 +1,60 @@
+/* ============================================================================
+   ui-avatar-group — overlapping avatars with a +N overflow.
+
+   Each avatar carries a ring in the page's surface colour, which is what makes
+   the stack read as separate faces rather than one blurred mass. The overlap
+   is a per-size variable so the ring width stays constant while the bite taken
+   out of the avatar behind scales with the avatar itself.
+   ========================================================================= */
+
+ui-avatar-group { display: inline-flex; }
+
+.ui-avatar-group {
+  display: inline-flex;
+  align-items: center;
+}
+
+.ui-avatar-group--xs { --avatar-overlap: var(--space-3); }
+.ui-avatar-group--sm { --avatar-overlap: var(--space-4); }
+.ui-avatar-group--md { --avatar-overlap: var(--space-5); }
+.ui-avatar-group--lg { --avatar-overlap: var(--space-6); }
+
+.ui-avatar-group__item {
+  display: inline-flex;
+  border-radius: var(--radius-full);
+  box-shadow: 0 0 0 var(--border-width-thick) var(--color-bg-surface);
+}
+
+.ui-avatar-group__item:not(:first-child) {
+  margin-left: calc(-1 * var(--avatar-overlap));
+}
+
+/* The +N chip mirrors the avatar's own geometry so the row stays level. */
+.ui-avatar-group__more {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-height-md);
+  height: var(--control-height-md);
+  border-radius: var(--radius-full);
+  background-color: var(--color-brand-solid);
+  color: var(--color-text-inverse);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1;
+}
+
+.ui-avatar-group--xs .ui-avatar-group__more {
+  width: var(--space-8);
+  height: var(--space-8);
+  font-size: var(--font-size-2xs);
+}
+.ui-avatar-group--sm .ui-avatar-group__more {
+  width: var(--control-height-sm);
+  height: var(--control-height-sm);
+}
+.ui-avatar-group--lg .ui-avatar-group__more {
+  width: var(--control-height-lg);
+  height: var(--control-height-lg);
+  font-size: var(--font-size-md);
+}

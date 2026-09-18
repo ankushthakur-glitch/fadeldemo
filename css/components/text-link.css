@@ -1,0 +1,71 @@
+/* ============================================================================
+   ui-text-link — an action that looks like a link.
+
+   Renders a real <button> unless you give it an href, in which case it renders
+   a real <a>. That distinction matters: "Undo" is a button and "View the full
+   report" is a link, and a screen reader announces them differently.
+
+   A disabled link keeps its <a> but loses its href and gains aria-disabled —
+   anchors ignore the disabled attribute, and silently swapping the element for
+   a dead <button> would change what assistive tech reports mid-interaction.
+   ========================================================================= */
+
+ui-text-link { display: inline-flex; vertical-align: middle; }
+
+.ui-text-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-family: inherit;
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: color var(--duration-fast) var(--ease-out);
+}
+
+.ui-text-link:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.ui-text-link:disabled,
+.ui-text-link[aria-disabled='true'] {
+  color: var(--color-text-disabled);
+  cursor: not-allowed;
+  text-decoration: none;
+  pointer-events: none;
+}
+
+.ui-text-link--default { color: var(--color-text-link); }
+.ui-text-link--default:hover:not(:disabled):not([aria-disabled='true']) {
+  color: var(--color-text-link-hover);
+  text-decoration: underline;
+}
+
+.ui-text-link--critical { color: var(--color-status-critical-text); }
+.ui-text-link--critical:hover:not(:disabled):not([aria-disabled='true']) {
+  color: var(--color-status-critical-solid-hover);
+  text-decoration: underline;
+}
+
+.ui-text-link--muted { color: var(--color-text-tertiary); }
+.ui-text-link--muted:hover:not(:disabled):not([aria-disabled='true']) {
+  color: var(--color-text-primary);
+  text-decoration: underline;
+}
+
+.ui-text-link__icon { display: inline-flex; }
+
+.ui-text-link--xs { font-size: var(--font-size-xs); line-height: var(--line-height-tight); }
+.ui-text-link--sm { font-size: var(--font-size-xs); line-height: var(--line-height-snug); }
+.ui-text-link--md { font-size: var(--font-size-md); line-height: var(--line-height-snug); }
+.ui-text-link--lg { font-size: var(--font-size-lg); line-height: var(--line-height-snug); }
+
+.ui-text-link--xs .ui-icon { width: var(--icon-size-xs); height: var(--icon-size-xs); }
+.ui-text-link--sm .ui-icon,
+.ui-text-link--md .ui-icon { width: var(--icon-size-sm); height: var(--icon-size-sm); }
+.ui-text-link--lg .ui-icon { width: var(--icon-size-md); height: var(--icon-size-md); }

@@ -1,0 +1,55 @@
+/* ============================================================================
+   THE DOWNLOADED DOCUMENT
+
+   The sheet js/lib/print-document.js renders into when a Download button has
+   to hand over a document that is NOT the thing on screen — the estimate on a
+   row of the estimates list, for instance, where what is on screen is the
+   list. Read that file for why a download here is the browser's own
+   print-to-PDF rather than a bundled renderer.
+
+   Downloads whose document IS already on screen never touch these rules: they
+   print the screen under its own @media print block and only borrow the title.
+   ========================================================================= */
+
+/* Hidden while you are looking at the page. It is empty except during a print
+   — the sheet is cleared on `afterprint` — but an empty div that could hold a
+   document is not something to leave taking up space in the flow. */
+.print-doc { display: none; }
+
+@media print {
+  /*
+   * EVERYTHING BUT THE DOCUMENT AND THE LETTERHEAD GOES.
+   *
+   * One rule rather than a list of the furniture, because this sheet prints
+   * from screens that do not agree on what their furniture is called. A
+   * screen's own print block strips the chrome it knows about; this one is
+   * printing something that screen never renders, so the safe statement is
+   * the negative one — nothing on the page belongs on this sheet except the
+   * practice letterhead above it.
+   *
+   * Direct children only. Anything deeper is inside one of them and goes with
+   * it, and the document's own descendants must obviously survive.
+   */
+  body.print-doc--printing > *:not(.print-letterhead):not(.print-doc) {
+    display: none !important;
+  }
+
+  body.print-doc--printing .print-doc { display: block; }
+
+  /* The screens this prints from are viewport-height flex columns with scroll
+     panes inside them. The rule above takes the layout off the page entirely,
+     but <body> itself is still that column and would hand the sheet a single
+     screenful to fit in. */
+  body.print-doc--printing {
+    display: block !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  /* A document is read as a whole; a table row or a figures block split across
+     a page break is a fact the reader has to reassemble. */
+  .print-doc table tr,
+  .print-doc thead { break-inside: avoid; page-break-inside: avoid; }
+  .print-doc thead { display: table-header-group; }
+}

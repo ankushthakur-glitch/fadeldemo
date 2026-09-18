@@ -1,0 +1,431 @@
+/* ============================================================================
+   MESSAGES
+
+   One bar across the top, then two panes filling what is left: the
+   conversation list as its own card, and the open thread as a card with three
+   bands — who you are writing to, the transcript on a sunk field, and the
+   composer. Neither the page nor the well scrolls; the list and the
+   transcript scroll independently, and the composer stays on screen while the
+   transcript moves under it. A composer that scrolls away is the single most
+   common way a messaging screen goes wrong.
+   ========================================================================= */
+
+/* The well is `display: flex` (see .pp-content--fill); this stacks the title
+   row above the two panes inside it and gives the panes the rest of the
+   height. */
+.pp-messages-screen {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* Closer to the panes than the portal's standard block gap. The row is a
+   title and one button, and 16px under it left the two cards floating. */
+.pp-messages-screen > .pp-actions {
+  margin-bottom: var(--pp-space-3);
+}
+
+.pp-messages {
+  display: grid;
+  grid-template-columns: 22rem minmax(0, 1fr);
+  gap: var(--pp-gap-block);
+  flex: 1;
+  min-height: 0;
+}
+
+/* --- Left: the conversation list -------------------------------------------- */
+
+.pp-messages__list-pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border: 1px solid var(--pp-line);
+  border-radius: var(--pp-radius);
+  background-color: var(--pp-surface);
+}
+
+.pp-messages__tools {
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-2);
+  padding: var(--pp-space-3) var(--pp-space-3) var(--pp-space-2);
+}
+
+.pp-messages__search {
+  flex: 1;
+  min-width: 0;
+}
+
+.pp-messages__quick {
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-2);
+  flex-wrap: wrap;
+  padding: 0 var(--pp-space-3) var(--pp-space-3);
+}
+
+/* A filter chip. aria-pressed carries the state; the fill only shows it. */
+.pp-chip {
+  padding: var(--pp-space-1) var(--pp-space-3);
+  border: 1px solid transparent;
+  border-radius: var(--pp-radius-pill);
+  background-color: var(--pp-grey-100);
+  color: var(--pp-text);
+  font-size: var(--pp-size-xs);
+  font-weight: var(--pp-weight-medium);
+  cursor: pointer;
+}
+
+.pp-chip:hover {
+  background-color: var(--pp-surface-hover);
+}
+
+.pp-chip[aria-pressed='true'] {
+  border-color: var(--pp-action);
+  background-color: var(--pp-brand-100);
+  color: var(--pp-brand-800);
+}
+
+.pp-messages__list {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 0 var(--pp-space-2) var(--pp-space-2);
+  list-style: none;
+}
+
+.pp-thread {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--pp-space-3);
+  width: 100%;
+  /* 16px, which is the reference's row: two lines of text on a 36px portrait
+     come to ~44, and the rows there sit a clear step apart rather than
+     stacking into one block of nine. The 8px an earlier cut used was sized
+     for a third line that no longer exists. */
+  padding: var(--pp-space-4) var(--pp-space-2);
+  /* Square, not rounded. The row runs the full width of the pane between two
+     hairlines that are themselves square, and a rounded outline on the open
+     one read as a card floating loose in the list rather than as the row the
+     patient just picked. */
+  border: 1px solid transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+/* Hairlines between rows, not around them, and no gap either side of one:
+   the divider goes on the row's own top border, so the open row's outline
+   replaces it rather than stacking a second line on top of it. */
+.pp-messages__list li + li .pp-thread {
+  border-top-color: var(--pp-line);
+}
+
+/* ...and the row under the open one drops its hairline too, or the open
+   row's bottom border and that hairline meet as one 2px rule. */
+.pp-messages__list li:has(.pp-thread[aria-current='true']) + li .pp-thread {
+  border-top-color: transparent;
+}
+
+.pp-thread:hover {
+  background-color: var(--pp-surface-hover);
+}
+
+/* The open conversation: tinted and outlined, the way the reference lifts it
+   clear of the rows around it rather than tinting alone. */
+.pp-thread[aria-current='true'] {
+  border-color: var(--pp-line-tint);
+  background-color: var(--pp-brand-025);
+}
+
+.pp-thread__main {
+  flex: 1;
+  min-width: 0;
+}
+
+.pp-thread__top {
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-2);
+}
+
+.pp-thread__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--pp-text-strong);
+  font-size: var(--pp-size-sm);
+  font-weight: var(--pp-weight-semibold);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pp-thread__when {
+  flex: none;
+  color: var(--pp-text-muted);
+  font-size: var(--pp-size-xs);
+  font-weight: var(--pp-weight-medium);
+}
+
+/* The open row's timestamp turns brand, as drawn — the row is the one thing
+   on this screen allowed a second accent. */
+.pp-thread[aria-current='true'] .pp-thread__when {
+  color: var(--pp-text-link);
+}
+
+.pp-thread__preview {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+  overflow: hidden;
+  margin-top: var(--pp-space-1);
+  color: var(--pp-text-muted);
+  font-size: var(--pp-size-xs);
+}
+
+.pp-thread__unread {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 0.25rem;
+  border-radius: var(--pp-radius-pill);
+  background-color: var(--pp-brand-700);
+  color: var(--pp-white);
+  font-size: var(--pp-size-xxs);
+  font-weight: var(--pp-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Right: the open thread --------------------------------------------------- */
+
+.pp-messages__thread-pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border: 1px solid var(--pp-line);
+  border-radius: var(--pp-radius);
+  background-color: var(--pp-surface);
+}
+
+/* Who you are writing to: the portrait and the name, and for a group the one
+   line saying how many people can read the reply. Sized off the portrait, so
+   the band is the same height either way and the transcript below it does not
+   shift when the conversation changes. */
+.pp-messages__thread-head {
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-2);
+  padding: var(--pp-space-3);
+}
+
+.pp-messages__who {
+  min-width: 0;
+}
+
+.pp-messages__who-name {
+  display: block;
+  /* One step under a card title. The name is the label on a pane the reader
+     already chose from the list beside it, not the heading of the screen. */
+  color: var(--pp-text-strong);
+  font-size: var(--pp-size-sm);
+  font-weight: var(--pp-weight-semibold);
+}
+
+/* The group's head count, under the name. */
+.pp-messages__who-meta {
+  margin-top: 0.125rem;
+  color: var(--pp-text-muted);
+  font-size: var(--pp-size-xs);
+}
+
+/*
+ * The transcript, inset on a sunk field.
+ *
+ * The bubbles need a ground that is not the card, or a white incoming bubble
+ * has nothing to sit against. Inset rather than edge to edge so the head and
+ * the composer stay part of the same card.
+ */
+.pp-messages__log {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  /* The rows space themselves — see the run rules below. */
+  gap: 0;
+  margin: 0 var(--pp-space-3);
+  padding: var(--pp-space-3);
+  border: 1px solid var(--pp-line);
+  border-radius: var(--pp-radius);
+  background-color: var(--pp-surface-sunk);
+}
+
+/*
+ * SIDES: the patient's own messages are on the RIGHT.
+ *
+ * An earlier cut had these inverted, because the design it was built from put
+ * the care team on the right. The reference supplied since draws the
+ * conventional arrangement — your own words on the right in the filled
+ * bubble, theirs on the left in a white card under the sender's name — and
+ * that is both what every messaging product does and what this screen now
+ * does. `mine: true` in data/messages.js marks the patient's own messages.
+ */
+.pp-bubble-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start; /* care team */
+}
+
+.pp-bubble-row--mine {
+  align-items: flex-end; /* the patient */
+}
+
+/*
+ * The gap belongs to the change of speaker, not to the message.
+ *
+ * An even gap down the whole transcript makes a doctor's four-part answer
+ * look like four separate arrivals and hides the one boundary that matters —
+ * where the other person starts talking. So: a clear step where the speaker
+ * changes, and barely a hairline inside one person's run.
+ */
+.pp-bubble-row + .pp-bubble-row {
+  margin-top: var(--pp-space-4);
+}
+
+.pp-bubble-row + .pp-bubble-row--run {
+  margin-top: 0.1875rem;
+}
+
+.pp-bubble {
+  max-width: min(34rem, 78%);
+  padding: var(--pp-space-2) var(--pp-space-3);
+  border: 1px solid var(--pp-line);
+  border-radius: var(--pp-radius);
+  background-color: var(--pp-surface);
+  /* Running prose, so level 2 — the same ink as .pp-visit__body and
+     .pp-form-doc__statement, which it was a step darker than. */
+  color: var(--pp-text);
+  font-size: var(--pp-size-sm);
+  line-height: var(--pp-leading-normal);
+}
+
+/*
+ * The patient's own bubble is the brand TINT, not the brand.
+ *
+ * #1e3a6e is a dark, fully saturated green — right for a button pressed once,
+ * heavy as a stack of six blocks down the side of a transcript somebody reads
+ * for several minutes. tokens.css names --pp-brand-100 "outgoing bubble" for
+ * exactly this. Tinted, the two sides still separate at a glance and the
+ * words keep the same ink as every other line on the screen.
+ */
+.pp-bubble-row--mine .pp-bubble {
+  border-color: var(--pp-line-tint);
+  background-color: var(--pp-brand-100);
+}
+
+/* The sender's name over an incoming bubble. It is what tells a group thread
+   apart from a one-to-one without a second layout. */
+.pp-bubble__from {
+  margin-bottom: 0.0625rem;
+  color: var(--pp-text-muted);
+  font-size: var(--pp-size-xs);
+  font-weight: var(--pp-weight-medium);
+}
+
+.pp-bubble__meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--pp-space-2);
+  margin-top: 0.0625rem;
+  /* Muted, not faint: --pp-text-faint is a placeholder grey and it does not
+     hold AA on the tinted bubble, which is where half the timestamps are. */
+  color: var(--pp-text-muted);
+  font-size: var(--pp-size-xs);
+}
+
+.pp-bubble__urgent {
+  color: var(--pp-red-strong);
+}
+
+/* --- The composer --------------------------------------------------------------- */
+
+.pp-composer {
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-2);
+  padding: var(--pp-space-3);
+}
+
+.pp-composer__field {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-1);
+  padding: 0 var(--pp-space-3);
+  border: 1px solid var(--pp-line-strong);
+  border-radius: var(--pp-radius);
+}
+
+/* focus-within, not :focus: the ring belongs to the whole control, which is
+   an input plus three buttons sharing one border. */
+.pp-composer__field:focus-within {
+  border-color: var(--pp-focus);
+  box-shadow: 0 0 0 3px var(--pp-brand-200);
+}
+
+.pp-composer__input {
+  flex: 1;
+  min-width: 0;
+  height: var(--pp-control-h);
+  border: none;
+  background: none;
+  font-size: var(--pp-size-sm);
+}
+
+.pp-composer__input:focus {
+  outline: none;
+}
+
+.pp-composer__tool {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.875rem;
+  height: 1.875rem;
+  border-radius: var(--pp-radius-sm);
+  color: var(--pp-text-muted);
+  cursor: pointer;
+}
+
+.pp-composer__tool:hover {
+  background-color: var(--pp-surface-hover);
+  color: var(--pp-text);
+}
+
+/* A labelled button, not a bare glyph: it is the only action on the band and
+   the reference spells it out. */
+.pp-composer__send {
+  flex: none;
+}
+
+/* --- Narrow ---------------------------------------------------------------------
+   Below 68rem the two panes cannot both be useful side by side. The list
+   collapses to a scrolling strip above the transcript rather than
+   disappearing, so switching conversations does not need a back button that
+   the wide layout has no room for. */
+@media (width < 68rem) {
+  .pp-messages {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(20rem, 1fr);
+  }
+
+  .pp-messages__list {
+    max-height: 14rem;
+  }
+}

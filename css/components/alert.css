@@ -1,0 +1,94 @@
+/* ============================================================================
+   ui-alert — inline banner. In an EHR this carries allergy warnings and
+   result notifications, so severity has to read instantly.
+   ========================================================================= */
+
+ui-alert { display: block; }
+
+.ui-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  border: var(--border-width-thin) solid transparent;
+  border-left-width: var(--border-width-thick);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-snug);
+}
+
+.ui-alert__icon { flex-shrink: 0; margin-top: var(--space-1); }
+.ui-alert__icon .ui-icon { width: var(--icon-size-md); height: var(--icon-size-md); }
+
+.ui-alert__body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-1); }
+.ui-alert__title { font-weight: var(--font-weight-semibold); }
+.ui-alert__message { color: var(--color-text-secondary); }
+
+.ui-alert__close {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-7);
+  height: var(--space-7);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+}
+.ui-alert__close:hover { background-color: var(--color-bg-surface-hover); color: var(--color-text-primary); }
+.ui-alert__close:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.ui-alert__close .ui-icon { width: var(--icon-size-sm); height: var(--icon-size-sm); }
+
+.ui-alert--critical {
+  background-color: var(--color-status-critical-surface);
+  border-color: var(--color-status-critical-border);
+  border-left-color: var(--color-status-critical-solid);
+  color: var(--color-status-critical-text);
+}
+.ui-alert--warning {
+  background-color: var(--color-status-warning-surface);
+  border-color: var(--color-status-warning-border);
+  border-left-color: var(--color-status-warning-solid);
+  color: var(--color-status-warning-text);
+}
+.ui-alert--success {
+  background-color: var(--color-status-success-surface);
+  border-color: var(--color-status-success-border);
+  border-left-color: var(--color-status-success-solid);
+  color: var(--color-status-success-text);
+}
+.ui-alert--info {
+  background-color: var(--color-status-info-surface);
+  border-color: var(--color-status-info-border);
+  border-left-color: var(--color-status-info-solid);
+  color: var(--color-status-info-text);
+}
+
+/* Inside a coloured alert the body text keeps the severity colour rather than
+   dropping to grey, so the whole block reads as one unit. */
+.ui-alert--critical .ui-alert__message,
+.ui-alert--warning .ui-alert__message,
+.ui-alert--success .ui-alert__message,
+.ui-alert--info .ui-alert__message { color: inherit; }
+
+/* --- Neutral severity, and the actions row -------------------------------
+   MediNova's alert has a fifth, iconless tone for a message that is neither good
+   nor bad news — a scheduled maintenance note, a "this record is read-only".
+   Giving it a status icon would make it claim a severity it does not have.
+
+   The actions row sits UNDER the text rather than beside it: an alert's
+   buttons are a response to what it says, and a reader who has not finished
+   the sentence cannot yet choose between them. */
+
+.ui-alert--neutral {
+  background-color: var(--color-status-neutral-surface);
+  border-color: var(--color-status-neutral-border);
+  color: var(--color-status-neutral-text);
+}
+
+.ui-alert__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-7);
+  margin-top: var(--space-4);
+}

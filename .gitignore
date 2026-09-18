@@ -1,0 +1,36 @@
+# Dependencies — reinstall with `npm install`
+node_modules/
+
+# Playwright output. Regenerated on every run.
+test-results/
+tests/report/
+playwright-report/
+
+# NOT ignored: tests/screenshots/
+# Those are the visual-regression baselines. Without them committed, the
+# suite has nothing to compare against and every visual test would pass
+# vacuously on a fresh clone.
+
+# ---------------------------------------------------------------------------
+# REAL PATIENT DATA — must never enter git history.
+#
+# The reference screenshots taken from the live gGastro system contain
+# identifiable information: patient names, a subscriber ID, dates of birth,
+# a clinic address and a staff login. None of it reached the prototype's own
+# demo data, but the source images are still in the working folder.
+#
+# Git history is effectively permanent — deleting these in a later commit
+# does not remove them from the repository. They stay local.
+# ---------------------------------------------------------------------------
+Screenshot/
+
+# Prior-project reference material, not part of the deliverable.
+Ref Components/
+refdummypage.html
+
+# OS noise
+Thumbs.db
+.DS_Store
+
+.vercel
+.env*

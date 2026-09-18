@@ -1,0 +1,62 @@
+/* ============================================================================
+   ui-divider — a rule between two things.
+
+   Three jobs, and they are genuinely different: a plain horizontal rule
+   separating stacked blocks, a vertical hairline separating two things sitting
+   side by side in a toolbar, and a labelled rule that names the section it
+   opens ("Or", "Yesterday"). The labelled one is deliberately NOT a
+   role="separator": ARIA says a separator carries no meaningful text, so the
+   labelled variant is a plain container and the two rule segments either side
+   of the label do the visual work.
+   ========================================================================= */
+
+ui-divider { display: block; }
+ui-divider[orientation='vertical'] { display: inline-flex; align-self: stretch; }
+
+.ui-divider--horizontal {
+  width: 100%;
+  height: 0;
+  margin: 0;
+  border: 0;
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.ui-divider--vertical {
+  display: inline-block;
+  align-self: stretch;
+  width: 0;
+  min-height: 1em;
+  border-left: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.ui-divider--dashed.ui-divider--horizontal { border-top-style: dashed; }
+.ui-divider--dashed.ui-divider--vertical { border-left-style: dashed; }
+
+.ui-divider--labelled {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  width: 100%;
+}
+
+.ui-divider__line {
+  flex: 1;
+  height: 0;
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.ui-divider--dashed .ui-divider__line { border-top-style: dashed; }
+
+.ui-divider__label {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+}
+
+/* Inset pulls the rule in from the container edges, for a divider drawn inside
+   a card whose own padding the rule should not cross. */
+.ui-divider--horizontal.ui-divider--inset,
+.ui-divider--labelled.ui-divider--inset {
+  width: auto;
+  margin-inline: var(--space-7);
+}

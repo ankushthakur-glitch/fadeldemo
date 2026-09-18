@@ -1,0 +1,1481 @@
+/* ============================================================================
+   REFERRALS — the intake desk.
+
+   Three panels. The queue on the left never moves, because the desk works
+   down it and losing your place in a worklist is worse than any amount of
+   extra width in the middle. The centre is the document. The right panel
+   only exists for outgoing referrals, where the question is not "what does
+   it say" but "may we send it yet".
+
+   GEOMETRY WITHOUT INLINE STYLES
+   Zoom, page rotation and upload progress are runtime numbers. They arrive
+   through a single generated stylesheet as custom properties:
+
+     --ref-zoom   the viewer's scale factor
+     --ref-rot    the page's rotation
+
+   The arithmetic stays here; the generated sheet carries data only.
+   ========================================================================= */
+
+.ref {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  /* THE SHELL IS THE CANVAS, NOT A SURFACE — the same sentence every other
+     screen now says (see .pt in screen-patient.css).
+
+     The queue used to be painted white on the argument that the card's own
+     hairline and radius already said "card". Two things ended that. The app
+     grew a dark green lid and a green-cast grey ground under it, so a white
+     page here reads as the screen that missed the change rather than as a
+     quieter version of it. And this screen already contradicted itself:
+     .ref__process below has been laid out on --color-bg-page all along, for
+     exactly the reason given down there — panels with their own borders need
+     a ground to be laid out ON. The queue is the same kind of thing, so it
+     gets the same ground, and processing a referral stops being the moment
+     the page changes colour under you. */
+  background-color: var(--color-bg-page);
+}
+
+.ref__spacer { flex: 1; }
+
+/* --- Direction bar ---------------------------------------------------------- */
+
+/* The page header is .ui-page-head in base.css — one band, every screen.
+   Nothing was different about this one, so nothing is redeclared here. */
+
+/* Document In / Document Out is the PRIMARY strip and the channel tabs below
+   are the SECONDARY one — both are plain <ui-tabs> now. The two bespoke
+   copies that used to live here were the originals the shared component was
+   modelled on; keeping them would have meant every future change to a tab
+   landing in two places and drifting. */
+
+/* --- Three panels ----------------------------------------------------------- */
+
+/*
+   ONE CARD — the same shell Communications is built from, down to the token.
+
+   The queue and the record used to be two bordered cards with a gutter between
+   them. That reads as two things that happen to sit side by side, when what is
+   actually true is one worklist with a reading pane: the record on the right is
+   what the row on the left opened, and it has no life apart from it. A single
+   card with hairlines between its panes says exactly that, and it stops the
+   screen drawing four vertical edges down the middle where one will do.
+
+   The gutter around it is even on three sides and short on top, because the
+   header band above already contributes twelve of its own bottom padding:
+   eight here is what makes the distance from the tab strip to the card's edge
+   the same twenty the card keeps from every other edge.
+*/
+.ref__shell {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  margin: var(--space-4) var(--space-8) var(--space-8);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-xl);
+  background-color: var(--color-bg-surface);
+  overflow: hidden;
+}
+
+.ref__cols {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 26rem minmax(0, 1fr);
+}
+.ref__cols:has(.ref__info:not([hidden])) {
+  grid-template-columns: 26rem minmax(0, 1fr) 24rem;
+}
+
+/* ============================ LEFT: THE QUEUE ============================= */
+
+.ref__queue {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  /* One edge, on the side that divides it from the record. The card around
+     both panes owns the other three. */
+  border-right: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.ref__queue-search {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-5);
+}
+.ref__queue-search ui-input { flex: 1; min-width: 0; }
+
+/* The filter button and its panel are <ui-filter> now — one control, the same
+   on every list in the product. See css/components/filter.css. */
+
+/* --- Channel and quick views -------------------------------------------------
+   The queue is 26rem wide and holds exactly two channels, so they split it
+   rather than sitting left, and the strip is drawn as a divided box: the same
+   shape as the direction strip on the header row, one size down. Two segmented
+   controls on one screen that do not look alike are two controls the reader
+   has to learn separately.
+
+   It keeps its own rules rather than borrowing `primary`, because it is not a
+   primary strip — Fax and Email are a view of the section, not the sections
+   themselves. The hierarchy is carried by size and by ink; the shape is shared.
+   -------------------------------------------------------------------------- */
+
+.ref__chan { flex: none; padding: var(--space-5) var(--space-5) 0; }
+
+.ref__chan .ui-tabs {
+  gap: 0;
+  width: 100%;
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+  overflow: hidden;
+}
+
+.ref__chan .ui-tabs__tab {
+  flex: 1;
+  justify-content: center;
+  gap: var(--space-3);
+  min-height: var(--control-height-md);
+  padding: 0 var(--space-5);
+  border-bottom: none;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-primary);
+}
+
+/* A hairline rather than a gap, so the pair reads as one divided control. */
+.ref__chan .ui-tabs__tab + .ui-tabs__tab {
+  border-left: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.ref__chan .ui-tabs__tab--selected {
+  border-bottom-color: transparent;
+  background-color: var(--color-brand-surface);
+  color: var(--color-brand-text);
+}
+
+/* The quick views. Pills rather than a second segmented box: a segmented box
+   claims that exactly one of its cells is always true, and these five are
+   answers that can all be put back to show the whole queue again. */
+.ref__chips {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding: 0 var(--space-5) var(--space-5);
+}
+
+.ref__chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-height-sm);
+  padding: 0 var(--space-5);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-full);
+  background-color: var(--color-bg-surface);
+  font-family: inherit;
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.ref__chip:hover { border-color: var(--color-border-strong); color: var(--color-text-primary); }
+.ref__chip:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.ref__chip--on {
+  border-color: var(--color-brand-solid);
+  background-color: var(--color-brand-solid);
+  color: var(--color-text-inverse);
+  font-weight: var(--font-weight-medium);
+}
+
+.ref__list { flex: 1; min-height: 0; overflow-y: auto; }
+
+.ref__list-empty {
+  padding: var(--space-8) var(--space-6);
+  text-align: center;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-tertiary);
+}
+.ref__list-empty[hidden] { display: none; }
+
+/* --- The referral card -------------------------------------------------------
+   Everything the desk needs to triage without opening it: who, how urgent,
+   where it is up to, when it landed, how to reach the sender, and how much
+   paper came with it.
+   -------------------------------------------------------------------------- */
+
+.ref__card {
+  position: relative;
+  display: flex;
+  gap: var(--space-4);
+  width: 100%;
+  padding: var(--space-5);
+  border: none;
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+  border-left: 3px solid transparent;
+  background: none;
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+}
+/* Hover is the selected card's green with most of it taken away, rather than
+   the neutral grey it used to be: the row you are pointing at and the row that
+   is open then differ in weight alone, not in hue, and the left rail previews
+   the accent bar the open card owns solidly. Same treatment as the thread list
+   in Communications, which had the same grey-beside-green problem. */
+.ref__card:hover {
+  border-left-color: var(--color-border-brand-subtle);
+  background-color: var(--color-brand-surface-subtle);
+}
+.ref__card:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.ref__card--on {
+  border-left-color: var(--color-brand-solid);
+  background-color: var(--color-brand-surface);
+}
+
+.ref__card-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+
+.ref__card-top {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.ref__card-name {
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+/* The unread dot is pinned to the top-right corner, so on an unread card the
+   timestamp has to stop short of it rather than run underneath it. */
+.ref__card:has(.ref__unread) .ref__card-when { padding-right: var(--space-6); }
+
+.ref__card-when {
+  margin-left: auto;
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+}
+
+.ref__card-line {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ref__card-line--dim { color: var(--color-text-tertiary); }
+
+.ref__card-foot {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-family: var(--font-family-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-tertiary);
+}
+
+.ref__card-docs { font-size: var(--font-size-2xs); color: var(--color-text-tertiary); }
+
+/* STAT is not a status and not a priority — it is how fast, so it gets its
+   own mark rather than competing with the badges beside it. */
+.ref__stat {
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-wide);
+  color: var(--color-status-critical-text);
+  background-color: var(--color-status-critical-surface);
+}
+
+.ref__unread {
+  position: absolute;
+  top: var(--space-6);
+  right: var(--space-5);
+  width: var(--space-4);
+  height: var(--space-4);
+  border-radius: var(--radius-full);
+  background-color: var(--color-status-info-solid);
+}
+
+/* ============================ CENTRE: THE DOCUMENT ======================== */
+
+.ref__main {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ref__empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  padding: var(--space-8);
+  text-align: center;
+}
+.ref__empty[hidden] { display: none; }
+.ref__empty-icon { width: var(--space-10); height: var(--space-10); color: var(--color-text-disabled); }
+.ref__empty h2 { font-size: var(--font-size-heading-md); font-weight: var(--font-weight-semibold); line-height: var(--line-height-tight); }
+.ref__empty p { max-width: 26rem; font-size: var(--font-size-caption); color: var(--color-text-secondary); }
+
+.ref__doc { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.ref__doc[hidden] { display: none; }
+
+/* Ten, like every band in the queue card beside it. The detail card had
+   drifted to twelve across the horizontal, so two cards sitting side by side
+   started their contents two points apart — near enough to look like a mistake
+   and far enough apart to see. */
+.ref__doc-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-5);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.ref__doc-who { min-width: 0; }
+.ref__doc-name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  font-size: var(--font-size-heading-md);
+  line-height: var(--line-height-tight);
+  font-weight: var(--font-weight-semibold);
+}
+/* What kind of record this is, before how urgent it is and where it has got
+   to. A tinted pill rather than another badge, because the other three answer
+   questions about the referral's progress and this one names the thing. */
+.ref__doc-kind {
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-full);
+  background-color: var(--color-brand-surface);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-brand-text);
+}
+
+/* Two labelled facts on one line, divided rather than run together. The rule
+   between them is what stops "From +1 585 393 0485 Received Tue, 4 Aug" from
+   reading as one sentence. */
+.ref__doc-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-5);
+  margin-top: var(--space-2);
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+}
+.ref__doc-meta > div {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+/* The rule belongs to the fact BEFORE it, not the one after. Written the other
+   way round, a header narrow enough to wrap starts its second line with a
+   vertical rule and nothing to the left of it. */
+.ref__doc-meta > div:not(:last-child)::after {
+  content: '';
+  width: var(--border-width-thin);
+  height: var(--space-6);
+  margin-left: var(--space-2);
+  background-color: var(--color-border-subtle);
+}
+.ref__doc-meta dt { color: var(--color-fact-label); font-size: var(--font-size-fact-label); font-weight: var(--font-weight-regular); }
+.ref__doc-meta dt::after { content: ':'; }
+.ref__doc-meta dd {
+  font-family: var(--font-family-numeric);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-primary);
+}
+
+.ref__doc-body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+
+/* --- Add-on menu -------------------------------------------------------------- */
+
+/* The split button. The two halves are one control, so they touch and share a
+   seam rather than sitting apart with a gap that would read as two buttons. */
+.ref__addon { position: relative; display: flex; align-items: stretch; }
+
+.ref__addon ui-button .ui-btn {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.ref__addon-caret {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-height-sm);
+  border: none;
+  border-left: var(--border-width-thin) solid var(--color-brand-solid-active);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  background-color: var(--color-brand-solid);
+  color: var(--color-text-inverse);
+  cursor: pointer;
+}
+.ref__addon-caret:hover { background-color: var(--color-brand-solid-hover); }
+.ref__addon-caret:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.ref__addon-menu {
+  position: absolute;
+  z-index: var(--z-dropdown);
+  top: calc(100% + var(--space-2));
+  right: 0;
+  min-width: 14rem;
+  padding: var(--space-2);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+  box-shadow: var(--elevation-raised);
+}
+.ref__addon-menu[hidden] { display: none; }
+
+.ref__addon-item {
+  display: block;
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-sm);
+  background: none;
+  text-align: left;
+  font-family: inherit;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+.ref__addon-item:hover { background-color: var(--color-bg-surface-hover); }
+.ref__addon-item:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.ref__addon-item--bad { color: var(--color-status-critical-text); }
+
+/* --- Email view ---------------------------------------------------------------- */
+
+.ref__mail-bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+}
+.ref__mail-subject {
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+}
+
+.ref__letter {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-7) var(--space-8);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-loose);
+  color: var(--color-text-primary);
+}
+.ref__letter p + p,
+.ref__letter ul { margin-top: var(--space-5); }
+.ref__letter ul { padding-left: var(--space-7); list-style: disc; }
+.ref__letter li { margin-bottom: var(--space-2); }
+/* --- The document strip ------------------------------------------------------
+   The set of documents a referral arrived with, along the foot of both views.
+   It runs across rather than down a rail at the side because the cards carry
+   titles: "Insurance verification" is findable, "page 3" is not, and a title
+   needs width that a 6rem rail cannot give it.
+
+   Each card holds two controls doing two jobs. The card opens the document —
+   one at a time, and the open one is lit. The checkbox includes it in whatever
+   goes on to the chart — any number of them, and independent of what is being
+   read. Ticking is not opening, so they are not the same click.
+   -------------------------------------------------------------------------- */
+
+.ref__docs {
+  flex: none;
+  padding: var(--space-5);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.ref__docs-lead {
+  margin-bottom: var(--space-4);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-tertiary);
+}
+
+/* Wider than the pane on a laptop, so it scrolls sideways rather than wrapping
+   into a second row that would eat the document above it. */
+.ref__docstrip {
+  display: flex;
+  gap: var(--space-4);
+  overflow-x: auto;
+  padding-bottom: var(--space-2);
+}
+
+.ref__doccard {
+  position: relative;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  width: 17rem;
+  padding-right: var(--space-9);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+}
+/* Tinting the card says "this one" more plainly than darkening its hairline
+   did, and it puts the strip's hover in the same family as every other
+   selectable surface on the screen: the faint tint for the pointer, the full
+   brand surface and border for the document actually open. */
+.ref__doccard:hover {
+  border-color: var(--color-border-brand-subtle);
+  background-color: var(--color-brand-surface-subtle);
+}
+.ref__doccard--on {
+  border-color: var(--color-brand-solid);
+  background-color: var(--color-brand-surface);
+}
+
+.ref__doccard-open {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border: none;
+  border-radius: var(--radius-md);
+  background: none;
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+}
+.ref__doccard-open:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* A stand-in for a page thumbnail: ruled lines, no pretend content. The page
+   count sits in the corner of the sheet, where a viewer would stamp it. */
+.ref__doccard-thumb {
+  position: relative;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: var(--space-2);
+  width: 2.5rem;
+  height: 3rem;
+  padding: var(--space-3);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-bg-surface);
+}
+.ref__doccard-thumb > span:not(.ref__doccard-pages) {
+  height: 2px;
+  border-radius: var(--radius-full);
+  background-color: var(--color-border-default);
+}
+.ref__doccard-thumb > span:first-child { width: 70%; height: 4px; }
+
+.ref__doccard-pages {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm) 0 var(--radius-sm) 0;
+  background-color: var(--color-text-secondary);
+  font-family: var(--font-family-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--font-size-2xs);
+  line-height: var(--line-height-tight);
+  color: var(--color-text-inverse);
+}
+
+.ref__doccard-text {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.ref__doccard-text strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+.ref__doccard-text span {
+  font-family: var(--font-family-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-tertiary);
+}
+
+.ref__doccard-pick {
+  position: absolute;
+  top: 50%;
+  right: var(--space-4);
+  transform: translateY(-50%);
+}
+
+/* --- Fax viewer --------------------------------------------------------------
+   THE PAGE IS THE SCREEN AND THE TOOLS FLOAT OVER IT.
+
+   Paging sits on the two edges of the stage, zoom in its corner, download and
+   print in the header — each control beside the thing it acts on rather than
+   collected into a bar along the bottom that the eye has to leave the document
+   to reach. What is left is the fax, as large as the pane can make it.
+   -------------------------------------------------------------------------- */
+
+.ref__viewer {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* The last band that had not been brought onto the card's ten. Four bands run
+   down this pane — who sent it, which document, the page itself, the documents
+   strip — and a reader tracking one left edge down the pane should not find it
+   stepping two points in and out. */
+.ref__viewer-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: nowrap;
+  min-width: 0;
+  padding: var(--space-5);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+  background-color: var(--color-bg-surface);
+}
+
+/* ONE ROW, AND THE TITLE IS THE ONLY THING THAT GIVES WAY.
+
+   Everything on this row is fixed-size except the document's title, so a pane
+   squeezed narrow shortens the title and leaves the count whole and the two
+   buttons at full size. Without these, flex shrinks all four at once: the
+   count breaks over two lines and the icon buttons squash to slivers. */
+.ref__viewer-count {
+  flex: none;
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  white-space: nowrap;
+}
+
+.ref__viewer-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+}
+
+.ref__back-link {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-3) 0 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: var(--font-size-caption);
+  color: var(--color-brand-text);
+  cursor: pointer;
+}
+.ref__back-link:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* The stage scrolls, so the floating controls are its siblings rather than its
+   children — inside it, a zoomed page would carry them off the top.
+
+   NO TINT ON IT. The sheet was drawn on a grey desk so it would read as paper;
+   what the sheet actually reads by is its own border and its own shadow, both
+   of which it still has. The desk was the largest single area of colour on the
+   screen and it sat behind the one thing nobody needs help finding. */
+.ref__viewer-stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.ref__stage {
+  height: 100%;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow: auto;
+  /* Room for the controls floating over the edges: a pager is a 34px button
+     10px in from the side, and the zoom pill is deeper than that at the foot.
+     Padded any tighter, the sheet slides under them and the first word of
+     every line sits behind a chevron. */
+  padding: var(--space-7) calc(var(--space-11) + var(--space-9))
+    calc(var(--space-11) + var(--space-6));
+}
+
+/* A rotated page keeps its unrotated layout box, so a quarter turn needs the
+   stage to lend it the height its width has just become. */
+.ref__stage[data-rot='90'],
+.ref__stage[data-rot='270'] {
+  align-items: center;
+  padding: var(--space-11) calc(var(--space-11) + var(--space-9));
+}
+
+.ref__pager {
+  position: absolute;
+  top: 50%;
+  z-index: var(--z-sticky);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-height-md);
+  height: var(--control-height-md);
+  transform: translateY(-50%);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-full);
+  background-color: var(--color-bg-surface);
+  color: var(--color-text-secondary);
+  box-shadow: var(--elevation-raised);
+  cursor: pointer;
+}
+.ref__pager--prev { left: var(--space-5); }
+.ref__pager--next { right: var(--space-5); }
+.ref__pager:hover { color: var(--color-brand-text); border-color: var(--color-brand-solid); }
+.ref__pager:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.ref__pager:disabled {
+  opacity: 0.4;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* Zoom rides in the corner of the stage as one grouped pill, because the four
+   controls in it are one subject. */
+.ref__zoom {
+  position: absolute;
+  right: var(--space-5);
+  bottom: var(--space-5);
+  z-index: var(--z-sticky);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-full);
+  background-color: var(--color-bg-surface);
+  box-shadow: var(--elevation-raised);
+}
+
+/*
+ * The page.
+ *
+ * Zoom and rotation are transforms rather than font-size and layout changes,
+ * so a rotated page still selects and copies as text — which is the whole
+ * reason the viewer holds text rather than an image.
+ */
+.ref__page {
+  --ref-zoom: 1;
+  --ref-rot: 0deg;
+  width: fit-content;
+  margin: 0 auto;
+  padding: var(--space-8);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  background-color: var(--color-bg-surface);
+  /* The one place a shadow is not UI chrome: this is a sheet of paper drawn on
+     a desk, and the shadow is what makes it read as one. */
+  box-shadow: var(--elevation-raised);
+  transform: scale(var(--ref-zoom)) rotate(var(--ref-rot));
+  transform-origin: center center;
+}
+
+.ref__page-text {
+  font-family: var(--font-family-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-normal);
+  white-space: pre-wrap;
+  color: var(--color-text-primary);
+}
+
+.ref__vtool {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-height-sm);
+  height: var(--control-height-sm);
+  border: var(--border-width-thin) solid transparent;
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.ref__vtool:hover {
+  border-color: var(--color-border-default);
+  color: var(--color-brand-text);
+}
+.ref__vtool:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.ref__vcount {
+  font-family: var(--font-family-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.ref__vrule {
+  width: var(--border-width-thin);
+  height: var(--space-6);
+  background-color: var(--color-border-subtle);
+}
+
+/* ============================ RIGHT: CONTEXT ============================== */
+
+/* The third pane, on outgoing referrals only. It takes the dividing edge on
+   its own side for the same reason the queue does. */
+.ref__info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  min-height: 0;
+  border-left: var(--border-width-thin) solid var(--color-border-subtle);
+  overflow-y: auto;
+}
+.ref__info[hidden] { display: none; }
+
+/*
+   SECTIONS, NOT CARDS.
+
+   These were bordered boxes stacked in a column, which was right while the
+   column was a bare strip of page. Inside the one card the screen is now built
+   from, a bordered box in a bordered pane is a box in a box: three edges deep
+   to read one telephone number. They are divided the way the panes are divided
+   — by a hairline running the full width — and the ROI notice below keeps its
+   own border, because a warning is a thing said about the referral rather than
+   another section of it.
+*/
+.ref__card-panel {
+  padding: var(--space-5);
+}
+.ref__card-panel + .ref__card-panel {
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+}
+.ref__card-panel h3 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-semibold);
+}
+.ref__card-panel p {
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-normal);
+  color: var(--color-text-secondary);
+}
+
+/* The gate. It leads the pane because it is the answer to the only question
+   worth asking about an unsent referral — and it is the one block here that
+   keeps a border and a fill, because it is a notice rather than a section. */
+.ref__card-panel--roi,
+.ref__card-panel--ok {
+  margin: var(--space-5) var(--space-5) 0;
+  padding: var(--space-5);
+  border: var(--border-width-thin) solid;
+  border-radius: var(--radius-lg);
+}
+.ref__card-panel--roi + .ref__card-panel,
+.ref__card-panel--ok + .ref__card-panel { border-top: none; }
+
+.ref__card-panel--roi {
+  border-color: var(--color-status-warning-border);
+  background-color: var(--color-status-warning-surface);
+}
+.ref__card-panel--roi h3 { color: var(--color-status-warning-text); }
+.ref__card-panel--ok {
+  border-color: var(--color-status-success-border);
+  background-color: var(--color-status-success-surface);
+}
+.ref__card-panel--ok h3 { color: var(--color-status-success-text); }
+
+.ref__roi-steps {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-5) 0;
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+}
+.ref__roi-step {
+  flex: 1;
+  padding: var(--space-3) var(--space-2);
+  border-radius: var(--radius-sm);
+  text-align: center;
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+}
+.ref__roi-step--done { color: var(--color-status-success-text); }
+.ref__roi-step--on {
+  background-color: var(--color-brand-surface);
+  color: var(--color-brand-text);
+  font-weight: var(--font-weight-medium);
+}
+.ref__roi-step--bad {
+  background-color: var(--color-status-critical-surface);
+  color: var(--color-status-critical-text);
+  font-weight: var(--font-weight-medium);
+}
+
+.ref__to { display: flex; flex-direction: column; gap: var(--space-4); }
+.ref__to strong { display: block; font-size: var(--font-size-body); font-weight: var(--font-weight-semibold); }
+.ref__to span { display: block; font-size: var(--font-size-caption); color: var(--color-text-secondary); }
+.ref__to-contact { display: flex; flex-direction: column; gap: var(--space-2); }
+.ref__to-contact div { display: flex; gap: var(--space-4); }
+.ref__to-contact dt { width: 3rem; font-size: var(--font-size-fact-label); color: var(--color-fact-label); font-weight: var(--font-weight-regular); }
+.ref__to-contact dd { font-family: var(--font-family-numeric); font-variant-numeric: tabular-nums; font-size: var(--font-size-2xs); }
+
+.ref__facts { display: flex; flex-direction: column; gap: var(--space-3); }
+.ref__facts div { display: grid; grid-template-columns: 6.5rem minmax(0, 1fr); gap: var(--space-4); }
+.ref__facts dt {
+  font-size: var(--font-size-2xs);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  font-weight: var(--font-weight-semibold);
+}
+.ref__facts dd { font-size: var(--font-size-caption); overflow-wrap: anywhere; }
+
+.ref__link { color: var(--color-text-link); font-size: var(--font-size-caption); text-decoration: none; }
+.ref__link:hover { text-decoration: underline; }
+.ref__link--action {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+
+/* The pane's padding moved onto its sections when they stopped being cards, so
+   the action at the foot carries its own — a full-bleed button would run into
+   three edges of the card it sits in. */
+.ref__send {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+}
+.ref__send-hint { font-size: var(--font-size-2xs); color: var(--color-text-tertiary); }
+
+/* ============================ CREATE DRAWER ============================== */
+
+/* The drawer form has three levels of grouping and they have to be readable
+   as three: the channel switch that decides which form you are even filling
+   in, the section cards, and the fields inside them. When every gap in the
+   stack was the same 10px there was no hierarchy to read — a label floated
+   equidistant between the control above it and the control below, so which
+   one it belonged to was a guess. The rhythm is now 4px label-to-control,
+   16px field-to-field, 16px card-to-card, and the channel switch is lifted
+   out of the flow entirely. */
+.ref__form { display: flex; flex-direction: column; gap: var(--space-7); }
+
+/* Channel (Fax / Email) is the first decision and it changes every field
+   below it, so it reads as a control strip rather than as the first orphaned
+   question of the form: legend and options on one line, sunken, and separated
+   from the sections by a rule instead of by another equal gap. */
+.ref__channel {
+  padding-bottom: var(--space-6);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+/* The section cards are painted into #createBody, which was a bare <div>: a
+   block box with no gap, so the two cards met on a shared edge and read as
+   one card with a stray green band across its middle. They are separate
+   answers to separate questions and now sit apart like it. */
+.ref__sections {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-7);
+}
+
+
+.ref__section {
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.ref__section-title {
+  padding: var(--space-4) var(--space-5);
+  background-color: var(--color-brand-surface);
+  font-size: var(--font-size-title-section);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+.ref__section-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding: var(--space-5);
+}
+
+/* Groups inside a section.
+   Sixteen fields under one heading is a wall a clerk has to read linearly to
+   find anything in. Named groups — who they are, when they were born, how to
+   reach them, where they live — let the eye jump to the one that is being
+   checked against the fax, and give the low-confidence fields somewhere to sit
+   in relation to. The rule between them is hairline and the heading is quiet:
+   this is structure inside a card, not a second tier of cards. */
+.ref__group { display: flex; flex-direction: column; gap: var(--space-5); }
+.ref__group + .ref__group {
+  padding-top: var(--space-5);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+}
+.ref__group-title {
+  font-size: var(--font-size-title-eyebrow);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+/* In the drawer a section is a card, so its header is a band with a rule
+   under it and its body is inset to match — the header text and the field
+   labels beneath line up on one edge. Elsewhere .ref__section-title is a
+   heading inside a form rather than a card header, which is why this is
+   scoped rather than changed in place. */
+.ref__form .ref__section-title {
+  padding: var(--space-4) var(--space-6);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+}
+.ref__form .ref__section-body {
+  gap: var(--space-7);
+  padding: var(--space-6);
+}
+
+.ref__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5);
+}
+.ref__grid--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.ref__grid--4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+/* In the drawer a grid row is two fields side by side, and the column gap
+   only has to say "these are two fields", while the row gap has to say "this
+   label belongs to the control under it, not the one above". Different jobs,
+   different sizes. The extraction form (.ref__pat-form) is deliberately
+   denser and keeps the tighter 10px both ways. */
+.ref__form .ref__grid { gap: var(--space-7) var(--space-6); }
+
+.ref__label {
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+/* Recipient is a group inside a card, and it was drawing a second border
+   10px inside the card's own — two lines saying one thing. The sunken fill
+   already says "these three controls answer one question", so the border
+   goes and the inset grows enough for the fill to be legible as a panel. */
+.ref__recipient {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: var(--space-6);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+}
+.ref__recipient [hidden] { display: none; }
+
+/* --- Upload ------------------------------------------------------------------- */
+
+/* The drop zone used to be a 100px-tall centred column — icon, prompt and
+   file-type line stacked — which is the right shape for a page whose whole
+   job is the upload and the wrong one at the bottom of a form with nine
+   fields above it. Laid on its side it says exactly the same three things in
+   a third of the height, and the height it gives back is height the fields
+   above it get to keep on screen. */
+.ref__upload {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  padding: var(--space-6) var(--space-7);
+  border: var(--border-width-thin) dashed var(--color-border-default);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+  cursor: pointer;
+}
+.ref__upload-text { display: flex; flex-direction: column; gap: var(--space-1); }
+.ref__upload:hover,
+.ref__upload--over {
+  border-color: var(--color-brand-solid);
+  background-color: var(--color-brand-surface);
+}
+.ref__upload strong { font-size: var(--font-size-caption); color: var(--color-text-link); }
+.ref__upload-text > span { font-size: var(--font-size-2xs); color: var(--color-text-tertiary); }
+.ref__upload .ui-icon { flex: none; color: var(--color-text-tertiary); }
+
+/* The list hangs off the drop zone, so it sits closer to it than the next
+   field does — but only once there is something in it. An empty list is
+   display:none, which takes it out of the flex flow and its margin with it. */
+.ref__files { display: flex; flex-direction: column; gap: var(--space-3); margin-top: var(--space-4); }
+.ref__files:empty { display: none; }
+
+.ref__file {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+}
+.ref__file > .ui-icon { flex: none; color: var(--color-text-tertiary); }
+.ref__file-body { flex: 1; min-width: 0; }
+.ref__file-body strong { display: block; font-size: var(--font-size-caption); font-weight: var(--font-weight-medium); }
+/* .ref__bar / .ref__bar-fill were the hand-drawn upload track; the row
+   uses <ui-progress-bar> now. */
+.ref__file-body span { font-size: var(--font-size-2xs); color: var(--color-text-tertiary); }
+
+.ref__file-act {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-8);
+  height: var(--space-8);
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+}
+.ref__file-act:hover { background-color: var(--color-bg-surface-hover); color: var(--color-text-primary); }
+.ref__file-act:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+
+/* ============================ PROCESS DOCUMENT =========================== */
+
+/*
+ * A full-screen step, not a drawer.
+ *
+ * Processing means reading a document and filling a registration form at the
+ * same time, and neither fits in a panel beside the other at drawer width.
+ */
+.ref__process {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-6) var(--space-8) var(--space-8);
+  gap: var(--space-6);
+  /* The page colour, not white. Both halves of this screen are panels with
+     their own borders, and a white panel on a white screen is a hairline
+     pretending to be an edge — the form read as a stack of cards floating on
+     nothing. On the page grey they read as what they are: two documents laid
+     out on a desk. */
+  background-color: var(--color-bg-page);
+  overflow: hidden;
+}
+.ref__process[hidden] { display: none; }
+
+/* A chevron and the name of the thing being worked on, and nothing else. This
+   is a step inside a task, not a destination — the heavier page title and the
+   provenance line under it were dressing a screen that already announces what
+   it is in the two panels below. */
+.ref__process-head { display: flex; align-items: center; gap: var(--space-3); }
+.ref__process-title {
+  font-size: var(--font-size-title-card);
+  line-height: var(--line-height-tight);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  white-space: nowrap;
+}
+
+.ref__back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: none;
+  font-family: inherit;
+  font-size: var(--font-size-body);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.ref__back:hover { background-color: var(--color-bg-surface-hover); color: var(--color-text-primary); }
+.ref__back:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* --- The scanning modal --------------------------------------------------- */
+
+/* A scrim, not a banner. Everything the screen would show is derived from the
+   pass that is still running, so there is deliberately nothing to interact
+   with behind it. */
+.ref__scan {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-overlay);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6);
+  background-color: var(--color-bg-overlay);
+}
+.ref__scan[hidden] { display: none; }
+
+.ref__scan-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-6);
+  width: min(34rem, 100%);
+  padding: var(--space-9) var(--space-8);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+  box-shadow: var(--elevation-overlay);
+  text-align: center;
+}
+
+/* The ring is drawn rather than iconised: it fades from the brand green round
+   to nothing, which reads as motion even in the frame where it is standing
+   still, and it scales without the hinting artefacts a 16px icon picks up. */
+.ref__scan-ring {
+  width: 5rem;
+  height: 5rem;
+  border-radius: var(--radius-full);
+  background: conic-gradient(
+    from 90deg,
+    var(--color-brand-surface) 0deg,
+    var(--color-brand-solid) 300deg,
+    var(--color-brand-surface) 360deg
+  );
+  mask: radial-gradient(farthest-side, transparent calc(100% - 0.5rem), #000 calc(100% - 0.5rem + 1px));
+  animation: ref-spin 0.9s linear infinite;
+}
+
+.ref__scan-title {
+  font-size: var(--font-size-title-section);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+.ref__scan-step { font-size: var(--font-size-caption); color: var(--color-text-secondary); }
+
+@keyframes ref-spin {
+  to { transform: rotate(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ref__scan-ring { animation: none; }
+}
+
+/* The body takes whatever height the header leaves and hands all of it to the
+   two columns, so neither of them trails off into dead white space. */
+.ref__process-body { flex: 1; min-height: 0; }
+
+/* The form and the page it was read from, side by side, each filling the screen
+   and scrolling within itself. Scrolling the pair together meant the document
+   slid away exactly when the field being checked against it came into view,
+   which is the one moment both halves have to be on screen at once. Both carry
+   their own border now that nothing frames them, so there is no padding here to
+   inset them from a card that no longer exists. */
+.ref__pat-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-6);
+  align-items: stretch;
+  height: 100%;
+}
+
+/* The form is one panel: a box the height of the column, with the fields
+   scrolling inside it and the actions fixed along its foot. The box is what
+   stops the two section cards from reading as loose paper — they sit in
+   something now. */
+.ref__pat-form {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+  overflow: hidden;
+}
+
+.ref__pat-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-5);
+}
+/* The scroller is a fixed height, so its cards would otherwise shrink to fit it
+   and clip their own fields — the form has to overflow before it can scroll. */
+.ref__pat-fields > * { flex-shrink: 0; }
+
+/* The actions sit on the foot of the panel and never leave it. Continue is the
+   end of a form long enough to scroll on a laptop, and a commit button you have
+   to go looking for is one the clerk keeps scrolling past. */
+.ref__pat-foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+  background-color: var(--color-bg-surface);
+}
+
+/* Date of birth carries the age beside it. It is the one demographic an intake
+   clerk checks against the referral letter by eye, and doing that arithmetic
+   from a date is exactly the step where a mis-keyed year survives. */
+.ref__dob { display: flex; align-items: flex-end; gap: var(--space-3); }
+.ref__dob > .ref__field { flex: 1; min-width: 0; }
+.ref__age {
+  display: flex;
+  align-items: center;
+  height: var(--control-height-md);
+  padding: 0 var(--space-4);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+/* A field the OCR was unsure about. Marking the doubtful ones is the whole
+   point — "check everything" and "check nothing" are the same instruction. */
+.ref__field { display: flex; flex-direction: column; gap: var(--space-2); }
+.ref__field--low ui-input .ui-input { border-color: var(--color-status-warning-solid); }
+.ref__confidence { font-size: var(--font-size-2xs); color: var(--color-status-warning-text); }
+
+/* The preview beside the form. No tint on it, for the reason the main viewer
+   has none: the page inside is the thing being read, and a reading surface
+   that is tinted only when it appears in a wizard is the same document looking
+   like two different documents. */
+.ref__pat-doc {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+  overflow: hidden;
+}
+.ref__pat-doc-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+  background-color: var(--color-bg-surface);
+}
+.ref__pat-doc-text {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--space-6);
+  font-family: var(--font-family-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--font-size-2xs);
+  line-height: var(--line-height-normal);
+  white-space: pre-wrap;
+}
+
+/* ============================ MODALS ===================================== */
+
+.ref__match,
+.ref__newpat,
+.ref__classify,
+.ref__reject,
+
+.ref__match-lede { font-size: var(--font-size-caption); color: var(--color-text-secondary); }
+
+.ref__match-list { display: flex; flex-direction: column; gap: var(--space-3); }
+
+.ref__match-row,
+.ref__classify-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+.ref__match-row:hover,
+.ref__classify-row:hover { border-color: var(--color-brand-solid); }
+.ref__match-row:has(input:checked),
+.ref__classify-row:has(input:checked) {
+  border-color: var(--color-brand-solid);
+  background-color: var(--color-brand-surface);
+}
+.ref__match-row > span { flex: 1; min-width: 0; }
+.ref__match-row strong { display: block; font-size: var(--font-size-caption); font-weight: var(--font-weight-medium); }
+.ref__match-row span span { font-size: var(--font-size-2xs); color: var(--color-text-tertiary); }
+.ref__classify-row span { flex: 1; font-size: var(--font-size-caption); }
+.ref__classify-list { display: flex; flex-direction: column; gap: var(--space-3); }
+
+.ref__newpat-card {
+  padding: var(--space-5);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+}
+.ref__newpat-card h3 {
+  margin-bottom: var(--space-4);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-semibold);
+}
+.ref__newpat-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); }
+.ref__newpat-facts dt {
+  font-size: var(--font-size-2xs);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  font-weight: var(--font-weight-semibold);
+}
+.ref__newpat-facts dd { margin-top: var(--space-2); font-size: var(--font-size-caption); }
+
+/* --- Toast -------------------------------------------------------------------- */
+
+/* The toast host moved to the shared .ui-toast-region in
+   css/components/toast.css — see js/lib/toast.js. */
+
+/* ============================ RESPONSIVE ================================= */
+
+@media (max-width: 90rem) {
+  .ref__cols,
+  .ref__cols:has(.ref__info:not([hidden])) { grid-template-columns: 22rem minmax(0, 1fr); }
+  .ref__info { display: none; }
+  .ref__grid--3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ref__grid--4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 70rem) {
+  .ref__cols { grid-template-columns: minmax(0, 1fr); }
+  .ref__queue { max-height: 22rem; }
+  /* Stacked, the two halves cannot each own a screenful, so the screen goes
+     back to being one scroller and the actions ride along with it. */
+  .ref__process { overflow-y: auto; }
+  .ref__pat-body { grid-template-columns: minmax(0, 1fr); height: auto; }
+  .ref__pat-fields { overflow: visible; }
+  .ref__pat-doc-text { max-height: 34rem; }
+  .ref__grid,
+  .ref__grid--3,
+  .ref__grid--4 { grid-template-columns: minmax(0, 1fr); }
+}

@@ -1,0 +1,191 @@
+/* ============================================================================
+   SELECT MENU — the list a dropdown drops.
+
+   Every <select> in the portal opens this instead of the operating system's
+   own popup. See js/lib/select-menu.js for why, and for the rule that the
+   <select> itself is untouched: this file styles the panel, nothing else. The
+   closed field is still .pp-select in components.css.
+
+   Parented to <body>, because a dropdown inside the content column, a card or
+   a sheet would otherwise be clipped by whatever scrolls around it. Its
+   coordinates arrive through a generated stylesheet keyed to the panel's id,
+   so no element grows a style attribute.
+
+   IT IS A CARD, LIKE EVERYTHING ELSE THE PORTAL OPENS
+   White surface, hairline border, 6px rows inside an 8px inset, the pop
+   shadow the notification panel uses. A dropdown is a small panel that lands
+   over the page, and the portal already knows how to draw one of those.
+   ========================================================================= */
+
+.pp-select-menu {
+  position: fixed;
+  top: var(--pp-select-menu-top, 0);
+  left: var(--pp-select-menu-left, 0);
+
+  /* Above the topbar, the sidebar and the toast stack, all of which sit at 60.
+     A list is only ever open because somebody is looking straight at it. */
+  z-index: 80;
+  box-sizing: border-box;
+
+  /* EXACTLY as wide as the field it belongs to. It was a min-width, so the
+     field's width was only a floor and the panel grew past it to fit its
+     longest label — a list wider than the control it came out of. A long
+     option wraps instead; truncating it would hide the very thing being
+     chosen between. */
+  width: var(--pp-select-menu-width, 12rem);
+  max-width: calc(100vw - 1rem);
+
+  /* Seven-odd rows, then it scrolls inside itself. Past that a list stops
+     being something you read and becomes something you search, and the panel
+     would run the height of the window off a field 40px tall. */
+  max-height: var(--pp-select-menu-max-height, 18.75rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+
+  padding: var(--pp-space-2);
+  border: 1px solid var(--pp-line);
+  border-radius: var(--pp-radius-lg);
+  background-color: var(--pp-surface);
+  box-shadow: var(--pp-shadow-pop);
+
+  /* The panel takes focus so the keyboard has somewhere to land, but it is not
+     itself the thing being pointed at — the active ROW carries that. */
+  outline: none;
+
+  transform-origin: var(--pp-select-menu-origin, top);
+  animation: pp-select-menu-in 120ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes pp-select-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-2px) scale(0.98);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pp-select-menu {
+    animation: none;
+  }
+}
+
+/* A row is the height of the field — --pp-control-h, the same 40px the .pp-select
+   it dropped out of stands at. It was 38px on its own arithmetic, which beside
+   the field reads as a near-miss rather than a decision. min-height, not
+   height, so a label too long for one line still wraps and the row grows. */
+.pp-select-menu__option {
+  display: flex;
+  align-items: center;
+  min-height: var(--pp-control-h);
+  padding: var(--pp-space-2) var(--pp-space-3);
+  border-radius: var(--pp-radius-ctl);
+  font-size: var(--pp-size-body);
+  line-height: var(--pp-leading-tight);
+  color: var(--pp-text-strong);
+  cursor: pointer;
+
+  /* Keeps the row clear of the panel's own padding when the keyboard scrolls
+     it into view — without this the first and last rows land flush against
+     the rounded edge and look half-scrolled. */
+  scroll-margin: var(--pp-space-2);
+}
+
+.pp-select-menu__option + .pp-select-menu__option {
+  margin-top: 1px;
+}
+
+/* THE HIGHLIGHT IS THE POINTER, NOT THE ANSWER.
+   Mouse and keyboard drive the same single row: the one the pointer is over,
+   or the one the arrows have reached. There is only ever one, which is why
+   hover is not styled separately — the script moves this class on pointermove
+   so the two can never disagree. */
+.pp-select-menu__option.is-active {
+  background-color: var(--pp-grey-050);
+}
+
+/* The answer currently held is drawn in weight rather than in fill, so it
+   stays legible when the highlight is sitting somewhere else. */
+.pp-select-menu__option.is-selected {
+  font-weight: var(--pp-weight-medium);
+}
+
+/* The empty first row — "Select a document type", or nothing at all. Greyed
+   for the same reason the closed field greys it: it is a prompt, not a value.
+   --pp-text-muted, not --pp-text-faint: this is real text somebody has to
+   read, and the faint step does not carry it. */
+.pp-select-menu__option.is-placeholder {
+  color: var(--pp-text-muted);
+}
+
+.pp-select-menu__option.is-disabled {
+  color: var(--pp-text-faint);
+  cursor: not-allowed;
+}
+
+/* ============================================================================
+   MORE THAN ONE ANSWER
+
+   A multiple select is drawn as a face — a button wearing .pp-select — over a
+   <select multiple> that keeps the answers and stays out of sight. See the
+   "PICKING MORE THAN ONE" chapter in js/lib/select-menu.js for why the element
+   the browser draws could not be the element on screen.
+   ========================================================================= */
+
+/* Out of sight, not out of the document: it still holds the selection, still
+   posts with a form, still answers `selectedOptions`. display:none would take
+   it out of the accessibility tree and out of form validation with it. */
+.pp-select--faceted {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  clip-path: inset(50%);
+  overflow: hidden;
+}
+
+/* The face is a <button>, so it arrives centred, in the browser's own font,
+   and has to be put back to reading as the field it stands in for. */
+.pp-select-facade {
+  display: flex;
+  align-items: center;
+  text-align: left;
+  font: inherit;
+  font-size: var(--pp-size-sm);
+  cursor: pointer;
+
+  /* One line, however many answers are in it. A field that grew a row per
+     choice would move every control under it each time one was ticked. */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Nothing chosen: what it shows is the empty row's label, a prompt rather than
+   an answer, greyed the way [data-empty] greys a .pp-select. */
+.pp-select-facade.is-empty { color: var(--pp-text-muted); }
+
+/* --- The rows ------------------------------------------------------------- */
+
+.pp-select-menu--multi .pp-select-menu__option { gap: var(--pp-space-2); }
+
+/* A real input[type=checkbox], which this portal paints itself further up
+   components.css — so the box in a menu row and the box in a form are one
+   drawing. Disabled would grey it, so it is left enabled and taken out of the
+   hit test instead: the ROW is what gets pressed. */
+.pp-select-menu__check {
+  pointer-events: none;
+  flex: none;
+}
+
+/* The clear row has no box, so its label would start where the others' boxes
+   do and the list would read as two columns. Indented by exactly the box and
+   the gap, it lines up with the answers it cancels. */
+.pp-select-menu--multi .pp-select-menu__option.is-placeholder {
+  padding-left: calc(var(--pp-space-3) + var(--pp-choice-size) + var(--pp-space-2));
+}
+
+.pp-select-menu__label {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}

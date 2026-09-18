@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MediNova EHR — Template builder</title>
+    <link rel="icon" type="image/svg+xml" href="../assets/img/favicon.svg" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="../css/reset.css" />
+    <link rel="stylesheet" href="../css/tokens.css" />
+    <link rel="stylesheet" href="../css/base.css" />
+    <link rel="stylesheet" href="../css/ui-kit.css" />
+    <link rel="stylesheet" href="../css/screen-patient.css" />
+    <link rel="stylesheet" href="../css/screen-leads.css" />
+    <link rel="stylesheet" href="../css/screen-settings.css" />
+    <link rel="stylesheet" href="../css/screen-templates.css" />
+
+    <script type="module" src="../js/main.js"></script>
+    <script type="module" src="../js/screens/template-builder.js"></script>
+    <script src="../js/open-me-properly.js"></script>
+  </head>
+
+  <body class="pt tb">
+    <header class="pt__bar">
+      <img class="pt__logo" src="../assets/img/medinova-logo.svg" width="158" height="32"
+        alt="MediNova Gastroenterology Clinic" />
+      <ui-main-nav active="settings"></ui-main-nav>
+      <div class="pt__bar-actions">
+        <ui-time-clock></ui-time-clock>
+        <button type="button" class="pt__icon-action" aria-label="Notifications">
+          <svg class="ui-icon" aria-hidden="true"><use href="#i-bell"></use></svg>
+        </button>
+        <ui-avatar name="Amara Mensah" size="sm"></ui-avatar>
+      </div>
+    </header>
+
+    <!--
+      The title is a FIELD, not a heading. A template with no name is the one
+      thing that cannot be saved, so it is the first control on the screen and
+      it is edited in place rather than behind a dialog you have to remember
+      to open.
+    -->
+    <div class="ui-page-head ui-page-head--flush tb__head">
+      <div class="ui-page-head__lead">
+        <a class="ui-page-head__back" href="templates.html" data-testid="tb--back" aria-label="Back to templates">
+          <svg class="ui-icon" aria-hidden="true"><use href="#i-caret-left"></use></svg>
+        </a>
+
+        <div class="tb__title-field">
+          <ui-input
+            id="tbTitle"
+            label="Template name"
+            label-hidden
+            placeholder="Untitled template"
+            required
+            data-testid="tb--title"
+          ></ui-input>
+          <span class="tb__kind" id="tbKind" data-testid="tb--kind"></span>
+        </div>
+
+      </div>
+
+      <div class="ui-page-head__actions">
+        <span class="tb__saved" id="tbSaved" role="status" data-testid="tb--saved"></span>
+        <ui-button variant="outline" icon="eye" id="tbPreview" data-testid="tb--preview"
+          >Preview</ui-button>
+        <ui-button variant="primary" id="tbSave" data-testid="tb--save">Save template</ui-button>
+      </div>
+    </div>
+
+    <main class="tb__cols">
+      <!-- ================= LEFT: the palette =================
+           Every section the practice has, grouped. Grouping is the one real
+           change from the legacy screen, whose flat alphabetical list put
+           "Layout - Space/Blank Line" next to "Patient Date of Birth" with
+           nothing to say they are different kinds of thing. -->
+      <aside class="tb__palette" aria-label="Available sections">
+        <div class="tb__palette-head">
+          <ui-input
+            id="tbSearch"
+            label="Search sections"
+            label-hidden
+            icon="search"
+            size="sm"
+            placeholder="Search sections…"
+            data-testid="tb--search"
+          ></ui-input>
+        </div>
+        <div class="tb__palette-list" id="tbPalette" data-testid="tb--palette"></div>
+        <p class="tb__palette-empty" id="tbPaletteEmpty" hidden data-testid="tb--palette-empty">
+          No section matches that search.
+        </p>
+      </aside>
+
+      <!-- ================= RIGHT: the template =================
+           The running order. Drag to reorder, or use the row's own up/down
+           buttons — a drag-only canvas is unusable by keyboard, and this is a
+           settings screen a practice manager will use with one hand on a
+           trackpad and the other on a phone. -->
+      <section class="tb__canvas" aria-label="Template sections">
+        <div class="tb__canvas-head">
+          <h2 class="tb__canvas-title">Template</h2>
+          <span class="tb__count" id="tbCount" data-testid="tb--count"></span>
+        </div>
+
+        <ol class="tb__list" id="tbList" data-testid="tb--canvas"></ol>
+
+        <div class="tb__drop" id="tbDrop" data-testid="tb--drop">
+          <svg class="ui-icon" aria-hidden="true"><use href="#i-plus"></use></svg>
+          <p>Drag a section here, or click one on the left to add it to the end.</p>
+        </div>
+      </section>
+    </main>
+
+    <!-- ================= PREVIEW =================
+         What the note looks like with nothing filled in — the section headings
+         in order, which is all a template actually decides. -->
+    <ui-modal id="previewModal" heading="Preview" size="lg">
+      <p class="tb__preview-lead" id="previewLead"></p>
+      <div class="tb__preview" id="previewBody" data-testid="tb--preview-body"></div>
+      <div class="ui-modal__actions">
+        <ui-button variant="outline" data-modal-dismiss data-testid="tb--preview-close"
+          >Close</ui-button>
+        <span class="ui-modal__actions-spacer"></span>
+      </div>
+    </ui-modal>
+  </body>
+</html>

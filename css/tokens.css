@@ -1,0 +1,753 @@
+/* ============================================================================
+   DESIGN TOKENS — the single place where visual decisions live.
+
+   HOW TO READ THIS FILE
+   Two tiers, and the order matters:
+     1. PRIMITIVES  — raw values with MediNova's own names (--color-grey-08).
+                      They say WHAT a colour is. Never used by components.
+     2. SEMANTICS   — role names (--color-text-primary, --color-bg-surface).
+                      They say WHAT IT IS FOR. Components use only these.
+
+   A future dark or high-contrast theme is therefore a matter of re-pointing
+   the SEMANTIC block only — the primitives never change.
+
+   PROVENANCE
+     [FIGMA]   read out of the MediNova file's variable set. The name in the
+               comment is MediNova's own variable name. Do not change these
+               without changing Figma first.
+     [DERIVED] not defined in MediNova. Built from a [FIGMA] anchor to fill a
+               gap the prototype cannot ship without. All flagged in handover.
+   ========================================================================= */
+
+:root {
+  /* ==========================================================================
+     1. PRIMITIVES — COLOUR
+     ====================================================================== */
+
+  /* --- Grey: MediNova's warm neutral ramp ---------------------------------- */
+  --color-grey-01: #f3f2f1; /* [FIGMA] Grey/01 */
+  --color-grey-02: #e8e5e3; /* [FIGMA] Grey/02 */
+  --color-grey-03: #cec8c3; /* [DERIVED] gap between 02 and 04 */
+  --color-grey-04: #a19891; /* [FIGMA] Grey/04 */
+  --color-grey-05: #8a7f75; /* [FIGMA] Grey/05 */
+  --color-grey-06: #6e655e; /* [FIGMA] Grey/06 */
+  --color-grey-07: #534c46; /* [FIGMA] Grey/07 */
+  --color-grey-08: #37332f; /* [FIGMA] Grey/08 */
+  --color-grey-09: #1c1917; /* [FIGMA] Grey/09 */
+  --color-grey-10: #131210; /* [FIGMA] Grey/10 */
+
+  /* --- Neutral: MediNova's cool grey ramp, used for chrome and strokes ----- */
+  --color-neutral-05: #7c7c7c; /* [FIGMA] Neutral/5 */
+  --color-neutral-07: #4f4f4f; /* [FIGMA] Neutral/7 */
+  --color-neutral-40: #d2d2d2; /* [FIGMA] Neutral/40 */
+  --color-neutral-80: #21262b; /* [FIGMA] Neutral/80 */
+  --color-neutral-90: #1e242a; /* [FIGMA] Neutral/90 */
+
+  /* --- Brand -----------------------------------------------------------------
+     WHITELABEL (MediNova): the brand ramp below is navy/blue, taken from the
+     reference header — navy lid #1b2a47, blue active pill #3461ad, navy
+     primary action #1e3a6e. The notes further down still describe the green
+     ramp this fork started from; the reasoning about steps holds for blue.
+
+     ⚠ [OVERRIDE] The product primary is navy #1e3a6e, chosen by the
+     designer. This deliberately REPLACES MediNova's BrandPrimary/07-Main
+     (#740a11 oxblood), which is still what the Figma file specifies and what
+     the MEDINOVA logo is drawn in.
+
+     One consequence worth keeping in view: the primary action now shares a
+     colour family with the Success status (#2f7f4d). They are separable —
+     brand green is darker and purer — but green carries less "this result is
+     normal" signal now.
+
+     The clash that used to sit here is gone. The original logo was drawn in
+     oxblood, so the wordmark and the primary button disagreed on every
+     screen; the supplied mark (assets/img/medinova-logo.svg) is black and
+     stone-grey, which takes no side and leaves green the only brand colour
+     the product draws.
+
+     Reverting is a four-line edit here; nothing else hardcodes the hex. */
+  --color-brand-07: #1e3a6e; /* [WHITELABEL] MediNova navy — product primary */
+  --color-brand-08: #182f5a; /* [DERIVED] hover, one step darker */
+  --color-brand-09: #122447; /* [DERIVED] active, two steps darker */
+  --color-brand-01: #e8eef8; /* [DERIVED] tinted surface */
+  /* THE ONE GROUND A HOVER PAINTS, anywhere in the product.
+     A list whose selected card is painted in --color-brand-01 needs a hover
+     that is recognisably the same colour and unmistakably less of it; the
+     neutral grey hover that used to sit there changed hue as well as weight,
+     so pointing at the card below the open one looked like a different kind
+     of state rather than a quieter one. That was true of every other hover in
+     the product too, which is why this rung is now what
+     --color-bg-surface-hover resolves to rather than a tint one list happened
+     to use.
+     One step below the tinted surface and three below white: L* 96.3 against
+     white's 100 and the selected card's 95.3, so a hover is visible on a white
+     row and still reads as less than the card that is actually open. It used
+     to be #f4faf3, which was a further step towards white again — fine beneath
+     a selected card, too faint to carry every hover on the product. */
+  --color-brand-00: #eff3fa; /* [DERIVED] navy hover tint — the hover tint */
+  /* PRESSED, and the deeper ground a hover takes on a surface that is already
+     tinted. Below the selected card rather than above it, because a press is
+     the heaviest thing a pointer does and reading lighter than the state it
+     acts on would invert that.
+     The half-number is deliberate: it sits between the tinted surface and the
+     tinted border, and renumbering the ramp to make room would touch every
+     call site of --color-brand-02 for no gain. */
+  --color-brand-015: #d6e0f1; /* [DERIVED] navy pressed tint — pressed tint */
+  /* The rung between the tinted surface and the primary, for hairlines and
+     rails that have to read as green without reading as selected. Drawn at the
+     weight a 1px border needs on white: --color-brand-01 is a fill, and a fill
+     used as a line disappears. */
+  --color-brand-02: #c9d6ec; /* [DERIVED] tinted border */
+
+  /* --- App chrome: the green the top bar is painted in -----------------------
+     The bar used to be the same near-white as the page under it, so the
+     product's only piece of persistent furniture was doing its work with a
+     hairline. Painting it in the brand's own family gives the app a lid: the
+     nav reads as chrome at a glance, and everything below it reads as the
+     work. Two steps darker than the primary action so a filled green button
+     never has to compete with the ground it sits above.
+
+     Slightly off the pure hue the rest of the ramp is built on (s≈72% rather
+     than 100%). A saturated green is fine on a 90px button and turns acidic
+     across a 1440px band; the small desaturation is what keeps a full-width
+     dark green looking like furniture rather than a highlighter. */
+  --color-brand-10: #1b2a47; /* [DERIVED] the bar's ground */
+  --color-brand-11: #142038; /* [DERIVED] the rule under the bar */
+  /* One step LIGHTER than the primary, for the current section's pill. It has
+     to separate from the bar behind it AND carry white text: 2.4:1 against
+     --color-brand-10 with the weight change on top of it, 5.3:1 for the label
+     itself. --color-brand-07 was tried first and sat too close to the band. */
+  --color-brand-06: #3461ad; /* [DERIVED] the active nav pill */
+
+  /* The logo that drew this is now the black mark, so the only thing left
+     using it is the second series of a chart — see --color-chart-series-2.
+     Kept named for the brand rather than folded into the chart tokens: it is
+     what Figma still specifies, and a future theme may need it back. */
+  --color-medinova-oxblood: #740a11; /* [FIGMA] BrandPrimary/07-Main */
+
+  /* --- Status ------------------------------------------------------------- */
+  --color-success-01: #e9faef; /* [FIGMA] Success/01 */
+  --color-success-07: #2f7f4d; /* [FIGMA] Success/07 */
+  --color-warning-01: #fef4e5; /* [FIGMA] Warning/01 */
+  --color-warning-07: #c8641b; /* [FIGMA] Warning/07 */
+
+  /* Warning/07 measures 3.96:1 on white and 3.64:1 on its own surface, so it
+     cannot legally carry small text on a light background — only badges and
+     borders, which is all MediNova uses it for. Body-sized warning text needs a
+     darker step, and Figma does not define one. 4.6:1 on white. Replace as
+     soon as Figma defines Warning/08. */
+  --color-warning-08: #b85a17; /* [DERIVED] warning text on a light surface */
+  /* [DERIVED] The ink warning TEXT actually needs. Warning/07 and /08 were
+     both measured against the tint they sit on — Warning/01 #fef4e5 — and
+     both fail AA there: 3.64:1 and 4.27:1. A warm, light tint LOWERS contrast
+     against a warm ink rather than helping it, which is the opposite of what
+     the binding below used to assume. Same hue (25deg) and saturation as /08,
+     one step darker: 4.78:1 on the tint and 5.21:1 on white, so a single ink
+     serves both surfaces. */
+  --color-warning-09: #ac5416;
+
+  /* ⚠ MediNova defines NO error/critical colour. A gastroenterology EHR cannot
+     ship without one — allergy banners, critical labs, destructive actions.
+     Built to sit clearly apart from the oxblood brand so an alert never
+     reads as chrome. Replace as soon as Figma defines Error/07. */
+  --color-error-01: #fdecea; /* [DERIVED] */
+  --color-error-03: #f2a49d; /* [DERIVED] */
+  --color-error-07: #b3261e; /* [DERIVED] */
+  --color-error-08: #97170f; /* [DERIVED] */
+
+  /* MediNova's blue, from the input-fields component (node 827:85970).
+     ⚠ #6782EA is 3.52:1 on white — it does NOT clear AA for body text. Used
+     as designed and logged in FIGMA_CONTRAST_DEBT; --color-info-08 is a
+     darkened step for cases where the blue has to carry readable text. */
+  --color-info-01: #eef1fc; /* [DERIVED] tinted surface */
+  --color-info-03: #b3c1f4; /* [DERIVED] */
+  --color-info-05: #6782ea; /* [FIGMA] Primary/500 */
+  --color-info-07: #6782ea; /* [FIGMA] Primary/500 */
+  --color-info-08: #3a55b8; /* [DERIVED] darkened for text — 5.6:1 on white */
+  --color-info-09: #2c418f; /* [DERIVED] one step darker again — the hover
+                               partner for Info/08 when the blue is carrying
+                               text. 8.1:1 on white, so a link that is already
+                               readable does not lose contrast on hover. */
+
+  /* --- Data visualisation --------------------------------------------------
+     A chart needs colours that mean nothing but "a different series". None of
+     the status ramps will do: green already means "this worked" and red "this
+     failed", and a bar chart of money owed would then be reporting a verdict
+     on every column. This sky is the one hue added for that job; its partner
+     is MediNova's own oxblood, which is otherwise unused. */
+  --color-sky-05: #7cc9ec; /* [DERIVED] chart series, against the oxblood */
+
+  /* --- Avatar tints ---------------------------------------------------------
+     MediNova's avatar component offers a small palette so that a wall of
+     initials in a care-team list does not read as one grey block. Four of the
+     five reuse ramps this file already has; violet is the one hue with no
+     home, added so the palette is five distinguishable tints rather than four
+     plus a repeat. These are decoration — an avatar's colour never carries
+     meaning, which is exactly why the status ramps are the wrong place to
+     borrow from and a status dot is drawn on top when state matters. */
+  --color-violet-01: #f0ecfa; /* [DERIVED] */
+  --color-violet-07: #5b3fa0; /* [DERIVED] 7.4:1 on its own tint */
+
+  /* --- Strokes, borders, base -------------------------------------------- */
+  --color-border-02: #e3ecef; /* [FIGMA] Border/02 */
+  --color-stroke-02: #f2f2f7; /* [FIGMA] Stroke/02 */
+  --color-stroke-03: #e5e5ea; /* [FIGMA] Stroke/03 */
+  --color-stroke-04: #d1d1d6; /* [FIGMA] Stroke/04 — input border */
+  --color-stroke-06: #bebec2; /* [FIGMA] Stroke/06 */
+  --color-stroke-07: #a1a1a6; /* [FIGMA] Stroke/07 */
+  --color-stroke-10: #636366; /* [FIGMA] Stroke/10 */
+  --color-base-black: #0d0d0d; /* [FIGMA] Base Colors/Black */
+  --color-base-white: #ffffff; /* [FIGMA] Base/White · Solid/White */
+  --color-portal-bg: #f7f7f7; /* [FIGMA] Patient portal/Background */
+
+  /* The ground the clinician-facing screens are laid out on, and the one step
+     below it. Cool rather than MediNova's warm #f7f7f7: with a dark green lid on
+     the window, a warm neutral underneath reads as a second, unrelated
+     product. Barely tinted at all — ONE point of chroma between the green
+     channel and the other two, which is enough to keep the neutral off the
+     flat #efefef every other product uses and far too little to be seen as a
+     colour. Earlier passes sat at #e9eee7 and #edefec and read as a pale green
+     page rather than as a grey one.
+
+     Two steps, because the page and the head of a table want different jobs
+     from the same family. 01 is the canvas, and it is deliberately the palest
+     thing that is still not white: eight levels under it, the same lightness
+     as MediNova's own #f7f7f7 and only cooler. A card is told apart from the
+     page by its BORDER, which it has anyway; the ground only has to stop
+     being the same sheet of paper, and any more than that is a grey page
+     competing with what is printed on it. 02 is a real step — eighteen levels
+     under white — and belongs to anything that has to be FOUND inside a card
+     rather than merely bounded, which today is the strip naming a table's
+     columns. It stayed where it was while 01 lightened, or the head of every
+     table would have gone up with the page and stopped being a band. */
+  --color-green-grey-01: #f7f8f7; /* [DERIVED] the app canvas */
+  --color-green-grey-02: #edeeed; /* [DERIVED] the head of a table */
+
+  /* ==========================================================================
+     2. PRIMITIVES — TYPOGRAPHY
+     ====================================================================== */
+
+  /* [FIGMA] fontFamily-Inter. MediNova's screens are set in Inter. The system
+     stack follows so the prototype still renders if the webfont fails. */
+  --font-family-inter: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    Roboto, 'Helvetica Neue', Arial, sans-serif;
+  /* [DERIVED] The product is set in ONE typeface. Inter, everywhere, with no
+     second face anywhere in the interface — not for numbers, not for code,
+     not for a signature. These two tokens survive only as ROLE names, so the
+     ~70 call sites that mean "this is a number" or "this is a signature" stay
+     readable and stay findable; both now resolve to Inter.
+
+     Losing the monospace face costs column alignment, which is the one thing
+     it was doing here. `font-variant-numeric: tabular-nums` buys that back —
+     Inter ships proper tabular figures, so an MRN column lines up on Inter as
+     squarely as it did on Menlo. Every site that reaches for
+     --font-family-numeric sets it alongside. */
+  --font-family-mono: var(--font-family-inter);
+  /* [DERIVED] A typed electronic signature. It used to be set in a serif so
+     it read as a signature rather than as another form field; the one-typeface
+     rule takes that away, and italic plus the larger size now carry the
+     distinction on their own. See css/components/signature.css. */
+  --font-family-signature: var(--font-family-inter);
+
+  --font-size-12: 0.75rem; /* [FIGMA] _fontSize/0,75rem */
+  --font-size-14: 0.875rem; /* [FIGMA] fontSize-14 · _fontSize/0,875rem */
+  --font-size-11: 0.6875rem; /* [DERIVED] badges, dense meta */
+  --font-size-13: 0.8125rem; /* [DERIVED] between MediNova's two sizes */
+  --font-size-16: 1rem; /* [DERIVED] card titles */
+  --font-size-20: 1.25rem; /* [DERIVED] page titles */
+  --font-size-24: 1.5rem; /* [FIGMA] presentation header */
+
+  --font-weight-regular: 400; /* [FIGMA] fontWeight-regular */
+  --font-weight-medium: 500; /* [DERIVED] */
+  --font-weight-semibold: 600; /* [DERIVED] */
+
+  /* [FIGMA] Links/14-Regular → lineHeight 1.43, letterSpacing 0 */
+  --line-height-body: 1.43;
+  --line-height-caption: 1.66; /* [FIGMA] typography/caption */
+  --line-height-tight: 1.2; /* [DERIVED] single-line controls */
+  --letter-spacing-body: 0; /* [FIGMA] Links/14-Regular */
+  --letter-spacing-caption: 0.4px; /* [FIGMA] typography/caption */
+  --letter-spacing-wide: 0.04em; /* [DERIVED] all-caps labels */
+
+  /* ==========================================================================
+     3. PRIMITIVES — SPACE, RADIUS, ELEVATION, MOTION
+     ====================================================================== */
+
+  /* 4px base grid. [DERIVED] — MediNova exposes no spacing scale, but every
+     measured value on the patient screen lands on this grid. */
+  --space-0: 0;
+  --space-1: 0.125rem; /* 2px */
+  --space-2: 0.25rem; /* 4px */
+  --space-3: 0.375rem; /* 6px */
+  --space-4: 0.5rem; /* 8px */
+  --space-5: 0.625rem; /* 10px — MediNova's table cell inset */
+  --space-6: 0.75rem; /* 12px */
+  --space-7: 1rem; /* 16px */
+  --space-8: 1.25rem; /* 20px */
+  --space-9: 1.5rem; /* 24px */
+  --space-10: 2rem; /* 32px */
+  --space-11: 2.5rem; /* 40px */
+
+  --radius-sm: 2px; /* [DERIVED] */
+  --radius-md: 4px; /* [FIGMA] borderRadius */
+  --radius-lg: 8px; /* [DERIVED] cards, table shell */
+  --radius-xl: 12px; /* [DERIVED] large content cards — settings/reports hub */
+  --radius-full: 9999px;
+
+  --border-width-thin: 1px;
+  --border-width-thick: 2px;
+
+  /* [FIGMA] Shadow/xs — DROP_SHADOW #1018280D, offset (0,1), radius 2 */
+  --shadow-xs: 0 1px 2px 0 rgb(16 24 40 / 0.05);
+  --shadow-sm: 0 1px 3px rgb(16 24 40 / 0.1), 0 1px 2px rgb(16 24 40 / 0.06); /* [DERIVED] */
+  --shadow-md: 0 4px 8px rgb(16 24 40 / 0.08), 0 2px 4px rgb(16 24 40 / 0.06); /* [DERIVED] */
+  --shadow-lg: 0 12px 24px rgb(16 24 40 / 0.12); /* [DERIVED] */
+
+  /* --- ELEVATION: THREE STEPS, AND A SHADOW MUST MEAN SOMETHING -------------
+     A drop shadow is a claim that an element is in FRONT of the page rather
+     than on it. Spend it only where that is true, and the reader can trust it;
+     spend it on every card and it says nothing, while a screen of tiles each
+     casting a shadow onto the tile behind reads as clutter at a glance.
+
+     The four raw --shadow-* values above are the palette. These three are the
+     only ones a screen may use, and they are named for the question they
+     answer rather than for how dark they are.
+
+       flat      In the page. Cards, panels, tiles, stat blocks, calendar
+                 blocks, tab segments, list rows — everything that scrolls
+                 with the content around it. A border and a surface colour
+                 already separate them; a shadow on top is a third encoding of
+                 the same fact.
+
+       raised    Attached to the page, but content passes UNDERNEATH it. Sticky
+                 action footers, dropdown menus, popovers.
+
+       overlay   Detached from the page entirely. Modals, drawers, toasts.
+
+     If something needs a fourth step, the layout is too deep — take a level
+     out rather than inventing another shadow. */
+  --elevation-flat: none;
+  --elevation-raised: var(--shadow-md);
+  --elevation-overlay: var(--shadow-lg);
+
+  /* --- LAYOUT RHYTHM: TWO MEASURES BETWEEN THINGS --------------------------
+     The --space-* scale is eleven steps because a scale has to be able to
+     express a 2px nudge inside a chip. Between LAYOUT objects it was being
+     used as a free choice, and --space-4, -5 and -6 came out almost exactly
+     as often as each other — which is another way of saying the gap between
+     two cards was decided afresh every time.
+
+     Two measures, and a screen picks neither: it uses whichever of these
+     describes the relationship.
+
+       gutter   The page's own inset. Content to the edge of the screen, and
+                content to the header above it — the same on all four sides,
+                so the work sits in a frame rather than hanging off the top.
+
+       gap      Between siblings at that level: card to card, panel to panel,
+                section to section.
+
+     Inside a component — a table cell's inset, a chip's padding, the space
+     between a label and its field — the --space-* scale still applies
+     directly. That is spacing WITHIN a thing, and the component owns it. */
+  --layout-gutter: var(--space-8); /* 20px */
+  --layout-gap: var(--space-7); /* 16px */
+
+  --duration-fast: 120ms;
+  --duration-base: 200ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+
+  --z-sticky: 100;
+  --z-dropdown: 400;
+  --z-overlay: 600;
+  --z-modal: 700;
+  /* Above the modal, and deliberately so: a dropdown opened inside a dialog is
+     a list ON that dialog. It sits under the toast, which reports on the whole
+     window and must be readable over anything. */
+  --z-select-menu: 800;
+  --z-toast: 900;
+
+  /* ==========================================================================
+     4. SEMANTIC LAYER — components use ONLY these.
+     ====================================================================== */
+
+  /* --- Surfaces ---------------------------------------------------------- */
+  --color-bg-page: var(--color-green-grey-01);
+  --color-bg-surface: var(--color-base-white);
+  --color-bg-surface-raised: var(--color-base-white);
+  --color-bg-surface-sunken: var(--color-grey-01);
+  /* HOVER AND PRESS ARE GREEN, not grey — the product has one interactive
+     colour, and a pointer landing on something is the smallest amount of it.
+     Every hover in the EHR resolves to the first of these (107 rules), so the
+     hue lives here rather than in the rules.
+     Grey changed hue between "you are pointing at this" and "this one is
+     open": the open card was green, the hover under it warm grey, and the two
+     read as unrelated states rather than two weights of the same one.
+     The ladder is white 100 → hover 96.3 → selected 95.3 → pressed 92.0 in
+     L*, so each step is visible against the one before it and the press is
+     the heaviest thing the pointer does. */
+  --color-bg-surface-hover: var(--color-brand-00);
+  --color-bg-surface-pressed: var(--color-brand-015);
+  /* NOT a state despite the name — the neutral ground under a meter track, a
+     loading skeleton, a "not applied" chip. It reads grey because none of
+     those are things a pointer is doing something to; the press that used to
+     borrow it now has --color-bg-surface-pressed of its own. */
+  --color-bg-surface-active: var(--color-grey-02);
+  --color-bg-surface-selected: var(--color-brand-01);
+  --color-bg-surface-disabled: var(--color-grey-01);
+
+  /* THE HEAD OF A TABLE, painted from the page's own family rather than from
+     the neutral ramp — one step below the canvas, not level with it.
+
+     It used to be the sunken warm grey, which on white was a twelve-level step
+     and, once the canvas arrived, a third tone competing with it inside the
+     same card. The deeper step of the page's family gives the band eighteen
+     levels against the rows it labels — a header you find rather than read for
+     — while the page itself stays light enough that a card only needs an edge.
+     Its own token and not an alias of --color-bg-page, so the two can be
+     re-pointed apart without hunting through five files. */
+  --color-bg-table-head: var(--color-green-grey-02);
+  --color-bg-overlay: rgb(13 13 13 / 0.45);
+
+  /* An inverted surface — dark ground, light text. Only two things want it:
+     a tooltip bubble, which has to read as ON TOP of whatever it covers rather
+     than as another panel in the page, and anything else that borrows the same
+     "this is a note about that" voice. Grey/09 rather than pure black so it
+     sits in MediNova's warm neutral family instead of punching a hole. */
+  --color-bg-surface-inverse: var(--color-grey-09); /* [DERIVED] */
+
+  /* --- The app bar ---------------------------------------------------------
+     Its own small set of roles rather than borrowing the surface tokens. The
+     bar is the one region of the product that is dark, so every colour on it
+     — the label of a section you are not in, the ground a hover paints, the
+     hairline underneath — inverts, and a component that finds itself on the
+     bar needs to be able to ask for "text on the bar" instead of guessing.
+
+     The hover and the pressed state are white at low alpha rather than fixed
+     hexes: they then hold if the band is ever re-pointed a step lighter or
+     darker, which a fixed pair of greens would not. */
+  --color-bg-nav: var(--color-brand-10);
+  --color-bg-nav-hover: rgb(255 255 255 / 0.12);
+  --color-bg-nav-active: var(--color-brand-06);
+  --color-border-nav: var(--color-brand-11);
+  /* Not pure white: a full-strength label on every section makes twelve of
+     them shout at once and leaves the current one nothing louder to be. The
+     section you are in gets --color-text-on-nav-strong and the pill. */
+  --color-text-on-nav: rgb(255 255 255 / 0.78);
+  --color-text-on-nav-strong: var(--color-base-white);
+
+  /* The unfilled part of a progress bar or a slider. It is NOT a border and it
+     is NOT a sunken panel: it is the part of a measure that has not happened
+     yet, and it has to stay visible against the surface behind it while never
+     competing with the filled part in front of it. */
+  --color-bg-track: var(--color-grey-02); /* [DERIVED] */
+
+  /* --- Text -------------------------------------------------------------- */
+  --color-text-primary: var(--color-grey-10);
+  --color-text-secondary: var(--color-grey-07);
+  --color-text-tertiary: var(--color-grey-06);
+  --color-text-disabled: var(--color-grey-04);
+  --color-text-inverse: var(--color-base-white);
+  --color-text-brand: var(--color-brand-07);
+  /* Links are blue, not brand oxblood — an oxblood patient name in a list
+     reads as an error state rather than something you can click.
+
+     Info/08 rather than the Figma Primary/500 the rest of the blue family is
+     built on: #6782EA is only 3.52:1 on white, and a link is the one place the
+     blue always has to be read as a word rather than seen as a wash. Links run
+     through the densest parts of this product — medication names, patient
+     names, order numbers, whole columns of a table — so the lighter blue was
+     reading as decoration on white and washing out entirely on the striped
+     rows and hovered rows behind it. The darker step keeps the same hue, so
+     nothing else in the blue family has to move, and clears AA for body text
+     at every size. */
+  --color-text-link: var(--color-info-08);
+  --color-text-link-hover: var(--color-info-09);
+
+  /* --- Borders ----------------------------------------------------------- */
+  --color-border-subtle: var(--color-stroke-03);
+  --color-border-default: var(--color-stroke-04); /* [FIGMA] input border */
+  --color-border-strong: var(--color-stroke-06);
+  --color-border-brand: var(--color-brand-07);
+  --color-border-focus: var(--color-brand-07);
+
+  /* --- Brand / primary action -------------------------------------------- */
+  --color-brand-solid: var(--color-brand-07);
+  --color-brand-solid-hover: var(--color-brand-08);
+  --color-brand-solid-active: var(--color-brand-09);
+  --color-brand-surface: var(--color-brand-01);
+  /* Where a control that already sits on the tinted surface goes next — the
+     pressed state of the secondary button, whose hover IS --color-brand-surface.
+     Grey used to sit here, so pressing a green button turned it warm for as
+     long as the mouse was down. */
+  --color-brand-surface-hover: var(--color-bg-surface-pressed);
+  /* The pair a selectable card hovers in: a tint below --color-brand-surface,
+     edged in a tint one rung up so the outline reads green without claiming
+     the border weight the selected card owns. */
+  --color-brand-surface-subtle: var(--color-brand-00);
+  --color-border-brand-subtle: var(--color-brand-02);
+  --color-brand-text: var(--color-brand-07);
+
+  /* --- Status: critical --------------------------------------------------- */
+  --color-status-critical-solid: var(--color-error-07);
+  --color-status-critical-solid-hover: var(--color-error-08);
+  --color-status-critical-surface: var(--color-error-01);
+  --color-status-critical-border: var(--color-error-03);
+  --color-status-critical-text: var(--color-error-07);
+
+  /* --- Status: warning ---------------------------------------------------- */
+  --color-status-warning-solid: var(--color-warning-07);
+  --color-status-warning-solid-hover: var(--color-warning-07);
+  --color-status-warning-surface: var(--color-warning-01);
+  --color-status-warning-border: var(--color-warning-07);
+  /* Warning is the only status whose text failed AA, and it failed on the very
+     surface it was designed for: 47 of the 48 warning-coloured strings in the
+     product sit on --color-status-warning-surface, where Warning/07 measures
+     3.64:1. Critical, success and info all clear 4.5 on their own tints
+     (5.72, 4.55, 5.87) — warning alone did not, because its ink and its tint
+     are the same temperature.
+
+     Both roles take Warning/09, which clears AA on the tint and on white.
+     -text-strong is kept as a name so its call sites need not change, but
+     there is no longer a second ink behind it: the distinction it drew rested
+     on the tint doing work that it does not do. */
+  --color-status-warning-text: var(--color-warning-09);
+  --color-status-warning-text-strong: var(--color-warning-09);
+
+  /* --- Status: success ---------------------------------------------------- */
+  --color-status-success-solid: var(--color-success-07);
+  --color-status-success-solid-hover: var(--color-success-07);
+  --color-status-success-surface: var(--color-success-01);
+  --color-status-success-border: var(--color-success-07);
+  --color-status-success-text: var(--color-success-07);
+
+  /* --- Status: info -------------------------------------------------------
+     Badges use the DARKENED blue, not Primary/500. MediNova specifies
+     Primary/500 for links and accents; carrying it into badge text would put
+     white-on-blue at 3.5:1 and blue-on-tint at 3.1:1. That failure would be
+     ours, not the design file's, so the darker step is used here. */
+  --color-status-info-solid: var(--color-info-08);
+  --color-status-info-solid-hover: var(--color-info-08);
+  --color-status-info-surface: var(--color-info-01);
+  --color-status-info-border: var(--color-info-03);
+  --color-status-info-text: var(--color-info-08);
+
+  /* --- Chart series --------------------------------------------------------
+     Numbered, not named for what they plot. The chart decides that a series
+     is patients or payers; these only promise that two series drawn beside
+     each other can be told apart — including by anyone who cannot separate
+     red from green, since the pair differs in lightness as well as hue.
+
+     Deliberately outside the status ramps. Green is the product's brand AND
+     its "this succeeded"; using it for a bar would have every chart quietly
+     reporting a verdict. */
+  --color-chart-series-1: var(--color-sky-05);
+  --color-chart-series-2: var(--color-medinova-oxblood);
+
+  /* --- Status: neutral (inactive, deceased, draft) ------------------------ */
+  --color-status-neutral-solid: var(--color-grey-06);
+  --color-status-neutral-surface: var(--color-grey-02);
+  --color-status-neutral-border: var(--color-grey-03);
+  --color-status-neutral-text: var(--color-grey-08);
+
+  /* --- Focus ring — one definition, used everywhere ------------------------
+     A 1px line in the focus colour tight against the control, plus a 2px
+     tinted halo outside it. This is the same language the input already used
+     (thin border + soft halo) — now every focusable thing speaks it.
+
+     It replaces a 2px surface band + 2px solid ring: 4px of hard edge that
+     doubled the visual weight of a 32px control and read as an error state,
+     and that stacked into two concentric rings on any control wrapped in a
+     field shell.
+
+     --focus-ring-solid is for controls ALREADY FILLED with the focus colour —
+     primary/danger buttons, a checked box, a selected slot. A green line on a
+     green button is invisible, so there the order inverts: a hairline gap in
+     the surface colour, then the ring. Same 3px footprint either way. */
+  --focus-ring: 0 0 0 1px var(--color-border-focus),
+    0 0 0 3px var(--color-brand-surface);
+  --focus-ring-critical: 0 0 0 1px var(--color-status-critical-solid),
+    0 0 0 3px var(--color-status-critical-border);
+  --focus-ring-solid: 0 0 0 1px var(--color-bg-surface),
+    0 0 0 3px var(--color-border-focus);
+  --focus-ring-solid-critical: 0 0 0 1px var(--color-bg-surface),
+    0 0 0 3px var(--color-status-critical-solid);
+
+  /* And one for the dark bar. Both of the rings above are built out of the
+     brand green and a pale green halo, which is exactly the pair that
+     disappears against a dark green band — a keyboard user would tab along
+     the nav with nothing to show for it. White line, translucent white halo:
+     the same 3px footprint, legible on the only dark region in the product. */
+  --focus-ring-on-nav: 0 0 0 1px var(--color-base-white),
+    0 0 0 3px rgb(255 255 255 / 0.3);
+
+  /* --- Step aliases -------------------------------------------------------
+     MediNova names its type tokens by pixel value (fontSize-14). Components
+     read a t-shirt step instead, so the mapping lives here in one place: if
+     MediNova adds a size, only this block moves. */
+  --font-size-2xs: var(--font-size-11);
+  --font-size-xs: var(--font-size-12);
+  --font-size-sm: var(--font-size-13);
+  --font-size-md: var(--font-size-14); /* body */
+  --font-size-lg: var(--font-size-16);
+  --font-size-xl: var(--font-size-20);
+  --font-size-2xl: var(--font-size-24);
+
+  --line-height-snug: var(--line-height-body); /* 1.43 — MediNova body */
+  --line-height-normal: 1.5; /* [DERIVED] paragraphs, note bodies */
+  --letter-spacing-normal: var(--letter-spacing-body);
+  --letter-spacing-tight: -0.01em; /* [DERIVED] large text */
+  --font-weight-bold: 700; /* [DERIVED] */
+  --duration-instant: 60ms;
+  --radius-none: 0;
+
+  /* --- Typography roles --------------------------------------------------- */
+  --font-family-base: var(--font-family-inter);
+  /* Inter, like everything else — the role name says "these are figures", and
+     what actually makes them line up is the `font-variant-numeric:
+     tabular-nums` that every call site sets beside it. */
+  --font-family-numeric: var(--font-family-mono);
+  /* [FIGMA] Body/14-Regular · Captions/12-Regular · Links/12-Regular.
+     Field labels and hints are 12px in the MediNova input component — smaller
+     than the value the user types, which is 14. */
+  --font-size-body: var(--font-size-14);
+  --font-size-body-sm: var(--font-size-12);
+  --font-size-label: var(--font-size-12);
+  --font-size-caption: var(--font-size-12);
+  --font-size-heading-sm: var(--font-size-14);
+  --font-size-heading-md: var(--font-size-16);
+  --font-size-heading-lg: var(--font-size-20);
+
+  /* --- THE TITLE LADDER: FOUR RUNGS, AND A HEADING PICKS ONE ---------------
+     The sizes above say what 16px is called. They do not say WHEN to reach for
+     it, and that turned out to be the part that was missing: a card title was
+     drawn at 16px on the Dashboard, 14px on the patient chart and 12px on the
+     appointment panel — the same kind of object, three sizes, so the eye could
+     not use size to work out what level it was looking at. The same went for
+     colour: most titles inherited primary, a few asked for secondary, two for
+     tertiary, and six were set in brand green, which made them read as links.
+
+     A heading's size is decided by WHERE IT SITS, not by how important the
+     screen feels its section is. Four rungs, top to bottom:
+
+       page      the screen's name, once, in the header band
+                 20px · semibold · primary        .ui-page-head__title
+
+       card      the heading of a card, panel, modal or drawer — a top-level
+                 object sitting in the page gutter
+                 16px · semibold · primary        .ui-title-card
+
+       section   a heading INSIDE a card, dividing it into parts
+                 14px · semibold · primary        .ui-title-section
+
+       eyebrow   the all-caps micro-label over a value or a short group
+                 11px · semibold · tertiary · wide tracking     .u-eyebrow
+
+     Colour is not a rung. Every heading from page down to section is
+     --color-text-primary; the eyebrow is tertiary because it is scanned past
+     rather than read. A heading is never brand green — green is the primary
+     ACTION in this product, and a green heading promises a click that is not
+     there. Status colour on a heading is allowed only where the heading is
+     itself the status (a rejection banner, a critical alert).
+
+     If a screen wants a fifth rung, it wants one level of nesting fewer. */
+  --font-size-title-page: var(--font-size-heading-lg); /* 20px */
+  --font-size-title-card: var(--font-size-heading-md); /* 16px */
+  --font-size-title-section: var(--font-size-heading-sm); /* 14px */
+  --font-size-title-eyebrow: var(--font-size-2xs); /* 11px */
+
+  /* --- THE LABEL PAIR: A NAME AND A VALUE ----------------------------------
+     Read-only facts — a <dl> of "Ordered by / Dr Mensah", "Date of birth /
+     20 Feb 1961" — are the most repeated pattern in the product, and they had
+     drifted furthest. Across the screens the NAME half was set at 11px or
+     12px, in tertiary or secondary, near enough at random; the VALUE half at
+     11, 12 or 14, regular, medium or semibold.
+
+     Two decisions settle it.
+
+     The name is READ, not scanned. It is the half that tells you what the
+     number means, so it gets 12px and --color-text-secondary rather than the
+     11px tertiary it mostly had. Tertiary at 11px clears AA on contrast and
+     still reads as switched off; the fact list is the last place that should.
+
+     The value carries the information, so it is primary and one step heavier
+     than its name. Where the value is the point of the whole tile — a total,
+     a balance, a count — the card may take it up to the card-title size; that
+     is a deliberate promotion, not a free choice.
+
+     UPPERCASE names are a different thing and keep their own rung: an all-caps
+     11px label is an EYEBROW (see the ladder above), and those were already
+     consistent everywhere. Sentence case means a label pair; capitals mean an
+     eyebrow. The two are not interchangeable. */
+  --font-size-fact-label: var(--font-size-12);
+  --font-size-fact-value: var(--font-size-14);
+  --color-fact-label: var(--color-text-secondary);
+  --color-fact-value: var(--color-text-primary);
+
+  /* --- CARD PADDING: ONE INSET, AND A TIGHT ONE ----------------------------
+     The gap BETWEEN cards is --layout-gap and the page's frame is
+     --layout-gutter; both were already named. The inset INSIDE a card was not,
+     and so it was chosen afresh every time — six values (12px, 16px, 8/10,
+     10/12, 12/16, 10/16) came out at near enough the same frequency, which
+     meant two cards sitting side by side on one screen could hold their
+     content at different depths.
+
+     A card gets --card-padding. A card whose whole job is to be dense — a
+     rail tile, a slot, a strip of counts — gets --card-padding-tight. There is
+     no third measure: a card that needs one is either a card or it is not.
+
+     This is spacing WITHIN a thing, so it still comes off the --space-* grid
+     like every other component inset. Naming it only stops the choosing. */
+  --card-padding: var(--space-7); /* 16px */
+  --card-padding-tight: var(--space-6); /* 12px */
+
+  /* ==========================================================================
+     5. CONTROL SIZING + DENSITY
+
+     ⚠ These are MediNova's measured values and they DIFFER from the Phase 0
+     rulings. Measured on the Patient screen (node 40003459:32485):
+       control height  34px   (Phase 0 approved 32px)
+       table row       44px   (Phase 0 approved 36px compact)
+       header row      34px
+     Figma wins per the "match Figma exactly" rule, so `comfortable` is now
+     the MediNova default. The 36px compact scale is kept and still available.
+     ====================================================================== */
+
+  --control-height-xs: 1.5rem; /* 24px — [DERIVED] */
+  --control-height-sm: 1.75rem; /* 28px — [DERIVED] */
+  --control-height-md: 2.125rem; /* 34px — [FIGMA] Input + Button */
+  --control-height-lg: 2.5rem; /* 40px — [DERIVED] */
+
+  --icon-size-xs: 0.75rem; /* 12px */
+  --icon-size-sm: 0.875rem; /* 14px */
+  --icon-size-md: 1rem; /* 16px — [FIGMA] "Icon Size" frames are 16×16 */
+  --icon-size-lg: 1.25rem; /* 20px — [FIGMA] row avatar is 20×20 */
+
+  /* The checkbox and the radio, which had been borrowing --icon-size-lg. They
+     are not an icon, and being pinned to one meant the only way to resize them
+     was to resize every 20px glyph in the product. They also drew four pixels
+     larger than that, the 2px edge sitting outside the width, so what was on
+     screen was 24px and read heavy against 14px body text — a form of ten of
+     them looked like a form about its checkboxes. 18px, drawn 18px, and the
+     patient portal's --pp-choice-size is the same number. [DERIVED] from the
+     20px Figma drawing. */
+  --choice-size: 1.125rem; /* 18px — [DERIVED] */
+
+  /* Density. MediNova draws 44px rows, so that is the default here.
+     density="compact" drops to the 36px Phase 0 rhythm. */
+  --density-row-height: 2.75rem; /* 44px — [FIGMA] Table cell */
+  --density-head-height: 2.125rem; /* 34px — [FIGMA] Table header cell */
+  --density-cell-padding-y: var(--space-4);
+  --density-cell-padding-x: var(--space-6);
+  --density-stack-gap: var(--space-6);
+}
+
+/* Compact — the Phase 0 rhythm, opt in with density="compact". */
+[density='compact'] {
+  --density-row-height: 2.25rem; /* 36px */
+  --density-head-height: 1.75rem; /* 28px */
+  --density-cell-padding-y: var(--space-2);
+  --density-cell-padding-x: var(--space-5);
+  --density-stack-gap: var(--space-4);
+}

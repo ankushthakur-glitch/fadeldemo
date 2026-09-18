@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Appointment — MediNova Clinic Patient Portal</title>
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="css/reset.css" />
+    <link rel="stylesheet" href="css/tokens.css" />
+    <link rel="stylesheet" href="css/base.css" />
+    <link rel="stylesheet" href="css/components.css" />
+    <link rel="stylesheet" href="css/shell.css" />
+    <link rel="stylesheet" href="css/screen-appointment.css" />
+    <link rel="stylesheet" href="css/select-menu.css" />
+
+    <script src="js/guard.js"></script>
+    <script type="module" src="js/screens/appointment.js"></script>
+    <script type="module" src="js/lib/select-menu.js"></script>
+    <script type="module" src="js/comments.js"></script>
+    <script src="js/open-me-properly.js"></script>
+  </head>
+
+  <body class="pp-app">
+    <header class="pp-topbar" id="topbar"></header>
+
+    <div class="pp-body">
+      <nav class="pp-side pp-scroll" id="sidenav" aria-label="Portal sections"></nav>
+
+      <main class="pp-main">
+        <!--
+          One scrolling well, unlike the tabbed version this replaces. Nothing
+          on the screen has to hold still any more: the rail of upcoming
+          visits scrolls sideways inside itself, the past table scrolls
+          sideways inside its own wrapper, and the page carries both.
+        -->
+        <div class="pp-content pp-scroll">
+          <h1 class="pp-sr-only">Appointment</h1>
+          <div class="pp-appt" id="screen"></div>
+        </div>
+      </main>
+    </div>
+
+    <!--
+      CANCEL — the fee warning.
+
+      A native <dialog> rather than a toast, because this is the one action on
+      the screen that costs money and cannot be undone from here. A toast is
+      something you read after the fact and it is gone in four seconds; a
+      confirmation is something you have to answer.
+
+      THE BODY IS BUILT IN JS, not written here, because the warning is not
+      the same sentence twice. Inside the notice window it names the fee, the
+      hours left and the amount; outside it, it says there is nothing to pay
+      and until when. Writing both into the markup and hiding one is how the
+      hidden one stops being maintained.
+    -->
+    <dialog class="pp-modal pp-modal--form" id="cancelModal" aria-labelledby="cancelTitle">
+      <div class="pp-modal__head">
+        <h2 class="pp-modal__title" id="cancelTitle">Cancel this appointment?</h2>
+        <button
+          type="button"
+          class="pp-modal__close"
+          id="closeCancel"
+          aria-label="Close"
+          data-testid="appt--cancel-close"
+        >
+          <svg class="pp-icon" aria-hidden="true"><use href="#pi-close"></use></svg>
+        </button>
+      </div>
+
+      <div class="pp-modal__body" id="cancelBody" data-testid="appt--cancel-body"></div>
+
+      <div class="pp-modal__foot">
+        <!--
+          Keep is the neutral button and it is the one focus lands on, so the
+          Enter key on an accidental Escape-less dialog does the harmless
+          thing. The destructive button is the one you have to aim at, and it
+          says what it costs rather than just "Confirm".
+        -->
+        <button
+          type="button"
+          class="pp-btn pp-btn--neutral"
+          id="keepAppointment"
+          data-testid="appt--cancel-keep"
+        >
+          Keep Appointment
+        </button>
+        <button
+          type="button"
+          class="pp-btn pp-btn--danger"
+          id="confirmCancel"
+          data-testid="appt--cancel-confirm"
+        >
+          Cancel Appointment
+        </button>
+      </div>
+    </dialog>
+  </body>
+</html>

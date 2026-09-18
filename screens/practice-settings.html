@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MediNova EHR — Practice Settings</title>
+    <link rel="icon" type="image/svg+xml" href="../assets/img/favicon.svg" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="../css/reset.css" />
+    <link rel="stylesheet" href="../css/tokens.css" />
+    <link rel="stylesheet" href="../css/base.css" />
+    <link rel="stylesheet" href="../css/ui-kit.css" />
+    <link rel="stylesheet" href="../css/screen-patient.css" />
+    <link rel="stylesheet" href="../css/screen-leads.css" />
+    <link rel="stylesheet" href="../css/screen-settings.css" />
+    <link rel="stylesheet" href="../css/screen-practice.css" />
+
+    <script type="module" src="../js/main.js"></script>
+    <script type="module" src="../js/screens/practice-settings.js"></script>
+    <script src="../js/open-me-properly.js"></script>
+  </head>
+
+  <body class="pt">
+    <header class="pt__bar">
+      <img class="pt__logo" src="../assets/img/medinova-logo.svg" width="158" height="32"
+        alt="MediNova Gastroenterology Clinic" />
+      <ui-main-nav active="settings"></ui-main-nav>
+      <div class="pt__bar-actions">
+        <ui-time-clock></ui-time-clock>
+        <button type="button" class="pt__icon-action" aria-label="Notifications">
+          <svg class="ui-icon" aria-hidden="true"><use href="#i-bell"></use></svg>
+        </button>
+        <ui-avatar name="Amara Mensah" size="sm"></ui-avatar>
+      </div>
+    </header>
+
+    <div class="ui-page-head ui-page-head--flush ui-page-head--tabs set__head">
+      <div class="ui-page-head__lead">
+        <a class="ui-page-head__back ui-page-head__back--icon" href="settings.html" data-testid="prc--back" aria-label="Back to settings">
+          <svg class="ui-icon" aria-hidden="true"><use href="#i-caret-left"></use></svg>
+        </a>
+        <h1 class="ui-page-head__title u-sr-only">Practice Settings</h1>
+      </div>
+
+      <ui-tabs selected="profile" primary data-testid="prc--tabs">
+        <ui-tab value="profile" label="Profile"></ui-tab>
+        <ui-tab value="locations" label="Locations"></ui-tab>
+        <ui-tab value="users" label="Users"></ui-tab>
+        <ui-tab value="roles" label="Roles &amp; Responsibility"></ui-tab>
+        <ui-tab value="print" label="Print Configuration"></ui-tab>
+      </ui-tabs>
+
+      <div class="ui-page-head__actions">
+        <!-- The users list's search, in the header with every other screen's.
+             It used to sit in a toolbar of its own over the table, which put
+             a search box and a filter bar on two separate rows above a list
+             that then started a third of the way down the screen. -->
+        <ui-input
+          id="usrSearch"
+          class="usr__search"
+          label="Search users"
+          label-hidden
+          icon="search"
+          placeholder="Search by name, email, phone or username..."
+          data-testid="usr--search"
+          hidden
+        ></ui-input>
+
+        <ui-button variant="outline" icon="pencil" data-testid="prc--edit-profile"
+          >Edit Details</ui-button
+        >
+        <ui-button variant="primary" icon="plus" data-testid="prc--add-location" hidden
+          >Add New Location</ui-button
+        >
+        <!-- Filtering lives with the actions rather than as a row of controls
+             above the table: six controls permanently on screen cost more
+             vertical space than they earn, and most visits change none of
+             them. The standard control (js/components/ui-filter.js) carries
+             its own count, so an active filter is never invisible. -->
+        <ui-filter id="usrFilter" label="Filters" panel-label="Filter users"
+          data-testid="prc--filters" hidden>
+          <ui-filter-group name="type" label="Type" options="Provider,User"></ui-filter-group>
+          <ui-filter-group name="role" label="Role"></ui-filter-group>
+          <ui-filter-group name="status" label="Status"
+            options="Active,Inactive,Pending Invitation,Locked,Suspended"></ui-filter-group>
+          <!-- One answer or none: "logged in" and "never logged in" are the
+               two halves of the roster, and ticking both says nothing. -->
+          <ui-filter-group name="lastLogin" label="Last login" single
+            options="Logged in,Never logged in"></ui-filter-group>
+        </ui-filter>
+        <!-- Two distinct entities, two distinct actions: a Provider carries
+             clinical onboarding (NPI, DEA, specialty…) a User never has. -->
+        <ui-button variant="outline" icon="plus" data-testid="prc--add-provider" hidden
+          >Add Provider</ui-button
+        >
+        <ui-button variant="primary" icon="plus" data-testid="prc--add-user" hidden
+          >Add User</ui-button
+        >
+        <!-- Roles are the assignable job roles, not free-form records, so
+             there is nothing here to create: the tab configures what each
+             one may do. -->
+        <ui-button variant="primary" icon="plus" data-testid="prc--add-print-config" hidden
+          >Add New Print Configuration</ui-button
+        >
+      </div>
+
+    </div>
+
+
+    <!-- One status line, shared by the two new tabs. Actions a prototype
+         cannot really perform still have to answer the click. -->
+
+    <main class="set__body">
+      <!-- ================= PROFILE ================= -->
+      <div id="panel-profile" role="tabpanel" aria-labelledby="tab-profile">
+        <div class="prc__profile" id="profilePanel"></div>
+      </div>
+
+      <!-- ================= LOCATIONS ================= -->
+      <div id="panel-locations" role="tabpanel" aria-labelledby="tab-locations" hidden>
+        <div class="prc__locations">
+          <!-- Status left the strip and became a column: it is a fact about a
+               row, and every row now carries the switch that changes it. What
+               the strip is for instead is finding a site by name or town. -->
+          <div class="prc__strip">
+            <ui-input
+              id="locationSearch"
+              label="Search locations"
+              label-hidden
+              icon="search"
+              placeholder="Search by name, city or address..."
+              data-testid="prc--location-search"
+            ></ui-input>
+            <span class="prc__strip-count" data-testid="prc--location-count"></span>
+          </div>
+          <div class="ui-table-card">
+            <ui-data-table id="locationTable" data-testid="prc--location-table"></ui-data-table>
+            <div data-foot="locations"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= USERS ================= -->
+      <div id="panel-users" role="tabpanel" aria-labelledby="tab-users" hidden>
+        <div class="usr__wrap">
+          <!-- Appears only while rows are selected. -->
+          <div class="usr__bulk" id="usrBulkBar" hidden data-testid="usr--bulk-bar">
+            <span id="usrBulkCount"></span>
+            <span class="usr__bulk-spacer"></span>
+            <ui-button variant="tertiary" size="sm" data-bulk="activate">Activate</ui-button>
+            <ui-button variant="tertiary" size="sm" data-bulk="deactivate">Deactivate</ui-button>
+            <ui-button variant="tertiary" size="sm" data-bulk="assign-role">Assign Role</ui-button>
+            <ui-button variant="tertiary" size="sm" data-bulk="send-invite">Send Invitation</ui-button>
+            <ui-button variant="tertiary" size="sm" data-bulk="reset-password">Reset Password</ui-button>
+            <ui-button variant="outline" size="sm" data-bulk="export">Export</ui-button>
+            <ui-button variant="danger" size="sm" data-bulk="delete">Delete</ui-button>
+          </div>
+
+          <div class="ui-table-card" id="usrTableWrap">
+            <ui-data-table id="usrTable" selectable sticky-first
+                            empty-text="No users found."
+                            data-testid="prc--user-table"></ui-data-table>
+            <div data-foot="users"></div>
+          </div>
+
+          <!-- Zero matches — filtered down to nothing, or the directory is
+               genuinely empty. Same message either way; the CTAs are what
+               actually get someone unstuck. -->
+          <div class="usr__empty" id="usrEmpty" hidden data-testid="usr--empty">
+            <svg class="ui-icon" aria-hidden="true"><use href="#i-users"></use></svg>
+            <p class="usr__empty-title">No users found.</p>
+            <div class="usr__empty-actions">
+              <ui-button variant="primary" icon="plus" data-testid="usr--empty-add-user"
+                >Add User</ui-button
+              >
+              <ui-button variant="outline" icon="plus" data-testid="usr--empty-add-provider"
+                >Add Provider</ui-button
+              >
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= ROLES & RESPONSIBILITY ================= -->
+      <div id="panel-roles" role="tabpanel" aria-labelledby="tab-roles" hidden>
+        <div class="rol" id="rolesPanel"></div>
+      </div>
+
+      <!-- ================= PRINT CONFIGURATION ================= -->
+      <div id="panel-print" role="tabpanel" aria-labelledby="tab-print" hidden>
+        <div class="prn" id="printPanel"></div>
+      </div>
+    </main>
+
+    <!-- Kept out of the panel markup so a repaint cannot lose a file the user
+         has already chosen. u-sr-only clips these rather than removing them,
+         so they stay in the accessibility tree and still need a name. -->
+    <input type="file" id="rolImportInput" accept=".json" class="u-sr-only"
+      aria-label="Import a permissions file" data-testid="rol--import-input" />
+    <input type="file" id="prnImportInput" accept=".json" class="u-sr-only"
+      aria-label="Import a print configuration file" data-testid="prn--import-input" />
+
+    <!-- ================= ROLES — dialogs ================= -->
+
+    <ui-modal id="rolTypeModal" heading="New Role Type" size="sm">
+      <div class="rol__form">
+        <ui-input id="rolTypeName" label="Role Type Name" placeholder="e.g. Care Coordination"
+          required data-testid="rol--type-name"></ui-input>
+        <ui-textarea id="rolTypeDescription" label="Description" rows="3"
+          placeholder="What kind of job sits under this type?"></ui-textarea>
+        <ui-select id="rolTypeStatus" label="Status" options="Active,Inactive" value="Active"
+          data-testid="rol--type-status"></ui-select>
+      </div>
+      <div class="ui-modal__actions">
+        <ui-button variant="tertiary" data-rol-dismiss>Cancel</ui-button>
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="primary" data-testid="rol--type-save">Save</ui-button>
+      </div>
+    </ui-modal>
+
+    <ui-modal id="rolRoleModal" heading="New Role" size="md">
+      <div class="rol__form">
+        <ui-input id="rolRoleName" label="Role Name" placeholder="e.g. Triage Nurse" required
+          data-testid="rol--role-name"></ui-input>
+
+        <div class="ui-field">
+          <label class="ui-field__label" for="rolRoleType">Role Type</label>
+          <div class="ui-input ui-input--select ui-input--md">
+            <select id="rolRoleType" class="ui-input__control ui-input__control--select"
+              data-testid="rol--role-type"></select>
+            <svg class="ui-icon ui-input__caret" aria-hidden="true"><use href="#i-caret-down"></use></svg>
+          </div>
+        </div>
+
+        <ui-textarea id="rolRoleDescription" label="Description" rows="3"
+          placeholder="What this role is allowed to do, in a sentence."></ui-textarea>
+
+        <div class="ui-field">
+          <label class="ui-field__label" for="rolRoleClone">Clone Existing Role (optional)</label>
+          <div class="ui-input ui-input--select ui-input--md">
+            <select id="rolRoleClone" class="ui-input__control ui-input__control--select"
+              data-testid="rol--role-clone"></select>
+            <svg class="ui-icon ui-input__caret" aria-hidden="true"><use href="#i-caret-down"></use></svg>
+          </div>
+        </div>
+
+        <ui-select id="rolRoleStatus" label="Status" options="Active,Inactive" value="Active"
+          data-testid="rol--role-status"></ui-select>
+      </div>
+      <div class="ui-modal__actions">
+        <ui-button variant="tertiary" data-rol-dismiss>Cancel</ui-button>
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="primary" data-testid="rol--role-save">Save</ui-button>
+      </div>
+    </ui-modal>
+
+    <ui-modal id="rolCopyModal" heading="Copy permissions from another role" size="sm">
+      <div class="rol__form">
+        <div class="ui-field">
+          <label class="ui-field__label" for="rolCopySource">Source role</label>
+          <div class="ui-input ui-input--select ui-input--md">
+            <select id="rolCopySource" class="ui-input__control ui-input__control--select"
+              data-testid="rol--copy-source"></select>
+            <svg class="ui-icon ui-input__caret" aria-hidden="true"><use href="#i-caret-down"></use></svg>
+          </div>
+        </div>
+      </div>
+      <div class="ui-modal__actions">
+        <ui-button variant="tertiary" data-rol-dismiss>Cancel</ui-button>
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="primary" data-testid="rol--copy-apply">Copy Permissions</ui-button>
+      </div>
+    </ui-modal>
+
+    <ui-modal id="rolDeleteModal" heading="Delete role" size="sm">
+      <div class="rol__confirm" id="rolDeleteBody"></div>
+      <div class="ui-modal__actions">
+        <ui-button variant="tertiary" data-rol-dismiss>Cancel</ui-button>
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="danger" data-testid="rol--delete-confirm">Delete</ui-button>
+      </div>
+    </ui-modal>
+
+    <!-- ================= PRINT CONFIGURATION — dialogs ================= -->
+
+    <ui-modal id="prnEditorModal" heading="New Print Configuration" size="xl">
+      <div id="prnEditorBody"></div>
+      <div class="ui-modal__actions">
+        <ui-button variant="tertiary" data-prn-dismiss data-testid="prn--cancel">Cancel</ui-button>
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="outline" data-testid="prn--editor-preview">Preview</ui-button>
+        <ui-button variant="outline" data-testid="prn--save-as-new" hidden>Save As New</ui-button>
+        <ui-button variant="primary" data-testid="prn--save">Save</ui-button>
+      </div>
+    </ui-modal>
+
+    <ui-modal id="prnPreviewModal" heading="Print preview" size="xl">
+      <div class="prn__preview-toolbar">
+        <div class="prn__zoom">
+          <button type="button" data-testid="prn--zoom-out" aria-label="Zoom out">
+            <svg class="ui-icon" aria-hidden="true"><use href="#i-minus"></use></svg>
+          </button>
+          <span data-testid="prn--zoom-level">100%</span>
+          <button type="button" data-testid="prn--zoom-in" aria-label="Zoom in">
+            <svg class="ui-icon" aria-hidden="true"><use href="#i-plus"></use></svg>
+          </button>
+          <button type="button" data-testid="prn--zoom-fit">Fit width</button>
+        </div>
+        <div class="prn__preview-toolbar-end">
+          <ui-button size="xs" variant="outline" icon="upload" data-testid="prn--preview-pdf"
+            >Download PDF</ui-button
+          >
+          <ui-button size="xs" variant="outline" icon="printer" data-testid="prn--preview-print"
+            >Print</ui-button
+          >
+        </div>
+      </div>
+      <div class="prn__preview-stage" id="prnPreviewStage"></div>
+      <div class="ui-modal__actions">
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="tertiary" data-prn-dismiss>Close</ui-button>
+      </div>
+    </ui-modal>
+
+    <ui-modal id="prnDeleteModal" heading="Delete print configuration" size="sm">
+      <div class="rol__confirm" id="prnDeleteBody"></div>
+      <div class="ui-modal__actions">
+        <ui-button variant="tertiary" data-prn-dismiss>Cancel</ui-button>
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="danger" data-testid="prn--delete-confirm">Delete</ui-button>
+      </div>
+    </ui-modal>
+
+    <!-- Edit Practice Profile -->
+    <ui-modal id="profileModal" heading="Edit Practice Profile" size="lg" variant="drawer">
+      <div class="prc__form" id="profileForm"></div>
+    </ui-modal>
+
+    <!-- Location detail — everything the list no longer shows -->
+    <ui-modal id="locationDetail" heading="Location" size="lg" variant="drawer">
+      <div id="locationDetailBody" data-testid="prc--location-detail"></div>
+    </ui-modal>
+
+    <!-- Deleting a site every appointment, claim and user record points at is
+         not a single-click action. -->
+    <ui-modal id="locationDeleteModal" heading="Delete location" size="sm">
+      <div class="rol__confirm" id="locationDeleteBody"></div>
+      <div class="ui-modal__actions">
+        <ui-button variant="tertiary" data-modal-dismiss
+          data-testid="prc--location-delete-cancel">Cancel</ui-button>
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="danger" data-testid="prc--location-delete-confirm"
+          >Delete</ui-button>
+      </div>
+    </ui-modal>
+
+    <!-- User profile — read-only; editing opens userOnboardModal below -->
+    <ui-modal id="userDetail" heading="User Profile" size="md" variant="drawer">
+      <div id="userDetailBody" data-testid="prc--user-detail"></div>
+    </ui-modal>
+
+    <!-- User Onboarding — Add and Edit share this shell. User-related
+         information only: no NPI, DEA, specialty or anything else that
+         belongs to the (separate, not-yet-built) Provider workflow. -->
+    <ui-modal id="userOnboardModal" heading="Add User" size="lg" variant="drawer">
+      <div id="userOnboardBody" class="prc__form" data-testid="usr--onboard-form"></div>
+    </ui-modal>
+
+    <!-- ================= PROVIDER ONBOARDING =================
+         The staff member record, laid out as the reference form does it:
+         the name and the additional info on the left, and the repeatable
+         contact groups down the right. A provider has any number of
+         addresses, numbers, emails, locations and identifiers, so each of
+         those is a list that grows rather than a fixed pair of fields. -->
+    <ui-modal id="providerOnboardModal" heading="Add Provider" size="xl" variant="drawer">
+      <form class="prv" id="providerForm" data-testid="usr--provider-form">
+        <div class="prv__cols">
+          <div class="prv__col">
+            <section class="prv__card">
+              <h3 class="prv__card-title">Staff member</h3>
+              <div class="prv__grid">
+                <ui-select id="pvPrefix" label="Prefix"
+                           options="Dr.,Mr.,Mrs.,Ms.,Mx." data-testid="usr--pv-prefix"></ui-select>
+                <ui-input id="pvFirst" label="First name" required
+                          data-testid="usr--pv-first"></ui-input>
+                <ui-input id="pvMiddle" label="Middle name"
+                          data-testid="usr--pv-middle"></ui-input>
+                <ui-input id="pvLast" label="Last name" required
+                          data-testid="usr--pv-last"></ui-input>
+                <ui-select id="pvSuffix" label="Suffix"
+                           options="MD,DO,NP,PA-C,RN,LCSW,RD,PhD"
+                           data-testid="usr--pv-suffix"></ui-select>
+              </div>
+            </section>
+
+            <section class="prv__card">
+              <h3 class="prv__card-title">Additional info</h3>
+              <div class="prv__grid">
+                <!-- Picked, not typed. A title prints on the letterhead, the
+                     prescription and the claim, and a free-text box is how one
+                     practice comes to hold "MD", "M.D.", "M.D" and "md" for
+                     four people doing the same job. Filled from
+                     PROVIDER_TITLES as data rather than through the `options`
+                     attribute — some of these carry a comma of their own
+                     ("APRN, CNP") and that attribute splits on commas. -->
+                <ui-select id="pvTitle" label="Title" placeholder="Select title"
+                           data-testid="usr--pv-title"></ui-select>
+                <ui-input id="pvDob" type="date" label="Date of birth"
+                          data-testid="usr--pv-dob"></ui-input>
+                <ui-select id="pvGender" label="Gender"
+                           options="Female,Male,Non-binary,Prefer not to say"
+                           data-testid="usr--pv-gender"></ui-select>
+                <ui-select id="pvType" label="Type" data-testid="usr--pv-type"></ui-select>
+                <ui-select id="pvSpecialty" label="Specialty"
+                           data-testid="usr--pv-specialty"></ui-select>
+                <ui-select id="pvStatus" label="Status" options="Active,Inactive"
+                           value="Active" data-testid="usr--pv-status"></ui-select>
+                <!-- NO NPI OR DEA BOX HERE. A clinician does not have one NPI
+                     any more than they have one address — a locum carries one
+                     per group they cover for — and a DEA sits beside a NADEAN
+                     for anyone prescribing controlled substances in a
+                     mid-level role. Both are identifications, and
+                     Identifications down the right of this form is a list that
+                     grows. Asked in one place, so a claim cannot go out under
+                     whichever of two copies was edited last. -->
+              </div>
+
+              <ui-textarea id="pvNotes" label="Notes" rows="3"
+                           placeholder="Anything the practice should know"
+                           data-testid="usr--pv-notes"></ui-textarea>
+
+              <ui-checkbox id="pvCertified" data-testid="usr--pv-certified">
+                Certified healthcare professional
+              </ui-checkbox>
+
+              <div class="prv__sign">
+                <span class="prv__sign-label">Signature</span>
+                <button type="button" class="prv__sign-drop" id="pvSignature"
+                        data-testid="usr--pv-signature">
+                  <svg class="ui-icon" aria-hidden="true"><use href="#i-image"></use></svg>
+                  <span id="pvSignatureText">Upload a signature image</span>
+                </button>
+              </div>
+            </section>
+          </div>
+
+          <div class="prv__col" id="providerGroups"></div>
+        </div>
+
+        <div class="ui-modal__actions">
+          <ui-button variant="tertiary" data-modal-dismiss
+                     data-testid="usr--pv-cancel">Cancel</ui-button>
+          <span class="ui-modal__actions-spacer"></span>
+          <!-- ONE SAVE, AND IT INVITES.
+               There were two: "Save provider", which created the record and
+               left it unusable, and "Save & invite", which created the same
+               record and sent the person their way in. Nobody adds a clinician
+               to a practice in order for them not to be able to sign in — the
+               silent button existed because the loud one sounded committal,
+               and what it produced was a roster of accounts nobody could
+               explain. A provider added here is a provider joining; the
+               invitation is part of that, not a second decision. -->
+          <ui-button variant="primary" data-testid="usr--pv-invite">Save &amp; invite</ui-button>
+        </div>
+      </form>
+    </ui-modal>
+
+    <!-- Assign Role — the row menu's quick action and the bulk bar's share
+         this one dialog; the body text says who it applies to. -->
+    <ui-modal id="assignRoleModal" heading="Assign Role" size="sm">
+      <div class="usr__mini-form">
+        <p id="assignRoleContext" class="usr__mini-context"></p>
+        <ui-select id="assignRoleSelect" label="Role" placeholder="Select Role"
+                   data-testid="usr--assign-role-select"></ui-select>
+        <div class="ui-modal__actions">
+          <ui-button variant="outline" data-modal-dismiss data-testid="usr--assign-role-cancel"
+            >Cancel</ui-button
+          >
+          <span class="ui-modal__actions-spacer"></span>
+          <ui-button variant="primary" data-testid="usr--assign-role-save">Save</ui-button>
+        </div>
+      </div>
+    </ui-modal>
+
+    <!-- Manage Permissions — same checkbox set the onboarding form uses,
+         reachable directly from the row menu for a quick change. -->
+    <ui-modal id="permissionsModal" heading="Manage Permissions" size="sm">
+      <div class="usr__mini-form">
+        <p id="permissionsContext" class="usr__mini-context"></p>
+        <div class="prc__checks" id="permissionsChecks" data-testid="usr--permissions-checks"></div>
+        <div class="ui-modal__actions">
+          <ui-button variant="outline" data-modal-dismiss data-testid="usr--permissions-cancel"
+            >Cancel</ui-button
+          >
+          <span class="ui-modal__actions-spacer"></span>
+          <ui-button variant="primary" data-testid="usr--permissions-save">Save</ui-button>
+        </div>
+      </div>
+    </ui-modal>
+
+    <!-- Delete confirmation — a person a chart already points at is not
+         something to remove on a single stray click. -->
+    <ui-modal id="userDeleteModal" heading="Delete user" size="sm">
+      <div class="usr__confirm">
+        <p id="userDeleteText"></p>
+        <div class="ui-modal__actions">
+          <ui-button variant="tertiary" data-modal-dismiss data-testid="usr--delete-cancel"
+            >Cancel</ui-button
+          >
+          <span class="ui-modal__actions-spacer"></span>
+          <ui-button variant="danger" data-testid="usr--delete-confirm">Delete</ui-button>
+        </div>
+      </div>
+    </ui-modal>
+
+  </body>
+</html>

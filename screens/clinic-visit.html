@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MediNova EHR — Clinic Visit</title>
+    <link rel="icon" type="image/svg+xml" href="../assets/img/favicon.svg" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="../css/reset.css" />
+    <link rel="stylesheet" href="../css/tokens.css" />
+    <link rel="stylesheet" href="../css/base.css" />
+    <link rel="stylesheet" href="../css/components/button.css" />
+    <link rel="stylesheet" href="../css/components/indicators.css" />
+    <link rel="stylesheet" href="../css/components/forms.css" />
+    <!-- The two panels js/main.js opens on any page that has a field to open
+         them from: the dropdown list (every <select> here) and the calendar
+         (the exam date on step 3). Both are parented to <body>, so a page that
+         links forms.css and stops there gets the field styled and the thing it
+         opens not — a bare column of option labels stacked at the foot of the
+         document, below the app. See js/lib/select-menu.js. -->
+    <link rel="stylesheet" href="../css/components/select-menu.css" />
+    <link rel="stylesheet" href="../css/components/date-picker.css" />
+    <!-- The same trap one link up, sprung by a different panel. Changing the
+         note template, signing the note, queueing the superbill — every one of
+         them calls notify() (js/lib/toast.js), which appends a <ui-toast> to a
+         region parented to <body>. Without this sheet the region is a static
+         block at the foot of the document: the toast printed full-bleed under
+         the app instead of floating over its corner, and on a screen whose
+         body is height:100vh; overflow:hidden it printed off the bottom of the
+         window entirely. Every other screen gets this through ui-kit.css; this
+         one enumerates its components, so it has to name it. -->
+    <link rel="stylesheet" href="../css/components/toast.css" />
+    <link rel="stylesheet" href="../css/components/alert.css" />
+    <link rel="stylesheet" href="../css/components/overlay.css" />
+    <link rel="stylesheet" href="../css/components/signature.css" />
+    <!-- The practice letterhead js/main.js prepends to every page. This sheet
+         is what keeps it off the screen and brings it back on paper; without
+         it the band has no rules at all and a plain <div> at the top of <body>
+         renders as ordinary content, so the logo and the practice address sat
+         above the encounter header where nothing asked for them. Every other
+         screen inherits this through ui-kit.css — this one enumerates its
+         components, so it has to name it, exactly as with toast.css above. -->
+    <link rel="stylesheet" href="../css/components/print-letterhead.css" />
+    <link rel="stylesheet" href="../css/screen-patient.css" />
+    <!-- Step 1 mounts the bay's pre-procedure sheet, so it wears the sheet's
+         own styles — see js/lib/pre-check-form.js. -->
+    <link rel="stylesheet" href="../css/screen-pre-check.css" />
+    <!-- The clinical rail on the right — the same component the procedure's
+         step run mounts, so that a clinician who has learned where the allergy
+         list lives during a sedated case finds it in the same place on an
+         office visit. Loaded before this screen's own sheet, which still owns
+         the columns the rail sits in. -->
+    <link rel="stylesheet" href="../css/components/clinical-rail.css" />
+    <link rel="stylesheet" href="../css/screen-clinic-visit.css" />
+
+    <script type="module" src="../js/main.js"></script>
+    <script type="module" src="../js/screens/clinic-visit.js"></script>
+    <script src="../js/open-me-properly.js"></script>
+  </head>
+
+  <body class="enc">
+    <!-- Standard screen header: back and title at the top left, everything
+         else underneath it. -->
+    <header class="ui-page-head enc__head">
+      <a class="enc__back" href="scheduler.html" data-testid="enc--back"
+         aria-label="Back to the scheduler">
+        <svg class="ui-icon" aria-hidden="true"><use href="#i-caret-left"></use></svg>
+      </a>
+      <div class="enc__heading">
+        <h1 class="enc__title">Encounter</h1>
+        <p class="enc__meta" id="encounterMeta" data-testid="enc--meta"></p>
+      </div>
+
+      <!-- The four facts that decide what happens on the day, in the place
+           the eye already is. -->
+      <dl class="enc__facts" id="encounterFacts" data-testid="enc--facts"></dl>
+
+      <!-- No alerts band. It carried two standing notices — a blood-pressure
+           trend and a medication timer — that said the same thing for the
+           whole visit and were never acted on from here: the trend is in the
+           sedation record's own flagged rows, and the timer belongs to the
+           anaesthetist's screen. A banner nobody acts on trains the eye to
+           skip that band, which is the band a real alert would land in. -->
+    </header>
+
+    <div class="enc__lock-banner" id="lockBanner" data-testid="enc--lock-banner" hidden></div>
+
+    <!-- data-right is what actually moves the column: the rail sets it as it
+         folds, and .enc__cols reads it. See js/lib/clinical-rail.js. -->
+    <div class="enc__cols" id="cols" data-right="collapsed">
+    <!-- ===================== LEFT: the patient ===================== -->
+    <aside class="enc__side" aria-label="Patient summary">
+      <section class="enc__patient" id="patientCard" data-testid="enc--patient"></section>
+
+      <!-- A procedure visit is three documents signed by three people at three
+           times, so the encounter is staged rather than one long form. The
+           stage lives beside the patient it belongs to, not across the top:
+           the main column is the working surface and stays for the document. -->
+      <nav class="enc__stages" role="tablist" aria-label="Encounter stage"
+        id="stageTabs" data-testid="enc--stages"></nav>
+
+      <!-- No clinical panel here any more. This rail carried its own rendering
+           of the patient's fourteen record sections — a second implementation
+           of the one on the right of the procedure encounter, with its own
+           markup, its own styling and its own idea of what a flagged row looks
+           like. Two renderings of one patient's allergies is two answers to a
+           question that has one, so the panel moved to the right rail and the
+           component it shares with the step run. -->
+    </aside>
+
+    <!-- ===================== CENTRE: the note ===================== -->
+    <main class="enc__main">
+      <div class="enc__note" id="note">
+        <!-- ===================== 1 · PRE-ANAESTHESIA ===================== -->
+        <section class="enc__stage" id="stage-pre" data-testid="enc--stage-pre" hidden>
+          <!-- role=tablist, because the steps carry role=tab and switch the
+               panel below them. Without it the tabs have no required parent
+               and assistive tech cannot announce "1 of 4".
+
+               Four steps: the nurse's checklist, the two halves of the CRNA's
+               Anesthesia Procedure Note, and the live anaesthesia record. The
+               checklist used to sit above this strip as a one-line banner; it
+               is one of the four things this stage produces, so it is one of
+               the four steps. -->
+          <div class="enc__steps" id="preDocs" role="tablist"
+            aria-label="Pre-anaesthesia documents" data-testid="enc--pre-docs"></div>
+          <div id="preBody" data-testid="enc--pre-body"></div>
+        </section>
+
+        <!-- ===================== 2 · IN-PROCEDURE ===================== -->
+        <section class="enc__stage" id="stage-intra" data-testid="enc--stage-intra">
+        <!-- The endoscopist needs the H&P and standing orders on hand while
+             charting the report, not a reason to leave it — so these are
+             tabs beside the report rather than a separate stage. -->
+        <div class="enc__exam-tabs enc__exam-tabs--pill" id="intraTabs" role="tablist"
+          aria-label="In-procedure documents" data-testid="enc--intra-tabs"></div>
+
+        <div id="intraHp" data-testid="enc--intra-hp" hidden></div>
+        <div id="intraOrders" data-testid="enc--intra-orders" hidden></div>
+
+        <div id="intraReport" data-testid="enc--intra-report">
+          <!-- Which report type is open — the existing colonoscopy narrative
+               engine, or the new structured EGD report. -->
+          <div class="enc__exam-tabs enc__exam-tabs--sub" id="reportTypeTabs"
+            role="tablist" aria-label="Procedure report type"
+            data-testid="enc--report-type-tabs"></div>
+
+          <div id="colonoscopyReport" data-testid="enc--colonoscopy-report">
+            <!-- Save draft and Sign are NOT here — they live once, in the
+                 note's shared footer, where the clinician gets to after
+                 writing. This bar carries only what is specific to this
+                 report. -->
+            <div class="enc__doc-bar">
+              <h2 class="enc__doc-name">Colonoscopy report</h2>
+              <span id="colonoscopyStamp" data-testid="enc--colonoscopy-stamp"></span>
+              <span class="enc__spacer"></span>
+              <!-- The template drives the narrative, so it sits with the document
+                   actions rather than reading as a caption on the title. Its
+                   label is hidden rather than dropped: on a bar that already
+                   names the document, a stacked "Template" caption reads as a
+                   second heading competing with the real one, while the chosen
+                   template name in the control says the same thing in place.
+                   Screen readers still get the name off-screen. -->
+              <ui-select id="reportTemplate" label="Template" label-hidden size="sm"
+                data-testid="enc--template"></ui-select>
+              <ui-button variant="outline" size="sm" icon="lock" id="unlockReport"
+                data-testid="enc--unlock-report" hidden>Unlock for Amendment</ui-button>
+            </div>
+
+            <article class="enc__doc" id="reportDoc" data-testid="enc--doc"></article>
+
+            <section class="enc__card" data-card="output">
+              <header class="enc__card-head">
+                <h2 class="enc__card-title">Output Manager</h2>
+                <button type="button" class="enc__toggle" data-toggle="output"
+                  aria-expanded="false" aria-controls="body-output">
+                  <svg class="ui-icon" aria-hidden="true"><use href="#i-caret-up"></use></svg>
+                </button>
+              </header>
+              <div class="enc__card-body" id="body-output" hidden>
+                <div id="outputSteps"></div>
+                <div class="enc__row">
+                  <ui-button variant="primary" size="sm" id="execute"
+                    data-testid="enc--execute">Execute</ui-button>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <div id="egdDoc" data-testid="enc--egd-doc" hidden></div>
+        </div>
+        </section>
+
+        <!-- ===================== 3 · POST-PROCEDURE ===================== -->
+        <section class="enc__stage" id="stage-post" data-testid="enc--stage-post" hidden>
+          <div id="postBody"></div>
+        </section>
+      </div>
+
+      <!-- The commit sits at the end of the note, where the clinician gets to
+           after writing it, rather than in the toolbar above it. -->
+      <div class="enc__foot">
+        <span class="enc__foot-hint" id="footHint" data-testid="enc--foot-hint"></span>
+        <ui-button variant="tertiary" id="saveDraft" data-testid="enc--save-draft">
+          Save draft
+        </ui-button>
+        <!-- A clinic visit keeps its own hold-it commit; a procedure does not,
+             because its documents are committed per stage rather than all at
+             once. It reads "Save as Draft" rather than plain "Save" because
+             what it does to the note is exactly what the procedure
+             workspace's Save draft does to a report — it keeps the writing
+             without filing anything to the chart — and a button whose label
+             does not say that is a button people press expecting the note to
+             be done. The two never share a footer, so the pair of labels is
+             read one at a time and never side by side. -->
+        <ui-button variant="secondary" id="save" data-testid="enc--save" hidden
+          >Save as Draft</ui-button>
+        <!-- The other way a pre-procedure stage can end. It sits beside the
+             commit at every step because the decision not to proceed is made
+             at whichever step it becomes clear, not only at the last one. -->
+        <ui-button variant="secondary" id="reschedule" data-testid="enc--reschedule" hidden
+          >Reschedule</ui-button>
+        <!-- Pre-procedure commits forward to the next stage rather than
+             signing anything: the two anaesthesia documents are signed on
+             their own, and what the stage needs is a way onward. -->
+        <ui-button variant="primary" id="proceed" data-testid="enc--proceed" hidden
+          >Save &amp; Proceed</ui-button>
+        <!-- A clinic visit's note is signed on the summary, where the whole
+             thing can be read at once — so its commit hands over to that
+             screen rather than stamping a signature from here. A procedure
+             signs its report in place, because the report IS the document. -->
+        <ui-button variant="primary" id="saveAndSign" data-testid="enc--save-and-sign" hidden
+          >Save &amp; Sign</ui-button>
+        <ui-button variant="primary" id="sign" data-testid="enc--sign">Sign report</ui-button>
+      </div>
+    </main>
+
+    <!-- ===================== RIGHT: the clinical picture =====================
+         Empty on purpose. Everything inside it — the handle, the spine, the
+         title bar and the fourteen section cards — is drawn by
+         js/lib/clinical-rail.js, which the procedure's step run mounts as well.
+         What stays in this file is the element itself, because being the third
+         track of .enc__cols is a fact about this screen's layout, not about the
+         rail.
+
+         It arrives collapsed to its spine, the way it does on the step run: the
+         record is consulted rather than worked in, and while it is open it
+         takes a column's width off the note actually being written. One press
+         on the spine brings it back, and that instruction then sticks. -->
+    <aside class="enc__rail-slot encv__rail encv__rail--right" id="railRight"
+      data-collapsed="true" aria-label="Clinical data"></aside>
+    </div>
+
+    <!-- Where the rail says what it just copied, for anyone who cannot see the
+         button change under the pointer. One region per screen: a second would
+         announce into a place nothing else on this page uses. -->
+    <p class="u-sr-only" id="copyLive" role="status" aria-live="polite"></p>
+
+    <!-- One drawer for every intra-operative entry — an observation, a drug,
+         a solution, oxygen. They are the same shape: a handful of fields and
+         a time, appended to a log. Four near-identical drawers would drift
+         apart, so the fields are built from a spec instead. -->
+    <ui-modal id="recordModal" heading="Record" size="md" variant="drawer">
+      <div class="enc__record">
+        <div class="enc__record-note" id="recordNote"></div>
+        <div class="enc__record-grid" id="recordBody" data-testid="enc--record-body"></div>
+
+        <div class="ui-modal__actions">
+          <ui-button variant="tertiary" id="recordCancel"
+            data-testid="enc--record-cancel">Cancel</ui-button>
+          <span class="ui-modal__actions-spacer"></span>
+          <ui-button variant="primary" id="recordSave"
+            data-testid="enc--record-save">Record</ui-button>
+        </div>
+      </div>
+    </ui-modal>
+
+    <!-- Medication formulary — add and edit share one form (see
+         formularyEditIndex), the same shape as every other add/edit pair in
+         this app. -->
+    <ui-modal id="formularyModal" heading="Medication Formulary" size="lg" variant="drawer">
+      <div class="enc__formulary-manager">
+        <section class="enc__formulary-add">
+          <h3 class="enc__legend">Add New Medication</h3>
+          <!-- THE THREE NAMES, AND WHY THE DOSE IS TWO FIELDS.
+
+               A drug goes by the generic on the chart, the brand printed on
+               the vial somebody is holding, and whatever this practice calls
+               it (see SEDATION_FORMULARY in data/procedure-encounter.js). The
+               cart list already carried all three; this form only asked for
+               one of them, so a drug edited here came out the other side with
+               its brand name silently dropped, and a nurse hunting for Versed
+               in a list that only says Midazolam is looking for something the
+               room stocks and cannot find.
+
+               The default dosage is an amount and a unit rather than one typed
+               box, for the reason the administration log's dose DROPDOWN
+               exists: a box accepts "2mg", "2 mg", "2.0mg" and "20 mg" with
+               equal enthusiasm, and only one of those is a keystroke away from
+               a tenfold error. Split, the amount is all anybody types and
+               every dose on the cart list is spelled the same way.
+
+               "Concentration", not "Strength" — the inventory renamed it for
+               the same reason, because strength was being read as the dose and
+               they are not the same number. -->
+          <div class="enc__grid-2">
+            <ui-input id="fmName" label="Medication Name" required
+              placeholder="e.g. Propofol" data-testid="enc--fm-name"></ui-input>
+            <ui-input id="fmGeneric" label="Generic Name" placeholder="e.g. Propofol"
+              data-testid="enc--fm-generic"></ui-input>
+            <ui-input id="fmBrand" label="Brand Name" placeholder="e.g. Diprivan"
+              data-testid="enc--fm-brand"></ui-input>
+            <ui-select id="fmCategory" label="Category"
+              data-testid="enc--fm-category"></ui-select>
+            <ui-input id="fmDose" label="Default Dosage" required placeholder="e.g. 20"
+              data-testid="enc--fm-dose"></ui-input>
+            <ui-select id="fmUnit" label="Unit" required
+              data-testid="enc--fm-unit"></ui-select>
+            <ui-select id="fmRoute" label="Route" required
+              data-testid="enc--fm-route"></ui-select>
+            <ui-input id="fmConcentration" label="Concentration" placeholder="e.g. 10 mg/ml"
+              data-testid="enc--fm-concentration"></ui-input>
+          </div>
+          <div class="enc__row">
+            <ui-button variant="primary" size="sm" id="fmSave"
+              data-testid="enc--fm-save">Save Medication</ui-button>
+          </div>
+        </section>
+
+        <section class="enc__formulary-list">
+          <div class="enc__formulary-list-head">
+            <h3 class="enc__legend">Medication Formulary</h3>
+            <ui-input id="fmSearch" label="Search medications" label-hidden icon="search" size="sm"
+              placeholder="Search medications..." data-testid="enc--fm-search"></ui-input>
+          </div>
+          <div id="fmTable" data-testid="enc--fm-table"></div>
+        </section>
+      </div>
+
+      <div class="ui-modal__actions">
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="primary" id="fmClose" data-testid="enc--fm-close">Done</ui-button>
+      </div>
+    </ui-modal>
+
+    <!-- Pre-procedure physical exam. Opened from the Physical exam block in
+         the report, and writes its summary line back into it. -->
+    <ui-modal id="examModal" heading="Physical Exam Edit: Pre-procedure"
+      size="xl" variant="drawer">
+      <div class="enc__exam-editor">
+        <div class="enc__exam-tabs" role="tablist" aria-label="Exam type"
+          id="examTabs" data-testid="enc--exam-tabs"></div>
+
+        <div class="enc__exam-bar">
+          <ui-button variant="outline" size="xs" id="examAllNormal"
+            data-testid="enc--exam-normal">All normal</ui-button>
+          <ui-button variant="tertiary" size="xs" id="examClear"
+            data-testid="enc--exam-clear">Clear all</ui-button>
+          <ui-button variant="tertiary" size="xs" id="examReset"
+            data-testid="enc--exam-reset">Reset all</ui-button>
+
+          <span class="enc__exam-rule" aria-hidden="true"></span>
+
+          <div class="enc__exam-flags" id="examFlags"></div>
+
+          <span class="enc__spacer"></span>
+
+          <div class="enc__exam-selects">
+            <ui-select id="examContext" label="Context" label-hidden size="sm"
+              data-testid="enc--exam-context"></ui-select>
+            <ui-select id="examSet" label="System set" label-hidden size="sm"
+              data-testid="enc--exam-set"></ui-select>
+          </div>
+        </div>
+
+        <div class="enc__exam-when">
+          <ui-input id="examDate" type="date" label="Date" size="sm"
+            data-testid="enc--exam-date"></ui-input>
+          <ui-input id="examTime" type="time" label="Time" size="sm"
+            data-testid="enc--exam-time"></ui-input>
+          <ui-button variant="outline" size="sm" id="examNow"
+            data-testid="enc--exam-now">Now</ui-button>
+          <ui-button variant="tertiary" size="sm" id="examClearTime">Clear</ui-button>
+        </div>
+
+        <div class="enc__exam-systems" id="examSystems" data-testid="enc--exam-systems"></div>
+
+        <div class="ui-modal__actions">
+          <ui-button variant="tertiary" id="examCancel"
+            data-testid="enc--exam-cancel">Cancel</ui-button>
+          <span class="ui-modal__actions-spacer"></span>
+          <ui-button variant="primary" id="examSave"
+            data-testid="enc--exam-save">Save exam</ui-button>
+        </div>
+      </div>
+    </ui-modal>
+
+    <!-- Structured polyp entry. The endoscopist records the anatomy; the
+         report writes the sentence. -->
+    <ui-modal id="polypModal" heading="Polyp" size="lg" variant="drawer">
+      <div class="enc__polyp">
+        <div class="enc__polyp-grid">
+          <ui-select id="pSite" label="Site" placeholder="Select site"
+            data-testid="enc--p-site"></ui-select>
+          <ui-input id="pDistance" label="Distance from anus" type="number" min="0"
+            hint="cm" data-testid="enc--p-distance"></ui-input>
+          <ui-input id="pSizeFrom" label="Size from" type="number" min="0"
+            data-testid="enc--p-size-from"></ui-input>
+          <ui-input id="pSizeTo" label="Size to" type="number" min="0"
+            data-testid="enc--p-size-to"></ui-input>
+          <ui-select id="pUnit" label="Unit" data-testid="enc--p-unit"></ui-select>
+          <ui-select id="pAppearance" label="Appearance" data-testid="enc--p-appearance"></ui-select>
+          <ui-select id="pPedicle" label="Pedicle" data-testid="enc--p-pedicle"></ui-select>
+          <ui-select id="pBleeding" label="Bleeding" data-testid="enc--p-bleeding"></ui-select>
+          <ui-select id="pIntervention" label="Intervention"
+            data-testid="enc--p-intervention"></ui-select>
+          <ui-input id="pCount" label="Number of polyps" type="number" min="1" value="1"
+            data-testid="enc--p-count"></ui-input>
+        </div>
+
+        <ui-textarea id="pNotes" label="Additional notes" rows="2"
+          placeholder="Anything the narrative should carry"
+          data-testid="enc--p-notes"></ui-textarea>
+
+        <div class="enc__polyp-preview" id="polypPreview" aria-live="polite"></div>
+
+        <div class="ui-modal__actions">
+          <ui-button variant="tertiary" id="polypCancel"
+            data-testid="enc--p-cancel">Cancel</ui-button>
+          <span class="ui-modal__actions-spacer"></span>
+          <ui-button variant="primary" id="polypSave"
+            data-testid="enc--p-save">Add finding</ui-button>
+        </div>
+      </div>
+    </ui-modal>
+
+    <!-- ================= RESCHEDULE =================
+         The same shape Pre-check's "Not fit for procedure" uses, and for the
+         same reason: "Rescheduled" on the scheduler board means nothing to the
+         desk without a reason, so the reason is required rather than optional. -->
+    <ui-modal id="rescheduleModal" heading="Reschedule appointment" size="sm">
+      <!-- Its own class: .enc__confirm is the bordered "recorded" tile the
+           safety checks use, and it carries a surface and a border this
+           dialog body has no business inheriting. -->
+      <div class="enc__reschedule">
+        <p>
+          The appointment will be marked <strong>Rescheduled</strong> and sent back to the
+          scheduler. Record why, so the desk knows what to resolve before rebooking.
+        </p>
+        <ui-textarea id="rescheduleReason" label="Reason" rows="3" required
+          placeholder="e.g. Anaesthetist unavailable — no CRNA cover today"
+          data-testid="enc--reschedule-reason"></ui-textarea>
+        <div class="ui-modal__actions">
+          <ui-button variant="tertiary" id="rescheduleCancel"
+            data-testid="enc--reschedule-cancel">Cancel</ui-button>
+          <span class="ui-modal__actions-spacer"></span>
+          <ui-button variant="danger" id="rescheduleConfirm"
+            data-testid="enc--reschedule-confirm">Reschedule appointment</ui-button>
+        </div>
+      </div>
+    </ui-modal>
+
+    <!-- ================= SIGN AND LOCK =================
+         Save & Sign closes the whole pre-procedure stage, so it asks first
+         rather than stamping a name the moment it is pressed. The name is a
+         field because the nurse signing may not be the one the checklist was
+         recorded under, and what will go on the record is rendered beside it
+         as it is typed — the signature is shown before it is committed, not
+         discovered afterwards on a locked document. -->
+    <ui-modal id="signModal" heading="Sign and Lock" size="md">
+      <!-- What is about to be signed, named. One dialog serves the nurse's
+           stage sign-off and the clinician's visit note, and "Sign and Lock"
+           alone does not say which of the two is under the pen. -->
+      <p class="enc__sign-lead" id="signLead" data-testid="enc--sign-lead"></p>
+
+      <div class="enc__sign">
+        <div class="enc__sign-form">
+          <ui-input id="signName" label="Name" required
+            data-testid="enc--sign-name"></ui-input>
+        </div>
+
+        <!-- The preview wears a label of its own so the two columns start
+             level: "Name" and "Signature" on the same line, the field and the
+             card it produces on the next. Without it the card's top border
+             lined up with the Name LABEL while the field it mirrors began
+             24px lower, and nothing across the dialog agreed with anything.
+
+             A plain span, not a <label>: it names a rendering, not a control,
+             and pointing a real label at nothing focusable is worse than
+             having none. -->
+        <div class="enc__sign-preview">
+          <span class="enc__sign-preview-label" aria-hidden="true">Signature</span>
+          <div class="enc__sign-card" data-testid="enc--sign-preview">
+            <span class="enc__sign-ink" id="signInk" aria-live="polite"></span>
+            <span class="enc__sign-attrib">
+              <span class="enc__sign-by" id="signBy"></span>
+              <span class="enc__sign-when" id="signWhen"></span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="ui-modal__actions">
+        <!-- A way out that is not the × in the corner. Backing out of a
+             signature is an ordinary thing to do, and it should not require
+             finding the dismiss control. -->
+        <ui-button variant="tertiary" id="signCancel"
+          data-testid="enc--sign-cancel">Cancel</ui-button>
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="primary" id="signConfirm"
+          data-testid="enc--sign-confirm">Sign &amp; Lock</ui-button>
+      </div>
+    </ui-modal>
+  </body>
+</html>

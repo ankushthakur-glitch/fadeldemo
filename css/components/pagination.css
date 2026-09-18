@@ -1,0 +1,103 @@
+/* ============================================================================
+   Pagination — the footer under any paged table.
+
+   Lifted from the patient directory, which was the only screen that had the
+   whole control set. Master and the availability table each had their own
+   half-copy: a pager but no rows-per-page, and a range label written three
+   different ways ("1-15 of 36 rows", "1–15 of 36", "1-15 of 36"). Same job,
+   three appearances.
+
+   The footer continues the table's bordered card rather than floating below
+   it, so a paged table reads as one object. Anything that pages through rows
+   uses this — see lib/pagination.js for the markup it expects.
+   ========================================================================= */
+
+.ui-pager {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  padding: var(--space-6) var(--space-7);
+  background-color: var(--color-bg-surface);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-top: none;
+  font-size: var(--font-size-body);
+  color: var(--color-text-secondary);
+}
+
+/* "1-15 of 36 rows". Tabular figures so the number does not jitter as pages
+   change under the eye. */
+.ui-pager__range { font-variant-numeric: tabular-nums; }
+
+.ui-pager__rows-label { margin-left: auto; }
+
+/* The page-size dropdown wore our border and the platform's arrow — the one
+   control in the footer that still looked like a browser default. It is
+   wrapped in .ui-select-shell (components/select-menu.css) now, which draws
+   our caret over it and turns the native one off. */
+.ui-pager__rows {
+  height: var(--control-height-sm);
+  padding: 0 var(--space-4);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+  font-size: var(--font-size-body);
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+.ui-pager__rows:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.ui-pager__pages { display: flex; align-items: center; gap: var(--space-2); }
+
+.ui-pager__page {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--space-10);
+  height: var(--space-10);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-body);
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.ui-pager__page:hover:not([disabled]) {
+  background-color: var(--color-bg-surface-hover);
+  color: var(--color-text-primary);
+}
+.ui-pager__page:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.ui-pager__page[disabled] { color: var(--color-text-disabled); cursor: not-allowed; }
+
+.ui-pager__page--current {
+  background-color: var(--color-brand-solid);
+  color: var(--color-text-inverse);
+  font-weight: var(--font-weight-medium);
+}
+.ui-pager__page--current:hover {
+  background-color: var(--color-brand-solid-hover);
+  color: var(--color-text-inverse);
+}
+.ui-pager__page--current:focus-visible { box-shadow: var(--focus-ring-solid); }
+
+.ui-pager__page .ui-icon { width: var(--icon-size-md); height: var(--icon-size-md); }
+
+/* The gap in a windowed run of pages. Not a button — there is nothing to
+   press — so it is inert text at the same width as one. */
+.ui-pager__gap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: var(--space-10);
+  height: var(--space-10);
+  color: var(--color-text-tertiary);
+  user-select: none;
+}
+
+/* Below the phone-landscape breakpoint the rows-per-page control is the first
+   thing to go: the page numbers are what people actually reach for. */
+@media (max-width: 48rem) {
+  .ui-pager { gap: var(--space-4); padding: var(--space-5); }
+  .ui-pager__rows-label { display: none; }
+  .ui-pager__rows { margin-left: auto; }
+}

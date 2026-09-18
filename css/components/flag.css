@@ -1,0 +1,34 @@
+/* ============================================================================
+   ui-flag — a circular country flag.
+
+   The React library wrapped an npm flag package. There is no build step here
+   and no bundled flag artwork, so this draws the two-letter ISO code in a
+   token-coloured disc instead: the same footprint, the same alignment, and it
+   still says which country without shipping 250 SVGs. Point `src` at a real
+   flag image when one is available and it takes over.
+   ========================================================================= */
+
+ui-flag { display: inline-flex; }
+
+.ui-flag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: var(--icon-size-lg);
+  height: var(--icon-size-lg);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  background-color: var(--color-bg-surface-sunken);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.ui-flag--sm { width: var(--icon-size-md); height: var(--icon-size-md); font-size: 0.5rem; }
+.ui-flag--lg { width: var(--space-9); height: var(--space-9); font-size: var(--font-size-xs); }
+.ui-flag--xl { width: var(--space-10); height: var(--space-10); font-size: var(--font-size-md); }
+
+.ui-flag img { display: block; width: 100%; height: 100%; object-fit: cover; }

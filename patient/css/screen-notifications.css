@@ -1,0 +1,71 @@
+/* ============================================================================
+   NOTIFICATIONS — the full list.
+
+   Almost everything here is already defined: .pp-note and its parts live in
+   shell.css, because the bell's panel uses them and the two must not drift.
+   What is in this file is only what a PAGE needs that a dropdown does not —
+   more room per row, and a visible read state.
+   ========================================================================= */
+
+.pp-notifications__lead {
+  margin: 0;
+  color: var(--pp-text);
+}
+
+.pp-notifications__section + .pp-notifications__section {
+  margin-top: var(--pp-gap-block);
+}
+
+.pp-notifications__list {
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--pp-line);
+  border-radius: var(--pp-radius);
+  background-color: var(--pp-surface);
+  list-style: none;
+  overflow: hidden;
+}
+
+/*
+ * The page's rows are a step taller than the panel's and the icon is bigger.
+ *
+ * A dropdown is scanned — five rows at a glance, deciding whether any of them
+ * matters. A page is read. The same row at the same density on a page reads
+ * as a cramped copy of the panel rather than as the thing itself.
+ *
+ * "A step" is now 16px against the row rhythm's 12, where it used to be 20/24
+ * against 16/20. The distinction is the point, not the size of it — at the
+ * old numbers a page of eight notifications ran past the fold on the strength
+ * of its padding alone.
+ */
+.pp-note--wide {
+  gap: var(--pp-space-3);
+  padding: var(--pp-pad-card);
+}
+
+.pp-note--wide .pp-note__mark {
+  width: 2.25rem;
+  height: 2.25rem;
+}
+
+.pp-note--wide .pp-note__title {
+  font-size: var(--pp-size-sm);
+}
+
+.pp-note--wide .pp-note__text {
+  font-size: var(--pp-size-xs);
+}
+
+/* Stated rather than only implied by the absence of a dot. There is room on a
+   page, and "no dot" is not a thing a screen reader can announce. */
+.pp-note__read {
+  flex: none;
+  align-self: center;
+  color: var(--pp-text-muted);
+  font-size: var(--pp-size-xs);
+}
+
+/* The row pushes its dot and its "Read" label to the right edge. */
+.pp-note--wide .pp-note__body {
+  flex: 1 1 auto;
+}

@@ -1,0 +1,149 @@
+/* ============================================================================
+   Patient directory screen — rebuilt to match MediNova node 40003459:32485.
+   Measured values: header bar 52px, control height 34px, table header cell
+   34px, table body cell 44px, row avatar 20px, radius 4px.
+   ========================================================================= */
+
+/* THE SHELL IS THE CANVAS, NOT A SURFACE.
+
+   Every screen used to be one unbroken sheet of white with lines drawn on it,
+   so the header band, a table and a form were all the same piece of paper and
+   only their rules told them apart. The shell paints the green-cast grey now
+   and the white stays with the objects — cards, tables, panels, the control
+   bar — each of which reads as a thing sitting ON the page rather than a
+   region fenced off inside it. Nothing about the layout moved to do this. */
+.pt {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background-color: var(--color-bg-page);
+}
+
+/* --- Top bar ---------------------------------------------------------------
+   Gone from here. The green band, its logo, its tabs and its right-hand
+   actions are css/components/app-bar.css now — furniture every screen carries
+   rather than something this screen owns and the other thirty borrow. */
+
+/* --- Page header ----------------------------------------------------------- */
+
+/* The page header is .ui-page-head in base.css — one band, every screen.
+   Nothing was different about this one, so nothing is redeclared here. */
+
+/* The count pill next to the title — 18px tall in MediNova. */
+.pt__count {
+  display: inline-flex;
+  align-items: center;
+  height: 1.125rem;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-full);
+  background-color: var(--color-status-success-surface);
+  color: var(--color-status-success-text);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-medium);
+}
+
+/* The right-hand action group is .ui-page-head__actions in base.css. */
+
+.pt__search { width: 18.5rem; }
+
+/* --- Filters ----------------------------------------------------------------
+   Gone from here. The popover this file used to own — and lend to Tasks, the
+   Audit Log, Inventory and Complications — is <ui-filter> now, the one control
+   every list in the product filters from. See css/components/filter.css. */
+
+/* --- Insurance column ----------------------------------------------------- */
+
+/* Carrier and state on ONE line. Stacking them would push the row past the
+   44px MediNova rhythm, and vertical space is the scarcest thing in a worklist.
+   The carrier truncates; the badge never does, because it is the part read at
+   a glance. */
+.pt__coverage {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-5);
+  min-width: 0;
+  max-width: 100%;
+}
+
+.pt__carrier {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-text-primary);
+}
+
+.pt__coverage ui-badge { flex: none; }
+
+.pt__name-link {
+  color: var(--color-text-link);
+  text-decoration: none;
+}
+.pt__name-link:hover { text-decoration: underline; }
+
+.pt__muted { color: var(--color-text-tertiary); }
+
+/* --- Table region ---------------------------------------------------------- */
+
+/* The table region fills whatever height is left and scrolls inside itself,
+   so the paging footer stays parked at the bottom of the window and the
+   sticky column headers stay visible while the rows move. */
+/* The frame — the gutter, the card, and the join between the table and the
+   pager under it — is .ui-list-body and .ui-table-card in base.css. What is
+   left here is the only thing actually particular to this list: how wide its
+   columns are. */
+.pt__body .ui-table { table-layout: fixed; }
+
+/* Column widths. Insurance is deliberately left unsized so it absorbs the
+   remaining space — carrier names vary most in length. */
+.pt__body th:nth-child(1) { width: 6rem; }      /* MRN */
+.pt__body th:nth-child(2) { width: 15rem; }     /* Patient Name */
+.pt__body th:nth-child(3) { width: 10.5rem; }   /* Date of Birth */
+.pt__body th:nth-child(4) { width: 9.5rem; }    /* Contact Details */
+.pt__body th:nth-child(5) { width: 11rem; }     /* Last Appointment */
+.pt__body th:nth-child(7) { width: 7rem; }      /* Status */
+
+/* Name cell: 20px avatar + label */
+.pt__name { display: inline-flex; align-items: center; gap: var(--space-6); }
+
+/* The row ⋮ button has to fit inside a 44px cell — at the app-bar size (32px)
+   plus cell padding it would push the row to 49px. */
+.pt__body .pt__icon-action {
+  width: var(--space-9);
+  height: var(--space-9);
+}
+
+/* --- Footer ------------------------------------------------------------------
+   Paging moved to components/pagination.css so every table shares one footer.
+   .pt__foot is what remains: the same bordered strip, for the scheduler's list
+   summary, which reports a period rather than a page. */
+.pt__foot {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  padding: var(--space-6) var(--space-7);
+  background-color: var(--color-bg-surface);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-top: none;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  font-size: var(--font-size-body);
+  color: var(--color-text-secondary);
+}
+
+/* MediNova shows a generic person glyph in the row, not initials. */
+.pt__avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-8);
+  height: var(--space-8);
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
+  background-color: var(--color-brand-surface);
+  color: var(--color-brand-text);
+}
+.pt__avatar .ui-icon { width: var(--icon-size-sm); height: var(--icon-size-sm); }
+

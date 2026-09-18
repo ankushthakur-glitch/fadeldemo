@@ -1,0 +1,271 @@
+/* ============================================================================
+   Settings ▸ Provider — the signed-in provider's own settings.
+
+   Layout only. The identity card, key/value lists and mini-tables are
+   inherited from screen-practice.css, and the row ⋮ menu from
+   components/row-menu.css — a provider's practice IS a location, so it should
+   not look like a different kind of thing here than it does there.
+   ========================================================================= */
+
+/* --- Cards ------------------------------------------------------------------
+   A grey header bar over a white body. The header names the group; the body
+   carries a grid of label-above-value pairs, which is what a record reads as
+   when it is being scanned rather than filled in. */
+
+.pvs__card {
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+  overflow: hidden;
+}
+
+.pvs__card-head {
+  padding: var(--space-5) var(--space-7);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+  background-color: var(--color-bg-surface-sunken);
+}
+
+.pvs__card-title {
+  font-size: var(--font-size-title-card);
+  line-height: var(--line-height-tight);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.pvs__card-body { padding: var(--space-7); }
+
+/* --- Profile ---------------------------------------------------------------- */
+
+.pvs__profile { display: flex; flex-direction: column; gap: var(--space-6); }
+
+/* Two cards abreast, stacking on a narrow window. Both children stretch, so a
+   short card beside a tall one does not leave a ragged bottom edge. */
+.pvs__row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-6);
+  align-items: stretch;
+}
+
+@media (max-width: 900px) {
+  .pvs__row { grid-template-columns: minmax(0, 1fr); }
+}
+
+.pvs__identity {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  padding-bottom: var(--space-6);
+  margin-bottom: var(--space-6);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.pvs__identity-text { display: flex; flex-direction: column; gap: var(--space-4); min-width: 0; }
+
+.pvs__identity-name {
+  font-size: var(--font-size-heading-md);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+}
+
+.pvs__identity-meta { display: flex; flex-wrap: wrap; gap: var(--space-4); align-items: center; }
+
+.pvs__identity-role { font-size: var(--font-size-body); color: var(--color-text-secondary); }
+
+/* Label above value, wrapping into as many columns as the width allows. A
+   fixed column count would strand "Suffix" alone on its own row at one
+   breakpoint and crush "Specialty" at another. */
+.pvs__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: var(--space-6);
+}
+
+.pvs__pair { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
+
+.pvs__label { font-size: var(--font-size-body-sm); color: var(--color-text-tertiary); }
+
+.pvs__value {
+  font-size: var(--font-size-body);
+  color: var(--color-text-primary);
+  /* Emails and identifiers have no spaces to break at, so without this they
+     overflow the card rather than wrapping. */
+  overflow-wrap: anywhere;
+}
+
+/* --- Typed row lists (the repeatable groups) --------------------------------
+   The type leads because it is what makes the value readable: "Mobile" in
+   front of a number answers a question the number alone does not. */
+
+.pvs__list { display: flex; flex-direction: column; gap: var(--space-4); }
+
+.pvs__list-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  font-size: var(--font-size-body);
+  color: var(--color-text-primary);
+  overflow-wrap: anywhere;
+}
+
+/* The taxonomy and the two dates of a licence, under the number they belong
+   to. A second line rather than a second column: the row is already inside a
+   half-width card, and the expiry is the part somebody came here to read. */
+.pvs__list-meta {
+  display: block;
+  margin-top: var(--space-1);
+  font-size: var(--font-size-body-sm);
+  color: var(--color-text-secondary);
+}
+.pvs__tag {
+  flex: none;
+  min-width: 5.5rem;
+  padding: var(--space-1) var(--space-4);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-bg-surface-sunken);
+  font-size: var(--font-size-body-sm);
+  color: var(--color-text-secondary);
+  text-align: center;
+}
+
+/* Splits a card that carries both fixed fields and a growable list — the NPI
+   and DEA above, everything else the provider happens to hold below. */
+.pvs__subhead {
+  padding-top: var(--space-6);
+  margin: var(--space-6) 0 var(--space-5);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+  font-size: var(--font-size-body-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-tertiary);
+}
+
+.pvs__empty { font-size: var(--font-size-body); color: var(--color-text-tertiary); }
+
+.pvs__notes {
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-normal);
+  color: var(--color-text-primary);
+}
+
+.pvs__signature {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  font-size: var(--font-size-body);
+  color: var(--color-text-secondary);
+}
+.pvs__signature .ui-icon { color: var(--color-text-tertiary); }
+
+/* --- Practice ---------------------------------------------------------------
+   The site card on the left, everything it is configured as on the right —
+   the same split Practice Settings ▸ Profile uses for the practice itself. */
+
+.pvs__loc-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  padding-bottom: var(--space-5);
+}
+.pvs__loc-bar:empty { display: none; }
+.pvs__loc-bar ui-select { width: 22rem; max-width: 100%; }
+.pvs__loc-note { font-size: var(--font-size-body-sm); color: var(--color-text-tertiary); }
+
+.pvs__practice {
+  display: grid;
+  grid-template-columns: 21rem minmax(0, 1fr);
+  gap: var(--space-6);
+  align-items: start;
+}
+
+@media (max-width: 1000px) {
+  .pvs__practice { grid-template-columns: minmax(0, 1fr); }
+}
+
+.pvs__site-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding: var(--card-padding);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+}
+
+.pvs__site-head { display: flex; align-items: center; gap: var(--space-4); }
+
+/* The site card's own key/value list is narrower than the practice one, so
+   its label column has to be too or every value wraps. */
+.pvs__site-card .prc__kv { grid-template-columns: 7.5rem minmax(0, 1fr); }
+
+.pvs__site-main { display: flex; flex-direction: column; gap: var(--space-6); }
+
+/* --- Notification -----------------------------------------------------------
+   One table per group. The channel columns are narrow and centred so the
+   ticks line up down the page — a column of checkboxes that drifts left and
+   right by group is unreadable as a summary. */
+
+.pvs__notify { display: flex; flex-direction: column; gap: var(--space-7); }
+
+.pvs__notify-group { display: flex; flex-direction: column; gap: var(--space-4); }
+
+.pvs__notify-title {
+  font-size: var(--font-size-title-section);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.pvs__notify-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-body);
+}
+
+.pvs__notify-table th,
+.pvs__notify-table td {
+  padding: var(--space-4) var(--space-6);
+  text-align: left;
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.pvs__notify-table thead th {
+  background-color: var(--color-bg-table-head);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+}
+
+.pvs__notify-table td { color: var(--color-text-secondary); }
+
+.pvs__notify-col { width: 8rem; text-align: center; }
+.pvs__notify-table td.pvs__notify-col,
+.pvs__notify-table th.pvs__notify-col { text-align: center; }
+
+/* Size and paint come from the shared bare-input rule. `accent-color` was the
+   old way of tinting a platform checkbox; the box is drawn by this project
+   now, so it would only apply if that painting were ever turned off. */
+.pvs__check { cursor: pointer; }
+.pvs__check:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* --- Patient flag dialog ----------------------------------------------------- */
+
+.pvs__flag-form { display: flex; flex-direction: column; gap: var(--space-6); }
+
+.pvs__palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin-top: var(--space-3);
+}
+
+.pvs__swatch {
+  width: var(--space-10);
+  height: var(--space-8);
+  border-radius: var(--radius-sm);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  cursor: pointer;
+}
+/* The chosen colour is marked with a ring rather than a tick: a tick on a
+   dark swatch and a tick on a light one cannot both stay legible. */
+.pvs__swatch[aria-checked='true'] {
+  box-shadow: 0 0 0 2px var(--color-bg-surface), 0 0 0 4px var(--color-brand-solid);
+}
+.pvs__swatch:focus-visible { outline: none; box-shadow: var(--focus-ring); }

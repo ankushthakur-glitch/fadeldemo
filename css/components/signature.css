@@ -1,0 +1,306 @@
+/* ============================================================================
+   <ui-signature> — the electronic signature pad.
+
+   Boxed and spaced like a small form rather than like a canvas with controls
+   bolted on, because that is what it is: a name, a route, a mark, and a
+   commit. The pad is the only part that looks like a drawing surface.
+
+   LAID OUT AS THE PORTAL'S PAD IS, because it is the same act. The routes are
+   a segmented switch with Clear Signature opposite them on one bar, the pad
+   fills the width underneath with "Sign here" in its corner, and a line below
+   says whether anything has been signed yet. What the desk's pad keeps that
+   the portal's does not is the full legal name, asked for above the switch and
+   required in every route — the portal knows whose account is open and a bay
+   does not (see js/lib/signature-block.js).
+   ========================================================================= */
+
+.ui-sign {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: var(--space-6) var(--space-7);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+}
+
+/* The title row. Its right-hand side is empty in the multi-route control —
+   there the Clear rides in the switch bar, beside the segments that choose
+   what it would wipe — and holds the Clear in the pad-only one, where there is
+   no bar to put it in. Either way the row is the same row, so the heading does
+   not move between the two shapes. */
+.ui-sign__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.ui-sign__heading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--font-size-title-section);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+/* --- The switch bar -----------------------------------------------------------
+   How to sign on the left, undoing it on the right, and the pad they act on
+   filling the width underneath. Wraps rather than crushing the pair when the
+   block is set into a narrow column. */
+
+.ui-sign__bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3) var(--space-4);
+}
+
+.ui-sign__bar-end[hidden] { display: none; }
+
+/* Radios wearing a segmented control: a bordered group with a divider between
+   each pair, the chosen segment tinted and in the brand colour. The inputs are
+   moved off-screen rather than hidden — a display:none input is not focusable,
+   and the arrow keys that move between radios are the reason these are radios
+   at all. */
+
+.ui-sign__modes {
+  display: inline-flex;
+  overflow: hidden;
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+}
+
+.ui-sign__mode {
+  display: inline-flex;
+  margin: 0;
+}
+
+.ui-sign__mode input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ui-sign__mode span {
+  display: inline-flex;
+  align-items: center;
+  height: var(--space-11);
+  padding: 0 var(--space-5);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.ui-sign__mode + .ui-sign__mode span {
+  border-left: var(--border-width-thin) solid var(--color-border-default);
+}
+
+.ui-sign__mode span:hover { color: var(--color-text-primary); }
+
+.ui-sign__mode input:checked + span {
+  background-color: var(--color-bg-surface-selected);
+  color: var(--color-text-brand);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* The ring is drawn on the label, since the input it belongs to is a pixel
+   off-screen. */
+.ui-sign__mode input:focus-visible + span {
+  outline: var(--border-width-thick) solid var(--color-border-focus);
+  outline-offset: -2px;
+}
+
+.ui-sign__field { display: flex; flex-direction: column; gap: var(--space-3); }
+
+/* The one Clear, which wipes BOTH marks — the drawn one and the attached one
+   — so a file can be taken off again without switching back to the mode it was
+   attached in. A link rather than a button: it undoes rather than does, and a
+   third bordered control beside the segments would compete with the two that
+   choose how to sign. */
+.ui-sign__clear {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-brand);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.ui-sign__clear:hover { color: var(--color-brand-solid-hover); }
+.ui-sign__clear:focus-visible {
+  outline: none;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--focus-ring);
+}
+
+/* Dashed, so it reads as somewhere to put something rather than as a field
+   that is waiting to be filled in with words. The frame is on the wrapper
+   rather than the canvas, because the baseline is positioned against it. */
+.ui-sign__pad {
+  position: relative;
+  border: var(--border-width-thin) dashed var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+}
+
+.ui-sign__canvas {
+  display: block;
+  width: 100%;
+  height: 10rem;
+  border-radius: var(--radius-md);
+  /* Without this a drag on a touchscreen scrolls the page instead of drawing. */
+  touch-action: none;
+  cursor: crosshair;
+}
+.ui-sign__canvas:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* The line people sign on. Inert and behind the canvas in stacking order, so
+   it can never eat a pointer event meant for the pad. */
+.ui-sign__baseline {
+  position: absolute;
+  right: var(--space-4);
+  bottom: var(--space-3);
+  margin: 0;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-2xs);
+  pointer-events: none;
+}
+
+/* What is still outstanding, in a live region — and, once nothing is, what the
+   pad is about to file and what will file it. On the drawn and uploaded routes
+   there is nothing beneath it (see js/components/ui-signature.js), so it is
+   the only thing the control says about itself. */
+.ui-sign__state {
+  margin: 0;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+}
+
+/* SIGN, in the typed route and nowhere else.
+   A name typed into a field has no end of its own — no pen coming up, no file
+   arriving — so that route carries the one button on this control. It sits at
+   the field's left edge at its own width rather than filling the pane: .ui-btn
+   is width:100% because <ui-button> sizes itself from the outside, and a
+   full-bleed primary bar under a single line of text would read as the
+   document's own Sign rather than as this pad's. */
+.ui-sign__file {
+  width: auto;
+  align-self: flex-start;
+}
+
+/* --- The upload zone ---------------------------------------------------------
+   The same pair of options the patient portal offers, drawn in MediNova's
+   tokens: the frame IS the button, dashed so it reads as somewhere to put
+   something rather than as a field waiting for words, and shorter than the
+   portal's document drop — this one holds a signature, not a photograph of an
+   insurance card, and at the full height it dwarfed the pad it stands
+   alongside. */
+
+.ui-sign__drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 9rem;
+  padding: var(--space-6);
+  border: var(--border-width-thin) dashed var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+  font-family: inherit;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+  text-align: center;
+  cursor: pointer;
+}
+
+.ui-sign__drop:hover,
+.ui-sign__drop[data-dragging='true'] {
+  border-color: var(--color-brand-solid);
+  background-color: var(--color-bg-surface-hover);
+}
+.ui-sign__drop:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.ui-sign__drop .ui-icon {
+  /* Bigger than any --icon-size token goes: this is the picture in an empty
+     drop zone, not an icon beside a label. */
+  width: var(--space-11);
+  height: var(--space-11);
+  color: var(--color-text-tertiary);
+}
+
+/* Underlined rather than a nested <button>: the whole frame is already the
+   control, and a button inside a button is not markup a browser will keep. */
+.ui-sign__drop-link {
+  color: var(--color-text-link);
+  text-decoration: underline;
+}
+
+.ui-sign__drop-note {
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-tertiary);
+}
+
+/* What was attached, named inside the zone that took it. */
+.ui-sign__drop-file:not(:empty) {
+  margin-top: var(--space-2);
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-primary);
+}
+
+/* Shown at the size it will be filed at — an upload nobody can see is an
+   upload nobody can check before it becomes the signature on a consent. */
+.ui-sign__upload { display: flex; }
+
+.ui-sign__upload-image {
+  max-width: min(100%, 22rem);
+  max-height: 7rem;
+  padding: var(--space-3);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+  object-fit: contain;
+}
+
+/* ----------------------------------------------------------------------------
+   THE PAD-ONLY SHAPE — <ui-signature methods="draw">
+
+   Same control, drawn for a host that offers one route. With the picker gone
+   the block is four things — a title, a name, a pad and a commit — and at the
+   full-size spacing those four filled a screen on their own. So it is tightened
+   rather than merely shortened: less inset, half the gap between rows, a hint
+   sitting under its field instead of a line away from it, and a pad at the
+   height a signature is actually written at rather than one sized to balance a
+   drop zone that is no longer beside it.
+
+   The rules only tighten. Nothing here changes what the control does or what it
+   emits, so a pad-only signature and a three-method one file the same mark.
+   -------------------------------------------------------------------------- */
+
+.ui-sign--solo {
+  gap: var(--space-5);
+  padding: var(--space-6);
+}
+
+.ui-sign--solo .ui-sign__field { gap: var(--space-2); }
+
+/* A hint is an aside to the thing above it, and at the row gap it read as the
+   next row. Pulled up against its own field and set at the smallest size the
+   sheet uses. */
+.ui-sign--solo .ui-field__hint {
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-tertiary);
+}
+
+.ui-sign--solo .ui-sign__canvas { height: 6.5rem; }

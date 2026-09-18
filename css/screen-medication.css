@@ -1,0 +1,813 @@
+/* ============================================================================
+   Settings ▸ Medication Inventory (med__).
+
+   Two views on one screen: the medication list and one medication's lots.
+   Both use the shared page head, the shared gutter, and the shared elevation
+   rule — a panel is a surface with a border and NO shadow; only the row ⋮
+   menu and the dialogs float.
+   ========================================================================= */
+
+/* The gutter is .ui-list-body in base.css and the card inside it is
+   .ui-table-card — the same frame the patient directory and Leads are built
+   from. This screen used to draw both itself, and its panel wore a border of
+   its own OVER the table's, so every list here was edged twice.
+
+   All that is left is the air between the "narrowed to" line and the card
+   under it, and that is --layout-gap — the one measure between stacked
+   objects on a page. Written as the raw step it happened to equal, it was a
+   number that would drift the next time somebody adjusted this screen. */
+.med__body { gap: var(--layout-gap); }
+
+/* THE THREE VIEWS — usage, the medication list, one medication's lots.
+
+   Each is a full screen of its own and only ever one is up, so each has to be
+   able to fill the shell for its table to scroll inside the card rather than
+   run off the bottom of the window. Before this, .med__body sat at its
+   natural height inside a body that clips, and the pager under a long table
+   was simply below the edge of the screen — a footer nobody could reach. */
+.med__view {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+/* display:flex beats the default [hidden], so the attribute has to be
+   honoured explicitly — the tab strip and the drill-down both rely on it. */
+.med__view[hidden] { display: none; }
+
+/* --- The filter row ---------------------------------------------------------
+   Search, then the two narrowing filters, then the one action. The search box
+   gets the room because it is the control that takes a value of any length;
+   the selects are sized to their longest option and no wider. */
+
+.med__filters { gap: var(--space-5); }
+.med__filters ui-input { width: 18rem; }
+.med__filters ui-select { width: 11rem; }
+
+/* --- The header ---------------------------------------------------------------
+   The band and its two slots are .ui-page-head in base.css. The strip in the
+   lead slot goes away on the lot drill-down, which is a page you arrived at
+   rather than a third thing to switch between — and the whole band goes with
+   it, since the controls in the action slot belong to the tabbed views. */
+
+.med__head[hidden] { display: none; }
+
+/* --- The count sheet: the date --------------------------------------------
+   ONE date, in the header, always set.
+
+   Where the report this replaced had a range and a funnel, the sheet has a
+   single day and nothing else. That is not a simplification, it is what the
+   document is: a count belongs to one drawer on one date, and a sheet
+   narrowed to three of its eight drugs is not a count of anything.
+
+   No visible label, because a page head is a single-row band and a stacked
+   label would double its height. "Sheet date" is still the accessible name. */
+
+/* Sized to a date, and no wider. Left to grow, a date input reserves room for
+   a placeholder longer than the value it will hold.
+
+   ONE HEIGHT ACROSS THE ROW. The field and the three buttons beside it are all
+   the standard 34px control, and this pins the field's shell to it — a native
+   date input carries the browser's own line box and its calendar button, and
+   left alone it comes out a pixel or two off the buttons it shares a row with.
+   Four controls on one line that do not agree about their own height read as
+   one of them having gone wrong. */
+#countActions ui-input { flex: none; width: 10.5rem; }
+/* The same empty label row as the sheet's fields — see .med__count-field
+   .ui-field below. Left open it stands the date two pixels off the centre line
+   the three buttons share. */
+#countActions .ui-field { gap: 0; }
+#countActions .ui-input { min-height: var(--control-height-md); }
+
+/* --- The count sheet: the screen's name, and the sheet's date ---------------
+   The tab strip stood in the lead slot and is gone. What is there now is the
+   screen's name with the sheet under it: which day is on the desk, and how far
+   through it the drawer has been counted.
+
+   Both facts were drawn inside the card, above the table, in a band with a
+   shield on it. They read better here. The date is the one fact that qualifies
+   every figure below it, and a fact that qualifies a whole screen belongs at
+   the top of the screen — not in a strip of chrome between the reader and the
+   first line they have to count. */
+
+.med__lead {
+  display: flex;
+  flex-direction: column;
+  /* flex-start, not the centre .ui-page-head__lead sets for its own row. That
+     rule centres a row of controls vertically, which is right; inherited by a
+     COLUMN it centres the two lines horizontally, and the screen's name came
+     out indented to the middle of a date sitting under it. */
+  align-items: flex-start;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+/* One line, because they are one thought: this date, this far through it. */
+.med__sheet-line {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  margin: 0;
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-tight);
+  color: var(--color-text-secondary);
+}
+
+.med__sheet-line[hidden] { display: none; }
+
+/* The date is the half that is always true, so it is the half that keeps the
+   stronger colour. The status beside it changes all day. */
+.med__sheet-date { color: var(--color-text-primary); font-weight: var(--font-weight-medium); }
+
+.med__sheet-sep { color: var(--color-border-strong); }
+
+.med__sheet-status--level { color: var(--color-status-success-text); }
+
+/* A drawer that does not agree with its own arithmetic is the one thing on
+   this screen that has to be noticed before the day closes — and it is now
+   saying so in caption type, so it takes the weight as well as the colour. */
+.med__sheet-status--off {
+  color: var(--color-status-critical-text);
+  font-weight: var(--font-weight-medium);
+}
+
+/* --- The count sheet: the row is a form -------------------------------------
+   Ported from the encounter's version of this sheet, which is where it was
+   built (see css/screen-encounter.css, .encv__count-*). The markup moved with
+   it; the reasoning below is the same reasoning, about the same nine columns.
+   -------------------------------------------------------------------------- */
+
+/* The drug, what the vial says, what yesterday left — and the two buttons that
+   act on the line, held right so the names still start on one edge. */
+.med__count-name {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+/*
+ * THE NAME IS HELD TO A WIDTH RATHER THAN TAKING WHAT IT ASKS FOR.
+ *
+ * "Meperidine (Demerol)" on one line, plus two buttons, claims a quarter of
+ * the sheet — and every pixel of it comes out of the eight columns that are
+ * actually being written into. Held here it wraps onto a second line on two
+ * rows out of eight and nothing changes on the rest, which is a far cheaper
+ * price than pushing Discrepancy off the edge.
+ */
+.med__count-name-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.med__count-drug {
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+/* The vial and the carried-forward figure, in the quiet rung this screen gives
+   a fact that qualifies the one above it. */
+.med__count-facts,
+.med__count-prior {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-tertiary);
+  line-height: var(--line-height-tight);
+}
+
+/*
+ * The pencil and the bin, inside the cell beside the name rather than alone in
+ * an actions column — they act on the LINE, and a line is what the name is.
+ *
+ * SIZED TO BE FOUND AND HIT, WHICH THEY WERE NOT.
+ *
+ * They were 20px targets carrying a 10px glyph in the faintest text colour the
+ * palette has, on a sheet where every other control is a box with a border
+ * round it. Next to eight bordered fields, two grey marks read as decoration
+ * on the drug's name rather than as the two buttons on the row — and 20px is
+ * under every pointer-target floor there is.
+ *
+ * The target is 32px now, the glyph is 18px, and the resting colour is the one
+ * body copy uses. They are still quieter than a <ui-button> — this is a cell,
+ * not a toolbar — but they are unmistakably things you can press.
+ */
+.med__count-actions {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.med__count-edit,
+.med__count-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-11);
+  height: var(--space-11);
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-md);
+  background: none;
+  /* THE BRAND COLOUR, BOTH OF THEM. It is what the product uses to mean "this
+     is a control" — the same green as the primary button in the header — and
+     on a sheet of grey boxes it is the one thing that reads as pressable
+     without drawing a border round it. */
+  color: var(--color-brand-text);
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+.med__count-edit .ui-icon,
+.med__count-remove .ui-icon { width: var(--icon-size-lg); height: var(--icon-size-lg); }
+
+.med__count-edit:hover { background: var(--color-brand-surface); }
+
+/* The bin goes red on approach rather than sitting red. A destructive colour
+   held permanently on every row is eight warnings about nothing; on hover it
+   is the one thing the reader is about to do. */
+.med__count-remove:hover {
+  background: var(--color-status-critical-surface);
+  color: var(--color-status-critical-text);
+}
+
+.med__count-edit:focus-visible,
+.med__count-remove:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* A figure with the person it is accounted for by — under it here, and beside
+   it where the screen is wide enough (see the media query below). The small
+   gap is the point either way: the two boxes are one answer, and spacing them
+   like separate fields would let the eye pair a name with the wrong number. */
+.med__count-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/*
+ * THE SHEET IS THE ONE TABLE ON THIS SCREEN LAID OUT FROM ITS HEADINGS RATHER
+ * THAN FROM ITS CONTENTS.
+ *
+ * Every other table here holds text, and letting the widest cell in a column
+ * set that column's width is exactly right for text. This one holds nine
+ * <input>s per row, and a native input's intrinsic width is about twenty
+ * characters whatever you put in it — so under the automatic layout a box
+ * built to hold "3" claimed 208px, three of those columns claimed half the
+ * sheet, and Actions was pushed off the right-hand edge with the Save button
+ * on it.
+ *
+ * Fixed layout takes the widths from the rules below and the boxes fit the
+ * columns instead of the other way round. It is scoped to this table alone;
+ * the register beside it still measures itself from its longest lot number.
+ */
+#countTable .ui-table { table-layout: fixed; width: 100%; }
+
+/*
+ * EVERY COLUMN ON ONE GUTTER, AND EVERY FIGURE ON ONE EDGE.
+ *
+ * The widths below are what each column actually holds — a name and two
+ * buttons, counts of three or four digits, a signed difference. Nothing is
+ * measured from its heading: "Discrepancy" is the longest word on the sheet
+ * and the narrowest thing under it.
+ *
+ * What makes the sheet read as a grid rather than as nine loose questions is
+ * the pair of rules under these. The boxes all start on their column's left
+ * edge, because a count is compared by running the eye DOWN a column; and the
+ * two computed cells, which are text rather than controls, are inset by the
+ * same amount a box's border and padding inset their first digit — so
+ * "Expected end" lines up under its heading exactly the way "Added" does.
+ */
+#countTable .ui-table th:nth-child(1) { width: 12rem; }
+#countTable .ui-table th:nth-child(2) { width: 6.5rem; }
+#countTable .ui-table th:nth-child(3) { width: 5.5rem; }
+#countTable .ui-table th:nth-child(4),
+#countTable .ui-table th:nth-child(5) { width: 8.5rem; }
+#countTable .ui-table th:nth-child(6) { width: 7rem; }
+#countTable .ui-table th:nth-child(7) { width: 6.5rem; }
+#countTable .ui-table th:nth-child(8) { width: 7rem; }
+#countTable .ui-table th:nth-child(9) { width: 5.5rem; }
+
+/* Every box fills its column, so the sheet lines up on both edges rather than
+   only on the left. Held to a stated width they float at the start of cells
+   that have grown wider than they are, which reads as nine different questions
+   rather than as one line to be answered across. */
+.med__count-field {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+/* And the control inside it gives up the twenty-character width a native input
+   asks for. Without this the box overflows the cell it was just fitted to —
+   and a <select> is worse than an <input> here, because it asks for the width
+   of its longest option and the longest option is somebody's full name. */
+.med__count-field input,
+.med__count-field select { min-width: 0; width: 100%; }
+
+/*
+ * ONE HEIGHT ACROSS THE WHOLE ROW.
+ *
+ * Nine controls of two kinds sit on each line — seven boxes and two dropdowns
+ * — and they have to be the same height or the row reads as two rows that
+ * happen to overlap. `size="sm"` gets both to the same 28px shell, and this is
+ * what holds them there: a <select> is a replaced control and picks up the
+ * browser's own line box unless it is told otherwise, which on Chrome is two
+ * pixels taller than the input beside it.
+ */
+/*
+ * The shell is what holds the height, and the control inside it is left alone
+ * to be centred by it.
+ *
+ * .ui-input is a flex box with align-items:center, so a <select> dropped into
+ * it sits on the same middle line the <input> beside it does — as long as
+ * nothing stretches it. Both earlier attempts at forcing agreement made it
+ * worse: `height: 100%` left the name riding three pixels high (a select
+ * centres against its own line box, not against a border it was stretched to),
+ * and a fixed 28px height plus the shell's two borders came out 30 — two
+ * pixels taller than every box beside it.
+ *
+ * WHAT WAS ACTUALLY WRONG WAS ABOVE THE BOX, NOT INSIDE IT.
+ *
+ * <ui-input> draws an empty .ui-field__label-row over its shell — the slot a
+ * visible label and its action link would sit in — and .ui-field puts a 4px
+ * gap under it. With `label-hidden` that row measures zero and the gap does
+ * not, so a count field stands 32px tall around a 28px box while <ui-select>,
+ * which draws no such row, stands at 28. Two pixels of that difference landed
+ * between the number and the name beside it on every line of the sheet.
+ *
+ * Closing the gap where there is nothing to separate makes both fields the
+ * height of the control they contain, and the row lines up on one edge without
+ * anything being forced.
+ */
+.med__count-field .ui-field { gap: 0; }
+.med__count-field .ui-input { min-height: var(--control-height-sm); }
+
+/* The caret is drawn over the control rather than beside it, so the name needs
+   room to end before it — otherwise "Brooklyn Simmons" runs under the arrow. */
+.med__count-person select { padding-right: var(--space-8); }
+
+/* Tighter than the shared small field, which is padded for a box somebody
+   reads a sentence out of. */
+.med__count-field .ui-input { padding: 0 var(--space-3); }
+
+/*
+ * AND WHERE THERE IS ROOM, THE NAME SITS BESIDE THE FIGURE RATHER THAN UNDER IT.
+ *
+ * Stacked, the two pair columns make every row on the sheet twice as tall as
+ * the seven single-box columns beside them — eight rows of that is half a
+ * screen of white space held open by two fields, and the eye reading a count
+ * across has to step down a line and back up again twice on the way.
+ *
+ * Laid side by side the row is one line of boxes from Start count to Save, all
+ * on the same rule. The pair is still one cell: the initials sit against the
+ * number they account for, with a gap smaller than the one between columns, so
+ * nothing floats free of its figure.
+ */
+@media (min-width: 80rem) {
+  .med__count-stack {
+    flex-direction: row;
+    align-items: center;
+    /* Smaller than the gutter between columns, so the number and the name it
+       is accounted for by stay visibly one answer rather than two. */
+    gap: var(--space-3);
+  }
+
+  /* The figure keeps a count's width; the name takes what is left of the cell,
+     which is what makes a full name readable rather than clipped. */
+  .med__count-stack .med__count-field { flex: 0 0 3rem; }
+  .med__count-stack .med__count-field + .med__count-field { flex: 1 1 auto; }
+
+  /* The two pair columns carry two boxes side by side now, so they take the
+     width of two. Every other column keeps exactly what it had. */
+  #countTable .ui-table th:nth-child(4),
+  #countTable .ui-table th:nth-child(5) { width: 12.5rem; }
+  /* And the drug gets some of the room the stack gave back: enough that the
+     names on a standard drawer sit on one line beside their two buttons. */
+  #countTable .ui-table th:nth-child(1) { width: 13rem; }
+}
+
+/* The two computed cells. Tabular figures, because these are the numbers
+   somebody compares by looking down the column.
+
+   No padding holding them down the way there once was: the cell is
+   vertical-align:middle and every control on the line is now the same 28px, so
+   the sums land on that middle line on their own. The old 6px nudge was
+   correcting for a row whose boxes did not agree with each other, and left in
+   place it put the one number nobody types three pixels below the seven
+   they do. */
+.med__count-sum {
+  display: inline-block;
+  /* Inset by a box's border plus its padding, so a computed figure starts on
+     the same pixel a typed one does. Without it the two text columns sat seven
+     pixels left of every column around them, which is exactly enough to read
+     as a mistake and not enough to look deliberate. */
+  padding-left: calc(var(--space-3) + var(--border-width-thin));
+  font-family: var(--font-family-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--font-size-body);
+  color: var(--color-text-primary);
+}
+
+/* Nothing counted yet, said out loud. An empty cell reads as missing data, and
+   a zero here would report an untouched line as reconciled. */
+.med__count-none { color: var(--color-text-tertiary); }
+
+/* A drawer that agrees with its own arithmetic is a good answer, said quietly:
+   the sheet is worked by exception, and a column of loud zeros is a column
+   nobody reads to the bottom of. */
+.med__count-diff--level { color: var(--color-text-secondary); }
+
+/* A drawer that does not agree is the one thing on this tab that has to be
+   noticed before the day closes. */
+.med__count-diff--off {
+  color: var(--color-status-critical-text);
+  font-weight: var(--font-weight-medium);
+}
+
+/* --- Cells ---------------------------------------------------------------- */
+
+.med__name {
+  color: var(--color-text-link);
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+}
+.med__name:hover { text-decoration: underline; }
+.med__name:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.med__muted { color: var(--color-text-tertiary); }
+
+/* The name column carries the longest values on the screen — "Insulin
+   Glargine 100 IU/mL Injection" is thirty-six characters — and it is the one
+   column nobody should have to hover to read. `truncate` sets max-width: 0 so
+   a column takes only its share; this gives the first column a real width
+   before the rest divide what is left. */
+#medTable th:first-child,
+#medTable td:first-child {
+  width: 21rem;
+  max-width: 21rem;
+}
+
+.med__lot small,
+.med__qty-note,
+.med__expiry small {
+  display: block;
+  margin-top: var(--space-1);
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-tertiary);
+}
+
+.med__qty { font-variant-numeric: tabular-nums; }
+
+/* An expiry that is near, or gone, says so in words as well as colour — this
+   is the column where reading it wrong means handing over a drug that has
+   expired, so it does not rely on a tint alone.
+
+   The strong warning token, not the ordinary one: this is 11px text on a plain
+   white cell, where Warning/07 measures 3.96:1 and fails AA. On a badge the
+   tint behind it does the work; here there is nothing behind it. */
+.med__expiry--soon small { color: var(--color-status-warning-text-strong); }
+.med__expiry--gone { color: var(--color-text-tertiary); }
+.med__expiry--gone small { color: var(--color-status-critical-text); }
+
+/* Waste. Not red — red is for a state that needs fixing, and a recorded
+   write-off is a fact that has already been dealt with. Tinted enough to be
+   found when scanning the column for a number that is not a dash. */
+.med__wasted {
+  font-variant-numeric: tabular-nums;
+  color: var(--color-status-warning-text-strong);
+}
+.med__wasted small {
+  display: block;
+  margin-top: var(--space-1);
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-tertiary);
+}
+
+.med__fact--waste dd { color: var(--color-status-warning-text-strong); }
+
+/* --- What has already been written off ------------------------------------
+   Inside the waste dialog, so the same broken vial is not recorded twice by
+   two people an hour apart. */
+
+.med__history {
+  padding: var(--space-5) var(--space-6);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+}
+
+.med__history-title {
+  margin-bottom: var(--space-4);
+  font-size: var(--font-size-title-section);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.med__history-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-5);
+  padding: var(--space-3) 0;
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+}
+.med__history-row:first-of-type { border-top: none; }
+
+.med__history-qty {
+  flex: none;
+  min-width: var(--space-9);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-status-warning-text-strong);
+}
+
+.med__history-body { font-size: var(--font-size-caption); color: var(--color-text-primary); }
+.med__history-body small {
+  display: block;
+  margin-top: var(--space-1);
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-tertiary);
+}
+
+
+/* --- The detail header ------------------------------------------------------
+   The reference's chip strip: the two facts that identify the medication, the
+   total, and the reorder point the total is judged against. The reorder point
+   is here because "Total Quantity: 12" means nothing until you know whether
+   twelve is plenty. */
+
+/* Spaced like the report screens' summary tiles — --space-5 between tiles, a
+   tight card inset within — because that is what this strip is: a row of
+   counts above the table they summarise. It used to set its own gap and its
+   own 10/16 inset, which is one of the six ad-hoc card paddings tokens.css
+   was written to end. */
+.med__facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+  margin: 0;
+}
+
+/* --card-padding-tight, not a pair chosen by eye. A chip holding one line of
+   text is the dense case the token names, and an even inset is what stops the
+   strip reading as five boxes with more air at their sides than above the
+   words in them. --radius-lg for the same reason every other tile in the EHR
+   has it: 4px is the CONTROL radius, and a fact chip is not a control. */
+.med__fact {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-4);
+  padding: var(--card-padding-tight);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+}
+
+/* The label pair, in the tokens that name it — same rung as every other
+   read-only fact in the EHR rather than a size that happens to match. */
+.med__fact dt {
+  font-size: var(--font-size-fact-label);
+  color: var(--color-fact-label);
+  font-weight: var(--font-weight-regular);
+}
+
+.med__fact dd {
+  margin: 0;
+  font-size: var(--font-size-fact-value);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-fact-value);
+}
+
+/* Why the total can be smaller than the numbers underneath it. Without this
+   the screen looks like it cannot add up.
+
+   The SHAPE is .ui-alert--warning, worn as classes on the paragraph — the one
+   inline banner the EHR has, so a caution here is the same object as a
+   caution on Referrals. What was here instead was a band of its own: a
+   hard-coded 3px rule (a raw value, in a screen that is only allowed tokens),
+   no border and no radius, so it ran edge to edge between two rounded objects
+   and read as a stripe painted on the page rather than a thing on it.
+
+   The component itself is not used because the sentence is written by
+   paintDetail() after the element has connected, and <ui-alert> reads its
+   message from its markup once. The classes are the whole of its appearance;
+   only the icon is lost, and a one-line caution above the lot it is about does
+   not need one to be found. */
+.med__note[hidden] { display: none; }
+
+/* --- The dialogs ---------------------------------------------------------- */
+
+.med__form { display: flex; flex-direction: column; gap: var(--space-6); }
+
+/* Two per row, as the reference has them — and the empty cell in the last row
+   is deliberate, so Threshold keeps the left column rather than stretching
+   across and reading as a wider, more important field than the rest. */
+.med__form-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-6);
+}
+
+.med__adjust-lead {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+}
+
+/* --- Narrow ---------------------------------------------------------------- */
+
+@media (max-width: 75rem) {
+  .med__filters { flex-wrap: wrap; }
+  .med__filters ui-input { width: 100%; }
+}
+
+@media (max-width: 48rem) {
+  .med__form-row { grid-template-columns: minmax(0, 1fr); }
+  .med__facts { flex-direction: column; }
+}
+
+/* --- Lot number as the way in ----------------------------------------------
+   Everything about a box that does not fit a column — the vendor, and every
+   write-off with its own date — lives behind this. It is a button rather than
+   a link because it opens a dialog: a link that does not navigate breaks the
+   middle-click. */
+.med__lot-link {
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: var(--color-text-link);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.med__lot-link:hover { color: var(--color-text-link-hover); }
+.med__lot-link:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--radius-sm); }
+
+/* --- Lot details ------------------------------------------------------------ */
+
+.med__lot-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5) var(--space-7);
+  padding-bottom: var(--space-7);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+@media (max-width: 640px) {
+  .med__lot-facts { grid-template-columns: minmax(0, 1fr); }
+}
+
+.med__lot-fact { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
+.med__lot-fact dt { font-size: var(--font-size-fact-label); color: var(--color-fact-label); font-weight: var(--font-weight-regular); }
+.med__lot-fact dd { font-size: var(--font-size-body); color: var(--color-text-primary); }
+
+.med__lot-subhead {
+  margin: var(--space-7) 0 var(--space-5);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* The total is the headline the lot table already shows; the rows beneath are
+   what it cannot — six in one go against six across four occasions. */
+.med__lot-total {
+  margin-bottom: var(--space-5);
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+}
+
+.med__lot-empty {
+  padding: var(--space-6) 0;
+  font-size: var(--font-size-body);
+  color: var(--color-text-tertiary);
+}
+
+/* A muted count, for a number that is a reference point rather than a reading:
+   the threshold is what Available is compared against, not a quantity in
+   itself. */
+.med__qty--muted { color: var(--color-text-secondary); font-weight: var(--font-weight-regular); }
+
+/* ============================================================================
+   THE COUNT SHEET ON PAPER
+
+   A counted drawer is signed, and a signature goes on paper — two names
+   against a dated document is what makes this a controlled-drug record rather
+   than a spreadsheet. The prototype has no PDF library and no build step, so
+   what it has to work with is the browser's own print path and a stylesheet
+   that makes the page worth sending to it.
+
+   What goes: the shell, the tab strip, the toolbar, and the pencil, bin and
+   Save on every row — a button printed on paper is a button nobody can press.
+   What stays: the date, how the day stands, and the nine columns, with the
+   figures shown as text rather than as boxes drawn around text.
+   ========================================================================= */
+
+@media print {
+  @page { margin: 12mm; }
+
+  .pt__bar,
+  #countActions,
+  .med__count-actions,
+  .ui-modal,
+  .ui-toast-region { display: none !important; }
+
+  /*
+   * THE HEAD STAYS, WITHOUT ITS BUTTONS.
+   *
+   * It used to go whole, because the date it belonged to was drawn inside the
+   * card. The date is up here now, so hiding the band would print a page of
+   * counts with no day against them — which on a signed controlled-drug record
+   * is the one thing that must not happen. What goes is the action slot above:
+   * a date PICKER, a Print button and an Export button are controls, and a
+   * control on paper is a smudge.
+   */
+  .med__head {
+    display: flex !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    border-bottom: none !important;
+  }
+
+  /* #countTable's own Actions column, header and cells alike. Hidden by
+     position because the column has no class of its own — it is the last of
+     nine and always will be, since a count is read left to right through the
+     arithmetic and nothing is reordered around it. */
+  #countTable .ui-table th:last-child,
+  #countTable .ui-table td:last-child { display: none !important; }
+
+  /* The screen's layout is a viewport-height stack with a scrolling box in it.
+     On paper there is no viewport and nothing scrolls, so every one of those
+     constraints has to be let go or the sheet prints as one page-tall pane
+     with the rest of the drawer cut off.
+
+     :not([hidden]) on every one of them, and it is the whole rule rather than
+     a refinement of it. These selectors say display:block !important, and
+     [hidden] is display:none with no importance at all — so without the guard
+     the two views that are switched OFF come back on the paper, and a count
+     sheet prints with the lot register and its pagers stacked underneath it. */
+  html, body,
+  .med__view:not([hidden]),
+  .med__view:not([hidden]) .med__body,
+  .med__view:not([hidden]) .ui-table-card,
+  .med__view:not([hidden]) .ui-table-wrap {
+    display: block !important;
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    background: none !important;
+  }
+
+  /* A row split across a page break is a line whose start count is on one
+     sheet and whose discrepancy is on the next. */
+  #countTable .ui-table tr { break-inside: avoid; }
+
+  /* The boxes go and the figures stay. A printed form full of empty rounded
+     rectangles reads as a blank sheet somebody forgot to fill in — the numbers
+     are in there, and the border around each one is what hides them.
+
+     The focus ring goes with them: whichever box the nurse was last typing in
+     would otherwise be the one cell on the printed sheet with a green halo
+     round it, which reads as a flag on a figure that is no different from the
+     seven beside it. */
+  .med__count-field .ui-input {
+    border: none !important;
+    box-shadow: none !important;
+    background: none !important;
+    padding: 0 !important;
+  }
+
+  /* The stepper arrows and the dropdown caret are controls, and a control
+     printed on paper is a smudge beside a name. The caret in particular drew a
+     chevron against all eighteen name fields on a page where not one of them
+     can be opened. */
+  .med__count-field input::-webkit-inner-spin-button,
+  .med__count-field input::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    appearance: none;
+    margin: 0;
+  }
+
+  .med__count-field .ui-input__caret { display: none !important; }
+  .med__count-person select {
+    padding-right: 0 !important;
+    -webkit-appearance: none;
+    appearance: none;
+  }
+
+  /*
+   * NO ROW STATES ON PAPER.
+   *
+   * The table tints whichever row the pointer last rested on, and a printed
+   * sheet carrying that tint says something about that line which is not true
+   * of it — on a document whose whole job is marking the lines that need
+   * attention, a stray green band is worse than a plain one. The genuine flag,
+   * .med__count-row--off, is a rule of this screen's own and is left alone.
+   */
+  #countTable .ui-table tbody tr:hover > td,
+  #countTable .ui-table tbody tr:focus-within > td { background: none !important; }
+}

@@ -1,0 +1,572 @@
+/* ============================================================================
+   Patient check-in — the procedure arrival and consent flow.
+
+   Three bands: the nav, the title, and the work area. Only the open pane
+   scrolls.
+
+   Two bands have gone from between them, and both went for the same reason —
+   they spent height on every step to say something true of the whole visit. A
+   commit bar was pinned across the foot carrying Cancel and Confirm, offering
+   to finish check-in from the five steps where finishing is not what happens
+   next; Confirm now takes the place of Next in the pane's own foot on the last
+   step and only there. A patient band sat under the title with the name, MRN,
+   procedure, doctor, date, time and room — all of it settled by the booking
+   this screen was opened from, restated above paperwork that is the only thing
+   left to work.
+
+   What is left is the work area: a rail and a pane. The rail lists every step
+   with its own state and never moves, because "what is still outstanding" is a
+   question that gets asked from the middle of a four-paragraph consent form —
+   the progress bar this replaced had scrolled off the top by then.
+   ========================================================================= */
+
+.cin {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background-color: var(--color-bg-page);
+}
+
+/* --- Title ----------------------------------------------------------------- */
+
+/* The page header is .ui-page-head in base.css — one band, one geometry, every
+   screen — and this screen takes it as it comes. It had grown a set of local
+   overrides here: its own padding, its own ground, its own title size. Every
+   one of them was a way of being slightly different from the other worklists
+   for no reason a reader of this file could name, so they have gone.
+
+   --flush is the one modifier it keeps, and it is the same call
+   patient-directory and leads make: the rail and the pane below bring their
+   own top edges, and the band's rule a gutter above a card's border draws two
+   hairlines where the eye expects one. */
+
+/* --- The rail ---------------------------------------------------------------
+   Every step down one side, in the order it is worked, each carrying its own
+   state. Buttons rather than links: nothing here has an address of its own —
+   the panes are hidden and shown so that a half-drawn signature survives a
+   trip to the step before it and back. */
+
+.cin__rail {
+  overflow-y: auto;
+  padding: var(--space-4);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+}
+
+/* The marker is the ring, not a number the browser draws outside it — an
+   ordinal beside a tick says the same thing twice and pushes the label in. */
+.cin__rail-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  list-style: none;
+  /* The reset only zeroes an <ol>'s indent when it carries role="list", and
+     this one does not — so it was still holding the browser's 40px marker
+     gutter open down the left of every step, for markers that list-style: none
+     had already taken away. */
+  padding: 0;
+  margin: 0;
+}
+
+/* Tighter than it was. Six steps is a list to be read down in one go, and at
+   the old padding the last of them sat two-thirds of the way down a tall
+   column with the rest of it empty. */
+.cin__rail-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-width-thin) solid transparent;
+  border-radius: var(--radius-md);
+  background-color: transparent;
+  font-family: inherit;
+  font-size: var(--font-size-body);
+  text-align: left;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.cin__rail-item:hover { background-color: var(--color-bg-surface-hover); }
+.cin__rail-item:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* The ring, and what goes in it. Empty for a step nobody has reached, a tick
+   for one that is finished. With the "n of six complete" line gone from above
+   the list, these marks are the whole of the progress report. */
+.cin__rail-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-7);
+  height: var(--space-7);
+  flex: none;
+  border: var(--border-width-thick) solid var(--color-border-default);
+  border-radius: var(--radius-full);
+  background-color: var(--color-bg-surface);
+  color: transparent;
+}
+.cin__rail-mark .ui-icon { width: var(--icon-size-xs); height: var(--icon-size-xs); }
+
+.cin__rail-label { min-width: 0; }
+
+/* A step that can be left empty says so, rather than wearing a tick nobody
+   earned and letting the desk wonder what it already did here. */
+.cin__rail-note {
+  margin-left: auto;
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-tertiary);
+}
+
+.cin__rail-item--done { color: var(--color-text-primary); }
+.cin__rail-item--done .cin__rail-mark {
+  border-color: var(--color-brand-solid);
+  background-color: var(--color-brand-solid);
+  color: var(--color-text-inverse);
+}
+
+/* The pane that is open. Tinted and outlined rather than only bolded: this is
+   where the desk is, and on a rail of six it has to be findable at a glance
+   from across the room. */
+.cin__rail-item--current {
+  border-color: var(--color-border-brand, var(--color-brand-solid));
+  background-color: var(--color-brand-surface, var(--color-bg-surface-active));
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-medium);
+}
+.cin__rail-item--current .cin__rail-mark { border-color: var(--color-brand-solid); }
+
+/* --- The work area: rail beside pane ---------------------------------------
+   A grid rather than a flex row so the rail keeps one width whatever is in
+   it — a step called "Notice of Privacy Practices" must not push the pane
+   narrower than a step called "Notes". Both children own their own scroll;
+   the page itself never does. */
+
+.cin__work {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 18rem minmax(0, 1fr);
+  gap: var(--layout-gutter);
+  padding: var(--layout-gutter);
+  /* Less above than around, and the same less as every other screen — see THE
+     FRAME UNDER THE HEADER BAND in base.css. The head is --flush, so nothing
+     separates it from the work but this gap, and a full gutter on top of the
+     band's own bottom padding read as a band of dead ground before anything
+     started. */
+  padding-top: var(--space-4);
+}
+
+.cin__pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+}
+
+/* Which step is open, and nothing else. The way out used to share this row
+   and now sits under the document; the created date, the version and the
+   signed-or-not badge have gone entirely, so what is left is a single line
+   and it is padded like one. */
+/* The step's name on the left, the document's Print/Download on the right.
+   Centred rather than top-aligned: the buttons are a shorter box than the
+   title, and hanging them off the top of it left them reading as a row that
+   had slipped upwards instead of one sitting on the heading's line. */
+.cin__pane-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+  padding: var(--space-5) var(--space-7);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.cin__pane-heading { min-width: 0; }
+
+.cin__pane-title {
+  font-size: var(--font-size-title-card);
+  line-height: var(--line-height-tight);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+/* Previous and Next, under the document rather than above it.
+
+   `flex: none` keeps the row out of the scroll: .cin__views takes the height
+   that is left and scrolls inside it, so this bar holds still at the foot of
+   the pane while a long consent moves behind it.
+
+   Previous sits against one edge and the primary against the other. They
+   travel in opposite directions, and a pair of adjacent buttons that undo
+   each other is a misclick at a busy desk. */
+.cin__pane-foot {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+  padding: var(--space-5) var(--space-7);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.cin__views {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-7);
+}
+
+.cin__notice:empty { display: none; }
+.cin__notice:not(:empty) { margin-bottom: var(--space-6); }
+
+.cin__view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+.cin__view[hidden] { display: none; }
+
+
+/* The signature block, ruled off from whatever it is a signature FOR. It is
+   not another question on the pane; it is the patient's turn at the desk. */
+.cin__sign {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding-top: var(--space-6);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.cin__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-6);
+}
+.cin__grid[hidden] { display: none; }
+
+/* --- The appointment's facts, on the patient band --------------------------- */
+
+/* The prose scrolls inside its own box rather than growing the pane: a
+   consent form the desk cannot see the end of is one nobody reads, and a
+   page-length block of legal text buries the signature underneath it. */
+.cin__doc-text {
+  max-height: 22rem;
+  overflow-y: auto;
+  padding: var(--space-6);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-normal);
+  color: var(--color-text-secondary);
+}
+.cin__doc-text p + p { margin-top: var(--space-5); }
+.cin__doc-text:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* The pad is on screen from the start now, with the e-signature consent under
+   it rather than in front of it. The rule stays because a signed pane swaps
+   the pad out for the filed mark. */
+.cin__pad[hidden] { display: none; }
+
+.cin__doc-actions { display: flex; justify-content: flex-end; }
+
+.cin__doc-signed {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  font-size: var(--font-size-body);
+  color: var(--color-status-success-text);
+}
+
+/* The mark itself, kept with the pane it belongs to. Small — it is a receipt
+   that the signature exists, not the signature being taken again. */
+.cin__doc-mark {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  align-items: flex-start;
+  padding: var(--space-4) var(--space-5);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+}
+.cin__doc-mark img {
+  max-width: min(100%, 18rem);
+  max-height: 5rem;
+  object-fit: contain;
+}
+/* Who signed and when, set the way the encounter's filed marks set it (see
+   .ui-sign-mark__by in css/components/sign-pad.css): the name as the
+   attribution rather than as the first item in a grey run-on, the time under
+   it a step quieter. */
+.cin__doc-by {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.cin__doc-signer {
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.cin__doc-at {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+}
+
+/* --- Question grid (Advance Directives) --------------------------------------
+   A full-width row per question — label left, control hard right — reads well
+   for one or two and badly for four: the eye crosses the whole pane for every
+   answer, and four of them pushed the signature off the bottom.
+
+   These sit two across in boxes of their own, question above answer, so a set
+   of related questions is read as a set.
+   -------------------------------------------------------------------------- */
+
+.cin__q-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-6);
+}
+
+@media (max-width: 900px) {
+  .cin__q-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+.cin__q {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--space-5);
+  min-width: 0;
+  padding: var(--space-5) var(--space-6);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+}
+
+.cin__q-text { min-width: 0; }
+.cin__q-text strong {
+  display: block;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+.cin__q ui-radio-group .ui-field__label { display: none; }
+
+/* Shut until the question it depends on is answered Yes. Dimmed rather than
+   hidden: a question that vanishes reads as one the form forgot to ask. */
+.cin__q--waiting { background-color: var(--color-bg-surface-sunken); }
+.cin__q--waiting .cin__q-text strong { color: var(--color-text-secondary); }
+
+@media (max-width: 75rem) {
+  /* The rail goes above the pane rather than shrinking into a column of
+     wrapped words. It keeps its states and its order; it just runs across. */
+  .cin__work { grid-template-columns: minmax(0, 1fr); }
+  .cin__rail { max-height: 12rem; }
+  .cin__rail-list { flex-direction: row; flex-wrap: wrap; }
+  .cin__rail-item { width: auto; }
+}
+
+@media (max-width: 60rem) {
+  .cin__grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* --- The document's own toolbar ----------------------------------------------
+   Print and Download, in the pane head on the heading's line. They are asked
+   for at the moment the form is handed over, not four paragraphs in, and a
+   control that answers "may I have a copy of this" belongs where the question
+   is put — beside the name of the document, not on a bar of its own between
+   that name and the first line of the consent.
+
+   Right-aligned inside the head's slot, so the pair keeps the same edge on
+   every pane whatever the step is called.
+   -------------------------------------------------------------------------- */
+
+.cin__doc-bar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-4);
+}
+
+/* --- The check-in record ------------------------------------------------------
+   The dialog's summary and the sheet that prints are the same rows, so they
+   share their styling. On screen only the dialog's copy is drawn; the sheet is
+   held in the page and shown by @media print alone — see the note over
+   #printRecord in screens/check-in.html for why it is not built at print time.
+   -------------------------------------------------------------------------- */
+
+.cin__record { display: none; }
+
+/* Paper only. On screen the pad itself is the answer to "has this been
+   signed?" — a sentence above it saying so would be the screen telling
+   the desk what it can already see. See @media print below. */
+.cin__unsigned { display: none; }
+
+.cin__done-lead {
+  margin-bottom: var(--space-6);
+  font-size: var(--font-size-body);
+  color: var(--color-text-secondary);
+}
+
+.cin__record-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* Label and value on one line, the label a fixed column so the values line up
+   down the sheet — a record is read by running an eye down one side of it. */
+.cin__record-row {
+  display: grid;
+  grid-template-columns: 11rem minmax(0, 1fr);
+  gap: var(--space-5);
+  align-items: baseline;
+  padding-bottom: var(--space-4);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+}
+.cin__record-row:last-child { border-bottom: none; padding-bottom: 0; }
+
+.cin__record-row dt {
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+}
+
+.cin__record-row dd {
+  font-size: var(--font-size-body);
+  color: var(--color-text-primary);
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 40rem) {
+  .cin__record-row { grid-template-columns: minmax(0, 1fr); gap: var(--space-3); }
+}
+
+/* --- On paper ----------------------------------------------------------------
+
+   Two things print from this screen, and which one is decided by a class on
+   <body>:
+
+     no class            the document pane that is open. Every other pane is
+                         `hidden`, so the browser is already showing one
+                         document and nothing else; what has to go is the
+                         furniture around it.
+     .cin--print-record  the check-in record, from the completion dialog. The
+                         pane behind that dialog is Additional Notes, and a
+                         desk that asks for the record and is handed a printout
+                         of the notes box has been given the wrong sheet.
+
+   Everything that is a CONTROL goes in both cases. A printed consent showing a
+   blank ruled pad would be read as a document that was never signed, and the
+   filed mark — which is an image with a name and a time under it — prints
+   exactly as it stands.
+   -------------------------------------------------------------------------- */
+
+@media print {
+  @page { margin: 14mm; }
+
+  .pt__bar,
+  .ui-page-head,
+  .cin__rail,
+  .cin__doc-bar,
+  .cin__pane-foot,
+  .cin__pad,
+  .cin__doc-actions,
+  .ui-modal,
+  .ui-toast-region { display: none !important; }
+
+  /* The screen is a viewport-height grid with a scrolling box inside it. Paper
+     has no viewport and nothing scrolls, so every one of those constraints has
+     to be let go or the consent prints as one page-tall pane with the rest of
+     it cut off. */
+  /* NOT .cin__view. Every pane but the open one is `hidden`, and that is the
+     whole reason a print of this screen is one document rather than six — a
+     blanket display:block here would beat base.css's [hidden] rule (same
+     specificity, later stylesheet) and put every consent on the paper. */
+  html, body,
+  .cin,
+  .cin__work,
+  .cin__pane,
+  .cin__views {
+    display: block !important;
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    background: none !important;
+  }
+
+  .cin__work { padding: 0 !important; }
+  .cin__pane { border: none !important; border-radius: 0 !important; }
+
+  /* The step's name is what tells a reader which document they are holding, so
+     it stays — flattened to a line of text with the rule under it taken off. */
+  .cin__pane-head {
+    padding: 0 0 var(--space-5) 0;
+    border-bottom: none;
+  }
+  .cin__views { padding: 0 !important; }
+
+  /* The prose is a scroller on screen and a document on paper. */
+  .cin__doc-text {
+    max-height: none !important;
+    overflow: visible !important;
+    padding: 0;
+    border: none;
+    background: none !important;
+    color: var(--color-text-primary);
+  }
+
+  /* A signature is the evidence the document is worth printing at all, so the
+     filed mark prints — the image, the name and the time under it. What goes
+     with the controls is Sign again, which is not part of a filed document. */
+  .cin__doc-mark { break-inside: avoid; }
+
+  /* The rule above the signature belongs to a mark, not to the hole where a
+     pad used to be. A line across the foot of the sheet with nothing under it
+     reads as a signature block that failed to print. */
+  .cin__sign:has(.cin__pad) { border-top: none; padding-top: 0; }
+
+  /* What goes there instead: a sentence, not a blank.
+     An unsigned consent used to print as the document and stop. That sheet is
+     the one a patient is most likely to be handed — it is what you take away
+     to read — and with the pad gone there was nothing on the paper to say the
+     document had not been agreed to. The pad is the test: a signed document
+     has a filed mark here rather than a .cin__pad, so this line is on the
+     copies that need it and on no others. */
+  .cin__view:has(.cin__pad) .cin__unsigned {
+    display: block;
+    margin-top: var(--space-6);
+    padding-top: var(--space-5);
+    border-top: var(--border-width-thin) solid var(--color-border-default);
+    font-size: var(--font-size-body-sm);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-primary);
+  }
+
+  /* The record sheet, when the dialog asked for it. */
+  body.cin--print-record .cin__work { display: none !important; }
+  body.cin--print-record .cin__record { display: block !important; }
+
+  .cin__record-title {
+    margin-bottom: var(--space-6);
+    font-size: var(--font-size-title-page);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-text-primary);
+  }
+  .cin__record-row { break-inside: avoid; }
+  .cin__record-foot {
+    margin-top: var(--space-6);
+    font-size: var(--font-size-caption);
+    color: var(--color-text-secondary);
+  }
+}

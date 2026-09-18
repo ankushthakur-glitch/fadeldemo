@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Messages — MediNova Clinic Patient Portal</title>
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="css/reset.css" />
+    <link rel="stylesheet" href="css/tokens.css" />
+    <link rel="stylesheet" href="css/base.css" />
+    <link rel="stylesheet" href="css/components.css" />
+    <link rel="stylesheet" href="css/shell.css" />
+    <link rel="stylesheet" href="css/screen-messages.css" />
+    <link rel="stylesheet" href="css/select-menu.css" />
+
+    <script src="js/guard.js"></script>
+    <script type="module" src="js/screens/messages.js"></script>
+    <script type="module" src="js/lib/select-menu.js"></script>
+    <script type="module" src="js/comments.js"></script>
+    <script src="js/open-me-properly.js"></script>
+  </head>
+
+  <body class="pp-app">
+    <header class="pp-topbar" id="topbar"></header>
+
+    <div class="pp-body">
+      <nav class="pp-side pp-scroll" id="sidenav" aria-label="Portal sections"></nav>
+
+      <main class="pp-main">
+        <div class="pp-content pp-content--fill">
+          <div class="pp-messages-screen">
+            <div class="pp-actions pp-actions--split">
+              <h1 class="pp-section-title">Messages</h1>
+
+              <button type="button" class="pp-btn pp-btn--primary" id="newMessage"
+                data-testid="messages--new">
+                <svg class="pp-icon pp-icon--sm" aria-hidden="true">
+                  <use href="#pi-plus"></use>
+                </svg>
+                <span>New Message</span>
+              </button>
+            </div>
+
+            <div class="pp-messages">
+              <!-- ============ CONVERSATIONS ============ -->
+              <section class="pp-messages__list-pane" aria-label="Conversations">
+                <div class="pp-messages__tools">
+                  <div class="pp-messages__search">
+                    <label class="pp-sr-only" for="threadSearch">Search conversations</label>
+                    <div class="pp-control pp-control--icon">
+                      <input
+                        class="pp-input"
+                        id="threadSearch"
+                        type="search"
+                        placeholder="Search..."
+                        data-testid="messages--search"
+                      />
+                      <span class="pp-control__icon">
+                        <svg class="pp-icon" aria-hidden="true"><use href="#pi-search"></use></svg>
+                      </span>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    class="pp-btn pp-btn--neutral pp-btn--icon"
+                    id="moreFilters"
+                    aria-label="More filters"
+                  >
+                    <svg class="pp-icon" aria-hidden="true"><use href="#pi-filter"></use></svg>
+                  </button>
+                </div>
+
+                <div class="pp-messages__quick" role="group" aria-label="Quick filters">
+                  <button type="button" class="pp-chip" data-filter="urgent" aria-pressed="false"
+                    data-testid="messages--filter-urgent">Urgent</button>
+                  <button type="button" class="pp-chip" data-filter="unread" aria-pressed="false"
+                    data-testid="messages--filter-unread">Unread</button>
+                </div>
+
+                <ul class="pp-messages__list pp-scroll" id="threadList" role="list"></ul>
+              </section>
+
+              <!-- ============ THE OPEN THREAD ============ -->
+              <!--
+                The head names who is being written to — the reference carries
+                the portrait, the name, the role and the two ways to reach them
+                outside the portal, because a patient reading a reply about
+                their labs is the person most likely to want to phone instead.
+                Painted by messages.js on every switch.
+              -->
+              <section class="pp-messages__thread-pane">
+                <header class="pp-messages__thread-head" id="threadHead"></header>
+
+                <div class="pp-messages__log pp-scroll" id="threadLog" tabindex="0"></div>
+
+                <form class="pp-composer" id="composer">
+                  <div class="pp-composer__field">
+                    <label class="pp-sr-only" for="composerInput">Type your message</label>
+                    <input
+                      class="pp-composer__input"
+                      id="composerInput"
+                      type="text"
+                      placeholder="Type a message..."
+                      autocomplete="off"
+                      data-testid="messages--input"
+                    />
+
+                    <button type="button" class="pp-composer__tool" data-dictate
+                      aria-label="Dictate a message">
+                      <svg class="pp-icon pp-icon--sm" aria-hidden="true">
+                        <use href="#pi-mic"></use>
+                      </svg>
+                    </button>
+                    <button type="button" class="pp-composer__tool" data-attach
+                      aria-label="Attach a file">
+                      <svg class="pp-icon pp-icon--sm" aria-hidden="true">
+                        <use href="#pi-paperclip"></use>
+                      </svg>
+                    </button>
+                    <button type="button" class="pp-composer__tool" data-assist
+                      aria-label="Help me write this">
+                      <svg class="pp-icon pp-icon--sm" aria-hidden="true">
+                        <use href="#pi-sparkle"></use>
+                      </svg>
+                    </button>
+                  </div>
+
+                  <button type="submit" class="pp-btn pp-btn--primary pp-composer__send"
+                    data-testid="messages--send">
+                    <svg class="pp-icon pp-icon--sm" aria-hidden="true">
+                      <use href="#pi-send"></use>
+                    </svg>
+                    <span>Send</span>
+                  </button>
+                </form>
+              </section>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

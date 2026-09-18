@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Forms &amp; Consents — MediNova Clinic Patient Portal</title>
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="css/reset.css" />
+    <link rel="stylesheet" href="css/tokens.css" />
+    <link rel="stylesheet" href="css/base.css" />
+    <link rel="stylesheet" href="css/components.css" />
+    <link rel="stylesheet" href="css/shell.css" />
+    <link rel="stylesheet" href="css/screen-forms.css" />
+    <!-- Print only. Nothing in it applies on screen; see the file header. -->
+    <link rel="stylesheet" href="css/print.css" />
+    <link rel="stylesheet" href="css/select-menu.css" />
+
+    <!--
+      ⚠ NOT IN THE SUPPLIED DESIGN.
+
+      The design names an "Intake Form" on Home and on an appointment card, and
+      both linked to Documents — a table of things already filed, with nothing
+      on it to fill in. This is where they land now: the paperwork the practice
+      is waiting on, with the same fields the chart collects. See
+      data/forms.js for where the field set comes from and why the portal
+      keeps its own copy of it.
+
+      THE SHAPE OF THE SCREEN IS BORROWED, THE CONTENT IS NOT. The reference is
+      the supplied "Forms & Documents" screen: a tab strip over one screen, and
+      under it a pending table and a completed one. What is taken from it is
+      that arrangement and its columns — two tabs, each split into what is
+      outstanding and what is settled. What is NOT taken is anything on it:
+      none of its rows, its form names or its wording appear here. The second
+      tab is Consents rather than Documents (Documents is its own screen, and
+      always was), and the rows are the practice's own paperwork. See the
+      README, "What was added beyond the screenshots", for that reasoning.
+
+      Pending and Completed are a SUB-TAB inside the panel rather than two
+      tables stacked down the page — the nesting Health Records draws over
+      Current / Past medications. See the block above TABS in
+      js/screens/forms.js for why the two belong inside one record rather than
+      beside it.
+
+      One page, seven views: four panels of the list (?tab= and ?view=), and
+      one form at ?form=<id>.
+    -->
+    <script src="js/guard.js"></script>
+    <script type="module" src="js/screens/forms.js"></script>
+    <script type="module" src="js/lib/select-menu.js"></script>
+    <script type="module" src="js/comments.js"></script>
+    <script src="js/open-me-properly.js"></script>
+  </head>
+
+  <body class="pp-app">
+    <header class="pp-topbar" id="topbar"></header>
+
+    <div class="pp-body">
+      <nav class="pp-side pp-scroll" id="sidenav" aria-label="Portal sections"></nav>
+
+      <main class="pp-main">
+        <div class="pp-content pp-scroll" id="well">
+          <h1 class="pp-sr-only">Forms &amp; Consents</h1>
+          <div id="screen"></div>
+        </div>
+      </main>
+    </div>
+
+    <!--
+      THE PRINTED FORM.
+
+      Hidden on screen, and the only thing on the sheet when one is printed —
+      see css/print.css. Built by lib/form-print.js the moment Print /
+      Download is pressed, from the version being printed, so it can never
+      show a different version from the one that was asked for.
+    -->
+    <div class="pp-print" id="printDoc" aria-hidden="true"></div>
+
+    <!--
+      WITHDRAWING A CONSENT.
+
+      A dialog rather than a button that acts on the press, for the same reason
+      Cancel Appointment has one: this is the only control in the portal that
+      takes a permission away from the practice, and what stops when it does is
+      not obvious from the row it sits on. The body is built in JS because the
+      sentence is different for each consent — records stop being released,
+      texts stop being sent — and a generic warning written here would be a
+      warning nobody could act on.
+
+      The reason field is OPTIONAL and stays optional. Nobody has to justify
+      taking back a permission; the practice is simply better placed to fix
+      whatever prompted it if they are told.
+    -->
+    <dialog class="pp-modal pp-modal--form" id="revokeModal" aria-labelledby="revokeTitle">
+      <div class="pp-modal__head">
+        <h2 class="pp-modal__title" id="revokeTitle">Withdraw this consent?</h2>
+        <button
+          type="button"
+          class="pp-modal__close"
+          id="closeRevoke"
+          aria-label="Close"
+          data-testid="forms--revoke-close"
+        >
+          <svg class="pp-icon" aria-hidden="true"><use href="#pi-close"></use></svg>
+        </button>
+      </div>
+
+      <div class="pp-modal__body" id="revokeBody" data-testid="forms--revoke-body"></div>
+
+      <div class="pp-field pp-revoke__reason">
+        <label class="pp-label" for="revokeReason">
+          Why are you withdrawing it? <span class="pp-form-doc__optional">(optional)</span>
+        </label>
+        <textarea
+          class="pp-textarea"
+          id="revokeReason"
+          rows="2"
+          placeholder="e.g. I no longer want records sent to my previous clinic"
+          data-testid="forms--revoke-reason"
+        ></textarea>
+      </div>
+
+      <div class="pp-modal__foot">
+        <!--
+          Keep is the neutral button and the one focus lands on, so the Enter
+          key on a dialog opened by accident does the harmless thing.
+        -->
+        <button
+          type="button"
+          class="pp-btn pp-btn--neutral"
+          id="keepConsent"
+          data-testid="forms--revoke-keep"
+        >
+          Keep Consent
+        </button>
+        <button
+          type="button"
+          class="pp-btn pp-btn--danger"
+          id="confirmRevoke"
+          data-testid="forms--revoke-confirm"
+        >
+          Withdraw Consent
+        </button>
+      </div>
+    </dialog>
+  </body>
+</html>

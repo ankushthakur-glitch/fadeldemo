@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MediNova EHR</title>
+    <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg" />
+
+    <!--
+      THE FRONT DOOR.
+
+      This page holds nothing of its own. The prototype is meant to be walked
+      through in the order the work actually happens — sign in, then the
+      schedule, then a patient — so the root address starts that walk rather
+      than dropping a reviewer into the middle of it. Sign-in sends you on to
+      the scheduler (see HOME in js/screens/login.js).
+
+      The component gallery that used to live here is now gallery.html. It is
+      a reference for building screens, not a screen, and it was never the
+      right thing to meet first.
+
+      The redirect is a CLASSIC script, not a module and not a <meta refresh>:
+      modules do not run from file://, and a meta refresh would fire there too
+      and bounce a disk-opened copy to a login page that cannot start. Guarding
+      on the protocol means the file:// warning below gets to do its job.
+    -->
+    <!-- The one typeface the product is set in. These pages carry visible text
+         of their own — the file:// warning — so they load it like a screen. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="css/reset.css" />
+    <link rel="stylesheet" href="css/tokens.css" />
+    <link rel="stylesheet" href="css/base.css" />
+
+    <script src="js/open-me-properly.js"></script>
+    <script>
+      if (location.protocol === 'http:' || location.protocol === 'https:') {
+        location.replace('screens/login.html');
+      }
+    </script>
+  </head>
+
+  <body>
+    <!--
+      Only ever seen on file://, behind the warning open-me-properly.js puts
+      up, and for the instant before the redirect over http.
+    -->
+    <noscript>
+      <p>
+        This prototype needs JavaScript. Open
+        <a href="screens/login.html">the sign-in page</a> directly.
+      </p>
+    </noscript>
+  </body>
+</html>

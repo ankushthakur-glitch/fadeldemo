@@ -1,0 +1,300 @@
+/* ============================================================================
+   APPOINTMENT — a rail of upcoming visits above a table of past ones
+
+   The two lists have different shapes, so they get different furniture. An
+   upcoming visit is a card: five facts and four controls, which needs width.
+   A past visit is a row: seven columns you scan down, which needs a table.
+   Drawing both the same way is what made the earlier arrangements fight —
+   two half-width columns starved the cards, and two tabs put the log behind
+   a click for the sake of matching the list above it.
+
+   The page scrolls as one. Nothing here pins itself: with the tab strip gone
+   there is no control that has to hold still while the content moves under it.
+   ========================================================================= */
+
+/*
+ * The band between the two sections.
+ *
+ * Wider than the portal's usual gap between blocks, because these two are not
+ * two blocks of one list — they are separate answers to separate questions,
+ * and the rail above has no outer frame of its own to end on. At 1rem the
+ * "Past Appointment" heading read as a caption belonging to the cards above
+ * it rather than as the start of something new.
+ */
+.pp-appt {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pp-space-7);
+}
+
+/*
+ * The heading and — on the upcoming section — the rail's two buttons, on one
+ * row. The buttons stood at either end of the track before, which took ~6rem
+ * of width away from the cards for controls that duplicate a two-finger
+ * swipe. Centred on the heading, and the row is as tall as they are so the
+ * two sections' headings sit at the same height whether or not there are
+ * buttons beside them.
+ */
+.pp-appt__sec-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pp-space-4);
+  min-height: 1.875rem;
+  margin-bottom: var(--pp-space-3);
+}
+
+.pp-appt__sec-nav {
+  display: flex;
+  flex: none;
+  gap: var(--pp-space-2);
+}
+
+/* ============================================================================
+   THE RAIL
+   ========================================================================= */
+
+/*
+ * The two buttons.
+ *
+ * In the section head, beside the heading, rather than one at each end of the
+ * track: up here they cost the cards no width at all, and the pair reads as
+ * one control for one list instead of two controls bracketing it.
+ */
+.pp-rail__nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 1.875rem;
+  height: 1.875rem;
+  border: 1px solid var(--pp-line-strong);
+  border-radius: var(--pp-radius-pill);
+  background-color: var(--pp-surface);
+  color: var(--pp-text);
+  cursor: pointer;
+}
+
+.pp-rail__nav:hover:not(:disabled) {
+  border-color: var(--pp-action);
+  background-color: var(--pp-surface-tint);
+  color: var(--pp-action);
+}
+
+/* Spent, not hidden. The pair is part of the design's frame; a button that
+   vanishes when the list is short moves everything beside it. */
+.pp-rail__nav:disabled {
+  border-color: var(--pp-line);
+  color: var(--pp-text-faint);
+  cursor: default;
+}
+
+/*
+ * The track.
+ *
+ * Two cards at a desktop width, one below 60rem, and it snaps — a rail that
+ * stops half way through a card is a rail that has to be nudged twice. The
+ * padding at the bottom is for the focus ring: the track is a tab stop, and a
+ * ring drawn on a flush edge is clipped by the scroll box.
+ */
+.pp-rail__track {
+  display: flex;
+  gap: var(--pp-space-3);
+  min-width: 0;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scroll-padding-inline: var(--pp-space-1);
+  padding: 2px;
+}
+
+.pp-rail__track > .pp-appt-card {
+  flex: 0 0 calc(50% - (var(--pp-space-3) / 2));
+  scroll-snap-align: start;
+}
+
+/* Nothing to scroll — the empty state takes the whole track rather than
+   sitting in a card-shaped column with white space beside it. */
+.pp-appt__empty {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ============================================================================
+   AN UPCOMING CARD
+   ========================================================================= */
+
+/*
+ * `container-type` so the card's own width decides whether its action row
+ * wraps. A viewport query cannot answer that any more: the sidebar collapses
+ * in two steps and the rail shows one card or two, so the same 1200px window
+ * gives the card four different widths.
+ */
+.pp-appt-card {
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: var(--pp-space-2);
+  min-width: 0;
+  padding: var(--pp-pad-card);
+  border: 1px solid var(--pp-line);
+  border-radius: var(--pp-radius);
+  background-color: var(--pp-surface);
+  box-shadow: var(--pp-shadow-card);
+}
+
+.pp-appt-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pp-space-3);
+  min-height: 1.75rem;
+}
+
+/*
+ * The action row.
+ *
+ * `margin-top: auto` pins it to the bottom of the card, so two cards side by
+ * side put their buttons on the same line however long the reason above them
+ * ran. "Complete Intake Form" sits hard left and the change-of-plan controls
+ * hard right, because they answer different questions — one is preparation,
+ * the others are a change of mind. Grouping all three would make cancelling
+ * look like one more step in getting ready for the visit.
+ */
+.pp-appt-card__actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--pp-space-2);
+  margin-top: auto;
+  padding-top: var(--pp-space-2);
+  border-top: 1px solid var(--pp-line);
+}
+
+.pp-appt-card__actions > :first-child {
+  margin-right: auto;
+}
+
+.pp-appt-card__info {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: var(--pp-radius-pill);
+  color: var(--pp-text-muted);
+  cursor: pointer;
+}
+
+.pp-appt-card__info:hover {
+  background-color: var(--pp-surface-hover);
+  color: var(--pp-text);
+}
+
+/*
+ * A narrow card — the action row packs left in reading order rather than
+ * stranding a wide button on a line of its own. The facts collapse to one
+ * column at the same width, from the same container: that rule is in
+ * components.css with the rest of .pp-appt-facts, which Home borrows.
+ */
+@container (width < 28rem) {
+  .pp-appt-card__actions > :first-child {
+    margin-right: 0;
+  }
+}
+
+/* ============================================================================
+   THE PAST TABLE
+
+   .pp-table does the work; this is the two things a log of visits needs that
+   a document table does not.
+   ========================================================================= */
+
+/* Eight columns, and the last of them carries "View Visit Summary". Wider
+   than .pp-table's own 44rem floor so the reason column does not collapse to
+   one word per line before the wrapper starts scrolling. */
+.pp-appt-table {
+  min-width: 58rem;
+}
+
+/*
+ * Shorter rows than the portal's default.
+ *
+ * A log is read by scanning down it, and how many visits you can see at once
+ * is the whole value of the shape. The default row padding is set for cells
+ * of one line; two of these columns carry two lines already — the provider
+ * and their specialty — so the same padding drew rows half again as tall as
+ * anything else in the portal.
+ */
+.pp-appt-table thead th,
+.pp-appt-table tbody td {
+  padding-block: var(--pp-space-2);
+}
+
+/* The specialty under the provider's name. Its own line, so the Provider
+   column stays as narrow as the longest name. */
+.pp-appt-table__sub {
+  display: block;
+  color: var(--pp-text-muted);
+  font-size: var(--pp-size-xs);
+  line-height: var(--pp-leading-tight);
+}
+
+/* "Summary not published yet" / "No visit summary" — plain text where the
+   link would otherwise be, rather than a disabled control that has to be
+   clicked to explain itself. */
+.pp-appt-table__note {
+  color: var(--pp-text-muted);
+  font-size: var(--pp-size-xs);
+  white-space: nowrap;
+}
+
+.pp-appt-table .pp-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--pp-space-2);
+  white-space: nowrap;
+}
+
+/* ============================================================================
+   THE CANCELLATION DIALOG
+
+   Body only — the box, the head and the foot are .pp-modal in components.css.
+   ========================================================================= */
+
+/* Which visit is about to go, in the same label/value shape the card gives
+   it. Same order, same words: a confirmation that restates the appointment
+   differently makes you check whether it is the same one. */
+.pp-cancel__facts {
+  margin: var(--pp-space-4) 0;
+  padding: var(--pp-pad-card);
+  border-radius: var(--pp-radius);
+  background-color: var(--pp-surface-sunk);
+}
+
+/* The two ways out that cost nothing, and the no-show charge. Smaller than
+   the alert above them — they are the footnotes to a warning, not a second
+   warning competing with the first. */
+.pp-cancel__note {
+  margin: 0;
+  color: var(--pp-text);
+  font-size: var(--pp-size-sm);
+  line-height: var(--pp-leading-loose);
+}
+
+.pp-cancel__note + .pp-cancel__note {
+  margin-top: var(--pp-space-3);
+}
+
+/* ============================================================================
+   NARROW SCREENS
+
+   One card at a time below 60rem — two cards in a 700px well leaves each of
+   them narrower than the address printed inside it. The table keeps its own
+   horizontal scroll from .pp-table-wrap; the page does not scroll sideways.
+   ========================================================================= */
+
+@media (width < 60rem) {
+  .pp-rail__track > .pp-appt-card {
+    flex: 0 0 100%;
+  }
+}

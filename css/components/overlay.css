@@ -1,0 +1,405 @@
+/* ============================================================================
+   ui-tabs and ui-modal.
+   ========================================================================= */
+
+/* --- ui-tabs --------------------------------------------------------------- */
+
+ui-tabs { display: block; }
+ui-tab { display: none; }
+
+.ui-tabs {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.ui-tabs__tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-height-md);
+  padding: 0 var(--space-6);
+  border-bottom: var(--border-width-thick) solid transparent;
+  font-size: var(--font-size-body);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.ui-tabs__tab:hover { color: var(--color-text-primary); }
+.ui-tabs__tab:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.ui-tabs__tab--selected {
+  color: var(--color-brand-text);
+  border-bottom-color: var(--color-brand-solid);
+  font-weight: var(--font-weight-medium);
+}
+
+/* Stacked down the side. The selected marker moves with the strip — an
+   underline under a vertical item would sit between it and the next one and
+   read as a divider, so it becomes a bar down the leading edge. */
+.ui-tabs--vertical {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-1);
+  border-bottom: none;
+}
+
+.ui-tabs--vertical .ui-tabs__tab {
+  justify-content: flex-start;
+  padding: 0 var(--space-7);
+  border-bottom: none;
+  border-left: var(--border-width-thick) solid transparent;
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+}
+
+.ui-tabs--vertical .ui-tabs__tab:hover { background-color: var(--color-bg-surface-hover); }
+
+.ui-tabs--vertical .ui-tabs__tab--selected {
+  border-bottom-color: transparent;
+  border-left-color: var(--color-brand-solid);
+  background-color: var(--color-brand-surface);
+}
+
+/* --- PRIMARY: the screen's own sections ------------------------------------
+   ONE JOINED GROUP, the shape the patient portal draws — a single bordered
+   box, hairlines between the tabs, the open one filled and the others plain.
+   The two products are one system and a clinician moving between them should
+   not have to work out twice what a tab looks like. The pair matches now: both
+   sides tint, and this side moved to meet the portal.
+
+   THE FILL IS A TINT, ONE STEP PAST THE HOVER. It was solid brand with white
+   ink for a while, and solid brand is the product's primary action — a page
+   whose header carries a strip of eight of those cells has the heaviest colour
+   on the screen spent on saying which section you are already looking at,
+   competing with the button that actually does something. The states here are
+   one ladder, white → hover → open, and the open cell is the next rung up from
+   the hover rather than a different kind of paint: pointing at a tab and having
+   a tab open are two weights of the same idea, so they share a hue and differ
+   only in how much of it there is.
+
+   The brand ink is what carries the tint the rest of the way. A pale wash alone
+   is a small step on a strip of eight — the intra-procedure documents, where
+   the labels run from "IV" to "Medication administered" — but the green word
+   inside it is found at a glance against seven grey-black ones, and the pair of
+   them together locates the cell before the row is read, which is the whole job
+   of a tab strip you scroll sideways.
+
+   It replaces a sunk grey track with a white segment riding on it. That shape
+   said "one of these is raised", which is a claim about layers — see the
+   elevation note in tokens.css — where what is actually true is quieter: one
+   of a set is showing. A tinted cell in a divided box says exactly that, and
+   says it without a shadow.
+
+   The strip carries no rule of its own, so it sits on the page header row and
+   centres against a search field and a button — an underline strip cannot,
+   because its rule has to run the full width to read as an edge rather than
+   as a box.
+
+   THE FILL AND THE INK SAY WHICH ONE IS OPEN — NOT THE WEIGHT. Tabs are sized
+   by their labels, so a heavier word is a wider tab; on a strip that repaints
+   in place (Billing, Tasks) every switch would nudge the whole group sideways
+   under the pointer that just clicked it. */
+.ui-tabs--primary {
+  /* The box hugs its tabs. Left to fill its container it becomes a band the
+     width of the screen with the tabs huddled at one end, which reads as a
+     second header rather than as a control. */
+  width: fit-content;
+  max-width: 100%;
+  gap: 0;
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+}
+
+.ui-tabs--primary .ui-tabs__tab {
+  gap: var(--space-3);
+  min-height: var(--control-height-md);
+  padding: 0 var(--space-7);
+  border-bottom: none;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-body);
+}
+
+/* The hairlines between tabs. A border rather than a gap, so the group reads
+   as one control that has been divided rather than as a row of buttons that
+   happen to touch. */
+.ui-tabs--primary .ui-tabs__tab + .ui-tabs__tab {
+  border-left: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+/* The ends follow the box. Rounded per-tab rather than by clipping the group,
+   because `overflow: hidden` on the strip would cut the focus ring off the
+   first and last tabs — the two most likely to be tabbed to. */
+.ui-tabs--primary .ui-tabs__tab:first-child {
+  border-radius: calc(var(--radius-md) - var(--border-width-thin)) 0 0
+    calc(var(--radius-md) - var(--border-width-thin));
+}
+.ui-tabs--primary .ui-tabs__tab:last-child {
+  border-radius: 0 calc(var(--radius-md) - var(--border-width-thin))
+    calc(var(--radius-md) - var(--border-width-thin)) 0;
+}
+
+.ui-tabs--primary .ui-tabs__tab:hover { background-color: var(--color-bg-surface-hover); }
+
+/* The open cell is --color-bg-surface-selected, which is the rung above the
+   hover's --color-bg-surface-hover on the one ladder tokens.css lays out, so
+   moving the pointer onto the open tab changes nothing: it is already showing
+   the heavier of the two states and there is nowhere further for a hover to
+   take it. The ink is --color-brand-text, which is 5.5:1 on that tint. */
+.ui-tabs--primary .ui-tabs__tab--selected,
+.ui-tabs--primary .ui-tabs__tab--selected:hover {
+  background-color: var(--color-bg-surface-selected);
+  color: var(--color-brand-text);
+}
+
+/* The fill owns both of its edges: a hairline running into a tinted cell reads
+   as a seam through it, so the dividers either side of the open tab go. */
+.ui-tabs--primary .ui-tabs__tab--selected,
+.ui-tabs--primary .ui-tabs__tab--selected + .ui-tabs__tab {
+  border-left-color: transparent;
+}
+
+/* No count chip: a tab names a place, and the list it opens is the tally. */
+
+/* --- ui-modal -------------------------------------------------------------- */
+
+ui-modal { display: contents; }
+
+.ui-modal {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-9);
+}
+
+.ui-modal[hidden] { display: none; }
+
+.ui-modal__scrim {
+  position: absolute;
+  inset: 0;
+  background-color: var(--color-bg-overlay);
+}
+
+.ui-modal__dialog {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-height: 100%;
+  background-color: var(--color-bg-surface);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--elevation-overlay);
+  overflow: hidden;
+}
+
+.ui-modal__dialog--sm { max-width: 24rem; }
+.ui-modal__dialog--md { max-width: 34rem; }
+.ui-modal__dialog--lg { max-width: 52rem; }
+/* For forms that carry a side rail as well as a field set — the appointment
+   form is the first of them. */
+.ui-modal__dialog--xl { max-width: 74rem; }
+
+/* ----------------------------------------------------------------------------
+   Modal action row.
+
+   Every dialog in the prototype commits at the bottom, and they all order it
+   the same way: one tight group at the right-hand end, the way out immediately
+   beside the way on.
+
+     ——  Cancel · [secondary actions] · Primary
+
+   This used to be a split row — Cancel pinned to the far left, the commit
+   button at the far right, with .ui-modal__actions-spacer between them. The
+   idea was that putting the width of the row between them made a destructive
+   commit harder to hit by accident, but almost nothing here commits anything
+   destructive without a confirm dialog of its own, so what the split actually
+   bought was a long empty gap in the middle of every short form and a Cancel
+   sitting nowhere near the button the eye finishes on. The per-screen rows
+   (.set__modal-actions, .prc__modal-actions, .cn__modal-actions and the rest)
+   had already settled on the grouped version; this is now the same row.
+
+   The spacer is kept as a no-op so the hundred-odd dialogs carrying one do not
+   all need editing, and so a row that genuinely wants the split can ask for it
+   by name with .ui-modal__actions--split — a wizard whose Back really does
+   belong at the opposite end from Continue, for instance.
+   ------------------------------------------------------------------------- */
+.ui-modal__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  padding-top: var(--space-6);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+/* Inert by default: display:none takes the box out of the flex flow entirely,
+   so it contributes no gap either. It only pushes anything apart inside the
+   opt-in split row below. */
+.ui-modal__actions-spacer { display: none; }
+
+.ui-modal__actions--split { justify-content: flex-start; }
+.ui-modal__actions--split .ui-modal__actions-spacer { display: block; flex: 1; }
+
+.ui-modal__head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  padding: var(--space-6) var(--space-7);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.ui-modal__title {
+  flex: 1;
+  font-size: var(--font-size-title-card);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  color: var(--color-text-primary);
+}
+
+.ui-modal__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-9);
+  height: var(--space-9);
+  border-radius: var(--radius-md);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+}
+.ui-modal__close:hover { background-color: var(--color-bg-surface-hover); color: var(--color-text-primary); }
+.ui-modal__close:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.ui-modal__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-7);
+  font-size: var(--font-size-body);
+}
+
+/* ----------------------------------------------------------------------------
+   Pinned footer.
+
+   ui-modal lifts the action row out of the scrolling body and drops it here,
+   so the commit never scrolls off. It only exists when a dialog has one.
+   ------------------------------------------------------------------------- */
+.ui-modal__foot {
+  flex: none;
+  padding: var(--space-6) var(--space-7);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+  background-color: var(--color-bg-surface);
+}
+
+/* The row already sits in a bordered, padded region once it is hoisted, so it
+   drops the rule and spacing it carries when it is inline in a body. */
+.ui-modal__foot .ui-modal__actions { padding-top: 0; border-top: none; }
+
+/* Some dialogs hand the footer over as a bare <div slot="footer"> of buttons
+   rather than an .ui-modal__actions row — the chart's alert note, the billing
+   dialogs, the profile add-to-card modals. They were getting no layout at all
+   from here, so their buttons sat wherever inline flow put them: hard against
+   the left edge, touching each other. They are an action row like any other
+   and now read as one. */
+.ui-modal__foot > [slot='footer'] {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+/* ----------------------------------------------------------------------------
+   DRAWER
+
+   variant="drawer" anchors the panel to the right edge, full height. Same
+   component, same focus trap, same action row — only the presentation moves.
+   A drawer keeps the page visible beside it, which suits a form you fill in
+   while reading the list behind: booking against a day's schedule, editing a
+   record you were just looking at.
+   ------------------------------------------------------------------------- */
+.ui-modal--drawer {
+  padding: 0;
+  align-items: stretch;
+  justify-content: flex-end;
+}
+
+.ui-modal--drawer .ui-modal__dialog {
+  height: 100%;
+  max-height: 100%;
+  border-radius: 0;
+  animation: ui-drawer-in var(--duration-base) var(--ease-out);
+}
+
+/* Drawer widths. Wider than the centred dialog at the same step, because a
+   drawer only has one dimension to work with. */
+.ui-modal--drawer .ui-modal__dialog--sm { max-width: 24rem; }
+.ui-modal--drawer .ui-modal__dialog--md { max-width: 30rem; }
+.ui-modal--drawer .ui-modal__dialog--lg { max-width: 40rem; }
+.ui-modal--drawer .ui-modal__dialog--xl { max-width: 52rem; }
+
+@keyframes ui-drawer-in {
+  from { transform: translateX(2rem); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-modal--drawer .ui-modal__dialog { animation: none; }
+}
+
+/* On a narrow window a drawer is the whole screen; there is nothing useful
+   left to see beside it. */
+@media (max-width: 40rem) {
+  .ui-modal--drawer .ui-modal__dialog { max-width: 100%; }
+}
+
+/* Stops the page behind the dialog scrolling under the scrim. */
+.ui-scroll-locked { overflow: hidden; }
+
+/* --- The confirmation dialog's status badge --------------------------------
+   A tinted rounded square holding one glyph, sitting left of the title. Only
+   drawn when the dialog sets a `tone`: it is there so the severity of a
+   destructive confirmation lands before the sentence does, and a badge on
+   every dialog would spend that signal on "Edit patient". */
+
+.ui-modal__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: var(--control-height-md);
+  height: var(--control-height-md);
+  border-radius: var(--radius-md);
+}
+
+.ui-modal__icon .ui-icon {
+  width: var(--icon-size-lg);
+  height: var(--icon-size-lg);
+}
+
+.ui-modal__icon--brand {
+  background-color: var(--color-brand-surface);
+  color: var(--color-brand-text);
+}
+.ui-modal__icon--info {
+  background-color: var(--color-status-info-surface);
+  color: var(--color-status-info-text);
+}
+.ui-modal__icon--success {
+  background-color: var(--color-status-success-surface);
+  color: var(--color-status-success-text);
+}
+.ui-modal__icon--warning {
+  background-color: var(--color-status-warning-surface);
+  color: var(--color-status-warning-text);
+}
+.ui-modal__icon--critical {
+  background-color: var(--color-status-critical-surface);
+  color: var(--color-status-critical-text);
+}

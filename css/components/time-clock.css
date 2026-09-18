@@ -1,0 +1,368 @@
+/* ============================================================================
+   Time clock — trigger in the top bar plus its popover.
+
+   The trigger has to read at a glance from across a room ("am I on the
+   clock?"), so state is carried by a dot AND by the label text, never by
+   colour alone. The popover reuses the filter-panel geometry from the patient
+   directory so the header has one popover shape, not two.
+   ========================================================================= */
+
+ui-time-clock { display: inline-flex; }
+
+.tc { position: relative; display: inline-flex; }
+
+/* --- Trigger ---------------------------------------------------------------- */
+
+.tc__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  height: var(--space-10);
+  padding: 0 var(--space-5);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-full);
+  background-color: var(--color-bg-surface);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out);
+}
+
+.tc__trigger:hover { border-color: var(--color-border-strong); }
+.tc__trigger:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.tc__trigger .ui-icon {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+  color: var(--color-text-tertiary);
+}
+
+/* A running shift is the one state worth colouring the whole chip for — it is
+   the one with a consequence if you forget about it. */
+.tc__trigger[data-state='in'] {
+  border-color: var(--color-border-brand);
+  background-color: var(--color-brand-surface);
+  color: var(--color-brand-text);
+}
+.tc__trigger[data-state='in'] .ui-icon { color: var(--color-brand-text); }
+
+.tc__trigger[data-state='break'] {
+  border-color: var(--color-status-warning-border);
+  background-color: var(--color-status-warning-surface);
+  color: var(--color-status-warning-text);
+}
+.tc__trigger[data-state='break'] .ui-icon { color: var(--color-status-warning-text); }
+
+.tc__dot {
+  width: var(--space-3);
+  height: var(--space-3);
+  border-radius: var(--radius-full);
+  background-color: var(--color-border-strong);
+  flex: none;
+}
+.tc__trigger[data-state='in'] .tc__dot { background-color: var(--color-brand-solid); }
+.tc__trigger[data-state='break'] .tc__dot { background-color: var(--color-status-warning-solid); }
+
+/* --- Popover ----------------------------------------------------------------- */
+
+.tc__panel {
+  position: absolute;
+  top: calc(100% + var(--space-4));
+  right: 0;
+  z-index: var(--z-dropdown);
+  width: 23rem;
+  max-width: calc(100vw - var(--space-10));
+  max-height: calc(100vh - var(--space-11) * 2);
+  overflow-y: auto;
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+  box-shadow: var(--elevation-overlay);
+  text-align: left;
+}
+
+.tc__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-5);
+  padding: var(--space-6) var(--space-7);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.tc__now {
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  font-variant-numeric: tabular-nums;
+}
+
+.tc__date {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-tertiary);
+}
+
+.tc__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-9);
+  height: var(--space-9);
+  flex: none;
+  border-radius: var(--radius-md);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+}
+.tc__close:hover { background-color: var(--color-bg-surface-hover); color: var(--color-text-primary); }
+.tc__close:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* --- Status + meters --------------------------------------------------------- */
+
+.tc__status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+  padding: var(--space-6) var(--space-7);
+}
+
+.tc__pill {
+  display: inline-flex;
+  align-items: center;
+  height: 1.375rem;
+  padding: 0 var(--space-5);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+  background-color: var(--color-status-neutral-surface);
+  color: var(--color-status-neutral-text);
+}
+.tc__pill[data-state='in'] {
+  background-color: var(--color-brand-surface);
+  color: var(--color-brand-text);
+}
+.tc__pill[data-state='break'] {
+  background-color: var(--color-status-warning-surface);
+  color: var(--color-status-warning-text);
+}
+
+/* Sits on the status row, hard right, level with the state pill. Blue rather
+   than brand green so it reads as "go somewhere else" next to the green
+   Clock In button below, which is the action this panel is really for. */
+.tc__report {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  height: 1.375rem;
+  padding: 0 var(--space-5);
+  border-radius: var(--radius-full);
+  /* The DARKENED blue: MediNova's Primary/500 is 3.5:1 on white and would fail
+     AA behind white text. Logged in FIGMA_CONTRAST_DEBT alongside the badges. */
+  background-color: var(--color-status-info-solid);
+  color: var(--color-text-inverse);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.tc__report:hover { background-color: var(--color-status-info-solid-hover); }
+.tc__report:focus-visible { outline: none; box-shadow: var(--focus-ring-solid); }
+
+/* Its own row under the status, so a 23rem panel never has to fit a pill, two
+   meters and a button on one line. */
+.tc__meters {
+  display: flex;
+  gap: var(--space-7);
+  padding: 0 var(--space-7) var(--space-5);
+}
+.tc__meters:empty { display: none; }
+
+.tc__meter { text-align: left; }
+.tc__meter dt {
+  font-size: var(--font-size-fact-label);
+  color: var(--color-text-tertiary);
+  font-weight: var(--font-weight-medium);
+}
+.tc__meter dd {
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Notes + actions --------------------------------------------------------- */
+
+.tc__notes-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: 0 var(--space-7) var(--space-5);
+}
+
+.tc__label {
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+.tc__notes {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+  font-family: inherit;
+  font-size: var(--font-size-body);
+  color: var(--color-text-primary);
+  resize: vertical;
+}
+.tc__notes::placeholder { color: var(--color-text-tertiary); }
+
+/* Same minimal focus as every other field in the system — see tokens.css. */
+.tc__notes:focus-visible {
+  outline: none;
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px var(--color-brand-surface);
+}
+
+.tc__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: 0 var(--space-7) var(--space-5);
+}
+
+.tc__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  min-height: var(--control-height-md);
+  padding: 0 var(--space-5);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  font-family: inherit;
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+}
+.tc__btn:hover:not(:disabled) { background-color: var(--color-bg-surface-hover); }
+.tc__btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.tc__btn:disabled { cursor: not-allowed; opacity: 0.45; }
+
+.tc__btn--sm { min-height: var(--control-height-sm); font-size: var(--font-size-sm); }
+
+.tc__btn--primary {
+  background-color: var(--color-brand-solid);
+  border-color: var(--color-brand-solid);
+  color: var(--color-text-inverse);
+}
+.tc__btn--primary:hover:not(:disabled) { background-color: var(--color-brand-solid-hover); }
+.tc__btn--primary:focus-visible { box-shadow: var(--focus-ring-solid); }
+
+.tc__btn--danger {
+  background-color: var(--color-status-critical-solid);
+  border-color: var(--color-status-critical-solid);
+  color: var(--color-text-inverse);
+}
+.tc__btn--danger:hover:not(:disabled) { background-color: var(--color-status-critical-solid-hover); }
+.tc__btn--danger:focus-visible { box-shadow: var(--focus-ring-solid-critical); }
+
+.tc__hint {
+  display: flex;
+  gap: var(--space-3);
+  margin: 0 var(--space-7) var(--space-5);
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-md);
+  background-color: var(--color-status-warning-surface);
+  color: var(--color-status-warning-text);
+  font-size: var(--font-size-caption);
+}
+
+/* --- Entries ------------------------------------------------------------------ */
+
+.tc__entries {
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+  padding: var(--space-5) var(--space-7);
+}
+
+.tc__entries-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-4);
+}
+
+/* Sentence case, like every other label above a list in this app: capitals
+   are read letter by letter, and "Today's entries" is a signpost, not a
+   sentence anybody stops on. */
+.tc__entries-title {
+  font-size: var(--font-size-fact-label);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-tertiary);
+}
+
+.tc__entry {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) 0;
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+}
+.tc__entry:last-child { border-bottom: none; }
+
+.tc__entry-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-1); }
+
+.tc__entry-span {
+  font-size: var(--font-size-body);
+  font-variant-numeric: tabular-nums;
+}
+
+.tc__entry-meta,
+.tc__entry-note {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-tertiary);
+}
+
+.tc__entry-note {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tc__active {
+  flex: none;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-full);
+  background-color: var(--color-brand-surface);
+  color: var(--color-brand-text);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-medium);
+}
+
+
+.tc__summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-5) var(--space-7);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+  background-color: var(--color-bg-surface-sunken);
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+}
+.tc__summary strong { font-variant-numeric: tabular-nums; color: var(--color-text-primary); }
+
+/* The way out of "today" and into the reporting section. */
+
+/* The bar gets crowded before the popover does; the label is the first thing
+   that can go, since the dot and icon still carry the state. */
+@media (max-width: 75rem) {
+  .tc__trigger-label { display: none; }
+  .tc__trigger { padding: 0 var(--space-4); }
+}

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Log in — MediNova Clinic Patient Portal</title>
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="css/reset.css" />
+    <link rel="stylesheet" href="css/tokens.css" />
+    <link rel="stylesheet" href="css/base.css" />
+    <link rel="stylesheet" href="css/components.css" />
+    <link rel="stylesheet" href="css/screen-auth.css" />
+    <link rel="stylesheet" href="css/select-menu.css" />
+
+    <!--
+      THE PATIENT DOOR.
+
+      Deliberately NOT /screens/login.html. This form authenticates against
+      patient/js/lib/auth-store.js, which keeps its session under its own
+      storage key: a clinician signed into the EHR has no session here, and a
+      patient signing in here reaches no EHR screen. Two doors, two keys.
+
+      No guard.js on this page — it is where guard.js sends people.
+    -->
+    <script type="module" src="js/screens/login.js"></script>
+    <script type="module" src="js/lib/select-menu.js"></script>
+    <script type="module" src="js/comments.js"></script>
+    <script src="js/open-me-properly.js"></script>
+  </head>
+
+  <body class="pp-auth">
+    <div class="pp-auth__grid">
+      <!-- ===================== FORM ===================== -->
+      <section class="pp-auth__side">
+        <a class="pp-auth__brand" href="login.html">
+          <img src="assets/medinova-logo.svg" alt="MediNova Clinic" width="335" height="68" />
+        </a>
+
+        <main class="pp-auth__main">
+          <div class="pp-auth__card">
+            <h1 class="pp-auth__title">Login</h1>
+            <p class="pp-auth__subtitle">Welcome back! Please enter your details</p>
+
+            <!-- Errors land here. One region, so a screen reader hears exactly
+                 one announcement per attempt however the attempt failed. -->
+            <div class="pp-auth__error" id="authError" hidden></div>
+
+            <form class="pp-auth__form" id="loginForm" novalidate>
+              <div class="pp-field">
+                <label class="pp-label" for="email">Email</label>
+                <div class="pp-control pp-control--icon">
+                  <input
+                    class="pp-input"
+                    id="email"
+                    name="email"
+                    type="email"
+                    autocomplete="username"
+                    placeholder="Enter Email"
+                    data-testid="login--email"
+                  />
+                  <span class="pp-control__icon">
+                    <svg class="pp-icon" aria-hidden="true"><use href="#pi-mail"></use></svg>
+                  </span>
+                </div>
+                <p class="pp-field__error" id="emailError" hidden></p>
+              </div>
+
+              <div class="pp-field">
+                <label class="pp-label" for="password">Password</label>
+                <div class="pp-control pp-control--icon">
+                  <input
+                    class="pp-input"
+                    id="password"
+                    name="password"
+                    type="password"
+                    autocomplete="current-password"
+                    placeholder="Enter Password"
+                    data-testid="login--password"
+                  />
+                  <button
+                    type="button"
+                    class="pp-control__button"
+                    id="revealPassword"
+                    aria-label="Show password"
+                    aria-pressed="false"
+                    data-testid="login--reveal"
+                  >
+                    <svg class="pp-icon" aria-hidden="true"><use href="#pi-eye"></use></svg>
+                  </button>
+                </div>
+                <p class="pp-field__error" id="passwordError" hidden></p>
+              </div>
+
+              <!-- Announced when Caps Lock goes on, silent otherwise. -->
+              <p class="pp-auth__caps" id="capsWarning" role="status" hidden data-testid="login--caps">
+                <svg class="pp-icon pp-icon--sm" aria-hidden="true">
+                  <use href="#pi-info"></use>
+                </svg>
+                <span>Caps Lock is on.</span>
+              </p>
+
+              <div class="pp-auth__row">
+                <label class="pp-check">
+                  <input type="checkbox" id="remember" data-testid="login--remember" />
+                  <span>Remember me</span>
+                </label>
+                <a class="pp-link" href="forgot-password.html" data-testid="login--forgot"
+                  >Forgot Password</a
+                >
+              </div>
+
+              <!-- Appears only after repeated failures. A real build swaps this
+                   for the provider's widget; the placement and the timing are
+                   the design, not the challenge itself. -->
+              <div id="captchaSlot" hidden></div>
+
+              <button
+                type="submit"
+                class="pp-btn pp-btn--primary pp-btn--full"
+                data-testid="login--submit"
+              >
+                Log In
+              </button>
+            </form>
+          </div>
+        </main>
+      </section>
+
+      <!-- ===================== PROMO ===================== -->
+      <!--
+        aria-hidden, and it means it. Every slide is decorative and its caption
+        is marketing copy repeated in no functional way anywhere else. A screen
+        reader user tabbing to sign in should reach the email field, not four
+        carousel dots and a rotating advertisement.
+      -->
+      <aside class="pp-auth__promo" id="promo" aria-hidden="true">
+        <div class="pp-auth__slide" data-current="true"></div>
+        <div class="pp-auth__slide"></div>
+        <div class="pp-auth__slide"></div>
+        <div class="pp-auth__slide"></div>
+
+        <div class="pp-auth__scrim"></div>
+
+        <div class="pp-auth__caption">
+          <h2 id="promoTitle">Connected Care. Anywhere.</h2>
+          <p id="promoBody">
+            Secure access to patient records and real-time collaboration across
+            hospitals, ICUs, and outreach programs.
+          </p>
+          <div class="pp-auth__dots" id="promoDots"></div>
+        </div>
+      </aside>
+    </div>
+  </body>
+</html>

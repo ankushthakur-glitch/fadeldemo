@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MediNova EHR — Provider Settings</title>
+    <link rel="icon" type="image/svg+xml" href="../assets/img/favicon.svg" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="../css/reset.css" />
+    <link rel="stylesheet" href="../css/tokens.css" />
+    <link rel="stylesheet" href="../css/base.css" />
+    <link rel="stylesheet" href="../css/ui-kit.css" />
+    <link rel="stylesheet" href="../css/screen-patient.css" />
+    <link rel="stylesheet" href="../css/screen-leads.css" />
+    <link rel="stylesheet" href="../css/screen-settings.css" />
+    <link rel="stylesheet" href="../css/screen-practice.css" />
+    <link rel="stylesheet" href="../css/screen-provider.css" />
+
+    <script type="module" src="../js/main.js"></script>
+    <script type="module" src="../js/screens/provider-settings.js"></script>
+    <script src="../js/open-me-properly.js"></script>
+  </head>
+
+  <body class="pt">
+    <header class="pt__bar">
+      <img class="pt__logo" src="../assets/img/medinova-logo.svg" width="158" height="32"
+        alt="MediNova Gastroenterology Clinic" />
+      <ui-main-nav active="settings"></ui-main-nav>
+      <div class="pt__bar-actions">
+        <ui-time-clock></ui-time-clock>
+        <button type="button" class="pt__icon-action" aria-label="Notifications">
+          <svg class="ui-icon" aria-hidden="true"><use href="#i-bell"></use></svg>
+        </button>
+        <ui-avatar name="Amara Mensah" size="sm"></ui-avatar>
+      </div>
+    </header>
+
+    <div class="ui-page-head ui-page-head--flush ui-page-head--tabs set__head">
+      <div class="ui-page-head__lead">
+        <a class="ui-page-head__back ui-page-head__back--icon" href="settings.html" data-testid="pvs--back" aria-label="Back to settings">
+          <svg class="ui-icon" aria-hidden="true"><use href="#i-caret-left"></use></svg>
+        </a>
+        <h1 class="ui-page-head__title u-sr-only">Provider Settings</h1>
+      </div>
+
+      <ui-tabs selected="profile" primary data-testid="pvs--tabs">
+        <ui-tab value="profile" label="Profile"></ui-tab>
+        <ui-tab value="practice" label="Practice"></ui-tab>
+        <ui-tab value="notification" label="Notification"></ui-tab>
+        <ui-tab value="flags" label="Patient Flag"></ui-tab>
+      </ui-tabs>
+
+      <!-- Each tab owns a different action, so the slot swaps with it — the
+           same pattern Practice Settings uses. -->
+      <div class="ui-page-head__actions">
+        <ui-button variant="outline" icon="pencil" data-testid="pvs--edit-profile"
+          >Edit Provider Profile</ui-button
+        >
+        <ui-button variant="outline" icon="pencil" data-testid="pvs--edit-practice" hidden
+          >Edit Details</ui-button
+        >
+        <ui-button variant="outline" data-testid="pvs--notify-default" hidden>Default</ui-button>
+        <ui-button variant="primary" data-testid="pvs--notify-save" hidden>Save</ui-button>
+        <ui-button variant="primary" icon="plus" data-testid="pvs--add-flag" hidden
+          >Add New Patient Flag</ui-button
+        >
+      </div>
+    </div>
+
+
+    <!-- One status line for actions a prototype cannot really perform. -->
+
+    <!-- tabindex="0": the Profile panel is read-only text with nothing
+         focusable in it, so without this a keyboard user cannot scroll past
+         the first screenful. -->
+    <main class="set__body" tabindex="0">
+      <!-- ================= PROFILE ================= -->
+      <div id="panel-profile" role="tabpanel" aria-labelledby="tab-profile">
+        <div class="pvs__profile" id="providerProfile" data-testid="pvs--profile"></div>
+      </div>
+
+      <!-- ================= PRACTICE ================= -->
+      <div id="panel-practice" role="tabpanel" aria-labelledby="tab-practice" hidden>
+        <!-- A provider with two working locations gets a picker; with one, the
+             strip carries the name alone rather than a select of length 1. -->
+        <div class="pvs__loc-bar" id="providerLocationBar"></div>
+        <div class="pvs__practice" id="providerPractice" data-testid="pvs--practice"></div>
+      </div>
+
+      <!-- ================= NOTIFICATION ================= -->
+      <div id="panel-notification" role="tabpanel" aria-labelledby="tab-notification" hidden>
+        <div class="pvs__notify" id="providerNotify" data-testid="pvs--notify"></div>
+      </div>
+
+      <!-- ================= PATIENT FLAG ================= -->
+      <div id="panel-flags" role="tabpanel" aria-labelledby="tab-flags" hidden>
+        <div class="ui-table-card">
+          <ui-data-table id="flagTable" empty-text="No patient flags yet."
+                          data-testid="pvs--flag-table"></ui-data-table>
+          <div data-foot="flags"></div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Edit Provider Profile — the onboarding form's own field set, so the
+         record is edited through the same shape it was created through. -->
+    <ui-modal id="providerProfileModal" heading="Edit Provider Profile" size="xl" variant="drawer">
+      <form class="prv" id="providerProfileForm" data-testid="pvs--profile-form">
+        <div class="prv__cols">
+          <div class="prv__col" id="providerProfileFields"></div>
+          <div class="prv__col" id="providerProfileGroups"></div>
+        </div>
+        <div class="ui-modal__actions">
+          <ui-button variant="tertiary" data-modal-dismiss data-testid="pvs--profile-cancel"
+            >Cancel</ui-button
+          >
+          <span class="ui-modal__actions-spacer"></span>
+          <ui-button variant="primary" data-testid="pvs--profile-save">Save</ui-button>
+        </div>
+      </form>
+    </ui-modal>
+
+    <!-- Add / Edit a patient flag -->
+    <ui-modal id="flagModal" heading="Add New Patient Flag" size="sm">
+      <div class="pvs__flag-form">
+        <ui-input id="flagName" label="Flag Name" placeholder="e.g. Interpreter Needed" required
+          data-testid="pvs--flag-name"></ui-input>
+
+        <div class="ui-field">
+          <span class="ui-field__label">Color</span>
+          <div class="pvs__palette" id="flagPalette" role="radiogroup" aria-label="Flag colour"
+            data-testid="pvs--flag-palette"></div>
+        </div>
+
+        <div class="ui-modal__actions">
+          <ui-button variant="outline" data-modal-dismiss data-testid="pvs--flag-cancel"
+            >Cancel</ui-button
+          >
+          <span class="ui-modal__actions-spacer"></span>
+          <ui-button variant="primary" data-testid="pvs--flag-save">Save</ui-button>
+        </div>
+      </div>
+    </ui-modal>
+
+    <!-- A flag charts already carry is not removed on a single stray click. -->
+    <ui-modal id="flagDeleteModal" heading="Delete patient flag" size="sm">
+      <div class="rol__confirm" id="flagDeleteBody"></div>
+      <div class="ui-modal__actions">
+        <ui-button variant="tertiary" data-modal-dismiss data-testid="pvs--flag-delete-cancel"
+          >Cancel</ui-button
+        >
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="danger" data-testid="pvs--flag-delete-confirm">Delete</ui-button>
+      </div>
+    </ui-modal>
+  </body>
+</html>

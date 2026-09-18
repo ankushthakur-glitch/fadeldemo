@@ -1,0 +1,574 @@
+/* ============================================================================
+   Settings ▸ Master — the practice's own reference lists (ICD-10, CPT, payers,
+   instruments, clinicians). One bar, one table, one dialog, five data sets.
+
+   Everything table-shaped is inherited from screen-settings.css (.set__body,
+   .ui-table-card, .set__foot); only what this screen adds lives here.
+   ========================================================================= */
+
+/* --- What acts on the open list ---------------------------------------------
+   The picker itself is the head band's own tab strip now — one row, the same
+   on every settings module, from .ui-page-head--tabs in base.css. The two
+   controls beside it sit in that band's own action slot,
+   .ui-page-head__actions, rather than in a bar this screen drew for itself:
+   the slot is what puts them hard right, and a private copy of it left
+   Master's search box and Add button packed against the last tab while every
+   other module's sat at the right-hand edge.
+
+   What is left for this file is the pair of wrappers the screen script fills.
+   The narrow-window behaviour of the search box moved to screen-settings.css:
+   Master had the most controls in the band and so hit it first, but nothing
+   about it was Master's. */
+
+.mst__add { display: inline-flex; gap: var(--space-3); }
+
+/* --- Primary cell -----------------------------------------------------------
+   The code (or the clinician's name) opens the editor, so it is a button that
+   reads as a link — the same affordance the patient lists use. */
+
+.mst__code {
+  /* The cell truncates, but text-overflow only ellipsises a block's OWN text —
+     a button inside it would simply run past the edge and get clipped
+     mid-word. So the button does its own truncating. */
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: middle;
+  padding: 0;
+  background: none;
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-brand-text);
+  cursor: pointer;
+}
+.mst__code:hover { text-decoration: underline; }
+.mst__code:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--radius-sm); }
+
+.mst__muted { color: var(--color-text-tertiary); }
+
+/* --- Row ⋮ trigger -----------------------------------------------------------
+   The panel it opens is shared — see css/components/row-menu.css. */
+
+
+/* --- Add / Edit dialog ------------------------------------------------------
+   A form with only one or two fields (ICD-10, CPT) is a flat stack — no
+   heading, one field per row. A form with real structure (Clinician) groups
+   its rows under a heading; see sectionsMarkup() in master.js for how a
+   heading spanning several rows (an address's street/suite/city-state-zip)
+   still only prints once. */
+
+.mst__form { display: flex; flex-direction: column; gap: var(--space-5); }
+
+.mst__form-heading {
+  padding-bottom: var(--space-4);
+  margin-top: var(--space-2);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+  font-size: var(--font-size-title-section);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+/* The first heading needs no extra clearance above it — .mst__form's own
+   gap already separates it from whatever came before. */
+.mst__form > .mst__form-heading:first-child { margin-top: 0; }
+
+.mst__form-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+}
+.mst__form-row > ui-input,
+.mst__form-row > ui-select,
+.mst__form-row > ui-textarea {
+  flex: 1;
+  min-width: 8rem;
+}
+
+/* --- The modifier boxes ------------------------------------------------------
+
+   Four small squares under one label, sized to what goes in them. A modifier
+   is two characters, so a box the width of the dialog would be four fifths
+   empty and would read as a field expecting a sentence — the width IS the
+   instruction here, the same way a PIN entry tells you how many digits it
+   wants without saying so.
+
+   They keep the <ui-input> border rather than the fee table's borderless
+   cells: these are loose in the form with nothing bounding them, so each one
+   has to draw its own edge to be a box at all. -------------------------------*/
+
+.mst__mods {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  flex: 1 0 100%;
+  min-width: 0;
+}
+
+.mst__mods-label {
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  line-height: var(--line-height-caption);
+}
+
+.mst__mods-boxes { display: flex; gap: var(--space-3); }
+
+.mst__mods-input {
+  width: var(--control-height-md);
+  min-height: var(--control-height-md);
+  padding: 0 var(--space-2);
+  font: inherit;
+  font-size: var(--font-size-body);
+  /* Centred, because two characters left-aligned in a square box look
+     dropped in it rather than filled into it. */
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-surface);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-md);
+}
+.mst__mods-input:hover { border-color: var(--color-border-strong); }
+.mst__mods-input:focus-visible {
+  outline: none;
+  border-color: var(--color-border-focus);
+  box-shadow: var(--focus-ring);
+}
+
+/* In the table: the hyphen a coder writes in front of a modifier, so "-26"
+   in a narrow column beside Base Units and Fee cannot be read as a number. */
+.mst__mod {
+  font-family: var(--font-family-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--font-size-body-sm);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+/* --- The fee schedule editor -------------------------------------------------
+
+   A FIELD SHAPED LIKE THE THING IT HOLDS.
+
+   Every other control in this dialog is one box on one row, and it can be,
+   because it holds one answer. A fee schedule holds several dated ones and is
+   read DOWN — "what do we charge now, and what did we charge before" — so it
+   is drawn as a small table with a header, and each price is a row under it
+   rather than a pair of boxes with a date somewhere near them.
+
+   The columns are a grid rather than a table element because the header and
+   the rows are separate nodes: rows are added and removed after the dialog has
+   opened, and re-laying out a <table> around a live <tbody> would fight the
+   insertion. `subgrid` is avoided for the same reason — one shared template on
+   the parent keeps every row aligned with a header it is not nested inside.
+
+   It spans the full width of the form row it sits in: three columns of money
+   squeezed into half a dialog is how a facility fee gets typed into the
+   professional column. ---------------------------------------------------- */
+
+.mst__fees {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  flex: 1 0 100%;
+  min-width: 0;
+}
+
+.mst__fees-table {
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+/* One template, shared by the header and every row, so a column cannot drift
+   out of line with the label above it. The last track is the remove button. */
+.mst__fees-head,
+.mst__fees-row {
+  display: grid;
+  grid-template-columns: minmax(9rem, 1.1fr) minmax(7rem, 1fr) minmax(7rem, 1fr) auto;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+}
+
+.mst__fees-head {
+  background-color: var(--color-bg-table-head);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+}
+
+.mst__fees-row + .mst__fees-row {
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+/* Bare inputs rather than <ui-input> shells: a cell in a table is already
+   bounded by the table, and a border on every one of twelve boxes turns a
+   short schedule into a grid of frames. The focus ring still lands on the
+   individual cell, which is what tells you where you are typing. */
+.mst__fees-input {
+  width: 100%;
+  min-width: 0;
+  min-height: var(--control-height-sm);
+  padding: 0 var(--space-3);
+  font: inherit;
+  font-size: var(--font-size-body);
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-surface);
+  border: var(--border-width-thin) solid transparent;
+  border-radius: var(--radius-sm);
+}
+.mst__fees-input:hover { border-color: var(--color-border-subtle); }
+.mst__fees-input:focus-visible {
+  outline: none;
+  border-color: var(--color-border-focus);
+  box-shadow: var(--focus-ring);
+}
+
+.mst__fees-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2);
+  color: var(--color-text-tertiary);
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+}
+.mst__fees-remove:hover:not(:disabled) { color: var(--color-status-critical-text); }
+.mst__fees-remove:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* The only row left is the code's only price. Dimmed rather than hidden, so
+   the column of buttons does not reflow the moment a schedule drops to one. */
+.mst__fees-remove:disabled { opacity: 0.35; cursor: not-allowed; }
+
+.mst__fees-remove .ui-icon {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}
+
+/* The hint and the + share a line: the sentence explains why old rows stay,
+   and the button is the thing that adds the new one it is talking about. */
+.mst__fees-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+  flex-wrap: wrap;
+}
+
+.mst__fees-hint {
+  flex: 1;
+  min-width: 14rem;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-tertiary);
+  line-height: var(--line-height-caption);
+}
+
+.mst__confirm { display: flex; flex-direction: column; gap: var(--space-6); }
+.mst__confirm p { font-size: var(--font-size-body); color: var(--color-text-secondary); }
+.mst__confirm strong { color: var(--color-text-primary); font-weight: var(--font-weight-semibold); }
+
+/* --- Bulk CSV upload --------------------------------------------------------
+   The report is the point of this dialog: a file is checked and shown line by
+   line before a single row is written, so the list of results is what gets the
+   height, and it scrolls inside the dialog rather than growing it. */
+
+.mst__bulk { display: flex; flex-direction: column; gap: var(--space-5); }
+
+.mst__bulk-intro {
+  font-size: var(--font-size-body);
+  color: var(--color-text-secondary);
+}
+.mst__bulk-intro strong {
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+.mst__bulk-template {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0;
+  background: none;
+  font-family: inherit;
+  font-size: var(--font-size-body-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-brand-text);
+  cursor: pointer;
+}
+.mst__bulk-template:hover { text-decoration: underline; }
+.mst__bulk-template:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm);
+}
+
+.mst__bulk-report:empty { display: none; }
+
+.mst__bulk-summary {
+  padding-bottom: var(--space-4);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-status-success-text);
+}
+.mst__bulk-summary--bad { color: var(--color-status-critical-text); }
+
+/* Capped rather than unbounded: a 900-line file would otherwise push the
+   dialog's own buttons off the bottom of the screen. */
+.mst__bulk-rows {
+  max-height: 18rem;
+  overflow-y: auto;
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.mst__bulk-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-body-sm);
+}
+.mst__bulk-table th,
+.mst__bulk-table td {
+  padding: var(--space-3) var(--space-5);
+  text-align: left;
+  vertical-align: top;
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+}
+.mst__bulk-table th {
+  position: sticky;
+  top: 0;
+  background-color: var(--color-bg-surface-sunken);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+}
+.mst__bulk-table tbody tr:last-child td { border-bottom: none; }
+
+.mst__bulk-ok { color: var(--color-status-success-text); }
+.mst__bulk-bad { color: var(--color-status-critical-text); }
+
+.mst__bulk-more {
+  padding: var(--space-4) var(--space-5);
+  font-size: var(--font-size-body-sm);
+  color: var(--color-text-tertiary);
+}
+
+/* ============================================================================
+   Additions that came with export, the NPI and the repair register.
+   ========================================================================= */
+
+/* An NPI is read digit by digit off a claim, so it gets the numeric face. */
+.mst__npi { font-family: var(--font-family-numeric); font-variant-numeric: tabular-nums; font-size: var(--font-size-body-sm); }
+
+/* A field with one action beside it — the NPI's registry lookup. The button
+   aligns to the bottom of the field so it sits level with the input, not with
+   the label above it. */
+.mst__field-with-action {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-4);
+  flex: 1;
+  min-width: 0;
+}
+.mst__field-with-action ui-input { flex: 1; min-width: 0; }
+
+/* --- Repair register ---------------------------------------------------------
+   The count is the affordance: a scope with repairs behind it is a scope worth
+   opening, and one with none should not invite a click that shows an empty
+   dialog. Both still open — the zero is a fact, not a dead end. */
+
+.mst__repair-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-body-sm);
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.mst__repair-btn:hover {
+  border-color: var(--color-border-strong);
+  color: var(--color-text-primary);
+}
+.mst__repair-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.mst__repair-btn .ui-icon { width: var(--icon-size-sm); height: var(--icon-size-sm); }
+.mst__repair-btn--some {
+  border-color: var(--color-border-brand);
+  background-color: var(--color-brand-surface);
+  color: var(--color-text-brand);
+}
+
+.mst__repair-form { display: grid; gap: var(--space-5); }
+
+/* The form's own commit row. Deliberately not .ui-modal__actions — see the
+   comment in master.html: that class belongs to the dialog's pinned footer,
+   which already carries Close. */
+.mst__repair-actions { display: flex; justify-content: flex-end; }
+.mst__repair-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-5); }
+
+.mst__repair-list { display: flex; flex-direction: column; gap: var(--space-5); margin-top: var(--space-6); }
+
+.mst__repair-card {
+  padding: var(--space-5) var(--space-6);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+}
+
+.mst__repair-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+.mst__repair-head .mst__spacer { flex: 1; }
+
+.mst__repair-when {
+  font-family: var(--font-family-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--font-size-body-sm);
+  color: var(--color-text-secondary);
+}
+
+.mst__repair-detail {
+  margin: 0;
+  font-size: var(--font-size-body-sm);
+  line-height: var(--line-height-normal);
+  color: var(--color-text-primary);
+}
+
+/* The attached document, as a way in rather than a caption. It reads as the
+   quiet line it always was until it is hovered or focused, at which point it
+   admits to being a button. */
+.mst__repair-file {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  padding: var(--space-2) var(--space-3);
+  border: var(--border-width-thin) solid transparent;
+  border-radius: var(--radius-sm);
+  background: none;
+  font-family: inherit;
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-link);
+  cursor: pointer;
+}
+
+.mst__repair-file .ui-icon { width: var(--icon-size-sm); height: var(--icon-size-sm); }
+.mst__repair-file:hover {
+  border-color: var(--color-border-subtle);
+  background-color: var(--color-bg-surface-sunken);
+}
+.mst__repair-file:hover .mst__repair-file-name { text-decoration: underline; }
+.mst__repair-file:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* --- The document itself ------------------------------------------------------
+   The viewer is the browser's, not ours: an <iframe> over the object URL gets
+   scrolling, zoom, print and download for free, and gets them right. All this
+   has to do is give it a page-shaped space to render into — tall enough to
+   read a paragraph of an RMA sheet without scrolling the dialog too. */
+
+.mst__doc-frame {
+  display: block;
+  width: 100%;
+  height: min(70vh, 40rem);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+}
+
+/* The seeded records, which carry a file name and no file. Saying so plainly
+   beats drawing a document that is not there. */
+.mst__doc-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-10) var(--space-8);
+  border: var(--border-width-thin) dashed var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  text-align: center;
+}
+
+.mst__doc-mark { color: var(--color-text-tertiary); }
+.mst__doc-mark .ui-icon { width: var(--icon-size-lg); height: var(--icon-size-lg); }
+
+.mst__doc-name {
+  margin: 0;
+  font-size: var(--font-size-body-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+.mst__doc-note {
+  max-width: 34rem;
+  margin: 0;
+  font-size: var(--font-size-body-sm);
+  line-height: var(--line-height-normal);
+  color: var(--color-text-tertiary);
+}
+
+/* An instrument still out for repair is the one state worth colouring: it is
+   not on the shelf, and a list that does not say so gets it booked. */
+.mst__repair-open {
+  color: var(--color-status-warning-text);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-medium);
+}
+
+.mst__repair-empty {
+  padding: var(--space-8);
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-body-sm);
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .mst__repair-pair { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* --- Data import --------------------------------------------------------------
+   A log, not a list: the file name is the only thing in it worth clicking. */
+
+.mst__file-link {
+  color: var(--color-text-link);
+  font-size: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.mst__file-link:hover { text-decoration: none; }
+.mst__file-link:focus-visible { outline: none; box-shadow: var(--focus-ring); border-radius: var(--radius-sm); }
+
+/* The note beneath a status says WHY it failed. A red pill on its own sends
+   someone to ask; the reason is the whole value of the row. */
+.mst__import-status { display: flex; flex-direction: column; gap: var(--space-2); }
+.mst__import-status .mst__muted { font-size: var(--font-size-2xs); }
+
+.mst__upload-form { display: grid; gap: var(--space-6); }
+
+.mst__upload-entity {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-5);
+}
+.mst__upload-entity ui-select { flex: 1; min-width: 0; }
+
+
+.mst__form-error {
+  margin: 0;
+  font-size: var(--font-size-body-sm);
+  color: var(--color-status-critical-text);
+}
+.mst__form-error[hidden] { display: none; }
+
+
+.mst__spacer { flex: 1; }

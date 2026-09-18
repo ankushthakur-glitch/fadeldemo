@@ -1,0 +1,313 @@
+/* ============================================================================
+   Small status objects: badge, chip, status dot, avatar.
+   These carry most of the meaning in a dense clinical table, so they are
+   tuned to stay legible at 11–12px.
+   ========================================================================= */
+
+/* --- ui-badge — status pill (Active, Critical, Pending, Signed) ------------ */
+
+ui-badge { display: inline-flex; vertical-align: middle; }
+
+.ui-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
+  min-height: var(--control-height-xs);
+  border: var(--border-width-thin) solid transparent;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-tight);
+  white-space: nowrap;
+}
+
+.ui-badge--sm {
+  min-height: var(--space-7);
+  padding: 0 var(--space-2);
+  font-size: var(--font-size-2xs);
+}
+
+.ui-badge .ui-icon {
+  width: var(--icon-size-xs);
+  height: var(--icon-size-xs);
+}
+
+/* Soft (default) — tinted background, coloured text. Reads calmly in a table. */
+.ui-badge--critical {
+  background-color: var(--color-status-critical-surface);
+  color: var(--color-status-critical-text);
+  border-color: var(--color-status-critical-border);
+}
+.ui-badge--warning {
+  background-color: var(--color-status-warning-surface);
+  color: var(--color-status-warning-text);
+  border-color: var(--color-status-warning-border);
+}
+.ui-badge--success {
+  background-color: var(--color-status-success-surface);
+  color: var(--color-status-success-text);
+  border-color: var(--color-status-success-border);
+}
+.ui-badge--info {
+  background-color: var(--color-status-info-surface);
+  color: var(--color-status-info-text);
+  border-color: var(--color-status-info-border);
+}
+.ui-badge--neutral {
+  background-color: var(--color-status-neutral-surface);
+  color: var(--color-status-neutral-text);
+  border-color: var(--color-status-neutral-border);
+}
+.ui-badge--brand {
+  background-color: var(--color-brand-surface);
+  color: var(--color-brand-text);
+  border-color: var(--color-border-brand);
+}
+
+/* Solid — reserved for the highest-severity flags (critical labs, allergies). */
+.ui-badge--solid.ui-badge--critical {
+  background-color: var(--color-status-critical-solid);
+  color: var(--color-text-inverse);
+  border-color: transparent;
+}
+.ui-badge--solid.ui-badge--warning {
+  background-color: var(--color-status-warning-solid);
+  color: var(--color-text-inverse);
+  border-color: transparent;
+}
+.ui-badge--solid.ui-badge--success {
+  background-color: var(--color-status-success-solid);
+  color: var(--color-text-inverse);
+  border-color: transparent;
+}
+.ui-badge--solid.ui-badge--info {
+  background-color: var(--color-status-info-solid);
+  color: var(--color-text-inverse);
+  border-color: transparent;
+}
+
+/* --- ui-status-dot — the smallest possible state marker -------------------- */
+
+ui-status-dot { display: inline-flex; align-items: center; }
+
+.ui-status-dot {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+}
+
+.ui-status-dot__mark {
+  width: var(--space-4);
+  height: var(--space-4);
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+.ui-status-dot--critical .ui-status-dot__mark { background-color: var(--color-status-critical-solid); }
+.ui-status-dot--warning .ui-status-dot__mark { background-color: var(--color-status-warning-solid); }
+.ui-status-dot--success .ui-status-dot__mark { background-color: var(--color-status-success-solid); }
+.ui-status-dot--info .ui-status-dot__mark { background-color: var(--color-status-info-solid); }
+.ui-status-dot--neutral .ui-status-dot__mark { background-color: var(--color-status-neutral-solid); }
+
+/* --- ui-chip — removable tag (active filters, selected problems) ----------- */
+
+ui-chip { display: inline-flex; }
+
+.ui-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--control-height-sm);
+  padding: 0 var(--space-2) 0 var(--space-4);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-full);
+  background-color: var(--color-bg-surface);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-primary);
+}
+
+.ui-chip--no-remove { padding-right: var(--space-4); }
+
+.ui-chip__remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-7);
+  height: var(--space-7);
+  border-radius: var(--radius-full);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+}
+.ui-chip__remove:hover { background-color: var(--color-bg-surface-hover); color: var(--color-text-primary); }
+.ui-chip__remove:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.ui-chip__remove .ui-icon { width: var(--icon-size-xs); height: var(--icon-size-xs); }
+
+/* --- ui-avatar ------------------------------------------------------------ */
+
+ui-avatar { display: inline-flex; }
+
+.ui-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-height-md);
+  height: var(--control-height-md);
+  border-radius: var(--radius-full);
+  background-color: var(--color-brand-surface);
+  color: var(--color-brand-text);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+/* 20px — the avatar size MediNova draws inside a table row. */
+.ui-avatar--xs { width: var(--space-8); height: var(--space-8); font-size: var(--font-size-11); }
+.ui-avatar--sm { width: var(--control-height-sm); height: var(--control-height-sm); }
+.ui-avatar--lg { width: var(--control-height-lg); height: var(--control-height-lg); font-size: var(--font-size-md); }
+
+.ui-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+/* ============================================================================
+   VARIANTS CARRIED OVER FROM THE FIGMA COMPONENT LIBRARY
+
+   Everything below closes a gap between what this prototype shipped and what
+   the MediNova library actually defines: the avatar palette and its status
+   overlay, the bare status dot with its outline and pulse, the chip's colour /
+   outline / selectable axes, and the badge's outline and leading dot.
+   ========================================================================= */
+
+/* --- ui-avatar: tint palette, larger sizes, status overlay ---------------- */
+
+.ui-avatar { position: relative; }
+
+.ui-avatar--grey { background-color: var(--color-grey-02); color: var(--color-grey-08); }
+.ui-avatar--violet { background-color: var(--color-violet-01); color: var(--color-violet-07); }
+.ui-avatar--yellow { background-color: var(--color-warning-01); color: var(--color-warning-08); }
+.ui-avatar--green { background-color: var(--color-success-01); color: var(--color-success-07); }
+.ui-avatar--brand { background-color: var(--color-brand-surface); color: var(--color-brand-text); }
+
+.ui-avatar--xl { width: var(--space-11); height: var(--space-11); font-size: var(--font-size-lg); }
+.ui-avatar--2xl { width: 5rem; height: 5rem; font-size: var(--font-size-xl); }
+.ui-avatar--3xl { width: 6rem; height: 6rem; font-size: var(--font-size-2xl); }
+
+.ui-avatar .ui-icon { width: 55%; height: 55%; }
+
+/* The dot sits ON the avatar, so it needs a ring in the surface colour to stay
+   readable against a photograph as well as against a flat tint. */
+.ui-avatar__status {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  display: inline-flex;
+}
+
+/* --- ui-status-dot: bare dot, sizes, outline, pulse ----------------------- */
+
+.ui-status-dot__mark--sm { width: var(--space-3); height: var(--space-3); }
+.ui-status-dot__mark--lg { width: var(--space-5); height: var(--space-5); }
+.ui-status-dot__mark--xl { width: var(--space-6); height: var(--space-6); }
+
+.ui-status-dot__mark--outline {
+  box-shadow: 0 0 0 var(--border-width-thick) var(--color-bg-surface);
+}
+
+/* A pulse claims "this is happening right now" — a provider on a call, a study
+   still acquiring. It is a ring expanding out of the dot rather than the dot
+   itself moving, so the position the eye locked onto never shifts. */
+.ui-status-dot__mark--pulse { position: relative; }
+.ui-status-dot__mark--pulse::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-full);
+  background-color: inherit;
+  animation: ui-status-pulse 1.8s var(--ease-out) infinite;
+}
+
+@keyframes ui-status-pulse {
+  0% { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(2.6); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-status-dot__mark--pulse::after { animation: none; }
+}
+
+/* --- ui-chip: colour, outline, sizes, icon, selectable -------------------- */
+
+.ui-chip--sm { min-height: var(--space-8); padding: 0 var(--space-4); font-size: var(--font-size-2xs); }
+.ui-chip--lg { min-height: var(--space-10); padding: 0 var(--space-6); font-size: var(--font-size-md); }
+
+.ui-chip__icon { display: inline-flex; flex-shrink: 0; }
+.ui-chip__icon .ui-icon { width: var(--icon-size-sm); height: var(--icon-size-sm); }
+
+.ui-chip--brand { background-color: var(--color-brand-surface); color: var(--color-brand-text); border-color: var(--color-brand-surface); }
+.ui-chip--success { background-color: var(--color-status-success-surface); color: var(--color-status-success-text); border-color: var(--color-status-success-surface); }
+.ui-chip--warning { background-color: var(--color-status-warning-surface); color: var(--color-status-warning-text); border-color: var(--color-status-warning-surface); }
+.ui-chip--critical { background-color: var(--color-status-critical-surface); color: var(--color-status-critical-text); border-color: var(--color-status-critical-surface); }
+.ui-chip--neutral { background-color: var(--color-status-neutral-surface); color: var(--color-status-neutral-text); border-color: var(--color-status-neutral-surface); }
+.ui-chip--white { background-color: var(--color-bg-surface); color: var(--color-text-primary); border-color: var(--color-border-default); }
+
+/* Outline keeps the ink and drops the fill, for a chip sitting on a tinted
+   panel where a second tint behind it would read as a third surface. */
+.ui-chip--outline { background-color: transparent; }
+.ui-chip--outline.ui-chip--brand { border-color: var(--color-border-brand); }
+.ui-chip--outline.ui-chip--success { border-color: var(--color-status-success-border); }
+.ui-chip--outline.ui-chip--warning { border-color: var(--color-status-warning-border); }
+.ui-chip--outline.ui-chip--critical { border-color: var(--color-status-critical-border); }
+.ui-chip--outline.ui-chip--neutral { border-color: var(--color-status-neutral-border); }
+.ui-chip--outline.ui-chip--white { border-color: var(--color-border-default); }
+
+.ui-chip__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  border-radius: var(--radius-full);
+}
+.ui-chip__toggle:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.ui-chip--selected {
+  background-color: var(--color-brand-solid);
+  border-color: var(--color-brand-solid);
+  color: var(--color-text-inverse);
+}
+
+.ui-chip--disabled { opacity: 0.5; cursor: not-allowed; }
+.ui-chip--disabled .ui-chip__toggle { cursor: not-allowed; }
+
+/* --- ui-badge: outline variant, leading dot, large size ------------------- */
+
+.ui-badge--lg { min-height: var(--space-10); padding: 0 var(--space-6); font-size: var(--font-size-md); }
+
+/* Outline drops the tint and keeps the ring, for a badge on a surface that is
+   already tinted — a row highlight, an alert body — where the badge's own fill
+   would stack into a third colour. */
+.ui-badge--outline { background-color: transparent; }
+
+.ui-badge__dot {
+  width: var(--space-3);
+  height: var(--space-3);
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
+  background-color: currentColor;
+}
+
+.ui-badge--white {
+  background-color: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  border-color: var(--color-border-default);
+}
+
+/* The dot's brand tone — present on the badge already, and needed here so an
+   avatar can wear a "this is you" mark rather than borrowing a status colour. */
+.ui-status-dot--brand .ui-status-dot__mark { background-color: var(--color-brand-solid); }

@@ -1,0 +1,113 @@
+/* ============================================================================
+   Gallery page chrome only. Not part of the component library — this styles
+   the documentation page you show the client, nothing else.
+   ========================================================================= */
+
+.gallery-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-6);
+  padding: var(--space-5) var(--space-9);
+  background-color: var(--color-bg-page);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+}
+
+.gallery-header__logo {
+  flex: none;
+  width: 9.875rem; /* 158px — the mark is vector, so it is crisp at any size */
+  height: auto;
+}
+
+.gallery {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: var(--space-9);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-11);
+}
+
+.gallery__intro {
+  color: var(--color-text-secondary);
+  max-width: 70ch;
+}
+
+.gallery__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding: var(--space-8);
+  background-color: var(--color-bg-surface);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+}
+
+.gallery__title {
+  font-family: var(--font-family-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--font-size-heading-md);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-brand);
+}
+
+.gallery__subtitle {
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  margin-top: var(--space-4);
+}
+
+.gallery__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-5);
+}
+
+.gallery__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-5);
+}
+
+.gallery__snippet {
+  padding: var(--space-4) var(--space-5);
+  background-color: var(--color-bg-surface-sunken);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  font-family: var(--font-family-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--font-size-sm);
+  overflow-x: auto;
+}
+
+.gallery__api {
+  width: 100%;
+  font-size: var(--font-size-sm);
+}
+
+.gallery__api th,
+.gallery__api td {
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.gallery__api th {
+  font-size: var(--font-size-2xs);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+.gallery__api td:first-child {
+  font-family: var(--font-family-numeric);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-brand);
+}

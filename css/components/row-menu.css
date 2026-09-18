@@ -1,0 +1,127 @@
+/* ============================================================================
+   ROW ⋮ MENU — the panel a table row's overflow button opens.
+
+   Parented to <body>, not to the cell: every table on this system scrolls
+   inside itself, and a panel inside a row would be clipped by that overflow.
+   Its coordinates arrive through a generated stylesheet keyed to the panel's
+   id, so no element ever carries a style attribute.
+
+   Shared rather than per-screen: Master and Provider Settings both open one,
+   and a menu that looked slightly different depending on which table you
+   opened it from is exactly the drift this file exists to prevent.
+   ========================================================================= */
+
+.ui-row-menu {
+  position: fixed;
+  top: var(--row-menu-top, 0);
+  left: var(--row-menu-left, 0);
+  z-index: var(--z-dropdown);
+  min-width: 13rem;
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  /* A menu is as long as its list, and Billing's status picker offers every
+     status a claim can hold — sixteen of them, taller than a short window.
+     Past that it scrolls inside itself rather than running off the bottom of
+     the screen. Shorter menus are untouched: a max only bites when exceeded,
+     and openMenu() measures the panel after it is in the document, so the
+     flip-above-the-trigger arithmetic sees the capped height and stays right. */
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+  box-shadow: var(--elevation-overlay);
+}
+
+.ui-row-menu__item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  width: 100%;
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-md);
+  background: none;
+  font-family: inherit;
+  font-size: var(--font-size-body);
+  color: var(--color-text-primary);
+  text-align: left;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.ui-row-menu__item:hover { background-color: var(--color-bg-surface-hover); }
+.ui-row-menu__item:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.ui-row-menu__item .ui-icon { flex: none; color: var(--color-text-tertiary); }
+
+.ui-row-menu__item--danger { color: var(--color-status-critical-text); }
+.ui-row-menu__item--danger:hover { background-color: var(--color-status-critical-surface); }
+.ui-row-menu__item--danger .ui-icon { color: currentColor; }
+
+.ui-row-menu__rule {
+  height: var(--border-width-thin);
+  margin: var(--space-2) 0;
+  background-color: var(--color-border-subtle);
+}
+
+/* --- The trigger ------------------------------------------------------------
+ * The "⋮" that opens the panel above, and every other icon-only button that
+ * sits at the end of a table row.
+ *
+ * There were nine private copies of this: .tsk__row-action, .set__icon-action,
+ * .sch__row-action, .mst__row-action, .med__row-menu, .bst__row-action,
+ * .bil__row-action, .aud__row-action, .lead__menu-btn. All nine were the same
+ * 24px square with the same hover, and two had already drifted — the scheduler
+ * to a darker resting colour, medication inventory to a tighter corner. One of
+ * the screens carries a comment reading "Same shape as .mst__row-action /
+ * .cn__row-action — one '⋮' convention", which is the duplication noticing
+ * itself and being written down instead of removed.
+ *
+ * It is one class now. A row action is a row action on every screen.
+ * -------------------------------------------------------------------------- */
+
+.ui-row-menu-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-9);
+  height: var(--space-9);
+  flex: none;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+.ui-row-menu-btn:hover {
+  background-color: var(--color-bg-surface-hover);
+  color: var(--color-text-primary);
+}
+
+.ui-row-menu-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.ui-row-menu-btn .ui-icon { flex: none; }
+
+.ui-row-menu-btn:disabled {
+  cursor: not-allowed;
+  color: var(--color-text-disabled);
+  background: none;
+}
+
+/* --- The delegated panel ----------------------------------------------------
+   js/lib/row-menu.js parents one <ui-menu> to <body> and anchors it to the
+   trigger. The menu's own surface, rows and keyboard come from the component;
+   all this adds is where it sits. */
+
+.ui-row-menu-panel {
+  position: fixed;
+  z-index: var(--z-dropdown);
+  top: var(--row-menu-top, 0);
+  left: var(--row-menu-left, 0);
+  min-width: 12rem;
+}

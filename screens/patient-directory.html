@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MediNova EHR — Patients</title>
+    <link rel="icon" type="image/svg+xml" href="../assets/img/favicon.svg" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="../css/reset.css" />
+    <link rel="stylesheet" href="../css/tokens.css" />
+    <link rel="stylesheet" href="../css/base.css" />
+    <link rel="stylesheet" href="../css/ui-kit.css" />
+    <link rel="stylesheet" href="../css/screen-patient.css" />
+    <link rel="stylesheet" href="../css/screen-leads.css" />
+
+    <script type="module" src="../js/main.js"></script>
+    <script type="module" src="../js/screens/patient-directory.js"></script>
+    <script src="../js/open-me-properly.js"></script>
+  </head>
+
+  <body class="pt">
+    <header class="pt__bar">
+      <img
+        class="pt__logo"
+        src="../assets/img/medinova-logo.svg"
+        width="158"
+        height="32"
+        alt="MediNova Gastroenterology Clinic"
+      />
+      <ui-main-nav active="patient"></ui-main-nav>
+      <div class="pt__bar-actions">
+        <ui-time-clock></ui-time-clock>
+        <button type="button" class="pt__icon-action" aria-label="Notifications">
+          <svg class="ui-icon" aria-hidden="true"><use href="#i-bell"></use></svg>
+        </button>
+        <ui-avatar name="Amara Mensah" size="sm"></ui-avatar>
+      </div>
+    </header>
+
+    <!-- The standard list header: the lead slot on the left saying where you
+         are, the action slot on the right in the fixed order search ->
+         filters -> the screen's own button. Both are .ui-page-head slots in
+         base.css; nothing about their geometry is decided here.
+
+         --flush because the table below brings its own top edge. The band's
+         rule and the card's border a gutter apart drew two hairlines where
+         the eye expects one. -->
+    <div class="ui-page-head ui-page-head--flush pt__head">
+      <div class="ui-page-head__lead">
+        <h1 class="ui-page-head__title">Patients</h1>
+      </div>
+
+      <div class="ui-page-head__actions">
+        <ui-input
+          class="pt__search"
+          icon="search"
+          label="Search patients"
+          label-hidden
+          placeholder="Search by name, MRN or phone"
+          data-testid="directory--search"
+        ></ui-input>
+        <!-- Filters live behind this button. Status is one of them now that
+             the Active / Inactive tabs are gone — which is also why the
+             button carries its word rather than standing as a bare funnel:
+             it is the only way to the list's own state. -->
+        <!-- The standard filter control (js/components/ui-filter.js) — one
+             button, one panel, the same on every list in the product. The four
+             questions with a countable set of answers are drawn as ticks; the
+             five that cannot be — a name, an MRN, two date ranges — are fields
+             in the same panel, under their own headings. -->
+        <ui-filter
+          id="dirFilter"
+          label="Filters"
+          panel-label="Filter patients"
+          width="21rem"
+          data-testid="directory--filter"
+        >
+          <ui-filter-group name="status" label="Status" options="Active,Inactive"></ui-filter-group>
+          <ui-filter-group name="portal" label="Patient portal"
+            options="Active,Pending,Inactive"></ui-filter-group>
+          <ui-filter-group name="carrier" label="Insurance carrier"></ui-filter-group>
+          <ui-filter-group name="coverage" label="Coverage"></ui-filter-group>
+
+          <ui-filter-fields name="who" label="Find a patient">
+            <ui-input label="Patient name" size="sm" data-testid="filter--name"></ui-input>
+            <ui-input label="MRN" size="sm" data-testid="filter--mrn"></ui-input>
+            <ui-input label="Date of birth" type="date" size="sm"
+              data-testid="filter--dob"></ui-input>
+          </ui-filter-fields>
+
+          <ui-filter-fields name="appt" label="Last appointment">
+            <div class="ui-filter-group__fields--pair">
+              <ui-input label="From" type="date" size="sm"
+                data-testid="filter--appt-from"></ui-input>
+              <ui-input label="To" type="date" size="sm"
+                data-testid="filter--appt-to"></ui-input>
+            </div>
+          </ui-filter-fields>
+        </ui-filter>
+
+        <ui-button variant="primary" icon="plus" data-testid="directory--add"
+          >New Patient</ui-button
+        >
+      </div>
+    </div>
+
+    <main class="ui-list-body pt__body">
+      <!-- Table and pager are one card, not a table with a strip under it —
+           see .ui-table-card in base.css. -->
+      <div class="ui-table-card">
+        <ui-data-table id="directory" data-testid="directory--table"></ui-data-table>
+
+        <!-- Filled by lib/pagination.js, the same way every paged table is. -->
+        <div id="foot"></div>
+      </div>
+    </main>
+  </body>
+</html>

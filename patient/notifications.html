@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Notifications — MediNova Clinic Patient Portal</title>
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="css/reset.css" />
+    <link rel="stylesheet" href="css/tokens.css" />
+    <link rel="stylesheet" href="css/base.css" />
+    <link rel="stylesheet" href="css/components.css" />
+    <link rel="stylesheet" href="css/shell.css" />
+    <link rel="stylesheet" href="css/screen-notifications.css" />
+    <link rel="stylesheet" href="css/select-menu.css" />
+
+    <!--
+      NOTIFICATIONS — the whole list, where the bell's panel shows the top few.
+
+      ⚠ NOT IN THE SUPPLIED DESIGN. The bell is drawn with an unread count and
+      nothing behind it; the panel is where that count leads, and this page is
+      where the panel's "View all notifications" leads. It exists because a
+      dropdown is the wrong container for a history: it is short, it closes on
+      any outside click, and it cannot be linked to.
+
+      It is NOT in the side nav, deliberately. The bell is the way in — a
+      notification list is something you check when the bell says there is
+      something, not a section of the portal you browse. A nav row for it would
+      compete with the eight rows that are places rather than events.
+    -->
+    <script src="js/guard.js"></script>
+    <script type="module" src="js/screens/notifications.js"></script>
+    <script type="module" src="js/lib/select-menu.js"></script>
+    <script type="module" src="js/comments.js"></script>
+    <script src="js/open-me-properly.js"></script>
+  </head>
+
+  <body class="pp-app">
+    <header class="pp-topbar" id="topbar"></header>
+
+    <div class="pp-body">
+      <nav class="pp-side pp-scroll" id="sidenav" aria-label="Portal sections"></nav>
+
+      <main class="pp-main">
+        <div class="pp-content pp-scroll">
+          <h1 class="pp-sr-only">Notifications</h1>
+          <div id="screen"></div>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

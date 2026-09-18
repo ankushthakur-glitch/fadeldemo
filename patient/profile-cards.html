@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Card Details — MediNova Clinic Patient Portal</title>
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="css/reset.css" />
+    <link rel="stylesheet" href="css/tokens.css" />
+    <link rel="stylesheet" href="css/base.css" />
+    <link rel="stylesheet" href="css/components.css" />
+    <link rel="stylesheet" href="css/shell.css" />
+    <link rel="stylesheet" href="css/screen-profile.css" />
+    <link rel="stylesheet" href="css/select-menu.css" />
+
+    <script src="js/guard.js"></script>
+    <script type="module" src="js/screens/profile-cards.js"></script>
+    <script type="module" src="js/lib/select-menu.js"></script>
+    <script type="module" src="js/comments.js"></script>
+    <script src="js/open-me-properly.js"></script>
+  </head>
+
+  <body class="pp-app">
+    <header class="pp-topbar" id="topbar"></header>
+
+    <div class="pp-body">
+      <nav class="pp-side pp-scroll" id="sidenav" aria-label="Portal sections"></nav>
+
+      <main class="pp-main">
+        <div class="pp-content pp-scroll">
+          <!--
+            The Profile / Insurance / Card Details strip and Add Card, on one
+            row. Drawn by lib/profile-tabs.js, which owns the list and the bar;
+            the button markup is handed to it by the screen — see
+            js/screens/profile-cards.js.
+
+            The bar also carries this page's <h1>, visually hidden, which is
+            why there is no heading written out here.
+
+            This screen was billing-cards.html, the third Billing tab. It moved
+            for the reason Insurance did before it: a card on file is something
+            the patient keeps about themselves, not an event in their account.
+          -->
+          <div id="tabs"></div>
+
+          <div class="pp-table-wrap">
+            <table class="pp-table" data-testid="cards--table">
+              <caption class="pp-sr-only">Payment cards saved to your account</caption>
+              <thead>
+                <tr>
+                  <th scope="col">Card Number</th>
+                  <th scope="col">Expiration Date</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Action</th>
+                </tr>
+              </thead>
+              <tbody id="rows"></tbody>
+            </table>
+          </div>
+
+          <!--
+            ⚠ NO PAGER, AND THE DESIGN DRAWS ONE — on this table and on both
+            billing tables.
+
+            The screenshots put the same ten-page control under five rows.
+            Five rows are the whole list, so the control had nothing to do;
+            giving it something meant generating nine pages of history nobody
+            has, which is inventing a situation to decorate. A saved-card list
+            is the clearest case of all: nobody has fifty cards on file.
+            Paging earns its height again when there is real history behind
+            it — see js/screens/billing-statements.js.
+          -->
+        </div>
+      </main>
+    </div>
+
+    <!--
+      ADD CARD
+
+      A native <dialog>, the same element and the same shape as the Add
+      Insurance popup one tab over — a centred box, not a drawer. Short form,
+      so it takes the narrow .pp-modal--form width rather than the wide one
+      Insurance needs for sixteen fields.
+
+      ⚠ WHAT IS TYPED HERE IS NOT WHAT IS KEPT. The number field takes a whole
+      card number, because that is the only thing a patient can be asked to
+      type. The screen reads two facts off it — the brand and the last four —
+      and drops the rest before anything is stored; data/billing.js has no
+      parameter a full number could even be passed through. The CVV is never
+      stored under any circumstance, which is why it says so on the form
+      rather than only in this comment.
+
+      In a real build the number and CVV go straight to the payment provider
+      from a field the practice's own page never sees, and what comes back is
+      a token. The portal would keep exactly what it keeps here.
+    -->
+    <dialog class="pp-modal pp-modal--form" id="cardModal" aria-labelledby="cardModalTitle">
+      <form class="pp-modal__form" method="dialog" id="cardForm" novalidate>
+        <div class="pp-modal__head">
+          <h2 class="pp-modal__title" id="cardModalTitle">Add Card</h2>
+          <button type="button" class="pp-modal__close" id="closeCard" aria-label="Close"
+            data-testid="cards--close">
+            <svg class="pp-icon" aria-hidden="true"><use href="#pi-close"></use></svg>
+          </button>
+        </div>
+
+        <div class="pp-modal__body pp-scroll">
+          <div class="pp-form-grid">
+            <div class="pp-field pp-field--wide">
+              <label class="pp-label" for="cardName">
+                Name On Card <span class="pp-label__req" aria-hidden="true">*</span>
+              </label>
+              <input class="pp-input" id="cardName" required autocomplete="cc-name"
+                data-testid="cards--name" />
+              <p class="pp-field__error" id="cardNameError" hidden></p>
+            </div>
+
+            <div class="pp-field pp-field--wide">
+              <label class="pp-label" for="cardNumber">
+                Card Number <span class="pp-label__req" aria-hidden="true">*</span>
+              </label>
+              <!-- inputmode="numeric", not type="number": a card number is a
+                   string of digits, not a quantity — type="number" brings a
+                   spinner, strips leading zeros and lets a browser offer to
+                   increment it. -->
+              <input class="pp-input" id="cardNumber" required inputmode="numeric"
+                autocomplete="cc-number" maxlength="23" placeholder="0000 0000 0000 0000"
+                data-testid="cards--number" />
+              <p class="pp-field__error" id="cardNumberError" hidden></p>
+            </div>
+
+            <div class="pp-field">
+              <label class="pp-label" for="cardExpiry">
+                Expiration Date <span class="pp-label__req" aria-hidden="true">*</span>
+              </label>
+              <!-- month, not date: a card expires in a month, and asking for a
+                   day invents a precision the card does not have. -->
+              <div class="pp-control pp-control--icon">
+                <input class="pp-input" id="cardExpiry" type="month" required
+                  autocomplete="cc-exp" data-testid="cards--expiry" />
+                <span class="pp-control__icon">
+                  <svg class="pp-icon" aria-hidden="true"><use href="#pi-calendar"></use></svg>
+                </span>
+              </div>
+              <p class="pp-field__error" id="cardExpiryError" hidden></p>
+            </div>
+
+            <div class="pp-field">
+              <label class="pp-label" for="cardCvv">
+                CVV <span class="pp-label__req" aria-hidden="true">*</span>
+              </label>
+              <input class="pp-input" id="cardCvv" required inputmode="numeric"
+                autocomplete="cc-csc" maxlength="4" placeholder="123"
+                data-testid="cards--cvv" />
+              <p class="pp-field__error" id="cardCvvError" hidden></p>
+            </div>
+          </div>
+
+          <div class="pp-alert pp-alert--info pp-modal__notice">
+            <div>
+              <p class="pp-alert__heading">Only the last four digits are kept.</p>
+              <p class="pp-alert__body">
+                The full number goes to the payment provider, never to the practice, and
+                the CVV is not stored anywhere at all — you will be asked for it again
+                each time it is needed.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="pp-modal__foot">
+          <button type="button" class="pp-btn pp-btn--neutral" id="cancelCard"
+            data-testid="cards--cancel">Cancel</button>
+          <button type="submit" class="pp-btn pp-btn--primary" data-testid="cards--submit">
+            Add Card
+          </button>
+        </div>
+      </form>
+    </dialog>
+  </body>
+</html>

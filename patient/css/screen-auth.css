@@ -1,0 +1,301 @@
+/* ============================================================================
+   SIGN IN
+
+   Two columns: the form on the left on plain white, a promotional panel on
+   the right. The promo panel is the only place in the portal that carries a
+   large image, and it is decorative — everything it says in pictures, the
+   caption says in words.
+   ========================================================================= */
+
+.pp-auth {
+  min-height: 100vh;
+  background-color: var(--pp-white);
+}
+
+.pp-auth__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 38fr) minmax(0, 62fr);
+  min-height: 100vh;
+}
+
+/* --- Left: the form ------------------------------------------------------------- */
+
+/*
+ * The right padding is larger than the left on purpose.
+ *
+ * Left of the form is the window edge; right of it is the promo panel, which
+ * is a solid dark block. A field ending 40px short of a white margin reads as
+ * comfortable; the same 40px against a dark panel reads as a collision. The
+ * gutter is the sum of this padding and the panel's own inset, and it wants to
+ * be visibly wider than the space above the form.
+ */
+.pp-auth__side {
+  display: flex;
+  flex-direction: column;
+  padding: var(--pp-space-7) var(--pp-space-8);
+  padding-right: calc(var(--pp-space-8) + var(--pp-space-6));
+}
+
+/* The wordmark. Bigger than the one in the app bar — this is the only thing
+   on the screen above the form, and it is what tells someone whose portal
+   they are about to type a password into. */
+.pp-auth__brand {
+  display: inline-flex;
+  align-self: flex-start;
+}
+
+.pp-auth__brand img {
+  height: 2.375rem;
+  width: auto;
+}
+
+/*
+ * The form sits in the optical middle of the column, not the mathematical
+ * one. flex:1 with centred content puts it dead centre of the space BELOW
+ * the wordmark, which is what the design shows — a block that reads as
+ * centred rather than one measured to be.
+ */
+.pp-auth__main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.pp-auth__card {
+  width: 100%;
+  max-width: 28rem;
+}
+
+.pp-auth__title {
+  font-size: var(--pp-size-h1);
+  font-weight: var(--pp-weight-semibold);
+  line-height: var(--pp-leading-h1);
+  letter-spacing: var(--pp-tracking-display);
+  color: var(--pp-text-strong);
+}
+
+.pp-auth__subtitle {
+  margin-top: var(--pp-space-2);
+  color: var(--pp-text-muted);
+}
+
+.pp-auth__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pp-gap-block);
+  margin-top: var(--pp-space-6);
+}
+
+.pp-auth__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--pp-space-3);
+}
+
+.pp-auth__error:not([hidden]) {
+  margin-top: var(--pp-gap-block);
+}
+
+/* Caps Lock. A live region that says nothing until there is something to say. */
+.pp-auth__caps {
+  display: flex;
+  align-items: center;
+  gap: var(--pp-space-2);
+  color: var(--pp-amber-fg);
+  font-size: var(--pp-size-xs);
+}
+
+/* ============================================================================
+   RIGHT: THE PROMO CAROUSEL
+
+   ⚠ THE PHOTOGRAPHS ARE NOT HERE.
+
+   The design fills this panel with clinical photography. None was supplied
+   and none is invented — an AI-generated "doctor" standing in for a real
+   practice's own picture is a worse placeholder than an obvious one, because
+   it looks finished and nobody replaces it.
+
+   What IS the design, and is built: the panel's proportions, the rounded
+   inset, the scrim, the caption's position and type, the dot control, and the
+   timing of the advance. Drop four images into patient/assets/ and give each
+   slide a background-image to finish it.
+   ========================================================================= */
+
+.pp-auth__promo {
+  position: relative;
+  overflow: hidden;
+  margin: var(--pp-space-6);
+  border-radius: var(--pp-radius-lg);
+  background-color: var(--pp-brand-900);
+  isolation: isolate;
+}
+
+.pp-auth__slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+
+.pp-auth__slide[data-current='true'] {
+  opacity: 1;
+}
+
+/* Four related grounds rather than four unrelated ones: the brand green,
+   rotated and taken darker than any interface green so the panel reads as a
+   photograph's place rather than as a very large button. A carousel whose
+   slides do not look like siblings reads as four different products. */
+.pp-auth__slide:nth-child(1) {
+  background-image: radial-gradient(
+      120% 90% at 15% 12%,
+      rgb(86 132 214 / 52%) 0%,
+      transparent 62%
+    ),
+    linear-gradient(148deg, #1e3a6e 0%, #172f5a 48%, #0c1a33 100%);
+}
+
+.pp-auth__slide:nth-child(2) {
+  background-image: radial-gradient(
+      110% 85% at 82% 18%,
+      rgb(118 156 226 / 48%) 0%,
+      transparent 60%
+    ),
+    linear-gradient(160deg, #20407a 0%, #15294f 52%, #0a1630 100%);
+}
+
+.pp-auth__slide:nth-child(3) {
+  background-image: radial-gradient(
+      130% 95% at 25% 85%,
+      rgb(70 120 210 / 48%) 0%,
+      transparent 62%
+    ),
+    linear-gradient(135deg, #1a3566 0%, #1f3d74 45%, #0b1934 100%);
+}
+
+.pp-auth__slide:nth-child(4) {
+  background-image: radial-gradient(
+      115% 90% at 70% 78%,
+      rgb(96 140 220 / 46%) 0%,
+      transparent 60%
+    ),
+    linear-gradient(200deg, #1d3a70 0%, #142a52 50%, #08142b 100%);
+}
+
+/* A faint diagonal weave over the top of whichever slide is showing. Enough
+   texture that a flat gradient does not read as a failed image load. */
+.pp-auth__promo::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background-image: repeating-linear-gradient(
+    115deg,
+    rgb(255 255 255 / 4%) 0 1px,
+    transparent 1px 22px
+  );
+  pointer-events: none;
+}
+
+/* The scrim. Without it the caption's legibility depends on whatever the
+   image happens to be doing behind it, which is not a thing to leave to
+   chance on the one screen everybody sees. */
+.pp-auth__scrim {
+  position: absolute;
+  inset: auto 0 0;
+  z-index: 2;
+  height: 48%;
+  background-image: linear-gradient(
+    to top,
+    rgb(6 14 32 / 88%) 0%,
+    rgb(6 14 32 / 62%) 45%,
+    transparent 100%
+  );
+  pointer-events: none;
+}
+
+.pp-auth__caption {
+  position: absolute;
+  inset: auto 0 0;
+  z-index: 3;
+  padding: var(--pp-space-8) var(--pp-space-8) var(--pp-space-7);
+  color: var(--pp-white);
+}
+
+.pp-auth__caption h2 {
+  font-size: var(--pp-size-display);
+  font-weight: var(--pp-weight-bold);
+  line-height: var(--pp-leading-display);
+  letter-spacing: var(--pp-tracking-display);
+}
+
+.pp-auth__caption p {
+  max-width: 44rem;
+  margin-top: var(--pp-space-3);
+  font-size: var(--pp-size-body);
+  line-height: var(--pp-leading-normal);
+  color: rgb(255 255 255 / 88%);
+}
+
+.pp-auth__dots {
+  display: flex;
+  justify-content: center;
+  gap: var(--pp-space-2);
+  margin-top: var(--pp-space-6);
+}
+
+/*
+ * The dot is a 10px pill inside a 24px hit area.
+ *
+ * Padding rather than a bigger pill: the design's control is small, and a
+ * target a finger can actually land on is not optional just because the mark
+ * is decorative. The visible pill stays as drawn; the button around it does
+ * not.
+ */
+.pp-auth__dot {
+  display: flex;
+  align-items: center;
+  padding: var(--pp-space-2);
+  cursor: pointer;
+}
+
+.pp-auth__dot::before {
+  content: '';
+  width: 1.5rem;
+  height: 0.3125rem;
+  border-radius: var(--pp-radius-pill);
+  background-color: rgb(255 255 255 / 40%);
+  transition: background-color 0.2s ease, width 0.2s ease;
+}
+
+.pp-auth__dot[aria-current='true']::before {
+  width: 2.25rem;
+  background-color: var(--pp-white);
+}
+
+/* ============================================================================
+   NARROW SCREENS
+
+   Below 64rem the promo panel is the first thing to go. It carries no
+   information the caption does not repeat, and a sign-in form squeezed into
+   a third of a phone screen so that a decorative gradient can keep two
+   thirds is the wrong trade.
+   ========================================================================= */
+
+@media (width < 64rem) {
+  .pp-auth__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .pp-auth__promo {
+    display: none;
+  }
+
+  .pp-auth__side {
+    padding: var(--pp-space-6);
+  }
+
+  .pp-auth__main {
+    justify-content: center;
+  }
+}

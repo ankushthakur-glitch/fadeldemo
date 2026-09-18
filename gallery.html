@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MediNova EHR — Component Gallery</title>
+    <link rel="icon" type="image/svg+xml" href="assets/img/favicon.svg" />
+
+    <!-- Inter is the typeface specified in the MediNova Figma file. The system
+         stack in tokens.css takes over if this fails to load, so the
+         prototype still renders correctly offline. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="css/reset.css" />
+    <link rel="stylesheet" href="css/tokens.css" />
+    <link rel="stylesheet" href="css/base.css" />
+    <!-- The whole library in one link. The gallery shows every component, so
+         listing them individually here was a maintenance trap: a new component
+         appeared unstyled until someone remembered this block. -->
+    <link rel="stylesheet" href="css/ui-kit.css" />
+    <link rel="stylesheet" href="css/gallery.css" />
+
+    <script type="module" src="js/main.js"></script>
+    <script type="module" src="js/gallery.js"></script>
+    <script src="js/open-me-properly.js"></script>
+  </head>
+
+  <body>
+    <header class="gallery-header">
+      <img
+        class="gallery-header__logo"
+        src="assets/img/medinova-logo.svg"
+        width="158"
+        height="32"
+        alt="MediNova Gastroenterology Clinic"
+      />
+      <div class="u-row">
+        <a href="screens/scheduler.html">Scheduler →</a>
+        <a href="screens/check-in.html">Procedure check-in →</a>
+        <!-- No Pre-procedure checklist link: the sheet is step 1 of the
+             encounter's Pre-anaesthesia stage, not a screen of its own. -->
+        <a href="screens/encounter.html">Encounter →</a>
+        <a href="screens/clinic-visit.html">Clinic visit →</a>
+        <a href="screens/referrals.html">Referrals →</a>
+        <a href="screens/patient-directory.html">Patient directory →</a>
+        <a href="screens/patient-chart.html">Patient chart →</a>
+        <a href="screens/patient-add.html">Add patient →</a>
+        <ui-button size="sm" variant="outline" data-theme-toggle
+          >Light / dark</ui-button
+        >
+      </div>
+    </header>
+
+    <main class="gallery">
+      <p class="gallery__intro">
+        Every component below is a native Web Component with no Shadow DOM, so
+        the tokens in <code>css/tokens.css</code> cascade straight in. Default
+        control height is <strong>32px</strong> and density defaults to
+        <strong>compact</strong>.
+      </p>
+
+      <!-- ================= BUTTON ================= -->
+      <section class="gallery__section" id="button">
+        <h2 class="gallery__title">ui-button</h2>
+
+        <h3 class="gallery__subtitle">Variants</h3>
+        <div class="gallery__row">
+          <ui-button variant="primary" data-testid="button--primary--default">Sign note</ui-button>
+          <ui-button variant="secondary" data-testid="button--secondary--default">Save draft</ui-button>
+          <ui-button variant="tertiary" data-testid="button--tertiary--default">Cancel</ui-button>
+          <ui-button variant="outline" data-testid="button--outline--default">Filters</ui-button>
+          <ui-button variant="danger" data-testid="button--danger--default">Discontinue</ui-button>
+          <ui-button variant="success" data-testid="button--success--default">Approve</ui-button>
+          <ui-button variant="warning" data-testid="button--warning--default">Flag</ui-button>
+        </div>
+
+        <h3 class="gallery__subtitle">Sizes — 24 / 28 / 32 / 40</h3>
+        <div class="gallery__row">
+          <ui-button size="xs" data-testid="button--primary--xs">Extra small</ui-button>
+          <ui-button size="sm" data-testid="button--primary--sm">Small</ui-button>
+          <ui-button size="md" data-testid="button--primary--md">Medium</ui-button>
+          <ui-button size="lg" data-testid="button--primary--lg">Large</ui-button>
+        </div>
+
+        <h3 class="gallery__subtitle">States</h3>
+        <div class="gallery__row">
+          <ui-button data-testid="button--primary--hover">Hover me</ui-button>
+          <ui-button data-testid="button--primary--focus">Focus me</ui-button>
+          <ui-button disabled data-testid="button--primary--disabled">Disabled</ui-button>
+          <ui-button loading data-testid="button--primary--loading">Saving</ui-button>
+          <ui-button icon="plus" data-testid="button--primary--icon">Add order</ui-button>
+          <ui-button icon-only icon="more-vertical" label="More actions" variant="outline" data-testid="button--outline--icon-only"></ui-button>
+          <ui-button dropdown variant="outline" data-testid="button--outline--dropdown">Actions</ui-button>
+        </div>
+
+        <pre class="gallery__snippet"><code>&lt;ui-button variant="primary" size="md"&gt;Sign note&lt;/ui-button&gt;</code></pre>
+        <table class="gallery__api">
+          <thead><tr><th>Attribute</th><th>Values</th><th>Default</th></tr></thead>
+          <tbody>
+            <tr><td>variant</td><td>primary · secondary · tertiary · outline · danger · success · warning</td><td>primary</td></tr>
+            <tr><td>size</td><td>xs · sm · md · lg</td><td>md</td></tr>
+            <tr><td>icon / icon-end</td><td>icon name</td><td>—</td></tr>
+            <tr><td>icon-only · dropdown · loading · disabled · full</td><td>boolean</td><td>false</td></tr>
+            <tr><td><em>event</em> ui-click</td><td>{ originalEvent }</td><td>—</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- ================= BADGE / INDICATORS ================= -->
+      <section class="gallery__section" id="badge">
+        <h2 class="gallery__title">ui-badge · ui-status-dot · ui-chip · ui-avatar</h2>
+
+        <h3 class="gallery__subtitle">Badge — soft (default)</h3>
+        <div class="gallery__row">
+          <ui-badge status="critical" icon="critical" data-testid="badge--critical--soft">Critical</ui-badge>
+          <ui-badge status="warning" icon="warning" data-testid="badge--warning--soft">Abnormal</ui-badge>
+          <ui-badge status="success" icon="check" data-testid="badge--success--soft">Normal</ui-badge>
+          <ui-badge status="info" data-testid="badge--info--soft">Scheduled</ui-badge>
+          <ui-badge status="neutral" data-testid="badge--neutral--soft">Draft</ui-badge>
+          <ui-badge status="brand" data-testid="badge--brand--soft">Priority</ui-badge>
+        </div>
+
+        <h3 class="gallery__subtitle">Badge — solid</h3>
+        <div class="gallery__row">
+          <ui-badge status="critical" solid data-testid="badge--critical--solid">Allergy</ui-badge>
+          <ui-badge status="warning" solid data-testid="badge--warning--solid">High</ui-badge>
+          <ui-badge status="success" solid data-testid="badge--success--solid">Signed</ui-badge>
+          <ui-badge status="info" solid data-testid="badge--info--solid">New</ui-badge>
+        </div>
+
+        <h3 class="gallery__subtitle">Status dot · chip · avatar</h3>
+        <div class="gallery__row">
+          <ui-status-dot status="critical" data-testid="status-dot--critical--default">Unstable</ui-status-dot>
+          <ui-status-dot status="success" data-testid="status-dot--success--default">Stable</ui-status-dot>
+          <ui-status-dot status="neutral" data-testid="status-dot--neutral--default">Discharged</ui-status-dot>
+          <ui-chip removable data-testid="chip--default--removable">Crohn's disease</ui-chip>
+          <ui-chip data-testid="chip--default--static">Ward 3B</ui-chip>
+          <ui-avatar name="Priya Raman" data-testid="avatar--md--default"></ui-avatar>
+          <ui-avatar name="Daniel Okafor" size="sm" data-testid="avatar--sm--default"></ui-avatar>
+        </div>
+
+        <pre class="gallery__snippet"><code>&lt;ui-badge status="critical" solid icon="critical"&gt;Allergy&lt;/ui-badge&gt;</code></pre>
+      </section>
+
+      <!-- ================= FORMS ================= -->
+      <section class="gallery__section" id="forms">
+        <h2 class="gallery__title">ui-input · ui-select · ui-checkbox · ui-toggle</h2>
+
+        <div class="gallery__grid">
+          <ui-input label="Patient name" placeholder="Search by name or MRN" icon="search" data-testid="input--md--default"></ui-input>
+          <ui-input label="MRN" value="884120" hint="6-digit medical record number" data-testid="input--md--hint"></ui-input>
+          <ui-input label="Dose" value="40" error="Dose exceeds the maximum for this weight" required data-testid="input--md--error"></ui-input>
+          <ui-input label="Ordering provider" value="Dr. A. Mensah" readonly data-testid="input--md--readonly"></ui-input>
+          <ui-input label="Discharge date" placeholder="dd/mm/yyyy" icon="calendar" disabled data-testid="input--md--disabled"></ui-input>
+          <ui-input label="Small" size="sm" placeholder="28px" data-testid="input--sm--default"></ui-input>
+        </div>
+
+        <!-- The dropdown's three empty rows, side by side. `placeholder` asks the
+             question and is kept out of the list; `empty-option` names an answer
+             and stays in it; `multiple` turns every row into a checkbox and the
+             empty row into the one that clears them.
+
+             `multiple` is now what a FILTER looks like across the product —
+             status, provider, payer, category, location. A record field that
+             captures one answer about one person stays single; a filter that
+             names a set a row can belong to takes the set. The reading half is
+             admits() in js/lib/filter-set.js. -->
+        <div class="gallery__grid">
+          <ui-select label="Referring provider" placeholder="Select provider"
+            options="Dr. A. Mensah,Dr. L. Bianchi,Dr. S. Nakamura"
+            data-testid="select--placeholder"></ui-select>
+          <ui-select label="Status" empty-option="All statuses"
+            options="Scheduled,Arrived,In room,Complete"
+            data-testid="select--empty-option"></ui-select>
+          <ui-select label="Care team" multiple empty-option="No one assigned"
+            value="Dr. A. Mensah,Dr. S. Nakamura"
+            options="Dr. A. Mensah,Dr. L. Bianchi,Dr. S. Nakamura"
+            data-testid="select--multiple"></ui-select>
+          <!-- A LIST IN TWO HALVES. An option may carry a `group`, and a run of
+               options sharing one is drawn under that heading — the shape a
+               picker needs once it offers both "what is already on this record"
+               and "everything else on the shelf". Headings cannot be landed on,
+               typed to or pressed. Set from script, because the `options`
+               attribute is a comma-joined string of labels and has nowhere to
+               put a group; see js/gallery.js. -->
+          <ui-select label="Medication" placeholder="Medication name"
+            data-gallery-groups="medications"
+            data-testid="select--grouped"></ui-select>
+        </div>
+
+        <div class="gallery__row">
+          <ui-checkbox checked data-testid="checkbox--default--checked">Include inactive patients</ui-checkbox>
+          <ui-checkbox data-testid="checkbox--default--unchecked">Show only my patients</ui-checkbox>
+          <ui-checkbox disabled data-testid="checkbox--default--disabled">Locked filter</ui-checkbox>
+          <ui-toggle checked data-testid="toggle--default--checked">Abnormal only</ui-toggle>
+          <ui-toggle data-testid="toggle--default--unchecked">Auto-refresh</ui-toggle>
+        </div>
+      </section>
+
+      <!-- ================= ALERT ================= -->
+      <section class="gallery__section" id="alert">
+        <h2 class="gallery__title">ui-alert</h2>
+        <div class="u-stack">
+          <ui-alert severity="critical" heading="Allergy — Penicillin" dismissible data-testid="alert--critical--default">
+            Documented anaphylaxis. Verify before prescribing.
+          </ui-alert>
+          <ui-alert severity="warning" heading="Overdue" data-testid="alert--warning--default">
+            Colonoscopy surveillance was due 3 months ago.
+          </ui-alert>
+          <ui-alert severity="success" heading="Note signed" data-testid="alert--success--default">
+            Encounter note signed and filed to the chart.
+          </ui-alert>
+          <ui-alert severity="info" data-testid="alert--info--default">
+            Results from LabCorp sync every 15 minutes.
+          </ui-alert>
+        </div>
+      </section>
+
+      <!-- ================= DATA TABLE ================= -->
+      <section class="gallery__section" id="data-table">
+        <h2 class="gallery__title">ui-data-table</h2>
+        <h3 class="gallery__subtitle">Ready — selectable, sortable, compact</h3>
+        <ui-data-table id="demoTable" selectable data-testid="data-table--ready--compact"></ui-data-table>
+
+        <h3 class="gallery__subtitle">Loading · empty · error</h3>
+        <div class="u-stack">
+          <ui-data-table state="loading" data-testid="data-table--loading--default"></ui-data-table>
+          <ui-data-table state="empty" data-testid="data-table--empty--default"></ui-data-table>
+          <ui-data-table state="error" data-testid="data-table--error--default"></ui-data-table>
+        </div>
+      </section>
+      <!-- ================= FILTER =================
+           The one filter control every list in the product uses. It is its own
+           section rather than a row in #forms because it is not a field: it is
+           a button, a panel and a state, and the thing worth showing is what
+           the panel looks like when it opens. -->
+      <section class="gallery__section" id="filter">
+        <h2 class="gallery__title">ui-filter</h2>
+        <p class="gallery__intro">
+          A button that opens a panel of tickable answers, grouped under the
+          question they answer, with <strong>Clear</strong> and
+          <strong>Done</strong> at the foot. Every group is a set — nothing
+          ticked means "do not narrow by this", so there is no
+          <em>All</em> row. Add <code>single</code> for the rare filter that
+          genuinely admits one answer, and <code>&lt;ui-filter-fields&gt;</code>
+          for the things a tick cannot say: a date range, an MRN.
+        </p>
+        <p class="gallery__intro">
+          It reports <code>ui-filter-change</code> on every tick and
+          <code>ui-filter-apply</code> on Done, both carrying the whole state as
+          <code>{ group: [value, …] }</code> — which
+          <code>admits()</code> in <code>js/lib/filter-set.js</code> reads
+          directly. The badge counts the ticks plus any contributed field that
+          has something in it.
+        </p>
+
+        <div class="gallery__row">
+          <ui-filter label="Filters" panel-label="Filter referrals" align="start"
+            data-testid="filter--default">
+            <ui-filter-group name="source" label="Source"
+              options="Email,Phone Call,Regional Centre,Walk In,Website"></ui-filter-group>
+            <ui-filter-group name="status" label="Status">
+              <option value="invite-sent">Invite Sent</option>
+              <option value="no-response">No Response</option>
+            </ui-filter-group>
+          </ui-filter>
+
+          <!-- Icon only, for a rail or a toolbar with no room for the word.
+               `panel-label` becomes its accessible name. -->
+          <ui-filter label="" panel-label="Filter chats" align="start"
+            data-testid="filter--icon">
+            <ui-filter-group name="quick" label="Show only"
+              options="Urgent,Unread"></ui-filter-group>
+          </ui-filter>
+
+          <!-- Ticks and fields in one panel, and a `single` group. -->
+          <ui-filter label="Filters" panel-label="Filter the audit log"
+            align="start" width="19rem" data-testid="filter--mixed">
+            <ui-filter-fields name="when" label="Date range">
+              <div class="ui-filter-group__fields--pair">
+                <ui-input type="date" label="From" size="sm"></ui-input>
+                <ui-input type="date" label="To" size="sm"></ui-input>
+              </div>
+            </ui-filter-fields>
+            <ui-filter-group name="category" label="Category"
+              options="PHI Read,PHI Write,Admin,Export"></ui-filter-group>
+            <ui-filter-group name="outcome" label="Outcome" single
+              options="Success,Failure"></ui-filter-group>
+          </ui-filter>
+
+          <ui-filter label="Filters" disabled data-testid="filter--disabled">
+            <ui-filter-group name="status" label="Status" options="Open,Closed"></ui-filter-group>
+          </ui-filter>
+        </div>
+      </section>
+
+      <!-- ================= ICD-10 =================
+           Deliberately its own section rather than an extra row in #forms:
+           that section is under a pixel snapshot, and a diagnosis picker is a
+           different kind of thing from a text box anyway. -->
+      <section class="gallery__section" id="icd10">
+        <h2 class="gallery__title">ui-icd10</h2>
+        <p class="gallery__intro">
+          One control for every ICD-10 field in the app. Searches the code and
+          the description together — <code>K21</code>, <code>K219</code> and
+          <code>reflux</code> all find the same row. With <code>suggest</code>
+          set it is also a dropdown: focus it, or press its caret, and the
+          codes that field books against most open before anything is typed.
+        </p>
+
+        <div class="gallery__grid">
+          <ui-icd10 label="Indication" data-testid="icd10--single"></ui-icd10>
+          <ui-icd10 label="Indication (Diagnosis)" multiple suggest="common"
+            suggest-label="Common indications"
+            hint="Opens on the short list; typing turns it back into a search."
+            data-testid="icd10--suggest"></ui-icd10>
+          <ui-icd10 label="Diagnoses" multiple value="K21.9"
+            hint="Enter adds the highlighted code; Backspace lifts the last chip."
+            data-testid="icd10--multi"></ui-icd10>
+          <ui-icd10 label="Primary diagnosis" required
+            error="Choose a diagnosis before signing." data-testid="icd10--error"></ui-icd10>
+          <ui-icd10 label="Locked" value="Z12.11" disabled data-testid="icd10--disabled"></ui-icd10>
+        </div>
+      </section>
+
+      <!-- ================= Type-or-pick =================
+           Beside ui-icd10 rather than in #forms, and for the same reason: it
+           is a combobox, not a text box, and the two sit next to each other
+           here so the difference between them is one scroll apart. -->
+      <section class="gallery__section" id="suggest">
+        <h2 class="gallery__title">ui-suggest</h2>
+        <p class="gallery__intro">
+          For the question that is a pick <em>and</em> a name: the answer is
+          usually one of a handful, occasionally is not one of them at all, and
+          the handful is already in memory. Press or type and the list drops
+          under the box; type past it and what you wrote is the answer, which
+          the panel says rather than leaving you to read an empty list.
+          <code>ui-select</code> when nothing else is allowed,
+          <code>ui-icd10</code> when the list is seventy thousand rows and has
+          to be searched.
+        </p>
+
+        <div class="gallery__grid">
+          <ui-suggest label="Medication" placeholder="Type a name, or pick one"
+            data-gallery-suggest="drugs" data-testid="suggest--basic"></ui-suggest>
+          <ui-suggest label="Medication" value="Propofol"
+            hint="Down opens the list, Enter takes the highlighted row, Escape closes it and keeps what you typed."
+            data-gallery-suggest="drugs" data-testid="suggest--value"></ui-suggest>
+          <ui-suggest label="Medication" required placeholder="Type a name, or pick one"
+            error="Name the medication before recording it."
+            data-gallery-suggest="drugs" data-testid="suggest--error"></ui-suggest>
+          <ui-suggest label="Locked" value="Midazolam" disabled
+            data-gallery-suggest="drugs" data-testid="suggest--disabled"></ui-suggest>
+        </div>
+      </section>
+
+      <!-- ==================================================================
+           PORTED FROM THE FIGMA COMPONENT LIBRARY
+
+           Everything below came across from the MediNova React package. The
+           props became attributes, the render functions became ui-* custom
+           elements, and the lm-* class names became ui-*; the markup, the ARIA
+           and the state machines are the originals.
+           ================================================================== -->
+
+      <section class="gallery__section" id="text-link">
+        <h2 class="gallery__title">ui-text-link · ui-divider · ui-section-label · ui-flag</h2>
+
+        <h3 class="gallery__subtitle">Text links — default · critical · muted · disabled</h3>
+        <div class="gallery__row">
+          <ui-text-link icon-end="caret-right">View full report</ui-text-link>
+          <ui-text-link variant="critical" icon="trash">Delete draft</ui-text-link>
+          <ui-text-link variant="muted" size="sm">Dismiss</ui-text-link>
+          <ui-text-link disabled>Unavailable</ui-text-link>
+        </div>
+
+        <h3 class="gallery__subtitle">Dividers</h3>
+        <div class="gallery__grid">
+          <ui-divider></ui-divider>
+          <ui-divider label="Yesterday"></ui-divider>
+          <ui-divider line="dashed"></ui-divider>
+        </div>
+
+        <h3 class="gallery__subtitle">Section labels</h3>
+        <div class="gallery__grid">
+          <ui-section-label>Patient demographics</ui-section-label>
+          <ui-section-label variant="warning">Allergies and intolerances</ui-section-label>
+          <ui-section-label variant="critical">Do not administer</ui-section-label>
+        </div>
+
+        <h3 class="gallery__subtitle">Flags</h3>
+        <div class="gallery__row">
+          <ui-flag country="us" label="United States"></ui-flag>
+          <ui-flag country="in" label="India" size="lg"></ui-flag>
+          <ui-flag country="gb" label="United Kingdom" size="xl"></ui-flag>
+        </div>
+      </section>
+
+      <section class="gallery__section" id="avatars">
+        <h2 class="gallery__title">ui-avatar · ui-avatar-group · ui-status-dot</h2>
+
+        <h3 class="gallery__subtitle">Avatar — tints, sizes, and a status dot</h3>
+        <div class="gallery__row">
+          <ui-avatar name="Priya Raman" color="violet"></ui-avatar>
+          <ui-avatar name="Sam Okafor" color="green" status="success"></ui-avatar>
+          <ui-avatar name="Lee Chen" color="yellow" size="lg" status="warning"></ui-avatar>
+          <ui-avatar name="Dana Ruiz" color="grey" size="xl"></ui-avatar>
+          <ui-avatar size="2xl"></ui-avatar>
+        </div>
+
+        <h3 class="gallery__subtitle">Avatar group — overlap and +N</h3>
+        <div class="gallery__row">
+          <ui-avatar-group max="3" people='[{"name":"Priya Raman"},{"name":"Sam Okafor"},{"name":"Lee Chen"},{"name":"Dana Ruiz"},{"name":"Ana Silva"}]'></ui-avatar-group>
+          <ui-avatar-group size="sm" max="4" people='[{"name":"Priya Raman"},{"name":"Sam Okafor"}]'></ui-avatar-group>
+        </div>
+
+        <h3 class="gallery__subtitle">Status dot — bare, outlined, pulsing</h3>
+        <div class="gallery__row">
+          <ui-status-dot status="success">Available</ui-status-dot>
+          <ui-status-dot status="warning" size="lg" label="Busy"></ui-status-dot>
+          <ui-status-dot status="brand" pulse>In a call now</ui-status-dot>
+        </div>
+      </section>
+
+      <section class="gallery__section" id="chips">
+        <h2 class="gallery__title">ui-chip · ui-badge</h2>
+
+        <h3 class="gallery__subtitle">Chip — colour, outline, selectable, removable</h3>
+        <div class="gallery__row">
+          <ui-chip status="brand" icon="pill">Omeprazole</ui-chip>
+          <ui-chip status="critical" variant="outline" icon="critical">Penicillin</ui-chip>
+          <ui-chip status="success" selectable selected>Fasting</ui-chip>
+          <ui-chip status="neutral" selectable>Sedation</ui-chip>
+          <ui-chip status="warning" removable>Diabetes Type 2</ui-chip>
+          <ui-chip status="white" size="lg" icon="user">Priya Raman</ui-chip>
+        </div>
+
+        <h3 class="gallery__subtitle">Badge — outline and leading dot</h3>
+        <div class="gallery__row">
+          <ui-badge status="success" variant="outline" dot>Eligible</ui-badge>
+          <ui-badge status="warning" dot>Pending</ui-badge>
+          <ui-badge status="info" size="lg">Prior auth</ui-badge>
+        </div>
+      </section>
+
+      <section class="gallery__section" id="feedback">
+        <h2 class="gallery__title">ui-toast · ui-notification-toast · ui-progress-bar · ui-tooltip</h2>
+
+        <h3 class="gallery__subtitle">Toasts</h3>
+        <div class="gallery__grid">
+          <ui-toast variant="success" heading="Note signed" dismissible>
+            Encounter 4412 is now part of the record.
+          </ui-toast>
+          <ui-toast variant="critical" heading="Upload failed" dismissible>
+            The pathology PDF was rejected by the document store.
+          </ui-toast>
+          <ui-notification-toast heading="Chart shared" actions="Dismiss,View chart" dismissible>
+            Dr Okafor shared Priya Raman's chart with you.
+          </ui-notification-toast>
+        </div>
+
+        <h3 class="gallery__subtitle">Progress</h3>
+        <div class="gallery__grid">
+          <ui-progress-bar value="72" label="right" aria-label="Chart completeness"></ui-progress-bar>
+          <ui-progress-bar value="40" variant="warning" size="lg" label="left"
+            aria-label="Storage used"></ui-progress-bar>
+          <ui-progress-bar indeterminate aria-label="Checking eligibility"></ui-progress-bar>
+        </div>
+
+        <h3 class="gallery__subtitle">Tooltips — hover or focus the trigger</h3>
+        <div class="gallery__row">
+          <ui-tooltip content="Signed 14 Aug by Dr Okafor" placement="top">
+            <ui-button variant="outline" size="sm">Top</ui-button>
+          </ui-tooltip>
+          <ui-tooltip content="Last synced four minutes ago" placement="right">
+            <ui-button variant="outline" size="sm">Right</ui-button>
+          </ui-tooltip>
+          <ui-tooltip content="Escape hides this while focus stays put" placement="bottom">
+            <ui-button variant="outline" size="sm">Bottom</ui-button>
+          </ui-tooltip>
+        </div>
+      </section>
+
+      <section class="gallery__section" id="menus">
+        <h2 class="gallery__title">ui-menu · ui-dropdown-menu · ui-breadcrumb</h2>
+        <p class="gallery__intro">
+          Two list surfaces that look alike and are not the same thing.
+          <code>ui-menu</code> is a list of actions — <code>role="menu"</code>,
+          picking one does something. <code>ui-dropdown-menu</code> is a list of
+          choices — <code>role="listbox"</code>, picking one changes a value.
+        </p>
+
+        <div class="gallery__row">
+          <ui-menu items='[{"id":"sign","label":"Sign note","icon":"check"},{"id":"print","label":"Print","icon":"printer"},{"divider":true},{"id":"del","label":"Delete draft","icon":"trash","status":"critical"}]'></ui-menu>
+
+          <ui-dropdown-menu value="okafor" items='[{"value":"okafor","label":"Dr Sam Okafor","description":"Gastroenterology"},{"value":"chen","label":"Dr Lee Chen","description":"Hepatology"},{"value":"ruiz","label":"Dana Ruiz, NP","description":"Nurse practitioner"},{"value":"locum","label":"Unassigned","disabled":true}]'></ui-dropdown-menu>
+        </div>
+
+        <h3 class="gallery__subtitle">Breadcrumb — full, and collapsed at four</h3>
+        <div class="gallery__grid">
+          <ui-breadcrumb items='[{"label":"Patients","href":"#"},{"label":"Priya Raman","href":"#"},{"label":"Encounters"}]'></ui-breadcrumb>
+          <ui-breadcrumb max-items="3" items='[{"label":"Home","href":"#"},{"label":"Patients","href":"#"},{"label":"Priya Raman","href":"#"},{"label":"Encounters","href":"#"},{"label":"14 Aug 2026"}]'></ui-breadcrumb>
+        </div>
+      </section>
+
+      <section class="gallery__section" id="command-bar">
+        <h2 class="gallery__title">ui-command-bar</h2>
+        <p class="gallery__intro">
+          The field is an ARIA combobox pointed at the results list, so the
+          highlighted command is announced while the caret stays where you are
+          still typing. Arrow keys move the highlight; Enter picks it.
+        </p>
+        <ui-command-bar groups='[{"heading":"Patients","commands":[{"id":"new","label":"New patient","icon":"user-plus","shortcut":["⌘","N"]},{"id":"find","label":"Find a patient","icon":"search","shortcut":["⌘","K"]}]},{"heading":"Clinical","commands":[{"id":"note","label":"Start a note","icon":"pencil"},{"id":"rx","label":"Prescribe","icon":"pill"}]}]'></ui-command-bar>
+      </section>
+
+      <section class="gallery__section" id="spinner">
+        <h2 class="gallery__title">ui-spinner</h2>
+        <p class="gallery__intro">
+          The indeterminate loader, for a panel waiting on a response. Reach for
+          <code>ui-button[loading]</code> when an action you just took is
+          running, <code>ui-data-table</code> when rows are coming, and
+          <code>ui-progress-bar</code> when you can say how far along it is.
+        </p>
+        <div class="gallery__row">
+          <ui-spinner size="sm" label="Loading"></ui-spinner>
+          <ui-spinner size="md" label="Checking eligibility"></ui-spinner>
+          <ui-spinner size="lg" label="Submitting claim"></ui-spinner>
+        </div>
+      </section>
+
+      <section class="gallery__section" id="date-picker">
+        <h2 class="gallery__title">ui-date-picker</h2>
+        <p class="gallery__intro">
+          Roving tabindex, not a tab stop per day. Arrows move inside the grid,
+          PageUp/PageDown change month, Home/End go to the ends of the week, and
+          stepping past the edge of a month pulls the next one into view.
+        </p>
+        <div class="gallery__row">
+          <ui-date-picker value="2026-08-19"></ui-date-picker>
+          <ui-date-picker value="2026-08-19" min="2026-08-10" max="2026-08-28" hide-today></ui-date-picker>
+        </div>
+      </section>
+
+      <section class="gallery__section" id="choices">
+        <h2 class="gallery__title">ui-selection-card · ui-radio · ui-slider</h2>
+
+        <h3 class="gallery__subtitle">Selection cards — a radio group wearing cards</h3>
+        <div class="gallery__grid">
+          <ui-selection-card name="visit" value="office" icon="stethoscope" selected
+            card-title="Office visit" description="In person, 30 minutes"></ui-selection-card>
+          <ui-selection-card name="visit" value="video" icon="chat"
+            card-title="Video visit" description="From anywhere, 20 minutes"></ui-selection-card>
+          <ui-selection-card name="visit" value="phone" icon="phone" disabled
+            card-title="Phone visit" description="Not offered at this location"></ui-selection-card>
+        </div>
+
+        <h3 class="gallery__subtitle">Standalone radios — for a table row or a grid</h3>
+        <div class="gallery__row">
+          <ui-radio name="sedation" value="none" checked>None</ui-radio>
+          <ui-radio name="sedation" value="moderate">Moderate</ui-radio>
+          <ui-radio name="sedation" value="mac">MAC</ui-radio>
+          <ui-radio name="sedation" value="general" disabled>General</ui-radio>
+        </div>
+
+        <h3 class="gallery__subtitle">Sliders</h3>
+        <div class="gallery__grid">
+          <ui-slider min="0" max="10" value="4" step="1" suffix=" / 10" show-value
+            aria-label="Pain score"></ui-slider>
+          <ui-slider value="35" size="sm" show-value aria-label="Zoom"></ui-slider>
+          <ui-slider value="60" disabled show-value aria-label="Locked"></ui-slider>
+        </div>
+      </section>
+
+      <section class="gallery__section" id="files">
+        <h2 class="gallery__title">ui-file-progress · ui-message</h2>
+
+        <h3 class="gallery__subtitle">File rows — the four states</h3>
+        <div class="gallery__grid">
+          <ui-file-progress name="referral-letter.pdf" size="248 KB"></ui-file-progress>
+          <ui-file-progress name="colonoscopy-report.pdf" status="uploading"
+            progress="60" meta="12s left"></ui-file-progress>
+          <ui-file-progress name="pathology.tif" status="complete" size="4.1 MB"></ui-file-progress>
+          <ui-file-progress name="insurance-card.png" status="error"
+            error="Rejected by the document store — try a smaller file."></ui-file-progress>
+        </div>
+
+        <h3 class="gallery__subtitle">Message composer — ⌘/Ctrl+Enter sends</h3>
+        <div class="gallery__grid">
+          <ui-message placeholder="Message Dr Okafor…" maxlength="500"></ui-message>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

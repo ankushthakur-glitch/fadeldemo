@@ -1,0 +1,90 @@
+/* ============================================================================
+   ui-breadcrumb — where the current screen sits in the hierarchy.
+
+   The last crumb is the page you are on, so it is text rather than a link and
+   carries aria-current="page". A crumb with no href in the middle of the trail
+   is also plain text, not an empty anchor: a link that goes nowhere is worse
+   than no link, because a keyboard user still has to tab through it.
+
+   Long trails collapse: set max-items and the middle becomes one ellipsis
+   button that expands the full trail in place.
+   ========================================================================= */
+
+ui-breadcrumb { display: block; }
+
+.ui-breadcrumb {
+  font-size: var(--font-size-md);
+}
+.ui-breadcrumb--sm { font-size: var(--font-size-xs); }
+
+.ui-breadcrumb__list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ui-breadcrumb__item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.ui-breadcrumb__link,
+.ui-breadcrumb__text,
+.ui-breadcrumb__current {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  border-radius: var(--radius-sm);
+}
+
+.ui-breadcrumb__link {
+  color: var(--color-text-tertiary);
+  text-decoration: none;
+}
+.ui-breadcrumb__link:hover { color: var(--color-text-link); }
+.ui-breadcrumb__link:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.ui-breadcrumb__text { color: var(--color-text-tertiary); }
+
+.ui-breadcrumb__current {
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+.ui-breadcrumb__ellipsis {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+.ui-breadcrumb__ellipsis:hover { color: var(--color-text-link); }
+.ui-breadcrumb__ellipsis:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.ui-breadcrumb__icon .ui-icon,
+.ui-breadcrumb__ellipsis .ui-icon,
+.ui-breadcrumb__sep .ui-icon {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}
+
+.ui-breadcrumb__sep {
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-text-disabled);
+}

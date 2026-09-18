@@ -1,0 +1,103 @@
+/* ============================================================================
+   ui-selection-card — a radio or checkbox wearing a card.
+
+   The native input is still there, one pixel wide and invisible, and it is
+   what carries the checked state, the name grouping, the keyboard behaviour
+   and the form value. The card is only paint. Styling hangs off :has() on that
+   input's focus, so the ring appears on the card the moment the hidden control
+   takes focus.
+   ========================================================================= */
+
+ui-selection-card { display: block; }
+
+.ui-selection-card {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-6);
+  padding: var(--space-6) var(--space-7);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+  cursor: pointer;
+  transition: border-color var(--duration-fast) var(--ease-out),
+    background-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.ui-selection-card__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  opacity: 0;
+}
+
+.ui-selection-card:not(.ui-selection-card--disabled):hover {
+  border-color: var(--color-border-strong);
+}
+
+.ui-selection-card--selected {
+  border-color: var(--color-border-brand);
+  background-color: var(--color-bg-surface-selected);
+}
+
+.ui-selection-card--invalid { border-color: var(--color-status-critical-solid); }
+.ui-selection-card--invalid.ui-selection-card--selected {
+  background-color: var(--color-status-critical-surface);
+}
+.ui-selection-card--invalid .ui-selection-card__icon {
+  color: var(--color-status-critical-text);
+}
+
+.ui-selection-card:has(.ui-selection-card__input:focus-visible) {
+  box-shadow: var(--focus-ring);
+}
+.ui-selection-card--invalid:has(.ui-selection-card__input:focus-visible) {
+  box-shadow: var(--focus-ring-critical);
+}
+
+.ui-selection-card--sm {
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-6);
+}
+.ui-selection-card--sm .ui-selection-card__icon .ui-icon {
+  width: var(--icon-size-md);
+  height: var(--icon-size-md);
+}
+
+.ui-selection-card__icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--color-text-secondary);
+}
+.ui-selection-card--selected .ui-selection-card__icon {
+  color: var(--color-brand-text);
+}
+.ui-selection-card__icon .ui-icon {
+  width: var(--icon-size-lg);
+  height: var(--icon-size-lg);
+}
+
+.ui-selection-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.ui-selection-card__title {
+  font-size: var(--font-size-title-section);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.ui-selection-card__desc {
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-snug);
+  color: var(--color-text-tertiary);
+}
+
+.ui-selection-card--disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}

@@ -1,0 +1,319 @@
+/* ============================================================================
+   LEADS — the website inbox.
+
+   Deliberately the same furniture as every other worklist in this EHR: the
+   patient shell, the shared data table, the same badges and buttons. A module
+   that receives web enquiries is the one most likely to drift into looking
+   like a marketing CRM, and it must not — staff move between this and the
+   patient directory all day, and a second visual language between them is a
+   second thing to learn for no clinical gain.
+   ========================================================================= */
+
+/* --- Header ------------------------------------------------------------------
+   The band and both its slots are .ui-page-head in base.css — centre line,
+   gutter, surface, and where the title and the controls sit all come from
+   there, which is what keeps this screen at the same depth AND the same shape
+   as the patient directory staff move to and from all day.
+
+   The private .lead__heading column that used to wrap the title is gone with
+   the subtitle it existed to carry: one title in the shared lead slot is what
+   every list screen has.
+   -------------------------------------------------------------------------- */
+
+.lead__search { width: 20rem; }
+
+/* The custom range only exists when the date filter asks for it. */
+
+
+/* The gutter is .ui-list-body in base.css and the card inside it is
+   .ui-table-card — the same two objects the patient directory is built from.
+   This screen used to declare both itself, including a gap that pushed the
+   count line clear of the table and left it floating as a card of its own. */
+
+
+/* --- Table ----------------------------------------------------------------- */
+
+.lead__table-wrap { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+
+/* The header stays put while a long inbox scrolls under it — with eight
+   columns, a row read without its headings is eight unlabelled values. */
+.lead__table-wrap thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background-color: var(--color-bg-table-head);
+}
+
+.lead__row { cursor: pointer; }
+.lead__row:hover { background-color: var(--color-bg-surface-hover); }
+
+.lead__name { font-weight: var(--font-weight-medium); }
+.lead__cell-time { display: block; }
+.lead__cell-sub {
+  display: block;
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-tertiary);
+}
+
+/* A gap the website let through. Said plainly rather than left blank — an
+   empty cell reads as "nobody filled the column in", not "no phone number". */
+.lead__missing { color: var(--color-text-tertiary); font-style: italic; }
+
+.lead__row-actions { display: flex; align-items: center; gap: var(--space-4); }
+
+
+.lead__menu {
+  position: fixed;
+  z-index: var(--z-dropdown);
+  min-width: 12rem;
+  padding: var(--space-3);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+  /* A dropdown: attached to the page, content passes under it. */
+  box-shadow: var(--elevation-raised);
+}
+
+.lead__menu-item {
+  display: block;
+  width: 100%;
+  padding: var(--space-4) var(--space-5);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  font-family: inherit;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-primary);
+  text-align: left;
+  cursor: pointer;
+}
+.lead__menu-item:hover { background-color: var(--color-bg-surface-hover); }
+.lead__menu-item:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* --- Empty states ---------------------------------------------------------- */
+
+.lead__empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-5);
+  padding: var(--space-11) var(--space-7);
+  color: var(--color-text-secondary);
+}
+.lead__empty[hidden] { display: none; }
+.lead__empty > .ui-icon {
+  width: var(--space-11);
+  height: var(--space-11);
+  color: var(--color-text-tertiary);
+}
+.lead__empty h2 { font-size: var(--font-size-16); font-weight: var(--font-weight-semibold); color: var(--color-text-primary); }
+.lead__empty p { font-size: var(--font-size-caption); }
+
+
+/* --- Lead details dialog ----------------------------------------------------
+   Centred, and only as tall as what is in it — see the comment on the modal in
+   screens/leads.html for why this stopped being a right-hand drawer.
+   ------------------------------------------------------------------------- */
+
+#drawerBody { display: flex; flex-direction: column; gap: var(--space-7); }
+
+/* Identity row: face, name, and the status it is in, on one line. The name is
+   printed HERE and nowhere else — the dialog's own heading is the constant
+   "Lead Details", so the name is not read twice before the first fact. */
+.lead__d-head { display: flex; align-items: center; gap: var(--space-6); }
+.lead__d-head-text { flex: 1; min-width: 0; }
+.lead__d-name { font-size: var(--font-size-heading-md); font-weight: var(--font-weight-semibold); line-height: var(--line-height-tight); }
+.lead__d-since { margin-top: var(--space-2); font-size: var(--font-size-caption); color: var(--color-text-secondary); }
+
+.lead__d-section { display: flex; flex-direction: column; gap: var(--space-6); }
+.lead__d-title {
+  font-size: var(--font-size-title-eyebrow);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wide);
+  color: var(--color-text-tertiary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.lead__d-facts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-6) var(--space-7);
+  padding: var(--space-7);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+}
+.lead__d-facts dt { font-size: var(--font-size-fact-label); color: var(--color-fact-label); font-weight: var(--font-weight-regular); }
+.lead__d-facts dd { margin-top: var(--space-2); font-size: var(--font-size-caption); font-weight: var(--font-weight-medium); }
+
+/* The years a date of birth works out to — a reading of the fact beside it,
+   not a fact of its own, so it is set back rather than beside it in bold. */
+.lead__d-aside { color: var(--color-text-tertiary); font-weight: var(--font-weight-regular); }
+
+/* ----------------------------------------------------------------------------
+   Contact.
+
+   The two fields on a lead that are acted on rather than read, so they are
+   targets rather than text: the whole enquiry ends in somebody ringing or
+   writing back. A missing one keeps its box — dashed, to read as an absence
+   rather than as a control — because "no phone number" is something the desk
+   has to see before it promises to call.
+   ------------------------------------------------------------------------- */
+.lead__d-contacts {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5);
+}
+
+.lead__d-contact {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  min-width: 0;
+  padding: var(--space-5) var(--space-6);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  color: inherit;
+  text-decoration: none;
+}
+.lead__d-contact > .ui-icon {
+  flex: none;
+  width: var(--space-7);
+  height: var(--space-7);
+  color: var(--color-text-tertiary);
+}
+a.lead__d-contact:hover {
+  background-color: var(--color-bg-surface-hover);
+  border-color: var(--color-border-strong);
+}
+a.lead__d-contact:hover > .ui-icon { color: var(--color-text-primary); }
+a.lead__d-contact:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.lead__d-contact--empty { border-style: dashed; }
+
+.lead__d-contact-text { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
+.lead__d-contact-label { font-size: var(--font-size-fact-label); color: var(--color-fact-label); }
+.lead__d-contact-value {
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+  overflow-wrap: anywhere;
+}
+
+
+.lead__d-actions { display: flex; align-items: center; gap: var(--space-6); }
+
+/* Two facts side by side stop being readable long before the dialog does. */
+@media (max-width: 34rem) {
+  .lead__d-facts,
+  .lead__d-contacts { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* --- Audit trail ----------------------------------------------------------- */
+
+.lead__trail { display: flex; flex-direction: column; gap: var(--space-5); }
+.lead__trail li {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding-left: var(--space-6);
+  border-left: var(--border-width-thick) solid var(--color-border-subtle);
+}
+.lead__trail-event { font-size: var(--font-size-caption); font-weight: var(--font-weight-medium); }
+.lead__trail-meta,
+.lead__trail-detail { font-size: var(--font-size-2xs); color: var(--color-text-tertiary); }
+
+/* ============================================================================
+   NAV BADGE — moved. The pill on the Leads tab is styled in
+   css/components/app-bar.css with the rest of the bar; only the count that
+   goes in it is this module's business.
+   ========================================================================= */
+
+/* ============================================================================
+   LEAD → PATIENT CONVERSION CHIP
+
+   Shown on the EXISTING onboarding form, not on a form of this module's own.
+   It is the only thing the Leads module adds to that screen.
+
+   It was a banner across the top of the form and is a chip in the first card's
+   heading instead. Where a record came from is context: worth having on screen,
+   never worth reading before the first question — and at banner size it pushed
+   the form below the fold, so every conversion opened with a scroll.
+   ========================================================================= */
+
+.lead-convert {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-2) var(--space-5);
+  border: var(--border-width-thin) solid var(--color-border-brand);
+  border-radius: var(--radius-full);
+  background-color: var(--color-brand-surface);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-regular);
+  white-space: nowrap;
+}
+
+.lead-convert .ui-icon {
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+  color: var(--color-brand-text);
+}
+
+.lead-convert__title { font-weight: var(--font-weight-medium); color: var(--color-text-primary); }
+.lead-convert__id { font-family: var(--font-family-numeric); font-variant-numeric: tabular-nums; color: var(--color-brand-text); }
+
+/* The source and the date: true, useful once, and never the reason anyone
+   opened this screen. */
+.lead-convert__meta { color: var(--color-text-tertiary); }
+
+/* --- Duplicate patient warning --------------------------------------------- */
+
+.lead-dupe { display: flex; flex-direction: column; gap: var(--space-6); }
+.lead-dupe__lead { font-size: var(--font-size-caption); color: var(--color-text-secondary); }
+
+.lead-dupe__match {
+  display: flex;
+  align-items: center;
+  gap: var(--space-7);
+  padding: var(--space-7);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+}
+.lead-dupe__match dl { flex: 1; display: flex; flex-wrap: wrap; gap: var(--space-5) var(--space-9); }
+.lead-dupe__match dt { font-size: var(--font-size-fact-label); color: var(--color-fact-label); font-weight: var(--font-weight-regular); }
+.lead-dupe__match dd { margin-top: var(--space-2); font-size: var(--font-size-caption); font-weight: var(--font-weight-medium); }
+
+/* --- Created-successfully dialog -------------------------------------------- */
+
+.lead-done { display: flex; flex-direction: column; align-items: center; gap: var(--space-6); text-align: center; }
+.lead-done__icon { color: var(--color-status-success-text); width: var(--space-11); height: var(--space-11); }
+.lead-done__mrn {
+  padding: var(--space-4) var(--space-7);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+  font-family: var(--font-family-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--font-size-body);
+}
+
+/* --- Reject, and the already-a-patient match ------------------------------- */
+
+.lead__reject,
+.lead__existing { display: flex; flex-direction: column; gap: var(--space-7); }
+.lead__reject-lead,
+.lead__existing-lead { font-size: var(--font-size-caption); }
+
+.lead__match {
+  display: flex;
+  align-items: center;
+  gap: var(--space-7);
+  padding: var(--space-7);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+}
+.lead__match + .lead__match { margin-top: var(--space-5); }
+.lead__match dl { flex: 1; display: flex; flex-wrap: wrap; gap: var(--space-5) var(--space-9); }
+.lead__match dt { font-size: var(--font-size-fact-label); color: var(--color-fact-label); font-weight: var(--font-weight-regular); }
+.lead__match dd { margin-top: var(--space-2); font-size: var(--font-size-caption); font-weight: var(--font-weight-medium); }
+.lead__match-actions { flex: none; display: flex; gap: var(--space-5); }

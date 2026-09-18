@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MediNova EHR — Master</title>
+    <link rel="icon" type="image/svg+xml" href="../assets/img/favicon.svg" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="../css/reset.css" />
+    <link rel="stylesheet" href="../css/tokens.css" />
+    <link rel="stylesheet" href="../css/base.css" />
+    <link rel="stylesheet" href="../css/ui-kit.css" />
+    <link rel="stylesheet" href="../css/screen-patient.css" />
+    <link rel="stylesheet" href="../css/screen-leads.css" />
+    <link rel="stylesheet" href="../css/screen-settings.css" />
+    <link rel="stylesheet" href="../css/screen-master.css" />
+
+    <script type="module" src="../js/main.js"></script>
+    <script type="module" src="../js/screens/master.js"></script>
+    <script src="../js/open-me-properly.js"></script>
+  </head>
+
+  <body class="pt">
+    <header class="pt__bar">
+      <img class="pt__logo" src="../assets/img/medinova-logo.svg" width="158" height="32"
+        alt="MediNova Gastroenterology Clinic" />
+      <ui-main-nav active="settings"></ui-main-nav>
+      <div class="pt__bar-actions">
+        <ui-time-clock></ui-time-clock>
+        <button type="button" class="pt__icon-action" aria-label="Notifications">
+          <svg class="ui-icon" aria-hidden="true"><use href="#i-bell"></use></svg>
+        </button>
+        <ui-avatar name="Amara Mensah" size="sm"></ui-avatar>
+      </div>
+    </header>
+
+    <div class="ui-page-head ui-page-head--flush ui-page-head--tabs set__head">
+      <div class="ui-page-head__lead">
+        <a class="ui-page-head__back ui-page-head__back--icon" href="settings.html" data-testid="mst--back" aria-label="Back to settings">
+          <svg class="ui-icon" aria-hidden="true"><use href="#i-caret-left"></use></svg>
+        </a>
+        <h1 class="ui-page-head__title u-sr-only">Master</h1>
+      </div>
+
+      <!--
+        One row carries where you are, which list you are looking at, and the
+        two things that act on whichever list is showing — the search box and
+        Add. Both are single controls that re-point at the selected tab rather
+        than one pair per panel, so there is never a stale search box sitting
+        in a hidden panel.
+      -->
+      <ui-tabs selected="import" primary data-testid="mst--tabs">
+        <!-- Data Import leads: an import is the one action here that changes
+             hundreds of rows at once, and "what did we last load, and did it
+             pass?" is the first question asked when a list looks wrong. -->
+        <ui-tab value="import" label="Data Import"></ui-tab>
+        <ui-tab value="icd" label="ICD-10 Codes"></ui-tab>
+        <ui-tab value="cpt" label="Procedure"></ui-tab>
+        <ui-tab value="payer" label="Payer"></ui-tab>
+        <ui-tab value="instrument" label="Instrument"></ui-tab>
+        <ui-tab value="clinician" label="Clinician Directory"></ui-tab>
+        <ui-tab value="pharmacy" label="Pharmacy"></ui-tab>
+        <ui-tab value="recall" label="Recall Type"></ui-tab>
+      </ui-tabs>
+
+      <div class="ui-page-head__actions">
+        <ui-input
+          id="masterSearch"
+          label="Search"
+          label-hidden
+          icon="search"
+          placeholder="Search..."
+          data-testid="mst--search"
+        ></ui-input>
+        <!-- Both filled by the screen script. Add's label names the active
+             list. The transfer slot carries Export on Data Import, where both
+             directions of a transfer normally live, and a Download/Import pair
+             on the instrument register, which is the one list a unit already
+             keeps as a spreadsheet — see paintTransferButton(). -->
+        <span class="mst__add" id="masterTransferSlot"></span>
+        <span class="mst__add" id="masterAddSlot"></span>
+      </div>
+    </div>
+
+
+    <!-- One status line for the screen: export, import and the row actions
+         all have to answer the click. -->
+
+    <main class="set__body">
+      <!-- ================= DATA IMPORT ================= -->
+      <div id="panel-import" role="tabpanel" aria-labelledby="tab-import">
+        <div class="ui-table-card">
+          <ui-data-table id="table-import" data-testid="mst--import-table"></ui-data-table>
+          <div data-foot="import"></div>
+        </div>
+      </div>
+
+      <!-- ================= ICD-10 CODES ================= -->
+      <div id="panel-icd" role="tabpanel" aria-labelledby="tab-icd" hidden>
+        <div class="ui-table-card">
+          <ui-data-table id="table-icd" data-testid="mst--icd-table"></ui-data-table>
+          <div data-foot="icd"></div>
+        </div>
+      </div>
+
+      <!-- ================= PROCEDURE ================= -->
+      <div id="panel-cpt" role="tabpanel" aria-labelledby="tab-cpt" hidden>
+        <div class="ui-table-card">
+          <ui-data-table id="table-cpt" data-testid="mst--cpt-table"></ui-data-table>
+          <div data-foot="cpt"></div>
+        </div>
+      </div>
+
+      <!-- ================= PAYER ================= -->
+      <div id="panel-payer" role="tabpanel" aria-labelledby="tab-payer" hidden>
+        <div class="ui-table-card">
+          <ui-data-table id="table-payer" data-testid="mst--payer-table"></ui-data-table>
+          <div data-foot="payer"></div>
+        </div>
+      </div>
+
+      <!-- ================= INSTRUMENT ================= -->
+      <div id="panel-instrument" role="tabpanel" aria-labelledby="tab-instrument" hidden>
+        <div class="ui-table-card">
+          <ui-data-table id="table-instrument" data-testid="mst--instrument-table"></ui-data-table>
+          <div data-foot="instrument"></div>
+        </div>
+      </div>
+
+      <!-- ================= CLINICIAN DIRECTORY ================= -->
+      <div id="panel-clinician" role="tabpanel" aria-labelledby="tab-clinician" hidden>
+        <div class="ui-table-card">
+          <ui-data-table id="table-clinician" data-testid="mst--clinician-table"></ui-data-table>
+          <div data-foot="clinician"></div>
+        </div>
+      </div>
+
+      <!-- ================= PHARMACY ================= -->
+      <div id="panel-pharmacy" role="tabpanel" aria-labelledby="tab-pharmacy" hidden>
+        <div class="ui-table-card">
+          <ui-data-table id="table-pharmacy" data-testid="mst--pharmacy-table"></ui-data-table>
+          <div data-foot="pharmacy"></div>
+        </div>
+      </div>
+
+      <!-- ================= RECALL TYPE ================= -->
+      <div id="panel-recall" role="tabpanel" aria-labelledby="tab-recall" hidden>
+        <div class="ui-table-card">
+          <ui-data-table id="table-recall" data-testid="mst--recall-table"></ui-data-table>
+          <div data-foot="recall"></div>
+        </div>
+      </div>
+    </main>
+
+    <!-- ================= UPLOAD DATA =================
+         One dialog for every list, because the shape of the job is the same
+         whichever list it lands in: what the file is, the file, and a blank
+         template for anyone who does not have one yet.
+
+         The entity comes FIRST here even though the file box sits above it in
+         the layout the design specifies — nothing can be checked until the
+         screen knows which list is being loaded, so picking either one runs
+         the check as soon as both are answered. -->
+    <ui-modal id="uploadModal" heading="Upload Data" size="md">
+      <div class="mst__upload-form">
+        <!-- The component draws its own label. A second one above it read as
+             two fields, one of which had no control under it. -->
+        <ui-file-upload label="Upload CSV file" accept=".csv" max-size="10MB"
+          data-testid="mst--upload-file"></ui-file-upload>
+
+        <div class="mst__upload-entity">
+          <ui-select id="uploadEntity" label="Select entity" placeholder="Select entity"
+            data-testid="mst--upload-entity"></ui-select>
+          <ui-button variant="outline" icon="download" data-testid="mst--upload-template"
+            >Download blank CSV template</ui-button
+          >
+        </div>
+
+
+        <!-- What the file would do, before it does it. -->
+        <div class="mst__bulk-report" id="uploadReport" role="status" aria-live="polite"></div>
+
+        <p class="mst__form-error" id="uploadError" role="alert" hidden></p>
+      </div>
+
+      <div class="ui-modal__actions">
+        <ui-button variant="tertiary" data-upload-dismiss data-testid="mst--upload-cancel"
+          >Cancel</ui-button>
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="primary" disabled data-testid="mst--upload-confirm">Upload</ui-button>
+      </div>
+    </ui-modal>
+
+    <!-- ================= EXPORT =================
+         The same entity list, the other direction. What comes out is what
+         Upload Data reads back in. -->
+    <ui-modal id="exportModal" heading="Export" size="md">
+      <div class="mst__upload-form">
+        <ui-select id="exportEntity" label="Select entity" placeholder="Select entity"
+          data-testid="mst--export-entity"></ui-select>
+
+      </div>
+
+      <div class="ui-modal__actions">
+        <ui-button variant="tertiary" data-export-dismiss data-testid="mst--export-cancel"
+          >Cancel</ui-button>
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="primary" icon="download" data-testid="mst--export-confirm"
+          >Export CSV</ui-button>
+      </div>
+    </ui-modal>
+
+    <!-- ================= REPAIR HISTORY =================
+         An instrument's repair record, matching the staging system: add a
+         repair at the top, the history beneath it. -->
+    <ui-modal id="repairModal" heading="Repair history" size="lg">
+      <section class="mst__repair-form" data-testid="mst--repair-form">
+        <div class="mst__repair-pair">
+          <ui-input id="repairSent" type="date" label="Date sent for repair"
+            data-testid="mst--repair-sent"></ui-input>
+          <ui-input id="repairDate" type="date" label="Repair date" required
+            data-testid="mst--repair-date"></ui-input>
+        </div>
+        <ui-input id="repairReturned" type="date" label="Date returned from repair"
+          hint="Leave blank while the instrument is still away."
+          data-testid="mst--repair-returned"></ui-input>
+        <ui-textarea id="repairDetail" label="Repair details" rows="3" required
+          placeholder="Describe the repair work performed…"
+          data-testid="mst--repair-detail"></ui-textarea>
+
+        <!-- THE PAPERWORK IS PART OF THE RECORD, NOT AN AFTERTHOUGHT.
+             The dropzone used to sit below the form and land its file on
+             whichever repair happened to be newest — which meant filing a
+             document by guessing what it belonged to, and no way at all to
+             attach the sheet while typing the repair it arrived with. It is a
+             field of the form now, so the RMA sheet is entered with the job it
+             documents.
+
+             PDF, because that is what the vendor sends: the RMA sheet, the
+             leak-test certificate and the service report all come back as one,
+             and a viewer that only ever has to render a PDF is a viewer that
+             always works. -->
+        <ui-file-upload id="repairDoc" label="Attach document" accept=".pdf"
+          max-size="10MB"
+          hint="The vendor's RMA sheet, leak-test certificate or service report."
+          data-testid="mst--repair-file"></ui-file-upload>
+        <p class="mst__form-error" id="repairFileError" role="alert" hidden></p>
+
+        <!-- NOT .ui-modal__actions. That class is the dialog's own footer row,
+             and ui-modal hoists it out of the body on render and again on
+             open — which the second time around found the Close row below and
+             replaced the footer with it, taking "Add repair" off the screen
+             entirely. This row commits the form above it, not the dialog, so
+             it stays where it is written. -->
+        <div class="mst__repair-actions">
+          <ui-button variant="primary" data-testid="mst--repair-add">Add repair</ui-button>
+        </div>
+      </section>
+
+      <div class="mst__repair-list" id="repairList" data-testid="mst--repair-list"></div>
+
+      <div class="ui-modal__actions">
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="tertiary" data-repair-dismiss>Close</ui-button>
+      </div>
+    </ui-modal>
+
+    <!-- ================= REPAIR DOCUMENT =================
+         The attached paperwork, rendered rather than named. A file name in a
+         list is a claim that the certificate exists; the point of filing it
+         against the repair is that an auditor can read it, so the record opens
+         the PDF in the browser's own viewer — scroll, zoom, print and download
+         come with it and cost nothing to build.
+
+         Opened from inside the repair register, so it is written after it: the
+         two dialogs share --z-modal and document order decides which is on
+         top. -->
+    <ui-modal id="repairDocModal" heading="Document" size="lg">
+      <div class="mst__doc" id="repairDocView" data-testid="mst--repair-doc"></div>
+
+      <div class="ui-modal__actions">
+        <ui-button variant="tertiary" data-repair-doc-dismiss>Close</ui-button>
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="primary" id="repairDocOpen" data-testid="mst--repair-doc-open"
+          >Open in new tab</ui-button>
+      </div>
+    </ui-modal>
+
+    <!-- Add / Edit dialog. One shell for every list; the fields inside are
+         built from the active list's definition. -->
+    <ui-modal id="masterModal" heading="Add" size="md">
+      <div id="masterModalBody" class="mst__form"></div>
+    </ui-modal>
+
+    <!-- Delete confirmation. Removing a code a chart already points at is not
+         something to do on a single stray click. -->
+    <ui-modal id="masterConfirm" heading="Delete entry" size="sm">
+      <div class="mst__confirm">
+        <p id="masterConfirmText"></p>
+        <div class="ui-modal__actions">
+          <ui-button variant="tertiary" data-confirm-cancel data-testid="mst--delete-cancel"
+            >Cancel</ui-button
+          >
+          <span class="ui-modal__actions-spacer"></span>
+          <ui-button variant="danger" data-confirm-delete data-testid="mst--delete-confirm"
+            >Delete</ui-button
+          >
+        </div>
+      </div>
+    </ui-modal>
+  </body>
+</html>

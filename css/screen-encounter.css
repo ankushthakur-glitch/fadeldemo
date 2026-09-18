@@ -1,0 +1,3578 @@
+/* ============================================================================
+   THE ENCOUNTER — the procedure day as a run of steps.
+
+   THREE COLUMNS, AND WHAT EACH IS FOR
+   Left is WHERE THE CASE IS: the patient, then the seven steps of the day as a
+   vertical stepper with the documents of each step nested under it. Centre is
+   WHAT YOU ARE DOING: the working surface, and the only column that belongs to
+   whatever step is open. Right is WHAT YOU NEED TO KNOW WHILE DOING IT: the
+   standing clinical picture — diagnoses, allergies, medications, histories.
+
+   That split is the whole reason there are three columns rather than two. Put
+   the step strip and the clinical record in one left rail and they compete for
+   the same 20rem: the stepper needs vertical room because it is seven steps
+   with substeps under them, and the record needs vertical room because it is
+   nine sections of list. One of them always lost — the earlier two-column
+   encounter this screen replaced proved it. Splitting them left and right gives
+   each its own scroll, and gives the centre column the full width between
+   them.
+
+   BOTH RAILS COLLAPSE, because the centre column is where the work is and
+   sometimes the work needs the room — a wide table, a report beside its
+   photos. Collapsed is a spine with a rotated label on it, not a rail that
+   vanishes: a panel that disappears entirely leaves nothing to press to get it
+   back, and the handle has to stay where the eye last saw it.
+
+   Everything is scoped under .encv, the class the body carries. The prefix is
+   left over from when this screen was the second of two encounter designs; the
+   other one is gone, and renaming the prefix would touch every rule, every
+   template string and every test id for no gain the reader can see.
+   ========================================================================= */
+
+.encv {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background-color: var(--color-bg-page);
+
+  /* THE SECTION CARD, MEASURED ONCE.
+
+     Two blocks of this stylesheet draw the same object: .encv .pck__section
+     restyles the pre-check sheet's sections (step 1), and .encv__doc-section
+     is this screen's own markup for the form-shaped documents (steps 3-5).
+     They are meant to be indistinguishable — a nurse moving from step 1 to
+     step 3 should meet one card twice — and they had drifted apart in every
+     value: 24px between cards against 10px, a 20px marker against a 16px one.
+     Nobody changed one on purpose without the other; the values were simply
+     written down twice.
+
+     So they are written down once here and referred to in both places. The
+     rhythm is the one the reference design uses: a 16px inset the header band
+     and the body share, 12px from a title to the first thing under it, and
+     24px of air between one card and the next. */
+  --encv-section-gap: var(--space-9); /* 24px — card to card */
+  --encv-section-inset: var(--space-7); /* 16px — header and body alike */
+  --encv-section-lead: var(--space-6); /* 12px — title to first field */
+  --encv-section-mark: var(--space-7); /* 16px — the marked edge */
+}
+
+/* ============================== HEADER =================================== */
+
+
+/* The band reads left to right: the caret out, the screen's name, the line
+   that says which encounter this is, and then the two facts hard right.
+
+   The heading column takes the slack (flex: 1) so the meta line has the whole
+   band to run along before it wraps, and min-width: 0 so a long procedure
+   title truncates inside the column instead of pushing the facts off the
+   right-hand edge.
+
+   The facts stay in the header's ACTION slot, and that slot is what holds them
+   right — so nothing drifts to the middle of the band when the narrow-window
+   rule hides them. */
+
+/* Title over meta, the same two rungs the clinic visit's header uses
+   (.enc__heading / .enc__meta in css/screen-clinic-visit.css). Written twice
+   rather than shared because the two screens' heads are otherwise different
+   objects — this one is a ui-page-head with slots, that one is a bespoke row —
+   and the values are the shared tokens either way, so they cannot drift into
+   two different sizes without somebody editing a token. */
+.encv__heading {
+  flex: 1;
+  min-width: 0;
+}
+/* The title is nowrap by default (see .ui-page-head__title in css/base.css);
+   the meta line under it is prose, and it ellipses rather than dragging the
+   band wider or wrapping to a second line that would grow the header. */
+.encv__meta {
+  margin-top: var(--space-1);
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* What is being done and who is doing it, right-aligned so the back button
+   keeps the reading position. The same shape the encounter summary uses, so
+   these facts sit in one place across every screen that shows them. */
+.encv__facts {
+  display: flex;
+  gap: var(--space-8);
+  flex-wrap: wrap;
+}
+.encv__facts dt {
+  font-size: var(--font-size-fact-label);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-fact-label);
+}
+.encv__facts dd {
+  margin-top: var(--space-1);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+}
+
+/* ============================== RADIUS ===================================
+   THREE STEPS, AND WHAT EACH IS FOR.
+
+   css/tokens.css already says this and the screen had stopped listening: it was
+   using --radius-md, the 4px [FIGMA] control radius, for every card on the
+   screen — a section card and the input inside it had the same corner, so
+   nothing about the curve said which contained which.
+
+     --radius-xl  12px  the three columns. The outermost content cards, which
+                        is what the token's own comment reserves it for.
+     --radius-lg   8px  cards INSIDE a column: a checklist section, a log, a
+                        document section, a clinical section, the open step.
+     --radius-md   4px  controls — inputs, selects, buttons. Figma's value, not
+                        to be changed here.
+     --radius-sm   2px  the smallest chrome: chips, icon buttons, a hover square.
+
+   Nested containers step DOWN the scale, so a card inside a column is visibly
+   inside it. Two nested boxes sharing a radius read as one box with a line
+   through it.
+   ======================================================================== */
+
+/* ============================== COLUMNS ================================== */
+
+/*
+ * The two rail widths are custom properties on the grid rather than two
+ * `grid-template-columns` declarations, so a collapse animates: the browser
+ * interpolates a length, and cannot interpolate one track list into another.
+ */
+.encv__cols {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: var(--encv-left) minmax(0, 1fr) var(--encv-right);
+  /* The gutter and the outer inset are the same measure, so the frame around
+     the three columns is even the whole way round. They were 24px and 16px,
+     which put more air between the columns than around them and left the middle
+     column looking adrift rather than placed. */
+  gap: var(--space-6);
+  padding: var(--space-6);
+  --encv-left: 22rem;
+  --encv-right: 21rem;
+  transition: grid-template-columns var(--duration-base) var(--ease-out);
+}
+
+.encv__cols[data-left='collapsed'] { --encv-left: 2.75rem; }
+.encv__cols[data-right='collapsed'] { --encv-right: 2.75rem; }
+
+/* --- The rails -------------------------------------------------------------
+   Both rails are the same object: a bordered card that scrolls its own
+   contents, with a handle pinned to the edge that faces the centre column.
+   That object lives in css/components/clinical-rail.css, because the right-hand
+   one of the two is now also the clinic visit's — see the note at the head of
+   that file. What stays here is the one thing about a rail that is this
+   screen's alone.
+   -------------------------------------------------------------------------- */
+
+/*
+ * THE LEFT RAIL SCROLLS ITS STEPS, NOT ITS PATIENT.
+ *
+ * The whole rail used to scroll as one, which took the patient off the top the
+ * moment the run of steps was longer than the column. That is the wrong thing
+ * to lose: the card answers "who is this" and is consulted mid-procedure, while
+ * the steps are a list you move down and back. So the body stops scrolling, the
+ * card is pinned by being `flex: none` in a column that no longer overflows, and
+ * the stepper takes the remaining height and scrolls inside it.
+ */
+.encv__rail--left .encv__rail-body { overflow: hidden; }
+
+
+/* ========================= LEFT: WHO AND WHERE =========================== */
+
+/* --- Patient identity ------------------------------------------------------
+   A bordered card.
+   It began as a bare heading with a rule under it, on the argument that the run
+   of steps below belongs to this patient and a border between them would read
+   as two unrelated things stacked. That held while the block was three lines.
+   With the contact, cover and provider facts in it — and a rule of its own
+   inside — it needs an edge to say where the patient stops and the run begins.
+   -------------------------------------------------------------------------- */
+
+.encv__patient {
+  flex: none;
+  padding: var(--space-5);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+}
+
+.encv__patient-top {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+}
+
+.encv__avatar {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-10);
+  height: var(--space-10);
+  border-radius: var(--radius-full);
+  background-color: var(--color-brand-surface);
+  color: var(--color-brand-text);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-semibold);
+}
+
+.encv__patient-heading { flex: 1; min-width: 0; }
+
+.encv__patient-name {
+  font-size: var(--font-size-heading-sm);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  /* Primary ink, not link blue. The name is not a link — nothing happens when
+     it is pressed — and blue would promise a navigation this card cannot
+     honour. */
+  color: var(--color-text-primary);
+}
+
+.encv__patient-idline {
+  margin-top: var(--space-1);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-secondary);
+}
+
+/* --- The three looked-up facts ---------------------------------------------
+   A label column and a value column, so Mobile, Insurance and Provider read
+   down one edge. 5.5rem rather than the 7.5rem a wider card would take: the
+   rail is narrow, an uppercase 2xs label needs no more than this, and 7.5 would
+   take the value column below the width a plan name can wrap in sensibly.
+   -------------------------------------------------------------------------- */
+
+.encv__patient-facts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+  padding-top: var(--space-5);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.encv__fact {
+  display: grid;
+  grid-template-columns: 5.5rem minmax(0, 1fr);
+  gap: var(--space-3);
+  align-items: baseline;
+}
+.encv__fact dt {
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-tertiary);
+}
+.encv__fact dd {
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-primary);
+  overflow-wrap: anywhere;
+}
+
+/* --- The stepper -------------------------------------------------------------
+   Six steps down the rail, each a row: marker, number, name, role, caret.
+   The markers are joined by a continuous rule drawn as a pseudo-element on the
+   list, not per row — per row it breaks at every gap and reads as seven
+   unrelated ticks instead of one ladder.
+   -------------------------------------------------------------------------- */
+
+.encv__steps {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  list-style: none;
+  /* Stated here as well as inherited from the reset's ol[role='list'] rule,
+     because the ladder rule below is positioned against this element's own
+     padding box: a browser's 40px padding-inline-start would slide every row
+     out from under it, and the failure would look like a broken offset rather
+     than an unreset list. Cheap insurance on the one declaration that would
+     silently take the ladder with it. */
+  padding: 0;
+}
+
+.encv__step { position: relative; }
+
+/*
+ * The row is a button because it opens the step. The whole row, not a chevron
+ * on the end of it: with substeps hidden the row IS the disclosure, and a
+ * 16px target on the right of a rail is the smallest thing on the screen doing
+ * the most-used job on it.
+ */
+/*
+ * ONE LINE PER STEP.
+ *
+ * The row carried a second line — "Step 2 · RN" — under every name. Both halves
+ * of it were already said better elsewhere: the position in the run is what the
+ * ladder and the reading order ARE, so numbering them was labelling a list with
+ * its own indices, and the owning role now sits as a badge beside the title in
+ * the working column, where it is read once on arrival rather than seven times
+ * down a rail. Dropping it halves the height of the stepper, which is the
+ * difference between seven steps fitting the column and not.
+ */
+.encv__step-row {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3);
+  text-align: left;
+  border: var(--border-width-thin) solid transparent;
+  border-radius: var(--radius-md);
+  background: none;
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.encv__step-row:hover { background-color: var(--color-bg-surface-hover); }
+.encv__step-row:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* --- The open step -----------------------------------------------------------
+   A card, not a highlighted row. The border wraps the step's title AND the
+   documents under it, which is the whole point: it says the substeps belong to
+   this step rather than floating below it in the same column as six other
+   steps' worth of nothing. Every other step stays flat, so exactly one thing on
+   the rail is raised at a time and it is the one being worked.
+   -------------------------------------------------------------------------- */
+
+.encv__step[data-open='true'] {
+  background-color: var(--color-bg-surface);
+  border: var(--border-width-thin) solid var(--color-border-brand);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xs);
+}
+
+.encv__step[data-open='true'] > .encv__step-row {
+  padding: var(--space-3);
+}
+
+.encv__step[data-open='true'] > .encv__step-row:hover { background: none; }
+
+/* Stated rather than inherited. The span had been picking its size up from the
+   button it sits in, which happened to be right and was nobody's decision —
+   the moment the row's own type changed, every step name would have followed it
+   silently. */
+.encv__step-name {
+  min-width: 0;
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  line-height: var(--line-height-snug);
+}
+
+.encv__step[data-open='true'] .encv__step-name {
+  color: var(--color-brand-text);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* --- The marker -------------------------------------------------------------
+   One 1.25rem circle per step, coloured by status. Complete and in-progress
+   carry a glyph; current and not-started are a filled and a hollow ring, which
+   at this size say "here" and "not yet" faster than any icon does.
+   -------------------------------------------------------------------------- */
+
+.encv__marker {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-8);
+  height: var(--space-8);
+  border-radius: var(--radius-full);
+  border: var(--border-width-thick) solid var(--color-border-default);
+  background-color: var(--color-bg-surface);
+  color: var(--color-text-tertiary);
+}
+.encv__marker .ui-icon { width: var(--icon-size-xs); height: var(--icon-size-xs); }
+
+.encv__marker[data-tone='success'] {
+  border-color: var(--color-status-success-solid);
+  color: var(--color-status-success-solid);
+}
+.encv__marker[data-tone='warning'] {
+  border-color: var(--color-status-warning-solid);
+  color: var(--color-status-warning-text-strong);
+}
+.encv__marker[data-tone='brand'] { border-color: var(--color-brand-solid); }
+
+/* "Here" — a disc inside the ring, the way a selected radio reads. */
+.encv__marker[data-tone='brand']::after {
+  content: '';
+  width: var(--space-3);
+  height: var(--space-3);
+  border-radius: var(--radius-full);
+  background-color: var(--color-brand-solid);
+}
+
+.encv__marker[data-tone='neutral'] {
+  border-color: var(--color-border-default);
+  background-color: var(--color-bg-surface-sunken);
+}
+
+/* --- The disclosure caret -------------------------------------------------- */
+
+.encv__step-caret {
+  flex: none;
+  display: inline-flex;
+  color: var(--color-text-tertiary);
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+.encv__step-caret .ui-icon { width: var(--icon-size-xs); height: var(--icon-size-xs); }
+
+/* Driven off the row's own aria-expanded, NOT off data-open. The two are
+   different facts: data-open is "this is the step showing in the work column",
+   aria-expanded is "its documents are listed under it". A step stays expanded
+   when you read ahead into another one, and a caret that tracked data-open
+   would then point down at a list that is plainly open. */
+.encv__step-row[aria-expanded='true'] .encv__step-caret { transform: rotate(180deg); }
+
+/* A step with nothing under it keeps the column, so its name stays aligned with
+   the others, but shows no caret it cannot honour. `visibility`, not `display`,
+   for exactly that reason — the grid track has to survive. */
+.encv__step[data-leaf='true'] .encv__step-caret { visibility: hidden; }
+
+/* NO CONNECTOR RULE.
+   An earlier pass drew one down the marker column, on the reasoning that a
+   stepper reads as a ladder. The reference joins nothing: the markers carry the
+   run on their own, and with the open step drawn as a raised card (below) a rule
+   would either pass behind it — breaking at the one row the eye is on — or stop
+   short of it twice. Seven markers in a column already read as a sequence. */
+
+/* --- Substeps ---------------------------------------------------------------
+   The documents inside one step, indented to hang off its marker. Bulleted
+   rather than markered: they are contents, and a second column of status
+   circles down the rail would make the step's own marker impossible to find.
+   -------------------------------------------------------------------------- */
+
+/* `ul.` rather than a bare class: the reset's `ul[role='list']` zeroes padding
+   at specificity (0,1,1), which outranks a lone class — so the indent below
+   silently lost to it and the documents sat flush with their step's marker.
+   The type selector matches that specificity, and this file loads later. */
+ul.encv__substeps {
+  list-style: none;
+  margin: 0 0 var(--space-2);
+  /* Aligned to the step NAME, not to its marker — the substeps belong to the
+     label, and the ladder rule runs down the marker column behind them. */
+  /* Row inset + marker + the row's own column gap: the x where the step's NAME
+     starts. Keep these three in step with .encv__step-row's padding and gap, or
+     the documents stop hanging off their step's title. */
+  padding-left: calc(var(--space-3) + var(--space-8) + var(--space-4));
+  padding-right: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  /* They sat flush against one another, which turned eight documents into a
+     block of text with no edge between the rows you are meant to pick from. */
+  gap: var(--space-1);
+}
+
+.encv__substep-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  /* Up twice now, 11px to 13px. At the smaller sizes the documents read as a
+     caption on the step rather than as eight things you choose between, which
+     is what they are — and they are pressed far more often than the step above
+     them. One notch below the step's own 14px, so the hierarchy still reads. */
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  line-height: var(--line-height-normal);
+  cursor: pointer;
+}
+.encv__substep-btn:hover {
+  background-color: var(--color-bg-surface-hover);
+  color: var(--color-text-primary);
+}
+.encv__substep-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.encv__substep[data-open='true'] .encv__substep-btn {
+  color: var(--color-brand-text);
+  font-weight: var(--font-weight-medium);
+  background-color: var(--color-brand-surface);
+}
+
+/* The bullet carries the substep's own status as colour and nothing else — a
+   4px dot has room for a state but not for a glyph. */
+.encv__dot {
+  flex: none;
+  width: var(--space-2);
+  height: var(--space-2);
+  border-radius: var(--radius-full);
+  background-color: var(--color-border-strong);
+}
+.encv__dot[data-tone='success'] { background-color: var(--color-status-success-solid); }
+.encv__dot[data-tone='warning'] { background-color: var(--color-status-warning-solid); }
+.encv__dot[data-tone='brand'] { background-color: var(--color-brand-solid); }
+
+.encv__substep-label { min-width: 0; }
+
+/* ========================= CENTRE: THE WORK ============================== */
+
+.encv__main {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-bg-surface);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-xl);
+}
+
+/* The open step's name and owner, above its documents. The rail says where the
+   case is; this says what you are looking at, which the rail cannot once a
+   panel is collapsed. */
+.encv__doc-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-5) var(--space-6);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.encv__doc-name {
+  font-size: var(--font-size-heading-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* The document inside the step, read as one location left to right. The rule
+   before it is a separator drawn in CSS rather than a character in the markup,
+   so the heading's text content stays the step's name alone — which is what
+   the working panel is labelled by. */
+/* The step that carries the segment strip says the document's name there, in
+   the control that moves between the eight of them — so the title stops
+   repeating it. Off on screen only: @media print puts it back, because the
+   strip is navigation and does not print, and a printed log has to say which
+   log it is. */
+.encv__doc-sub[data-quiet='true'] { display: none; }
+
+.encv__doc-sub {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+}
+.encv__doc-sub::before {
+  content: '';
+  width: var(--border-width-thin);
+  height: var(--space-7);
+  background-color: var(--color-border-default);
+}
+.encv__doc-sub[hidden] { display: none; }
+
+.encv__doc-spacer { flex: 1; }
+
+/* --- The working surface --------------------------------------------------- */
+
+/* --- The active-alerts band -----------------------------------------------
+   Between the title and the working column, on every step. `flex: none` so it
+   keeps its height while the body below it scrolls — the whole point is that
+   it does not go anywhere.
+
+   The left edge is a solid rail in the highest priority's colour, and the
+   priority is ALSO written on each row as a badge. Colour alone would make
+   "high" and "low" the same band to anyone who cannot separate the two, on
+   the one strip of this screen that exists to be noticed.
+   ---------------------------------------------------------------------- */
+
+/* --- The step's documents, as a segment strip -------------------------------
+
+   One step draws it — Intra-procedure Management, whose eight logs are worked
+   round and round during a case rather than filled in once. See TABBED_STEPS
+   in js/screens/encounter.js for why that is the only one.
+
+   It sits BETWEEN the title row and the alerts band, not inside the title row.
+   The head is a line of text with a badge at the end of it, vertically centred;
+   dropping a joined eight-cell control into it would make the row twice as tall
+   and push the step's own name off the optical centre. A row of its own also
+   lets the strip start on the same left edge as the alerts band and the body
+   below it, so the working column keeps one edge all the way down.
+
+   No rule under it. The band it separates from is the alerts card, which brings
+   its own border a few pixels lower — two hairlines that close to each other
+   read as a mistake rather than as a boundary. */
+.encv__doc-tabs {
+  flex: none;
+  /* The horizontal padding is the column's gutter, matched to the alerts band
+     and the body under it. The short bottom is room for the focus ring on the
+     first and last cells, which an overflow container would otherwise shave
+     off. */
+  padding: var(--space-6) var(--space-6) var(--space-2);
+  /* Eight labels do not fit a narrow working column, and <ui-tabs> is a flex
+     row — left alone the cells would squash and clip their own text. The strip
+     keeps its natural width and this scrolls to it instead, which is the only
+     arrangement where "Medication administered" is still readable on a laptop
+     with both rails open. */
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+/* fit-content resolves against the scroll container, so the box would still be
+   squeezed to the visible width and the cells with it. max-content is the width
+   of the eight labels, which is what there is to scroll. */
+.encv__doc-tabs .ui-tabs--primary {
+  width: max-content;
+  max-width: none;
+}
+
+/* Each cell keeps its label whole. Slightly tighter than the strip's own
+   padding, because eight of them on one row is a different sum from the three
+   or four a page header carries. */
+.encv__doc-tabs .ui-tabs--primary .ui-tabs__tab {
+  flex: none;
+  padding: 0 var(--space-5);
+}
+
+.encv__alerts {
+  flex: none;
+  margin: var(--space-6) var(--space-6) 0;
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-left-width: var(--space-3);
+  border-left-color: var(--color-status-neutral-solid, var(--color-border-strong));
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+  overflow: hidden;
+}
+
+.encv__alerts[data-tone='critical'] { border-left-color: var(--color-status-critical-solid); }
+.encv__alerts[data-tone='warning'] { border-left-color: var(--color-status-warning-solid); }
+
+.encv__alerts-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  width: 100%;
+  padding: var(--space-3) var(--space-5);
+  border: 0;
+  background: none;
+  font-family: inherit;
+  font-size: var(--font-size-body);
+  color: var(--color-text-primary);
+  text-align: left;
+  cursor: pointer;
+}
+.encv__alerts-head:hover { background-color: var(--color-bg-surface-hover); }
+.encv__alerts-head:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.encv__alerts[data-tone='critical'] .encv__alerts-head > .ui-icon:first-child {
+  color: var(--color-status-critical-text);
+}
+.encv__alerts[data-tone='warning'] .encv__alerts-head > .ui-icon:first-child {
+  color: var(--color-status-warning-text);
+}
+
+.encv__alerts-title { font-weight: var(--font-weight-semibold); white-space: nowrap; }
+
+/* The titles of the alerts, on the head, so a folded band still says WHICH
+   alerts are folded inside it — one chip per alert rather than one run-on
+   string, because three titles joined by punctuation read as a sentence and a
+   reader has to parse it to learn there are three of them. Kept on one line and
+   clipped: it is a summary, and the full text is one press away. */
+.encv__alerts-summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-tertiary);
+}
+
+/* Each chip carries its own alert's priority colour, so the folded band says
+   not just which alerts are inside but which of them is the high one. The tint
+   is the badge's surface, not the solid — this is a summary line, and three
+   filled red pills at the top of every step would out-shout the alert rows
+   themselves. A chip shrinks and ellipsises before the row wraps. */
+.encv__alerts-chip {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 var(--space-3);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-full);
+  background-color: var(--color-bg-surface-sunken);
+  color: var(--color-text-secondary);
+}
+
+.encv__alerts-chip[data-tone='critical'] {
+  border-color: var(--color-status-critical-border);
+  background-color: var(--color-status-critical-surface);
+  color: var(--color-status-critical-text);
+}
+.encv__alerts-chip[data-tone='warning'] {
+  border-color: var(--color-status-warning-border);
+  background-color: var(--color-status-warning-surface);
+  color: var(--color-status-warning-text-strong);
+}
+
+/* ROWS, NOT CARDS. Three alerts drawn as padded cards on a sunken fill with a
+   gap between them cost eighty pixels each at the top of a working screen that
+   never scrolls them away. The band has to be read at a glance and then stop
+   taking room, so every alert is one line — title, where it is written down,
+   and the detail that changes the drug — separated by a hairline rather than
+   by whitespace. Nothing is dropped; the same four fields are on the row. */
+.encv__alerts-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.encv__alert {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  padding: var(--space-3) var(--space-5);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+/* A shared minimum so the notes start on the same column down the band rather
+   than stepping in and out with the length of each title — three alerts read
+   as a table of three, which is the point of stacking them. A title longer
+   than the column pushes its own note along; it does not re-column the rest. */
+.encv__alert-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: none;
+  min-width: 18rem;
+}
+
+.encv__alert-title { font-size: var(--font-size-body); font-weight: var(--font-weight-semibold); }
+
+/* The detail takes the rest of the row and wraps within it — a long allergy
+   note pushes the row to two lines rather than truncating, because "propofol
+   precaution" is the half of the sentence that stops the case. */
+.encv__alert-body {
+  flex: 1 1 14rem;
+  min-width: 0;
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-normal);
+  color: var(--color-text-secondary);
+}
+
+/* Who wrote it runs on to the end of the note, greyed back a step further: it
+   is provenance, read once when an alert is queried and never while scanning
+   the band, so it costs no line of its own. */
+.encv__alert-by {
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-tertiary);
+}
+
+/* An alert with a source and no note — the attribution is then the only text
+   on the row, so it takes the body's place in the flow rather than trailing
+   off the end of an empty one. */
+p.encv__alert-by {
+  flex: 1 1 14rem;
+  min-width: 0;
+}
+
+.encv__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  /* Matches the doc head's own inset, so the first section sits the same
+     distance from the title band as it does from the column's left edge. It was
+     16px against the head's 12px, which read as the content having come
+     unstuck from its heading. */
+  padding: var(--space-6);
+}
+
+/*
+ * Nothing is built in this column yet, and the placeholder says so in those
+ * words rather than showing a spinner or a blank.
+ *
+ * A centred block on the panel's own surface, NOT a dashed box filling the
+ * column. The dashed version drew a second rectangle inside the panel's
+ * rectangle and shaded it grey, so the largest, highest-contrast shape on the
+ * screen was the one part with nothing in it — the eye went there first and
+ * found a sentence apologising. Quiet is the right register for an absence.
+ */
+.encv__empty {
+  height: 100%;
+  min-height: 16rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  padding: var(--space-9);
+  text-align: center;
+}
+
+.encv__empty-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-11);
+  height: var(--space-11);
+  border-radius: var(--radius-full);
+  background-color: var(--color-bg-surface-sunken);
+  color: var(--color-text-tertiary);
+}
+.encv__empty-icon .ui-icon { width: var(--icon-size-lg); height: var(--icon-size-lg); }
+
+.encv__empty-title {
+  font-size: var(--font-size-title-section);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+.encv__empty-note {
+  max-width: 32rem;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-tertiary);
+}
+
+/* ======================= STEP 1: THE CHECKLIST SHEET ====================== */
+
+/*
+ * The bay's pre-procedure sheet, restyled — not rebuilt.
+ *
+ * The markup here is js/lib/pre-check-form.js's, mounted unchanged so the
+ * questions and the gate stay identical to the bay's own sheet. What these
+ * rules do is give its eleven sections an edge each. Flat, the sheet is one continuous run of
+ * ~180 fields under bold headings, and a nurse working down it has nothing
+ * telling them where one block of questions stops and the next starts — which
+ * is exactly what they need when the patient is in the room and they are
+ * looking up between every answer.
+ *
+ * Scoped under .encv so the same markup mounted anywhere else — the pre-check
+ * screen, check-in — keeps its own flat presentation.
+ */
+
+.encv .pck__section {
+  position: relative;
+  /* The air between cards is a MARGIN rather than the flex `gap` on the
+     sheet's body: a margin every section carries applies wherever the section
+     is mounted, including to anything this screen ever hangs off the sheet as
+     a sibling of that body rather than a child of it. The body's own gap is
+     zeroed below so the two do not add up. */
+  margin-bottom: var(--encv-section-gap);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+}
+.encv .pck__card-body { gap: 0; }
+
+/* The heading becomes the card's header band: a marked edge before the title,
+   at the same inset as the fields below it. The bar is the one piece of colour
+   on a sheet that is otherwise entirely black on white — it is what makes
+   eleven sections countable at a glance without reading any of them.
+
+   NO RULE UNDER IT. It used to carry one, on a band padded tight enough that
+   the line was doing the work of separating the title from the questions. Now
+   that the band is inset like everything else, the rule was a second answer to
+   a question the spacing had already answered — and eleven of them across the
+   column read as a sheet ruled into a table rather than as a stack of cards. */
+.encv .pck__legend {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin: 0;
+  padding: var(--encv-section-inset) var(--encv-section-inset) var(--encv-section-lead);
+  /* Stated rather than left off: the rule comes from .pck__legend in
+     screen-pre-check.css, where the sheet is the whole page and the sections
+     are ruled headings on one document rather than cards. Here they are cards. */
+  border-bottom: 0;
+  line-height: var(--line-height-tight);
+  /* A step above the field labels under it. Set at the same size, the title
+     stopped being the thing the eye lands on when it is looking for where one
+     block of questions stops and the next starts. */
+  font-size: var(--font-size-title-section);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.encv .pck__legend::before {
+  content: '';
+  flex: none;
+  width: var(--border-width-thick);
+  height: var(--encv-section-mark);
+  border-radius: var(--radius-full);
+  background-color: var(--color-brand-solid);
+}
+
+/*
+ * DENSER THAN THE SHEET'S OWN RHYTHM, ON PURPOSE.
+ *
+ * screen-pre-check.css sizes the sheet for a page that is nothing but the
+ * sheet. Here it is the middle column of three, and ten section cards each
+ * carry a border, a header band and a rule the standalone page does not — so
+ * the chrome alone was about a quarter of the scroll before a single question
+ * was read.
+ *
+ * Everything below tightens the space AROUND content and none of the content
+ * itself: type sizes, control heights and hit areas are untouched. A dense
+ * clinical form is not the same as a small one, and the thing being worked with
+ * a patient in the room is the last place to shrink a tap target.
+ */
+
+/* The gap between a label and the control it names. 8px made every field look
+   like two things; at 4px the pair reads as one, which is what it is — and on a
+   sheet of ~180 fields it is the single biggest saving on the page. It is also
+   what .ui-field gives every other form in the product, so a field on the sheet
+   is spaced like a field anywhere else. */
+.encv .pck__field { gap: var(--space-2); }
+
+/* No top padding: the header band's own bottom inset is the gap between the
+   title and the first field, and a second one under it would put the questions
+   further from their heading than the heading is from the card's edge. */
+.encv .pck__grid {
+  padding: 0 var(--encv-section-inset) var(--encv-section-inset);
+  gap: var(--space-6) var(--space-7);
+}
+
+.encv .pck__stack { gap: var(--space-4); }
+
+.encv .pck__checks { gap: var(--space-3); }
+.encv .pck__checks--3 { gap: var(--space-3) var(--space-7); }
+
+/* --- The signature, at the size the room needs ------------------------------
+   The pad is built for a patient signing a consent at home on a phone, where it
+   is the only thing on screen and wants the room. On a document in the middle
+   column of three it is one section of many, so the canvas comes down, not out:
+   a signature drawn in a shorter box is still a signature.
+
+   Step 1 has no rule here any more. The checklist used to carry a pad of its
+   own below the sheet; it does not, so only the procedure documents are sized.
+
+   EVERY RULE IN THIS SECTION NAMES .ui-sign, NOT .pp-sign. They were written
+   when the documents embedded the patient portal's pad, and they went on
+   naming it after the pad here became <ui-signature> — the EHR's own, which
+   draws .ui-sign markup (see js/lib/signature-block.js on why the swap
+   happened). Selectors that match nothing fail silently, so what the consent
+   actually rendered was every default this block exists to override: the
+   portal-sized canvas, the card-inside-a-card frame, and the pad's own heading
+   repeating the section title two lines under it.
+   -------------------------------------------------------------------------- */
+
+.encv__doc-section-body .ui-sign__canvas { height: 7.5rem; }
+.encv__doc-section-body .ui-sign__drop { min-height: 8rem; }
+
+/* The sheet's own frame, dropped. Inside the working column's card it was a
+   second border around the same content — and now that every section carries
+   one, a third. */
+.encv .pck__card--embedded {
+  border: 0;
+  padding: 0;
+  background: none;
+}
+
+/* Nothing follows the sheet's own sign-off, so it is the one card with no air
+   under it. */
+.encv .pck__section:last-child { margin-bottom: 0; }
+
+/* --- A SECTION WHOSE ANSWER FITS ON ITS OWN TITLE LINE ------------------------
+   Two of the ten carry a single one-line stamp: the time in room and the
+   initials the sheet is filed under. Drawn like the other eight they each
+   spent a header band, a lead and a body inset — about a hundred pixels of
+   card to carry twenty of answer, which on a sheet the nurse scrolls with a
+   patient in the room is chrome for nothing.
+
+   Side by side they cost one band instead of two, and the pairing reads the
+   way the question does: the title IS the question here, so the answer belongs
+   on the same line as the words asking for it rather than under them.
+
+   `compact` is declared in js/lib/pre-check-fields.js and only marks WHICH
+   sections qualify; this is the one place that decides what to do about it, so
+   the sheet mounted anywhere else keeps its stack. See preCheckSheetMarkup.
+   -------------------------------------------------------------------------- */
+
+/* 34rem, not the 46rem the column counts answer to. That number is about
+   three labelled fields fitting across; this is about one title and one stamp
+   fitting beside each other, and the two titles that qualify — "Patient
+   Arrival" and "Staff Initials" — do it in well under half of it. */
+@container pck-sheet (width >= 34rem) {
+  /* `row` stated rather than left to the default: .pck__section is a COLUMN
+     everywhere else, and a rule that only set `display: flex` inherited that
+     direction and stacked the pair it was written to put side by side. */
+  .encv .pck__section--compact {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-7);
+  }
+
+  /* The title stops being a band across the card and becomes the left half of
+     a row, so its bottom inset matches the top one rather than the tighter
+     lead that used to separate it from the fields underneath. It does not
+     shrink: the title is the question here, and a question wrapped mid-phrase
+     to make room for its own answer is worse than the answer being narrower. */
+  .encv .pck__section--compact > .pck__legend {
+    flex: none;
+    padding-bottom: var(--encv-section-inset);
+  }
+
+  /* The grid keeps the card's inset on the side it still touches and drops it
+     on the side the title is now taking. */
+  .encv .pck__section--compact > .pck__grid {
+    flex: 1;
+    min-width: 0;
+    padding: var(--encv-section-inset) var(--encv-section-inset) var(--encv-section-inset) 0;
+  }
+
+  /* One answer on one line: the cell takes the room rather than a third of it,
+     whatever column count the section declares for the stacked case. */
+  .encv .pck__section--compact > .pck__grid > .pck__cell { grid-column: 1 / -1; }
+}
+
+/* ONE FRAME PER SECTION.
+
+   The pad arrives as the portal's own card — a border, a ground and a 1rem
+   inset of its own, plus a 1rem margin above it — which inside a section that
+   already draws all three reads as a card inside a card, and sets the
+   signature's contents a further inset in from every other field on the
+   document. That is true of every signature on the procedure documents: the
+   consent the patient signs, the anaesthesia and physician sign-offs, the
+   recovery note. A signature block reads as part of the section it closes, not
+   as a card somebody left inside one.
+
+   The frame comes off and nothing else does. The canvas, the picker, the
+   confirmation and every control inside them are the component's still,
+   because this has to stay the same pad a patient meets at check-in — only its
+   framing belongs to the document it was dropped into. */
+.encv__doc-section-body .ui-sign {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  /* The pad stacks its own parts on a 12px rhythm, which is right when it is
+     the whole page. Set into a section it closes, the method picker, the name
+     and the mark are the last three rows of a document rather than a control
+     of their own, so they take the same 16px the fields above them are on. */
+  gap: var(--encv-section-inset);
+}
+
+/* And the pad's own heading with it. The section above it already names the
+   signature — "Patient signature", "Clinician signature" — so the pad's title
+   is the same words a second time, in the same weight and size, two lines
+   apart. No other section on any of these documents carries a second title.
+
+   Clipped rather than removed, and the element keeps its <h3>: a screen reader
+   moving by heading still finds the pad by name, and only the eye is spared
+   reading it twice. Which is also why js/lib/signature-block.js now passes the
+   block's OWN heading down to the pad rather than the word "Patient" for every
+   signature on the run — a hidden name still has to be the right one. */
+.encv__doc-section-body .ui-sign__heading {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* With the heading clipped the row that held it has nothing left to lay out,
+   and an empty flex row still spends its gap. The exception is the pad-only
+   shape, where the Clear button shares that row and it is still a row. */
+.encv__doc-section-body .ui-sign__head:not(:has(.ui-sign__clear)) { display: none; }
+
+
+
+/* ==================== STEP 2: THE INTRA-PROCEDURE LOGS =================== */
+
+/*
+ * A log is a table and nothing else.
+ *
+ * Stacking an inline form on top of each of these — the obvious arrangement,
+ * and the one this screen replaced — puts half the working column into a form
+ * nobody is filling in, and starts the log it belongs to below the fold. During a case the log is what is READ — what has been given, what the
+ * last set of obs was — and the form is wanted for a few seconds at a time. The
+ * table gets the column; the form is a drawer.
+ */
+
+.encv__log-card {
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+  /* The table's square top corners are clipped to the card's radius. Without
+     this the header's grey fill ran straight past the rounded border and cut
+     the corner off — the card looked rounded and its contents did not. */
+  overflow: hidden;
+}
+
+/* The card IS the frame: it has the border, the radius and the title band above
+   the table. <ui-data-table> draws its own border and its own larger radius for
+   the screens that use it bare, and nested inside this it was a second frame a
+   pixel inside the first, with a different curve. */
+.encv__log-card .ui-table-wrap {
+  border: 0;
+  border-radius: 0;
+}
+
+.encv__log-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+/* The filter sits at the far end of the title band, so the title stays where
+   the eye looks for it whether or not a log has one. */
+.encv__log-filter { margin-left: auto; }
+
+/* --- The register's three cards ---------------------------------------------
+   Only the complications log has them — see the `stats` note in
+   js/lib/encounter-logs.js for why eleven running sheets do not. Deliberately
+   the same object as the complications REPORT's cards
+   (.cx__stat in css/screen-complications.css): a reviewer meets the figure in
+   both places and should not have to learn it twice. They are re-declared here
+   rather than shared because that screen's block is scoped to its own shell,
+   and a cross-screen selector would tie two layouts together for three rules.
+   -------------------------------------------------------------------------- */
+
+.encv__log-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-5);
+  margin-bottom: var(--encv-section-gap);
+}
+
+@media (max-width: 60rem) {
+  .encv__log-stats { grid-template-columns: 1fr; }
+}
+
+.encv__log-stat {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+}
+
+.encv__log-stat-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.encv__log-stat-label {
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+}
+
+.encv__log-stat-figure {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+  min-width: 0;
+}
+
+.encv__log-stat-value {
+  font-family: var(--font-family-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--font-size-title-page);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  color: var(--color-text-primary);
+}
+
+/* "Highest severity" is a word, not a number, and at the figure's size a long
+   one would push the icon off the card. It takes the body's own font and
+   clips, with the full value on the element's title where it does not fit. */
+.encv__log-stat-value--text {
+  display: block;
+  overflow: hidden;
+  font-family: inherit;
+  font-size: var(--font-size-title-section);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A cell that holds prose rather than a reading — the complications register's
+   Notes and nothing else so far. Clipped to one line with the whole note on the
+   title, which is the answer the practice-wide register in
+   css/screen-complications.css already gives the same column: a treatment
+   paragraph left to wrap turns every row of a table people SCAN into four.
+
+   Narrower than that screen's 16rem, because this table is not on a full page —
+   it sits in the working column with the chart open beside it, and a Notes
+   column any wider pushes "By" off the right edge, which is the one column that
+   says who is answerable for the row. The width is a ceiling, not a size, so a
+   short note still sets its own column. */
+.encv__log-clip {
+  display: block;
+  max-width: 14rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.encv__log-stat-meta {
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-tertiary);
+}
+
+.encv__log-stat-icon {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: var(--space-9);
+  height: var(--space-9);
+  border-radius: var(--radius-md);
+}
+
+.encv__log-stat-icon .ui-icon {
+  width: var(--space-5);
+  height: var(--space-5);
+}
+
+.encv__log-stat-icon[data-tone='critical'] {
+  background-color: var(--color-status-critical-surface);
+  color: var(--color-status-critical-solid);
+}
+
+.encv__log-stat-icon[data-tone='warning'] {
+  background-color: var(--color-status-warning-surface);
+  color: var(--color-status-warning-solid);
+}
+
+.encv__log-stat-icon[data-tone='brand'] {
+  background-color: var(--color-brand-surface);
+  color: var(--color-brand-solid);
+}
+
+.encv__log-title {
+  font-size: var(--font-size-title-section);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+/* The log is <ui-data-table> now, so the table's own rules — sticky header,
+   density, numeric alignment, the empty state — come from the component. What
+   is left here is what only this screen knows: which rows mean something. */
+
+.encv__log-card ui-data-table { display: block; }
+
+/* --- A log that is two tables ------------------------------------------------
+   Only the IV log, and only because a bag has two states a reader wants apart:
+   what is running now, and what has already come down. See the `split` note in
+   js/lib/encounter-logs.js.
+
+   The two are one card, not two, because they are one record at two points in
+   its life — a bag ends and its row crosses the line between them. Two cards
+   would put a border, a gap and a second title band in the middle of that
+   move, and read as two logs that happen to be about fluids.
+   -------------------------------------------------------------------------- */
+
+/* Every part after the first is fenced off from the one above it. The first is
+   already fenced by the card's own title band. */
+.encv__log-part + .encv__log-part {
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+/*
+ * The two tables are one set of columns, so they have to LOOK like one set of
+ * columns. Left to size themselves, each measured only its own rows: a 500 ml
+ * bag above a 1000 ml one put Volume, Rate and Infused a few pixels apart
+ * across the join, and two tables that nearly line up read as a rendering
+ * fault rather than as a deliberate split. Fixed layout, one first column wide
+ * enough for a solution name and one last column for the row's buttons, and
+ * the rest share what is left equally — which is the same arithmetic in both
+ * tables because they have the same columns.
+ */
+.encv__log-card--split .ui-table { table-layout: fixed; }
+.encv__log-card--split .ui-table th:first-child { width: 26%; }
+.encv__log-card--split .ui-table th:last-child { width: 4.75rem; }
+
+/* Headings wrap here, alone in the app. Everywhere else a column is as wide as
+   its widest value and a nowrap heading simply fits; under a fixed layout it
+   does not, and "Staff initials" was being cut to "Staff initial" — a header
+   that has lost a letter reads as a bug in the table rather than as a narrow
+   column. Both tables wrap the same words to the same depth, so the two header
+   bands stay the same height. */
+.encv__log-card--split .ui-table th { white-space: normal; }
+
+/* Values are clipped rather than left to spill. `table-layout: fixed` above
+   gives every middle column the same share of the row, and a value wider than
+   its share does not widen the column under that rule — it prints straight
+   over the cell beside it. Oxygen is where that showed: "Routine sedation"
+   ran through the time it came off, and two columns of text on top of each
+   other is unreadable in a way a shortened word is not. The one-line rule the
+   tables are built on stands; this is only the clip that has to come with it.
+   Columns whose text is worth reading in full carry `clip: true` in the log
+   spec, which adds the title attribute the ellipsis sends you looking for. */
+.encv__log-card--split .ui-table td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* A narrow column is `width: 1%` everywhere else — the auto-layout idiom for
+   "as tight as the content allows". Under the fixed layout above there is no
+   content to measure, so 1% is taken literally and a time is clipped to one
+   digit. Narrow here means a stated width instead: enough for a clock reading
+   or a flow rate, and no more, so what it gives up goes to the columns that
+   hold sentences. */
+.encv__log-card--split .ui-table th.ui-table__cell--narrow { width: 4.5rem; }
+
+/* An eyebrow, not a second heading. The card is already titled "IV"; this says
+   which half of it you are reading, and has to sit quieter than that title or
+   the card reads as having two names. */
+.encv__log-subtitle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-5);
+  font-size: var(--font-size-title-eyebrow);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  background-color: var(--color-bg-surface-sunken);
+}
+
+/* How many. Read constantly during a case — "is anything still up" is the
+   question this whole split exists to answer, and answering it should not
+   require counting rows. */
+.encv__log-count {
+  min-width: var(--space-5);
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-full);
+  background-color: var(--color-bg-surface);
+  font-size: var(--font-size-2xs);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--letter-spacing-normal);
+  text-align: center;
+  color: var(--color-text-secondary);
+}
+
+/* The row somebody has to look at: a raised BP, a reversal agent, an Aldrete
+   under the discharge threshold, stock below par. Marked, never judged — what
+   to do about it belongs to the anaesthetist, and the record's job is to make
+   sure they saw it. A left edge rather than a filled row, which at four flagged
+   rows running would tint half the table and stop meaning anything. */
+.encv__log-row--flagged td:first-child {
+  box-shadow: inset var(--space-1) 0 0 var(--color-status-warning-solid);
+}
+
+/* Where the case is now. The last row of a trend is the one being acted on, and
+   a table where every row looks the same makes the reader find "now" by
+   reading dates. */
+.encv__log-row--latest td { background-color: var(--color-brand-surface); }
+
+.encv__log-note {
+  padding: var(--space-4) var(--space-5);
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-tertiary);
+}
+
+/* --- Edit ------------------------------------------------------------------
+   A pencil on every row. It is the last cell and unlabelled: a heading over a
+   column of pencils names the control rather than the data, and the header row
+   describes what the columns hold.
+   -------------------------------------------------------------------------- */
+
+.encv__row-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+}
+
+/* Stop is a word, not a glyph. There is no icon that says "take this line down"
+   without being guessed at, and a mis-guessed press here ends a running
+   infusion. Quiet until the row is reached, then legible. */
+.encv__row-stop {
+  padding: var(--space-1) var(--space-3);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.encv__row-stop:hover {
+  border-color: var(--color-status-warning-border);
+  background-color: var(--color-status-warning-surface);
+  color: var(--color-status-warning-text-strong);
+}
+.encv__row-stop:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* --- The row's glyph buttons -----------------------------------------------
+
+   Edit, View, Print and Remove are ONE control with four glyphs in it. They
+   were four copies of these rules, which is how the pencil came to be 12px in
+   a 24px box while nobody was looking: a size set in four places is a size
+   nobody owns, and the copies only agreed because they had been pasted on the
+   same afternoon. Remove differs in exactly one declaration — what it does
+   under the pointer — so that is the only thing written separately.
+
+   SIZED FOR A FINGER AND AN EYE, not for the smallest box the glyph fits in.
+   A 12px icon is below what the design system calls an icon at all — the token
+   scale starts at 12 for decorative marks and puts controls at 16 — and 24px
+   of hit target in a compact table row is a press people miss. 32 and 16 are
+   the two sizes the rest of the app uses for a quiet control in a dense table,
+   and at 16 the printer reads as a printer rather than as a grey smudge.
+   -------------------------------------------------------------------------- */
+
+.encv__row-edit,
+.encv__row-view,
+.encv__row-print,
+.encv__row-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-10);
+  height: var(--space-10);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+}
+
+.encv__row-edit .ui-icon,
+.encv__row-view .ui-icon,
+.encv__row-print .ui-icon,
+.encv__row-remove .ui-icon {
+  width: var(--icon-size-md);
+  height: var(--icon-size-md);
+}
+
+/* The three that are corrections or copies share a hover. Remove does not —
+   see below. */
+.encv__row-edit:hover,
+.encv__row-view:hover,
+.encv__row-print:hover {
+  background-color: var(--color-bg-surface-hover);
+  color: var(--color-text-primary);
+}
+
+.encv__row-edit:focus-visible,
+.encv__row-view:focus-visible,
+.encv__row-print:focus-visible,
+.encv__row-remove:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* The line under the drawer's fields saying what the commit will do. Quiet and
+   full-width, sitting where the form ends and the footer begins — it is a
+   caption on the button rather than a field, and giving it a field's weight
+   would put a fifth thing to read into a form with four questions in it. */
+.encv__log-commit-note {
+  margin: 0;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+}
+.encv__log-commit-note[hidden] { display: none; }
+
+/* --- A note, read as a letter ----------------------------------------------
+
+   One rendering, two places: the View dialog on the Note register and the
+   sheet that register prints. Both draw letterSheet() from
+   js/lib/encounter-logs.js, so the styles are written once here rather than
+   once per surface — which is how staging ended up with a modal that showed a
+   Type badge its own printed page did not.
+   -------------------------------------------------------------------------- */
+
+/* The five facts ABOUT the letter, above the letter itself. A grid rather than
+   a stack: they are short paired values — recipient, type, subject, sent, by —
+   and five of them down the left of a dialog is five lines of mostly white
+   space above the thing somebody opened the row to read. */
+.encv__letter-meta {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5) var(--space-7);
+  margin: 0 0 var(--space-6) 0;
+}
+
+.encv__letter-line dt {
+  margin: 0 0 var(--space-1) 0;
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-medium);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wide);
+  color: var(--color-text-secondary);
+}
+.encv__letter-line dd {
+  margin: 0;
+  font-size: var(--font-size-body);
+  color: var(--color-text-primary);
+}
+
+/* THE LETTER, AS TYPED AND AS SENT.
+   `pre-wrap`, because the body is text and its blank lines ARE the letter's
+   paragraphs — the letterhead, the date, the salutation and the sign-off are
+   held apart by nothing else. Rendering it as prose would run the practice's
+   address into the date into "Dear Dr Aberle". The numeric face for the same
+   reason the drafting box uses it: an address whose lines are set in a
+   proportional face stops looking like an address. */
+.encv__letter-body {
+  max-height: 26rem;
+  overflow-y: auto;
+  padding: var(--space-6);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-normal);
+  color: var(--color-text-primary);
+  white-space: pre-wrap;
+}
+
+/* THE LETTER IS THE THING THAT SCROLLS, AND IT IS REACHABLE FROM THE KEYBOARD.
+
+   Both halves of that are one fix. A long letter has to scroll somewhere, and
+   letting the dialog do it takes the five facts above the letter off the top
+   of the window as the reader goes down it — the recipient and the subject are
+   exactly what somebody scrolling a letter is checking it against. Capping the
+   body puts the scroll where the overflow is and pins the header.
+
+   And a scrolling box with nothing focusable inside it cannot be scrolled
+   without a mouse, which is a WCAG 2.1.1 failure and not a subtle one — the
+   letter is the entire content of the dialog. `tabindex="0"` makes it a stop
+   on the way to Close and Print, where the arrow keys work; `role="region"`
+   and a name are what stop that stop from being an unexplained one. */
+.encv__letter-body:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+/* Where it went, under the letter rather than in it. Quiet, because it is the
+   system reporting on itself and not part of what the recipient received. */
+.encv__letter-routes {
+  margin: var(--space-5) 0 0 0;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+}
+
+/* The drafting box in the add form, in the same face the letter is read in.
+   A draft that looks different from the thing it becomes is a draft that gets
+   laid out twice. */
+.encv__field-mono .ui-input__control {
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-normal);
+}
+
+/* The sheet a single row prints into. Off the screen entirely — it is filled
+   for the length of the print dialog and emptied again, and a reader who
+   happens to be looking at the card should never see it appear. The @media
+   print block at the foot of this file is what puts it on paper. */
+.encv__log-print { display: none; }
+
+/* Remove is a bin, where Stop next to it is a word. The two are different
+   kinds of act and should not look like two of the same: stopping is part of
+   charting a case and happens on nearly every IV row, so it is a labelled
+   control the eye can read at a glance; removing takes a drug off the cart
+   list and appears on exactly one log. A glyph is right for the rare,
+   destructive one — and it turns red under the pointer rather than in rest, so
+   a row of them does not read as a column of warnings. */
+.encv__row-remove:hover {
+  background-color: var(--color-status-critical-surface);
+  color: var(--color-status-critical-text);
+}
+
+/* --- The count sheet -------------------------------------------------------
+   Medication inventory is the one log whose row is a form: a drawer counted
+   in, out and back again, with the arithmetic between the two ends drawn on
+   screen. It is laid out for a hand moving across a row rather than for an eye
+   scanning a column — but the figures themselves stay the size the rest of the
+   record sets them, because they are what somebody is checking.
+   -------------------------------------------------------------------------- */
+
+/*
+ * TIGHTER GUTTERS, BECAUSE THERE ARE NINE COLUMNS AND NO SPARE INCH.
+ *
+ * The compact rhythm every other log uses insets each cell by 10px, which is
+ * right for columns of text that need air between them. Here it is 180px of
+ * gutter spent on a table that has to hold nine columns inside a working
+ * column with a chart rail either side — and what it bought was Discrepancy
+ * and Save pushed off the right-hand edge, i.e. the two things the sheet
+ * exists to show. Six pixels puts the whole row back on screen, and the
+ * columns are still separated: each one holds a bordered box, which draws its
+ * own edge far more clearly than whitespace ever did.
+ */
+.encv__log-card--count {
+  --density-cell-padding-x: var(--space-3);
+  /* Named, and queried below. What decides whether this sheet has room to put
+     a name beside its figure rather than under it is the width of the CARD,
+     which moves when the clinical rail is opened as well as when the window
+     is — so the viewport is the wrong thing to ask. */
+  container: count-sheet / inline-size;
+}
+
+/*
+ * AND EVERY CELL ALIGNS TO THE TOP OF THE ROW.
+ *
+ * Two columns carry a figure with a name under it, so those rows are twice as
+ * tall as the rest — and centred, that made a row of eight boxes sit at four
+ * different heights, with the sums floating between them. A count is read
+ * ACROSS: start, added, given, wasted, expected. One line to read along, and
+ * the names hang below it where they belong.
+ */
+.encv__log-card--count .ui-table tbody td { vertical-align: top; }
+
+/*
+ * THE COLUMNS ARE STATED, NOT MEASURED.
+ *
+ * Auto layout sizes a column to its widest content, which on a sheet of boxes
+ * means the HEADING sets the width: four of these columns hold at most three
+ * digits and are named by two words, and between them "Start count",
+ * "Expected end", "End count" and "Discrepancy" were taking 80px more than
+ * anything in them needs. What paid for it was the drug's name, which broke
+ * over two lines on half the rows — the one column where a wrap is read again
+ * on every pass down the sheet.
+ *
+ * So the widths are declared, the way the IV log's two tables declare theirs.
+ * The eight columns being written into get what a count and a pair of initials
+ * actually take, the drug keeps the rest, and the headings wrap instead —
+ * which is read once, at the top.
+ *
+ * These are the NARROW figures, and they come to 52rem on purpose: that is
+ * what the working column measures with the clinical rail open beside it, and
+ * a sheet a column wider than its card is a sheet whose Discrepancy and Save
+ * sit behind a horizontal scrollbar — the two things it exists to show. Where
+ * the card is wider, the container query at the foot of this block spends the
+ * difference on the columns that can use it.
+ */
+.encv__log-card--count .ui-table { table-layout: fixed; }
+.encv__log-card--count .ui-table th { white-space: normal; }
+
+/* The drug, and the two buttons beside it. */
+.encv__log-card--count .ui-table th:nth-child(1) { width: 11rem; }
+/* Start count and Added — three digits at the outside. */
+.encv__log-card--count .ui-table th:nth-child(2) { width: 5rem; }
+.encv__log-card--count .ui-table th:nth-child(3) { width: 4.25rem; }
+/* Given and Wasted, which carry a name under the figure — and it is the NAME
+   that sets these two, not the count: "given by" clipped to "given b" reads as
+   a broken box, where a heading over two short words reads as a heading. */
+.encv__log-card--count .ui-table th:nth-child(4),
+.encv__log-card--count .ui-table th:nth-child(5) { width: 5.75rem; }
+/* Expected end and End count, whose headings take the second line instead. */
+.encv__log-card--count .ui-table th:nth-child(6),
+.encv__log-card--count .ui-table th:nth-child(7) { width: 4.75rem; }
+/* Discrepancy, which is one long word and cannot wrap out of trouble — a
+   heading clipped to "Discrepanc" reads as a broken table. */
+.encv__log-card--count .ui-table th:nth-child(8) { width: 6.25rem; }
+/* And the button that files the line. */
+.encv__log-card--count .ui-table th:nth-child(9) { width: 4.5rem; }
+
+
+/* The two sums are text where everything beside them is a 28px control, so
+   they are dropped onto the same line rather than sitting on the cell's top
+   edge above it. */
+.encv__log-card--count .encv__count-sum {
+  display: inline-block;
+  padding-top: var(--space-3);
+}
+
+/* The drug, what the vial says, what the last shift left — and the two buttons
+   that act on the line, held right so the names still start on one edge. */
+.encv__count-name {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+/*
+ * THE NAME IS HELD TO A WIDTH RATHER THAN TAKING WHAT IT ASKS FOR.
+ *
+ * "Meperidine (Demerol)" on one line, plus two buttons, was claiming a quarter
+ * of the sheet — and every pixel of it came out of the eight columns that are
+ * actually being written into. Held here it wraps onto a second line on two
+ * rows out of eight and nothing changes on the rest, which is a far cheaper
+ * price than pushing Discrepancy off the edge.
+ */
+.encv__count-name-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  flex: 1 1 auto;
+  /* Set here rather than left to the cell. Every table in the app keeps its
+     rows one line tall, and the cell's own nowrap is inherited by anything
+     drawn inside it — which is right for a value and wrong for the only cell
+     on this sheet that holds a name rather than a number. Without this the
+     long ones printed straight over the pencil beside them. */
+  white-space: normal;
+}
+
+/* Smaller than the bin and pencil on the running sheets, because here they sit
+   INSIDE a cell beside the name rather than alone in a column of their own. */
+.encv__count-name .encv__row-edit,
+.encv__count-name .encv__row-remove {
+  width: var(--space-8);
+  height: var(--space-8);
+}
+
+.encv__count-drug {
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+/* The vial and the carried-forward figure, in the quiet rung the rest of this
+   record gives a fact that qualifies the one above it. */
+.encv__count-facts,
+.encv__count-prior {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-tertiary);
+  line-height: var(--line-height-tight);
+}
+
+/* A figure with the person it is accounted for by — under it here, and beside
+   it where the card is wide enough (see the container query below). The small
+   gap is the point either way: the two boxes are one answer, and spacing them
+   like separate fields would let the eye pair a name with the wrong number. */
+.encv__count-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* Every box fills its column, so the sheet lines up on both edges rather than
+   only on the left. Held to a stated width they floated at the start of cells
+   that had grown wider than they were, in two sizes, which read as nine
+   different questions rather than as one line to be answered across. */
+.encv__count-field {
+  display: block;
+  width: 100%;
+}
+
+/*
+ * AND WHERE THERE IS ROOM, THE NAME SITS BESIDE THE FIGURE RATHER THAN UNDER IT.
+ *
+ * Stacked, the two pair columns make every row on the sheet twice as tall as
+ * the seven single-box columns beside them — eight rows of that is half a
+ * screen of white space held open by two fields, and the eye reading a count
+ * across has to step down a line and back up again twice on the way.
+ *
+ * Laid side by side the row is one line of boxes from Start count to Save, all
+ * on the same rule, and the vertical space goes back to the sheet. The pair is
+ * still one cell — the initials sit against the number they account for, with
+ * a gap smaller than the one between columns, so nothing floats free of its
+ * figure. It only happens where the card is genuinely wide enough to hold the
+ * extra 7rem the two names take — which is the card with the clinical rail
+ * folded away, not the card with it open. Below that the stack is still the
+ * honest way to fit them.
+ */
+@container count-sheet (width >= 62rem) {
+  .encv__count-stack {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  /* The figure keeps a count's width; the initials take what is left of the
+     cell, which is what makes "given by" readable rather than clipped. */
+  .encv__count-stack .encv__count-field { flex: 0 0 3.25rem; }
+  .encv__count-stack .encv__count-field + .encv__count-field { flex: 1 1 auto; }
+
+  /* The two pair columns carry two boxes now, so they take the width of two.
+     Everything else stays exactly where it was. */
+  .encv__log-card--count .ui-table th:nth-child(4),
+  .encv__log-card--count .ui-table th:nth-child(5) { width: 9.25rem; }
+  /* And the drug gets the room the stack gave back: enough that all eight
+     names on a standard cart sit on one line beside their two buttons. */
+  .encv__log-card--count .ui-table th:nth-child(1) { width: 15rem; }
+
+  /* And the three headings that are two words over a box of three digits get
+     the width that keeps each on one line. Wrapped, they set the header band
+     two lines deep above a table whose rows are now one — which is the band,
+     not the count, deciding how much of the sheet is visible. */
+  .encv__log-card--count .ui-table th:nth-child(2),
+  .encv__log-card--count .ui-table th:nth-child(7) { width: 6rem; }
+  .encv__log-card--count .ui-table th:nth-child(6) { width: 7rem; }
+  /* Discrepancy is one long word: it cannot wrap out of trouble, so it is
+     given the width it measures rather than the width its box needs. */
+  .encv__log-card--count .ui-table th:nth-child(8) { width: 6.75rem; }
+}
+
+/* Tighter than the shared small field, which is padded for a box somebody
+   reads a sentence out of. */
+.encv__count-field .ui-input { padding: 0 var(--space-3); }
+
+/* The two computed cells. Tabular figures, because these are the numbers
+   somebody compares by looking down the column. */
+.encv__count-sum {
+  font-variant-numeric: tabular-nums;
+  font-size: var(--font-size-body);
+  color: var(--color-text-primary);
+}
+
+.encv__count-none { color: var(--color-text-tertiary); }
+
+/* A drawer that agrees with its own arithmetic is a good answer, said quietly:
+   the sheet is worked by exception, and a column of loud zeros is a column
+   nobody reads to the bottom of. */
+.encv__count-diff--level { color: var(--color-text-secondary); }
+
+/* A drawer that does not agree is the one thing on this tab that has to be
+   noticed before the case closes. */
+.encv__count-diff--off {
+  color: var(--color-status-critical-text);
+  font-weight: var(--font-weight-medium);
+}
+
+/* --- The row confirm ------------------------------------------------------
+   The dialog that stands between a press and a row changing state — ending an
+   IV solution, taking a medication off the formulary. See openRowConfirm in
+   js/screens/encounter.js, and the note over #rowConfirm in
+   screens/encounter.html for why the two share one dialog.
+   -------------------------------------------------------------------------- */
+
+.encv__confirm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.encv__confirm-text {
+  font-size: var(--font-size-body-sm);
+  color: var(--color-text-secondary);
+}
+
+/* --- The add drawer ------------------------------------------------------- */
+
+/*
+ * TWO GAPS, NOT ONE — AND NEITHER OF THEM IS THE ONE INSIDE A FIELD.
+ *
+ * A field is a label sitting 4px above its control (.ui-field's own gap), so a
+ * single 10px gap on the grid left only 6px of difference between "this label
+ * belongs to the box under it" and "this label belongs to the box above it".
+ * At a glance the form read as a column of orphaned words. The rows are opened
+ * to 16px so a field binds to itself four times harder than to its neighbour,
+ * and the columns to 20px so the right-hand label cannot be mistaken for a
+ * continuation of the left-hand control.
+ *
+ * .encv__doc-grid below carries the same pair of values for the same reason —
+ * it is the same object, a two-up grid of fields, drawn on a page instead of
+ * in a dialog. Change one and change the other.
+ */
+.encv__log-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: var(--space-8);
+  row-gap: var(--space-7);
+}
+
+/* --- A half of the form that is only sometimes asked -----------------------
+   The medication administration drawer records the discard alongside the dose,
+   and most doses have no discard — so the four fields that describe one are
+   behind a tick rather than permanently on a form that is filled in with a
+   syringe in the other hand. See the `toggle` and `showIf` field types in
+   js/screens/encounter.js.
+
+   display: contents is the whole trick. .encv__log-form is a two-column grid
+   and its fields set their own spans; a wrapper that took part in that grid
+   would become one cell and flatten every field inside it to half a row. This
+   wrapper draws nothing and lays out nothing — its children stay direct grid
+   items — while still being one node the `hidden` attribute can take out of
+   the layout, the tab order and the accessibility tree in a single press.
+
+   The [hidden] rule has to come after, and at equal specificity: display is
+   the property `hidden` works by, so a bare `display: contents` above it wins
+   on source order alone and leaves a "hidden" block fully visible.
+   ------------------------------------------------------------------------ */
+
+.encv__log-when { display: contents; }
+.encv__log-when[hidden] { display: none; }
+
+/* The tick itself, set apart from the fields above it by a rule rather than by
+   spacing alone. It is not another answer in the run of them — it is the
+   question of whether there is a second half to this form at all, and a
+   checkbox sitting flush in a column of inputs reads as one more box to fill
+   rather than as a fork. */
+
+.encv__log-switch {
+  padding-top: var(--space-5);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+/* What ticking it will DO, said before it is ticked. Filing a line onto the
+   practice's controlled-drug register is not a consequence anybody should
+   discover from a toast afterwards. Indented to clear the box so it reads as
+   a note on the label rather than as a second label. */
+.encv__log-switch-hint {
+  margin: var(--space-2) 0 0 var(--space-9);
+  font-size: var(--font-size-caption);
+  color: var(--color-text-tertiary);
+}
+
+/* --- Quick Select from Formulary ------------------------------------------
+   The trolley, drawn out under the Medication box on the administration form
+   so the six drugs an endoscopy list runs on are pressable rather than
+   summonable. A sunken panel rather than six loose buttons on the form: they
+   are an offer beside the field, not a required answer, and the recess says so
+   without a line of help text.
+
+   The recovery nurse's own cart (.enc__np-formulary in
+   css/screen-clinic-visit.css) is the same object drawn on a page instead of
+   in a dialog, and carries the same values. Change one and change the other.
+
+   Two per row where there is room. That cart stacks its rows full width and
+   can afford to — it has a column to itself; six stacked in a dialog would
+   push Staff initials off the bottom of it, and a quick-select you have to
+   scroll to reach has already lost to typing.
+   ------------------------------------------------------------------------ */
+
+.encv__formulary {
+  padding: var(--space-5);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+}
+
+.encv__formulary-legend {
+  margin: 0 0 var(--space-4);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+}
+
+.encv__formulary-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+  gap: var(--space-3);
+}
+
+.encv__drug {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  width: 100%;
+  padding: var(--space-4) var(--space-5);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+  text-align: left;
+  cursor: pointer;
+}
+
+.encv__drug:hover {
+  border-color: var(--color-border-strong);
+  background-color: var(--color-bg-surface-hover);
+}
+
+.encv__drug:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* The pressed row, said in the border rather than in a fill: the panel is
+   already sunken, and a filled row inside it reads as disabled. */
+.encv__drug--picked {
+  border-color: var(--color-border-brand);
+  background-color: var(--color-bg-surface-hover);
+}
+
+.encv__drug strong {
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+.encv__drug span {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-tertiary);
+}
+
+/* --- "Confirm my initials" ------------------------------------------------
+   A pressed state that says so in WORDS as well as in colour: confirmed, the
+   button carries a tick and the initials themselves, and the hint beside it
+   changes. Colour alone would leave the one control on the form that records
+   who is accountable for a dose readable only to people who can separate
+   green from grey.
+
+   The clinic-visit screen has the same control under .enc__initials. Two
+   copies rather than one shared class because the two screens' stylesheets
+   are separate by design — but they are deliberately the same object, and a
+   change to one belongs in both.
+   ---------------------------------------------------------------------- */
+
+.encv__initials-label {
+  display: block;
+  margin-bottom: var(--space-4);
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+}
+
+.encv__initials {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  flex-wrap: wrap;
+}
+
+.encv__initials-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--control-height-md);
+  padding: 0 var(--space-5);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+  font-family: inherit;
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+.encv__initials-button:hover {
+  border-color: var(--color-border-strong);
+  background-color: var(--color-bg-surface-hover);
+}
+.encv__initials-button:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* Pressed Record with the initials still unconfirmed.
+   The control is a button and a hint rather than a field, so it cannot wear
+   <ui-input>'s error slot the way every other control on the form does. It
+   says the same thing in the same two ways instead: the hint beside it turns
+   critical and changes its words, and the button takes a critical border, so
+   the state is not carried by colour alone. Cleared the moment the initials
+   are confirmed — see paintDrawerInitials in js/screens/encounter.js. */
+.encv__initials--error .encv__initials-button {
+  border-color: var(--color-status-critical-solid);
+}
+.encv__initials--error .encv__initials-hint {
+  color: var(--color-status-critical-text);
+}
+
+.encv__initials-button--on {
+  border-color: var(--color-status-success-solid);
+  background-color: var(--color-status-success-surface);
+  color: var(--color-status-success-text);
+}
+.encv__initials-button--on .ui-icon { color: var(--color-status-success-text); }
+
+.encv__initials-hint {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-tertiary);
+}
+
+/* --- The running total, under the form producing it ------------------------
+   Sits inside the drawer rather than beside the table, because it is the
+   answer to the question being filled in — an Aldrete score's whole meaning
+   is the number against the threshold, and having to file the entry to see it
+   is having to guess.
+   ---------------------------------------------------------------------- */
+
+.encv__log-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+  padding: var(--space-5);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+  font-size: var(--font-size-body);
+}
+
+.encv__log-total-note {
+  display: block;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-tertiary);
+}
+
+.encv__log-total-pill {
+  padding: var(--space-2) var(--space-5);
+  border-radius: var(--radius-full);
+  background-color: var(--color-status-warning-surface);
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-status-warning-text);
+}
+
+.encv__log-total-pill--ok {
+  background-color: var(--color-status-success-surface);
+  color: var(--color-status-success-text);
+}
+
+/* ================= THE FORM-SHAPED DOCUMENTS (steps 3–5) ================= */
+
+/*
+ * The same card the checklist's sections are, on markup this screen owns rather
+ * than the pre-check sheet's. A nurse moving from step 1 to step 3 meets the
+ * same object twice — a marked edge, a title, the questions under it — which is
+ * the point of them looking identical.
+ *
+ * Which is why every measurement below is --encv-section-*, the properties the
+ * checklist's cards are drawn from (see .encv at the top of this file). Written
+ * out as literals, these two blocks had already drifted: 10px between cards
+ * against the checklist's 24, a 20px marker against a 16px one. Sharing the
+ * properties is what makes "identical" a fact rather than an intention.
+ */
+
+.encv__doc-section {
+  margin-bottom: var(--encv-section-gap);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+}
+.encv__doc-section:last-child { margin-bottom: 0; }
+
+.encv__doc-legend {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin: 0;
+  padding: var(--encv-section-inset) var(--encv-section-inset) var(--encv-section-lead);
+  line-height: var(--line-height-tight);
+  font-size: var(--font-size-title-section);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.encv__doc-legend::before {
+  content: '';
+  flex: none;
+  width: var(--border-width-thick);
+  height: var(--encv-section-mark);
+  border-radius: var(--radius-full);
+  background-color: var(--color-brand-solid);
+}
+
+/* The heading's own mark, where a section spec names one — see the check-out
+   sections in js/lib/encounter-docs.js. Brand-coloured, so the bar and the
+   glyph read as one marker on the left of the title rather than as a coloured
+   rule and an unrelated grey picture; `flex: none` keeps it its own size while
+   a long title wraps beside it. It is drawn slightly larger than a body icon
+   because it stands against a section title, not against caption text. */
+.encv__doc-legend-icon {
+  flex: none;
+  width: var(--icon-size-lg);
+  height: var(--icon-size-lg);
+  color: var(--color-brand-solid);
+}
+
+/* Set as default / Use as default, in the section's own heading.
+   Pushed to the far end rather than sitting after the title, so the eye reads
+   down a column of section names without the buttons moving in and out with
+   the length of each one. `flex: none` on the pair keeps a long title from
+   squeezing them; the title is what wraps. */
+.encv__doc-legend-actions {
+  display: flex;
+  flex: none;
+  gap: var(--space-3);
+  margin-left: auto;
+}
+
+.encv__doc-section-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--encv-section-lead);
+  padding: 0 var(--encv-section-inset) var(--encv-section-inset);
+}
+
+.encv__doc-note {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+}
+
+/* --- The standing order lines -----------------------------------------------
+   A field of type `lines` (see docFieldMarkup in js/screens/encounter.js):
+   protocol text, printed where the document reaches it. Every line is already a
+   whole instruction — "NPO per protocol", "Aldrete score ≥8 or back to baseline
+   for discharge" — so there are no bullets in front of them: a marker belongs
+   on a list somebody is choosing from, and nobody chooses from an order set.
+
+   The list spans both columns of .encv__doc-grid, which is what puts the
+   sedation medications between the technique above them and the box for
+   anything ordered on top. */
+.encv__doc-lines {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--color-text-primary);
+}
+
+/* "Medications", over the list it names. It wears the weight and size a field
+   label does, because that is the role it is playing: the list underneath is
+   standing where a control's answer would be. */
+.encv__doc-lines-label {
+  margin-bottom: var(--space-4);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+}
+
+/* --- A log drawn inside a document -----------------------------------------
+   No document declares one at present — the anaesthesia order set was the one
+   that did, and it is now the practice's standing set, printed rather than
+   assembled a row at a time (see js/lib/encounter-docs.js). The mechanism and
+   its frame stay for the next table-shaped section. It is framed the way a log
+   page's card is — the same border, radius and surface — because a table adrift
+   in the middle of a stack of form cards reads as the page having lost its
+   frame, not as a table. The component's own border and its larger radius are
+   flattened into that frame for the same reason .encv__log-card flattens them:
+   two frames a pixel apart, curving differently, is what a nested table looks
+   like when nobody has said which one is the edge.
+
+   The button goes UNDER the table, not above it in a title band. On a log page
+   the add sits in the working column's toolbar because the table is the whole
+   page; here the section heading is already the title, and a second control row
+   above the rows would be a header inside a header. Right-aligned, so it reads
+   as an action on the table above it rather than as the first row of it. */
+.encv__doc-log {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.encv__doc-log ui-data-table {
+  display: block;
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+  overflow: hidden;
+}
+
+.encv__doc-log .ui-table-wrap {
+  border: 0;
+  border-radius: 0;
+}
+
+.encv__doc-log-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* The field rhythm .encv__log-form sets out above, on the page rather than in
+   the dialog. The two grids are deliberately the same object. */
+.encv__doc-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: var(--space-8);
+  row-gap: var(--space-7);
+}
+
+/* A time field and its Now, sharing one cell of the grid.
+   Bottom-aligned rather than centred: the input carries a label above it and
+   the button does not, so aligning their middles would float the button half a
+   line proud of the control it stamps. The input takes the slack so the button
+   stays the width of its own word at every column width. */
+.encv__field-now {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-3);
+}
+
+.encv__field-now ui-input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* --- Who this is, on the document -------------------------------------------
+   Check-out's Patient Overview card — six quoted facts, read in pairs (the
+   name with the number that identifies it, the procedure with who did it), so
+   two to a row wherever the working column can hold two. Below that width they
+   stack, because a term and its value squeezed into half of a narrow column
+   wrap into an unreadable ladder.
+
+   Term over value rather than beside it: these values are long — a full name, a
+   date of birth with an age and a sex after it — and a label column wide enough
+   for "Date of procedure" would leave the values starting a third of the way
+   across the card. */
+.encv__overview {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: var(--space-5) var(--space-8);
+  margin: 0;
+}
+
+.encv__overview-row dt {
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-tertiary);
+}
+
+.encv__overview-row dd {
+  margin: 0;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-primary);
+  overflow-wrap: anywhere;
+}
+
+/* --- ICD-10, searched and attached ------------------------------------------
+   The procedure report's indication card — see mountIcdField in
+   js/screens/encounter.js. Three stacked parts: the box, whatever it matched,
+   and what is on the report already.
+   -------------------------------------------------------------------------- */
+
+.encv__icd-results {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  margin: var(--space-4) 0 0;
+  padding: var(--space-2);
+  list-style: none;
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+}
+
+/* A whole row is the target, not the code at the start of it: the thing being
+   pressed is "this diagnosis", and a hit area the width of five characters is
+   a hit area somebody misses with a trackpad in a procedure room. */
+.encv__icd-result {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-4);
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-primary);
+  text-align: left;
+  cursor: pointer;
+}
+
+.encv__icd-result:hover { background-color: var(--color-bg-surface-hover); }
+.encv__icd-result:focus-visible { outline: var(--focus-ring); }
+
+.encv__icd-result code,
+.encv__icd-code code {
+  flex: none;
+  font-family: var(--font-family-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--font-size-2xs);
+  color: var(--color-brand-text);
+}
+
+.encv__icd-empty,
+.encv__icd-none {
+  margin: var(--space-4) 0 0;
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-tertiary);
+}
+
+.encv__icd-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: var(--space-4) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Attached codes are framed and the search results are not: one list is a
+   proposal and the other is the answer, and the answer is the one that has to
+   still be legible when somebody scrolls past it a document later. */
+.encv__icd-code {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+  font-size: var(--font-size-caption);
+}
+
+.encv__icd-text {
+  flex: 1;
+  min-width: 0;
+  color: var(--color-text-primary);
+}
+
+.encv__icd-drop {
+  flex: none;
+  padding: 0 var(--space-2);
+  border: 0;
+  background: none;
+  font-size: var(--font-size-body);
+  line-height: 1;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+}
+
+.encv__icd-drop:hover { color: var(--color-status-critical-text); }
+.encv__icd-drop:focus-visible { outline: var(--focus-ring); }
+
+/* --- Picked codes, not ticked boxes -----------------------------------------
+   The report's Procedures performed and Modifiers cards — see pickerMarkup in
+   js/screens/encounter.js. Two stacked parts: the box that asks, and the answer
+   written out under it. It was three — the box that asks was a dropdown plus a
+   little form for adding what the dropdown did not offer — and the two are one
+   type-or-pick box now. The answer reuses .encv__icd-list and .encv__icd-code
+   outright, because two lists of codes on one document that were framed
+   differently would read as two different KINDS of fact.
+   -------------------------------------------------------------------------- */
+
+.encv__pick {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* The lists inside a picker carry their own gap from the stack above, so the
+   margin they wear under the ICD search — where they follow a control that has
+   no gap of its own — would be counted twice here. */
+.encv__pick .encv__icd-list,
+.encv__pick .encv__icd-none {
+  margin-top: 0;
+}
+
+/* WHICH OF THESE CAME OFF THE PRACTICE'S LIST. A quiet mark rather than a
+   coloured badge: it qualifies the line, it is not a warning about it. */
+.encv__pick-typed {
+  flex: none;
+  padding: 0 var(--space-2);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-tertiary);
+}
+
+/* --- Procedure photos --------------------------------------------------------
+   The report's own card. The count leads the row because the cap is the fact
+   the reader needs before they press Add, not after they have chosen sixty
+   images.
+   -------------------------------------------------------------------------- */
+
+.encv__photos-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.encv__photos-count {
+  font-size: var(--font-size-2xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-tertiary);
+}
+
+.encv__photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+  gap: var(--space-4);
+}
+
+/* The × sits ON the image rather than under it: a caption row with a control in
+   it doubles the height of every tile, and at nine rem a tile is mostly
+   picture. `position: relative` on the figure is what anchors it. */
+.encv__photo {
+  position: relative;
+  margin: 0;
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+  overflow: hidden;
+}
+
+.encv__photo img {
+  display: block;
+  width: 100%;
+  height: 7rem;
+  object-fit: cover;
+}
+
+.encv__photo figcaption {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.encv__photo-drop {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  width: 1.5rem;
+  height: 1.5rem;
+  border: 0;
+  border-radius: var(--radius-full);
+  background-color: var(--color-bg-surface);
+  font-size: var(--font-size-body-sm);
+  line-height: 1;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.encv__photo-drop:hover {
+  background-color: var(--color-status-critical-surface);
+  color: var(--color-status-critical-text);
+}
+
+.encv__photo-drop:focus-visible { outline: var(--focus-ring); }
+
+.encv__field-now ui-button { flex: none; }
+
+/* --- The document's own words ----------------------------------------------
+   A consent is READ, not scanned, so it gets a line height and a paragraph gap
+   the rest of the screen does not: the dense two-column rhythm that suits a
+   form is the wrong shape for three paragraphs somebody is being asked to agree
+   to. The face is the BODY size, not the caption one — 12px is the size this
+   screen uses for a hint under a field, and the sentences a patient is asked to
+   put their name to are not a hint. The paragraph gap is set wider than the
+   leading it has to beat, so four paragraphs do not read as one block: the gap
+   that says "new thought" has to be the loudest gap on the card, not the
+   quietest.
+
+   The prose used to hold its own measure — 68ch, so a line stayed inside what
+   an eye tracks without losing its place on the return sweep. It no longer
+   does. The consent now runs the full width of its card, which is the width the
+   rest of the document already uses, so the card no longer reads as half empty
+   beside the fields and signature blocks above and below it. The card itself is
+   what bounds the line now; if that ever grows wide enough for the sweep to
+   hurt, the fix belongs on the card, not on a second measure hidden here.
+   -------------------------------------------------------------------------- */
+
+.encv__prose {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-7);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-normal);
+  color: var(--color-text-primary);
+}
+
+/* --- Statements to tick ----------------------------------------------------- */
+
+.encv__checks {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+/* THE PICK-LIST FORM OF THE SAME LIST — see checksAreAPickList in
+   js/screens/encounter.js for which sections get it and why.
+
+   `auto-fill` with a 15rem floor rather than a fixed three: the working column
+   is around 800px with both rails open and half as much again with them shut,
+   and the same list should use whatever it is given rather than leaving a
+   third of the card empty at one width and clipping "Foreign body removal" at
+   another. The column gap is wider than the row gap on purpose — with sixteen
+   boxes in a grid the eye needs the columns to separate more strongly than the
+   rows, or it reads across a row into the wrong label. */
+.encv__checks--pick {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: var(--space-4) var(--space-8);
+}
+
+/* The same grid, one icon wider — see docSectionMarkup in
+   js/screens/encounter.js. The floor grows by what the glyph and its gap take
+   out of the label, so the lines that fitted a track before they were given a
+   picture still fit one after. */
+.encv__checks--icons.encv__checks--pick {
+  grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+}
+
+.encv__check {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  cursor: pointer;
+}
+
+.encv__check-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-snug);
+}
+
+/* The picture on a tick's own row.
+   Secondary rather than brand: the ticked box is the only thing on the line
+   that should carry colour, and five brand-coloured glyphs down a grid would
+   compete with it for the eye. `margin-top` nudges it onto the cap-height of
+   the first line of the statement rather than its box, because the row is
+   aligned flex-start for the sake of labels that wrap to two lines. */
+.encv__check-icon {
+  flex: none;
+  margin-top: 0.0625rem;
+  color: var(--color-text-secondary);
+}
+
+.encv__check-hint {
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-tertiary);
+}
+
+/* The CPT the tick is claimed under, in front of the words it belongs to.
+   Monospaced and tabular so a column of them lines up digit under digit — that
+   alignment is the whole reason a coder can scan the grid rather than read it —
+   and quieter than the label, because the label is what the endoscopist is
+   choosing by and the code is what it is called afterwards. */
+.encv__check-code {
+  font-family: var(--font-family-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-tertiary);
+}
+
+/* A line the document answers for itself — the Aldrete threshold is computed
+   from the score, never ticked by hand. Shown, and shown as not-yours: a
+   disabled box with no explanation reads as broken. */
+.encv__check--derived { cursor: default; opacity: 0.75; }
+
+/* --- A score, and what it changes ------------------------------------------- */
+
+.encv__score {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+  font-size: var(--font-size-caption);
+}
+
+.encv__score-value {
+  font-family: var(--font-family-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--font-size-heading-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.encv__score-action { color: var(--color-text-secondary); }
+
+/* The pad is the portal's block now (js/lib/signature-block.js), which is a
+   plain <div> and stretches on its own — the display:block that <ui-signature>
+   needed as an inline custom element is gone with it. */
+
+/* --- One heading per signature ----------------------------------------------
+   The rule that used to sit here hid `.encv .pp-sign__title` — the portal pad's
+   heading — for the whole screen. Nothing on this screen renders that class any
+   more, and the live version of the same rule now lives with the rest of the
+   pad's framing, up under "The signature, at the size the room needs", where a
+   reader looking for why the pad is drawn the way it is will find all of it in
+   one place instead of two blocks 700 lines apart.
+   -------------------------------------------------------------------------- */
+
+/* ============ CHECK-OUT: THE DISCHARGE INSTRUCTION SHEET ================= */
+
+/*
+ * The one thing in this column that is not a form, on the document it leads.
+ *
+ * Everything above Additional Instructions is READ — by a patient who was
+ * sedated an hour ago, or more likely by whoever drove them home, at a kitchen
+ * table that evening. So it borrows the section card every other document on
+ * this screen uses (a run of identical cards is what makes the column scannable
+ * at all) and changes exactly what has to change for prose: bulleted lists
+ * instead of a two-column field grid, and a measure it is comfortable to read a
+ * sentence across.
+ */
+
+/* Activity and diet, side by side. They are two halves of one question — what
+   you may do today — so they get the same two-up grid .encv__doc-grid gives a
+   form's fields, at the card-to-card gap rather than the field-to-field one:
+   these are two cards standing next to each other, not two controls in a row.
+   Like that grid, it does not collapse at narrow widths — the whole column is
+   read at a desk, and a sheet that reflowed on a phone while the form beside it
+   did not would be the odd one out. */
+.encv__sheet-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--encv-section-gap);
+  /* And the same gap UNDER the pair, because the two cards inside it have had
+     their own taken away on the line below. Without this the wrapper carries no
+     spacing at all and the pair sits flush against the warning signs — two
+     cards butted onto a third, on the one block of the sheet that is supposed
+     to stand apart from everything around it. */
+  margin-bottom: var(--encv-section-gap);
+}
+
+.encv__sheet-pair:last-child { margin-bottom: 0; }
+
+/* The card inside the pair carries the run's card-to-card gap on its own, which
+   would double up inside a grid that is already spacing them — so it is taken
+   off here and put back on the wrapper above. */
+.encv__sheet-pair .encv__doc-section { margin-bottom: 0; }
+
+/* Which sheet this is, between the letterhead and the first card. It was a
+   caption naming a set chosen elsewhere; it is the control that chooses it now,
+   with the caption under it. Still no card of its own — a bordered panel round
+   one select would read as the first section of a form, and everything below it
+   is the patient's page rather than the record's questions.
+
+   The select is held to a readable width rather than the column's, because a
+   dropdown run the full width of the sheet reads as a search box. */
+.encv__sheet-set {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-bottom: var(--encv-section-gap);
+}
+
+.encv__sheet-set ui-select { max-width: 28rem; }
+
+.encv__sheet-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin: 0;
+  padding-left: var(--space-8);
+  max-width: 46rem;
+  list-style: disc;
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-body);
+  color: var(--color-text-primary);
+}
+
+/*
+ * The warning signs, in the colour they are read in.
+ *
+ * The only block on the sheet drawn in critical rather than body colour, and
+ * the reason it is the only one: a page where three things are red is a page
+ * where nothing is. These five lines are the ones that send somebody back to
+ * hospital, and every other line on the sheet is deliberately quiet so that
+ * these are the ones the eye lands on.
+ *
+ * Text colour and a marked edge, not a tinted panel. The sheet is printed, and
+ * a filled background is the first thing a practice printer either eats a
+ * cartridge over or drops entirely — leaving the most important block on the
+ * page as the one that came out grey.
+ */
+.encv__sheet-list[data-tone='danger'] { color: var(--color-status-critical-text); }
+
+.encv__doc-section--danger { border-color: var(--color-status-critical-border); }
+.encv__doc-section--danger .encv__doc-legend::before {
+  background-color: var(--color-status-critical-solid);
+}
+
+.encv__sheet-line {
+  max-width: 46rem;
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-body);
+  color: var(--color-text-primary);
+}
+
+/* The held-for-five-days fact, beside the drug rather than under it: it is a
+   parenthesis on the sentence, not a second instruction. */
+.encv__sheet-aside { color: var(--color-text-secondary); }
+
+/* "You may resume your anticoagulant on [ date ]" — one sentence with a control
+   in the middle of it, so the control is baseline-aligned to the words rather
+   than stacked under them. The field's own label is hidden because the sentence
+   it interrupts already is the label. */
+.encv__sheet-resume {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.encv__sheet-resume ui-input { flex: none; }
+
+/* Buttons in a column whose section body stacks and stretches everything in it.
+   Without this the two of them would each run the width of the card, which
+   reads as two more sections rather than as two presses. */
+.encv__sheet-additional {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.encv__sheet-additional ui-button { flex: none; }
+
+/* Results and Contact: a term and its sentence, the term set apart so the two
+   facts can be found without reading either paragraph. */
+.encv__sheet-terms {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  margin: 0;
+  max-width: 46rem;
+}
+
+.encv__sheet-term {
+  display: flex;
+  gap: var(--space-4);
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-body);
+}
+
+.encv__sheet-term dt {
+  flex: none;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.encv__sheet-term dd {
+  margin: 0;
+  color: var(--color-text-primary);
+}
+
+/* ============ DISCHARGE TO RECOVERY ====================================== */
+
+/*
+ * The last document of step 2 is a decision, not a table — see the header above
+ * paintToRecovery in js/screens/encounter.js.
+ *
+ * Three blocks in one card, each boxed: what is checked, what the score is, and
+ * the tick. Boxed rather than run together because a reader arriving here is
+ * comparing them against each other — the criteria against the score, the score
+ * against the tick — and three paragraphs in a column reads as one argument
+ * rather than three facts.
+ */
+
+.encv__rec-criteria,
+.encv__rec-latest {
+  padding: var(--encv-section-inset);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.encv__rec-legend {
+  margin: 0;
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+/* Two columns. Five short lines down one column is a list nobody reads to the
+   end of, and the end of this one is "patient alert and oriented". */
+.encv__rec-criteria-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4) var(--space-7);
+  margin-top: var(--space-5);
+  padding: 0;
+  list-style: none;
+}
+
+.encv__rec-criteria-list li {
+  position: relative;
+  padding-left: var(--space-6);
+  font-size: var(--font-size-body);
+  color: var(--color-text-secondary);
+}
+
+/* A dot, not a tick. Nothing on this list has been ticked — it is what the
+   bedside checks before the one control on the card is pressed, and a row of
+   ticks beside unanswered lines would claim all five were done. */
+.encv__rec-criteria-list li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.45em;
+  width: var(--space-3);
+  height: var(--space-3);
+  border-radius: var(--radius-full);
+  background-color: var(--color-border-focus);
+}
+
+.encv__rec-latest {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.encv__rec-latest > div { flex: 1; min-width: 0; }
+.encv__rec-latest ui-badge { flex: none; }
+
+.encv__rec-latest-icon {
+  display: inline-flex;
+  flex: none;
+  color: var(--color-text-tertiary);
+}
+
+.encv__rec-latest-icon svg { width: var(--space-6); height: var(--space-6); }
+
+/* Dashed, and the only dashed border on the screen: this box is the one thing
+   on the card still to be done, and the criteria and the score above it are
+   both already answered. */
+.encv__rec-ready {
+  padding: var(--encv-section-inset);
+  border: var(--border-width-thin) dashed var(--color-border-default);
+  border-radius: var(--radius-md);
+}
+
+/* And it stops being dashed the moment it is signed. The dashed edge is the
+   card saying THIS IS THE OUTSTANDING ONE; kept under a signature it goes on
+   saying it about the one thing on the screen that is finished. */
+.encv__rec-ready[data-signed='true'] {
+  border-style: solid;
+  border-color: var(--color-border-subtle);
+}
+
+/* Indented to the checkbox's label rather than to its box, so the sentence
+   reads as the label's second line instead of as a caption for the whole box. */
+.encv__rec-ready .encv__doc-note {
+  margin-top: var(--space-3);
+  padding-left: var(--space-8);
+}
+
+.encv__rec-approved {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  padding-left: var(--space-8);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-status-success-text);
+}
+
+.encv__rec-approved svg {
+  width: var(--space-5);
+  height: var(--space-5);
+}
+
+/* Indented to the checkbox's label, like the note and the approved line above
+   it — the whole box reads as one column hanging off the tick. */
+/* The decision, once it is signed, is a statement rather than a control — so
+   it takes the ink a statement takes. A disabled checkbox greys its own label,
+   which put the most consequential line on the card in its faintest ink. */
+.encv__rec-locked {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+.encv__rec-locked svg {
+  width: var(--space-5);
+  height: var(--space-5);
+  color: var(--color-status-success-text);
+}
+
+/* THE FILED MARK, LAID OUT IN TWO ROWS INSTEAD OF FIVE.
+
+   The block is the shared one — js/lib/signature-block.js, the same markup the
+   run's eight document signatures use — and none of what follows changes what
+   it says. It changes how much of the card it takes to say it. Stacked, the
+   attestation line, a full-width sunken box holding one italic name, the name
+   again, the timestamp and a right-stranded Sign again ran to about 240px for
+   a signature that is four words long, and on a card whose whole job is to be
+   read at a glance beside a trolley.
+
+   So: the attestation and Sign again share the top row, at opposite ends,
+   which also puts the control next to the sentence it undoes rather than three
+   lines below it. The mark itself sits under both, hugging its own content
+   rather than spanning the column — a sunken box the width of the page around
+   a two-inch signature reads as an empty field, not a filled one. */
+.encv__rec-sign {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: var(--space-5);
+  margin-top: var(--space-4);
+  padding-left: var(--space-8);
+}
+
+.encv__rec-sign .ui-sign-mark__line { font-size: var(--font-size-caption); }
+
+.encv__rec-sign .ui-sign-mark__actions {
+  grid-column: 2;
+  grid-row: 1;
+  margin-top: 0;
+}
+
+/* Shrink-wrapped and horizontal: the ink, then who and when beside it. */
+.encv__rec-sign .ui-sign-mark {
+  grid-column: 1 / -1;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-5);
+  justify-self: start;
+  max-width: 100%;
+  margin-top: var(--space-3);
+  padding: var(--space-3) var(--space-5);
+}
+
+/* A step down from the 24 the shared block sets, because the mark is now
+   sitting in a row beside its own caption rather than heading a stack. */
+.encv__rec-sign .ui-sign-mark__ink { font-size: var(--font-size-xl); }
+
+/* THE NAME ONCE, NOT TWICE, ON A CARD THAT ALREADY SAID IT.
+
+   The shared block prints the signature and then the attribution under it —
+   the ink and the name — because on a document a filed mark can be read a
+   screen away from anything that says whose it is, and a mark captioned by
+   nobody is not a record. That is not this card: the attestation sentence
+   naming the signer is one line above and is always rendered, and once the
+   pair is laid out side by side rather than stacked the repeat stops reading
+   as signature-then-attribution and starts reading as a bug. So the caption's
+   name is dropped HERE, in the one place it is redundant, and the moment it
+   carries moves up beside the ink. Nothing is hidden that the card does not
+   still say in words. */
+.encv__rec-sign .ui-sign-mark__signer { display: none; }
+
+.encv__rec-sign .ui-sign-mark__by {
+  flex-direction: row;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+.encv__rec-sign .ui-sign-mark__at::before {
+  content: '·';
+  margin-right: var(--space-3);
+  color: var(--color-text-tertiary);
+}
+
+/* Under a phone, back to the stack the shared block ships with — two rows of
+   this become four lines of wrapping otherwise. */
+@media (max-width: 48rem) {
+  .encv__rec-sign { grid-template-columns: minmax(0, 1fr); }
+  .encv__rec-sign .ui-sign-mark__actions { grid-column: 1; grid-row: auto; }
+  .encv__rec-sign .ui-sign-mark,
+  .encv__rec-sign .ui-sign-mark__by { flex-direction: column; align-items: flex-start; }
+  /* Stacked again, the caption is on its own and has to name somebody. */
+  .encv__rec-sign .ui-sign-mark__signer { display: block; }
+  .encv__rec-sign .ui-sign-mark__at::before { content: none; margin-right: 0; }
+}
+
+.encv__rec-updated { text-align: center; }
+
+@media (max-width: 60rem) {
+  .encv__rec-criteria-list { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ============================== THE COMMIT =============================== */
+
+/*
+ * One band at the foot of the working column: what is left, then the commit.
+ *
+ * In that order and on one line, because "Update checklist" only means
+ * something next to how much of the sheet is answered. A commit that can be
+ * pressed at any time with no statement of what is missing invites filing a
+ * half-worked sheet.
+ */
+.encv__foot {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  padding: var(--space-5) var(--space-6);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+  background-color: var(--color-bg-surface);
+  border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+}
+.encv__foot[hidden] { display: none; }
+
+.encv__foot-hint {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+}
+/* Green only once there is nothing left to answer. An outstanding count in the
+   same ink as a finished one is a status that never changes. */
+.encv__foot-hint[data-tone='ready'] { color: var(--color-status-success-text); }
+
+.encv__foot-actions {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+/* A foot with nothing to press — the consents, which are signed on their pads
+   and have no commit — would otherwise still pay the row's gap for an empty
+   box, leaving the hint stopping short of the padding for no reason. */
+.encv__foot-actions:empty { display: none; }
+
+/* The document's own toolbar, in the title band. Outline buttons throughout —
+   everything up here is a side errand, and the one thing that commits the sheet
+   is at the other end of it. */
+.encv__doc-actions {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* A rule between the document's actions and the role badge that follows them.
+   Without it the badge sits in the same run as three outline buttons and reads
+   as a fourth one — it is a label, and pressing it does nothing. */
+.encv__doc-actions:not(:empty) + #docRole::before {
+  content: '';
+  display: inline-block;
+  width: var(--border-width-thin);
+  height: var(--space-8);
+  margin-right: var(--space-5);
+  vertical-align: middle;
+  /* --default rather than --subtle: a hairline meant to separate two groups of
+     controls has to actually be visible between them, and subtle at 1px against
+     a white band is not. */
+  background-color: var(--color-border-default);
+}
+
+#docRole { display: inline-flex; align-items: center; }
+
+/* ============================ TEXT HIERARCHY =============================
+   THREE INKS, AND WHAT EACH ONE IS FOR.
+
+   The screen had drifted to using primary for nearly everything, which is the
+   same as having no hierarchy at all: a section heading, a field label, a
+   patient's blood pressure and the unit after it were the same black, so the
+   eye had nothing to sort them by but position. On a screen this dense that is
+   the difference between reading a row and searching it.
+
+     PRIMARY    the content — a value, an answer, a name, a finding. What
+                somebody opened the screen to read.
+     SECONDARY  the words AROUND the content — field labels, section headings,
+                the sentence explaining a section. Needed to read the content,
+                not the thing being read.
+     TERTIARY   the meta — units, timestamps, counts, hints, "by whom". True,
+                and almost never what the eye is looking for.
+
+   Weight carries rank WITHIN a level; colour carries the level. A heading is
+   secondary ink at semibold rather than primary ink at regular, so it reads as
+   a label of high rank instead of competing with the answers beneath it.
+   ========================================================================= */
+
+/* Section headings across the checklist, the documents and the logs: one rank,
+   one ink, whichever renderer drew them.
+
+   PRIMARY, not secondary. They were briefly set secondary so they would not
+   compete with the answers beneath them — which put them at the same ink as the
+   field labels underneath, so a section's name and a field's name were
+   indistinguishable and the ladder had two rungs instead of three. A heading is
+   the highest-rank LABEL on the screen; what keeps it from competing with the
+   values is weight, size and the mark beside it, not a lighter ink.
+
+   The clinical rail's card titles used to be listed here too. They are set in
+   css/components/clinical-rail.css now — the rail is shown on a screen that
+   does not link this file, and a rank stated in two places is a rank that can
+   disagree with itself. */
+.encv .pck__legend,
+.encv__doc-legend,
+.encv__log-title {
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Field labels, wherever they come from — the sheet's, the components', the
+   document renderer's. Secondary, so the answer beside them is the black. */
+.encv .ui-field__label,
+.encv .pck__field-label,
+.encv__doc-grid .ui-field__label,
+.encv__log-form .ui-field__label { color: var(--color-text-secondary); }
+
+/* Values stay primary: the control's own text is the content. */
+.encv .ui-input__control,
+.encv .ui-select__control,
+.encv__log td { color: var(--color-text-primary); }
+
+/* Meta: units, stamps, the person who wrote the row. The rail's own meta line
+   is set with the rail — see the note on the headings above. */
+.encv__log-note,
+.encv__doc-note,
+.encv__check-hint,
+.encv__patient-idline,
+.encv__score-action,
+.encv__empty-note,
+.encv__foot-hint,
+.encv__fact dt { color: var(--color-text-tertiary); }
+
+/* --- The procedure documents ------------------------------------------------
+   The same three ranks, applied to the parts only the document renderer draws.
+   A consent is the one place on the screen where the PROSE is the content — it
+   is the thing being agreed to — so it takes primary ink while the guidance
+   note above it stays meta. A statement to be ticked is content for the same
+   reason: somebody is attesting to those words.
+   -------------------------------------------------------------------------- */
+
+.encv__prose,
+.encv__check-text { color: var(--color-text-primary); }
+
+/* The score itself is the answer; the band and what it changes are the reading
+   of it. Primary and secondary respectively, so the number is found first. */
+.encv__score-value { color: var(--color-text-primary); }
+
+/* A step's own name outranks the documents listed under it. */
+.encv__step-name { color: var(--color-text-primary); }
+.encv__substep-btn { color: var(--color-text-secondary); }
+
+/* The working column's title band: the step is the heading, the document beside
+   it is a qualifier on it. */
+.encv__doc-name { color: var(--color-text-primary); }
+.encv__doc-sub { color: var(--color-text-secondary); }
+
+/* ======================= RIGHT: THE CLINICAL PICTURE =====================
+
+   Moved wholesale to css/components/clinical-rail.css. The clinic visit shows
+   the same rail, and a second copy of these rules is a second answer to what a
+   flagged allergy looks like.
+   ========================================================================= */
+
+/* ============================ NARROW WINDOWS ============================= */
+
+/*
+ * Under 90rem there is not room for two rails and a usable centre column, so
+ * the right one starts collapsed. Collapsed, not hidden: the clinical record is
+ * the reason the rail exists during a sedated case, and it stays one press
+ * away. The screen's own JS never overrides a collapse the user has made — see
+ * the media query listener in js/screens/encounter.js.
+ */
+@media (max-width: 90rem) {
+  .encv__cols { --encv-right: 21rem; }
+  .encv__facts { display: none; }
+}
+
+/* Below this the stepper and the record cannot both flank the work, so the
+   layout stops being three columns: the rails go to the spine width and stay
+   there until opened, and an opened rail overlays the centre column rather
+   than squeezing it. */
+@media (max-width: 64rem) {
+  .encv__cols {
+    grid-template-columns: 2.5rem minmax(0, 1fr) 2.5rem;
+    transition: none;
+  }
+  .encv__rail[data-collapsed='false'] {
+    position: absolute;
+    top: var(--space-5);
+    bottom: var(--space-5);
+    z-index: var(--z-dropdown);
+    width: 22rem;
+    box-shadow: var(--shadow-lg);
+  }
+  .encv__rail--left[data-collapsed='false'] { left: var(--space-6); }
+  .encv__rail--right[data-collapsed='false'] { right: var(--space-6); }
+  .encv__cols { position: relative; }
+}
+
+/* Phone width: one column, and the whole document scrolls rather than three
+   panes scrolling inside a fixed viewport. The stepper comes first because on
+   a phone this screen is read to answer "where is this case up to", not
+   written in. */
+@media (max-width: 30rem) {
+  .encv { height: auto; min-height: 100vh; overflow: visible; }
+  .encv__cols {
+    grid-template-columns: minmax(0, 1fr);
+    padding: var(--space-4);
+    position: static;
+  }
+  .encv__rail,
+  .encv__main { min-height: 0; }
+  .encv__rail[data-collapsed='false'] {
+    position: static;
+    width: auto;
+    box-shadow: none;
+  }
+  .encv__rail-body,
+  .encv__body { overflow: visible; }
+
+  /* No collapse at this width — see the layout note in
+     js/screens/encounter.js. The handle goes, and the data-collapsed
+     attribute stops meaning anything visually, so a rail that was shut on a
+     wider window cannot arrive here as a full-width box with a sideways label
+     in the middle of it. */
+  .encv__rail-handle { display: none; }
+  .encv__rail[data-collapsed='true'] .encv__rail-body { display: flex; }
+  .encv__rail[data-collapsed='true'] .encv__rail-title { display: flex; }
+  .encv__rail .encv__rail-spine { display: none; }
+}
+
+/* --- Print: the open document, and nothing that acts on it ------------------
+
+   Every form-shaped document in this run is paper somewhere — a consent that
+   goes in the notes, an anaesthetic record read back years later, a discharge
+   summary the patient takes home — and Print, View PDF and Download PDF all
+   hand the page to the browser's print path (see pdfActionsMarkup in
+   js/screens/encounter.js). Without these rules what came out was the
+   three-column workspace: a step ladder, a patient card, a clinical rail and
+   a toolbar of buttons, with the document itself in a scrolling box a third
+   of the page wide.
+
+   WHAT SURVIVES is what a filed document is: its sections, and the
+   signatures at the foot.
+
+   WHAT GOES is everything that ACTS. The rails are navigation, the toolbar is
+   three ways to print the thing being printed, the footer is a commit, and the
+   alerts band is a live warning about the patient rather than part of the
+   record — it belongs on the screen the case is being run from, not on a page
+   that will be read next year.
+   -------------------------------------------------------------------------- */
+
+@media print {
+  @page { margin: 14mm; }
+
+  .ui-page-head,
+  .encv__rail,
+  .encv__doc-actions,
+  .encv__doc-tabs,
+  .encv__alerts,
+  .encv__foot,
+  .ui-modal,
+  .ui-toast-region { display: none !important; }
+
+  /* The screen's three-column grid is a viewport-height layout with two
+     scrolling boxes in it. On paper there is no viewport and nothing scrolls,
+     so every one of those constraints has to be let go or the document prints
+     as one page-tall pane with the rest cut off. */
+  html, body,
+  .encv,
+  .encv__cols,
+  .encv__main,
+  .encv__body {
+    display: block !important;
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    background: none !important;
+  }
+
+  /* The band above the document names the step and the document inside it.
+     Kept, because a printed page that does not say which document it is has
+     to be identified from its contents — but flattened to a line of text, with
+     the badge and the spacer that arrange it on screen taken out. */
+  .encv__doc-head {
+    display: block !important;
+    padding: 0 0 var(--space-4) 0;
+    border: none;
+  }
+  .encv__doc-spacer,
+  .encv__doc-head #docRole { display: none !important; }
+
+  /* The strip above is gone with the rest of the navigation, so the document's
+     own name comes back into the title — otherwise a printed vitals log is a
+     table under the words "Intra-procedure Management" and nothing else. */
+  .encv__doc-sub[data-quiet='true'] { display: inline-flex !important; }
+
+  /* A section is a card on screen — a marked edge to say "eleven things to
+     work through". On paper that reads as eleven boxes; what is wanted is one
+     document with headings in it. The rule under each heading stays, because
+     that is what a form looks like printed. */
+  .encv__doc-section {
+    break-inside: avoid;
+    border: none;
+    box-shadow: none;
+    padding-inline: 0;
+    background: none;
+  }
+
+  /* Set as default / Use as default sit inside a section's heading, so they
+     cannot be hidden with the toolbar above. They are controls either way. */
+  .encv__doc-legend-actions { display: none !important; }
+
+  /* A picker's box is a way of ANSWERING and is not part of the answer. What
+     prints is the list underneath, which is the whole statement of what this
+     report is coded for. */
+  .encv__pick > ui-suggest { display: none !important; }
+
+  /* And the × beside each picked line with them, for the same reason: on paper
+     it is a cross printed next to every code on the claim. */
+  .encv__pick .encv__icd-drop { display: none !important; }
+
+  /* A signature is the evidence the document is worth printing at all, so the
+     FILED mark prints — the image, the name and the timestamp under it, which
+     is `.ui-sign-mark`, and none of these rules touch it.
+
+     What goes is every control around it. An unsigned patient block is a pad:
+     a mode switch, a canvas, an upload zone and a Clear, printing as four
+     controls and a blank ruled box that a reader would take the absence of a
+     signature to be. A signed block carries Sign again. Neither is part of a
+     filed document. See js/lib/signature-block.js for the two states this is
+     covering. */
+  .ui-sign-pad,
+  .ui-sign-mark__actions { display: none !important; }
+
+  /* Tables print with their rows intact rather than inside their own scroller,
+     and a log that runs past one page breaks across pages with its header
+     repeated. */
+  .encv__log-card,
+  .ui-data-table__scroll {
+    overflow: visible !important;
+    max-height: none !important;
+  }
+  .encv__log-filter { display: none !important; }
+  .ui-data-table thead { display: table-header-group; }
+  .encv__row-actions { display: none !important; }
+
+  /* --- One row, printed on its own ----------------------------------------
+     A card that has been armed by the row printer (see printLogRow) prints the
+     sheet and nothing else: the heading, the search box, the tables and the
+     "showing 3 of 12" lines are all about reading a register on screen, and
+     none of them belong on a copy of a single note. Only while armed — the
+     toolbar's own Print leaves the attribute off and still prints the whole
+     log, which is what it has always meant.
+     -------------------------------------------------------------------- */
+  .encv__log-card[data-printing] > *:not(.encv__log-print) { display: none !important; }
+  .encv__log-card[data-printing] .encv__log-print { display: block !important; }
+
+  /* And the card itself stops being a card. Its border and radius are how a
+     panel says where it ends on a screen full of other panels; printed round a
+     single letter they are a box drawn on the paper for no reason. */
+  .encv__log-card[data-printing] {
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    box-shadow: none;
+    background: none;
+  }
+
+  /* On paper the letter is the page, so the box it is read in on screen goes:
+     a tinted, bordered panel is how a scrolling region says where it ends, and
+     a sheet of A4 says that by being a sheet of A4. */
+  .encv__letter-body {
+    max-height: none;
+    overflow: visible;
+    padding: 0;
+    border: none;
+    background: none;
+  }
+}
+
+/* ============================================================================
+   A WHOLE STEP, AS A FILED DOCUMENT
+
+   Composed by stepSheetMarkup in js/screens/encounter.js and rendered into the
+   print sheet (js/lib/print-document.js) — see the header over that function
+   for why a tabbed step prints all eight of its sections at once rather than
+   whichever tab happened to be open.
+
+   THESE RULES ONLY EVER RUN ON PAPER. The sheet they sit in is
+   `display: none` on screen and is emptied again on `afterprint`, so nothing
+   here needs a @media print guard of its own — and keeping it out of one means
+   the rules can be read as what a printed sedation record looks like rather
+   than as a list of overrides.
+
+   NO FILLS ANYWHERE. Browsers drop background colours from a printed page by
+   default, so a heading that says "heading" with a tint would say nothing on
+   half the printers in a practice. Everything here separates with rules and
+   weight instead, which is also what a paper form actually looks like.
+   ========================================================================= */
+
+.encv-sheet {
+  font-size: var(--font-size-body-sm);
+  line-height: var(--line-height-body);
+  color: var(--color-text-primary);
+}
+
+.encv-sheet__head {
+  padding-bottom: var(--space-5);
+  margin-bottom: var(--space-7);
+  border-bottom: var(--border-width-thin) solid var(--color-text-primary);
+}
+
+.encv-sheet__title {
+  margin: 0 0 var(--space-4);
+  font-size: var(--font-size-heading-lg);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* The facts that make the page about a patient rather than about a step. Read
+   across rather than down: five short pairs stacked would push the first table
+   most of the way down the first sheet of paper. */
+.encv-sheet__facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-8);
+  margin: 0;
+}
+
+.encv-sheet__facts div { display: flex; gap: var(--space-3); }
+.encv-sheet__facts dt { color: var(--color-text-secondary); }
+.encv-sheet__facts dt::after { content: ':'; }
+.encv-sheet__facts dd { margin: 0; font-weight: var(--font-weight-medium); }
+
+/* A section, and the promise that it arrives whole. `break-inside: avoid` is
+   asked for and not insisted on — a vitals log longer than a page has to be
+   allowed to break somewhere — but a four-row section split across a fold is
+   a section the reader has to reassemble. */
+.encv-sheet__part {
+  margin-bottom: var(--space-9);
+  break-inside: avoid;
+}
+
+.encv-sheet__part-title {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-4);
+  margin: 0 0 var(--space-5);
+  padding-bottom: var(--space-3);
+  font-size: var(--font-size-heading-md);
+  font-weight: var(--font-weight-semibold);
+  border-bottom: var(--border-width-thin) solid var(--color-border-strong);
+}
+
+/* How many entries the section holds, beside its name. On paper this is the
+   line that says an empty log is empty ON PURPOSE — a heading with a sentence
+   under it and no count reads as a section that failed to print. */
+.encv-sheet__count {
+  font-size: var(--font-size-body-sm);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-secondary);
+}
+
+/* A split log's two halves — "Running now" over the lines that are up,
+   "Completed" over the ones that came down. */
+.encv-sheet__sub {
+  margin: var(--space-6) 0 var(--space-4);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+}
+
+.encv-sheet__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-11);
+}
+
+/* Repeated at the top of every page the table runs onto: a sedation record's
+   third page of vitals is unreadable without the column it is under. */
+.encv-sheet__table thead { display: table-header-group; }
+.encv-sheet__table tr { break-inside: avoid; }
+
+.encv-sheet__table th,
+.encv-sheet__table td {
+  padding: var(--space-3) var(--space-4);
+  text-align: left;
+  vertical-align: top;
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.encv-sheet__table th {
+  font-weight: var(--font-weight-semibold);
+  border-bottom-color: var(--color-border-strong);
+}
+
+/* Element-qualified, because `.encv-sheet__table th` above is a class AND an
+   element and would otherwise outrank a bare class — which is how the figure
+   columns spent their first draft left-aligned against the screen's tables. */
+.encv-sheet__table th.encv-sheet__num,
+.encv-sheet__table td.encv-sheet__num { text-align: right; }
+
+.encv-sheet__empty {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+
+.encv-sheet__list {
+  margin: 0 0 var(--space-6);
+  padding-left: var(--space-8);
+}
+
+.encv-sheet__list li { margin-bottom: var(--space-2); }

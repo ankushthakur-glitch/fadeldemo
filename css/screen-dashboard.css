@@ -1,0 +1,980 @@
+/* ============================================================================
+   Dashboard — the landing screen.
+
+   Requirements are still the 2026-08-04 design review with Dr. Nemore (MediNova
+   ASC): the clinic and the ASC read as two different dashboards behind one
+   location switch, the time clock stays the front-bar feature it already is
+   (no second control here — only a read-only summary), and today's schedule is
+   the thing that "everything is going to happen" from.
+
+   WHAT CHANGED, AND WHY
+   The screen used to be a wide column of appointment rows beside a narrow rail
+   of counts. That answered "how many" well and "when" not at all: a list of
+   eight rows sorted by time tells you the order of the day but not its shape —
+   where the gaps are, which hour is triple-booked, how long until the next
+   patient. The 2026-08-19 reference the revamp works from lays a clinic day out
+   the way a clinician reads one: a time axis with blocks on it, a queue of
+   items waiting on a decision beside it, and the inbox beside that.
+
+   So the body is one column of work and a rail beside it:
+
+     STAT TILES         four figures across the top
+     MY SCHEDULE        a time grid, not a list — the working day drawn
+                        underneath, my bookings as blocks over it, a now-line
+     MESSAGES           my inbox, at the top of the rail beside it
+     QUICK ACTIONS      five destinations as small tiles under the inbox —
+                        see the block further down for why the shape took
+                        four goes to settle
+
+   Everything on the screen is MINE. Pending Items — the practice's refills,
+   recalls and lab orders — was the middle column of an earlier draft and is
+   gone: it is Task Management's screen, and a landing page listing everybody's
+   work is that screen with the filters off. The one number that is mine, the
+   tasks assigned to me, is a stat tile with My Tasks in the rail as the way
+   through to it.
+
+   Card anatomy is intentionally NOT components/hub.css: a hub card is a fixed
+   17rem tile made for a wrapping row of many equal modules. These take
+   whatever their track gives them instead.
+   ========================================================================= */
+
+/* The gutter, the gap and the page scroll are .ui-page-body in base.css. */
+
+/* How tall the working row is — the day and the rail beside it, both.
+   ONE number and one mechanism: the grid row is set to this height and both
+   children fill it, so the two sides end level by construction rather than by
+   two max-heights guessed to land in the same place. Whatever does not fit
+   scrolls inside its own card. */
+.dash {
+  /* The height the two cards take when they are stacked rather than side by
+     side — the only case where they are free to be as tall as they like,
+     because nothing is beside them to be matched against. Abreast, they take
+     whatever the viewport has left; see .dash__grid. */
+  --dash-row-height: 44rem;
+  /* And the floor under that. A viewport too short to give the cards this
+     much gets a scroll rather than a day grid four hours tall. */
+  --dash-row-min: 22rem;
+  /* One hour of the day grid. Everything in the time column — block tops,
+     block heights, the now-line — is minutes × this ÷ 60, so the whole grid
+     rescales from this one value. */
+  --dash-hour: 3.75rem;
+  /* The diagonals over hours nothing can be booked in. The same value, the
+     same reasoning and the same pitch as --sch-hatch on the scheduler: this
+     card is a day grid, the scheduler is a day grid, and "nothing goes here"
+     has to be ONE mark across the product rather than a house style per
+     screen. Fainter than a border on purpose — at border weight a whole
+     morning of diagonals reads as content rather than as the absence of it. */
+  --dash-hatch: color-mix(in srgb, var(--color-border-subtle) 55%, transparent);
+}
+
+/* --- Head: the two sites, and the greeting --------------------------------------
+   The site switch is the shared primary tab strip (components/overlay.css) in
+   the header's lead slot — the two sites are this screen's sections, and a
+   screen-local segmented control was one more shape meaning "one of these is
+   showing".
+
+   The greeting and the date take the action slot. They are not an action, but
+   they are the only other thing this header carries, and a line of quiet text
+   at the far end of the band beats a second row for it. */
+
+.dash__lede {
+  margin: 0;
+  font-size: var(--font-size-body);
+  color: var(--color-text-secondary);
+}
+
+/* --- Stat tiles ----------------------------------------------------------------
+   Slimmer than they were. They now sit above three dense columns rather than
+   above one list, so the row has to read as a caption to the screen and not as
+   a fifth panel competing with them: the icon is a plain tinted square at
+   glyph size, and the number and its label share one line's worth of leading.
+   -------------------------------------------------------------------------- */
+
+/* --- The four figures ---------------------------------------------------------
+   Label and value on the left, the mark on the right — the same card the
+   Complications screen draws its three summary figures with. Two screens
+   showing a row of measurements should not be showing them two different ways,
+   and of the two shapes this is the one that reads: the number is what is
+   being looked up, so nothing sits to the left of it, and the icon becomes how
+   the cards are told apart once they are known rather than the first thing in
+   the reading order.
+
+   A THIRD LINE IS WHAT KILLED THE HIERARCHY. Each tile used to carry a caption
+   under the figure — the site, "Assigned to me", the shift state — all of it
+   already said by the site switch, by the label above it, and by the clock in
+   the header. Three type sizes stacked in a small card, the bottom two nearly
+   the same grey, and the figure had to fight the two lines around it. Two
+   lines, twice the size apart, and the figure wins without being made louder.
+   -------------------------------------------------------------------------- */
+
+.dash__stats {
+  flex: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: var(--space-6);
+}
+
+.dash__stat {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-6);
+  padding: var(--space-7);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-xl);
+  background-color: var(--color-bg-surface);
+}
+
+.dash__stat-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.dash__stat-label {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The figure and, on the one tile that goes somewhere, the way there. */
+.dash__stat-figure {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.dash__stat-value {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  letter-spacing: var(--letter-spacing-tight);
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.dash__stat-icon {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-10);
+  height: var(--space-10);
+  border-radius: var(--radius-md);
+  background-color: var(--color-brand-surface);
+  color: var(--color-brand-text);
+}
+.dash__stat-icon .ui-icon { width: var(--icon-size-lg); height: var(--icon-size-lg); }
+.dash__stat-icon--info { background-color: var(--color-status-info-surface); color: var(--color-status-info-text); }
+.dash__stat-icon--warning { background-color: var(--color-status-warning-surface); color: var(--color-status-warning-text); }
+.dash__stat-icon--neutral { background-color: var(--color-bg-surface-sunken); color: var(--color-text-secondary); }
+
+/* The one tile that goes somewhere. It is a link because the queue it counts
+   has to stay reachable without hunting for it — My Tasks is a row in Quick
+   Actions as well, and a figure with a way through beats a figure and a
+   separate row naming the same place. */
+.dash__stat--link { text-decoration: none; color: inherit; }
+.dash__stat--link:hover { background-color: var(--color-bg-surface-hover); border-color: var(--color-border-default); }
+.dash__stat--link:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.dash__stat-go {
+  flex: none;
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+  color: var(--color-text-tertiary);
+}
+.dash__stat--link:hover .dash__stat-go { color: var(--color-brand-text); }
+
+/* --- Quick actions -------------------------------------------------------------
+   Five destinations as small tiles, at the bottom of the rail.
+
+   This has been four shapes and the last two arguments were both about
+   height. As a column of its own it cost the day grid width. As a strip of
+   pills across the top of the body it read as a toolbar acting ON the screen,
+   when every one of these leaves it. As full-width rows in the rail it read
+   right and cost 66 pixels each — five of them, plus a line of explanation
+   under every label, took a third of the rail off the panel that actually
+   grows.
+
+   A tile is one line: the glyph, then the label. Two or three to a row, so
+   five of them are two rows rather than five, and the explanation moves to the
+   tile's title where a hover still reaches it. Everything the card gives up
+   goes to Messages without a number being changed anywhere — the rail hands
+   the actions their natural height and the inbox the remainder.
+
+   auto-fit rather than a fixed column count: the rail is 35rem at full width
+   and 22rem under 85rem, and the same grid gives three tiles a row in the
+   first and two in the second without a second rule.
+   -------------------------------------------------------------------------- */
+
+.dash__actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  gap: var(--space-5);
+  padding: var(--space-6) var(--space-7);
+}
+
+.dash__action {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-width: 0;
+  padding: var(--space-5);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+  color: var(--color-text-secondary);
+  text-decoration: none;
+}
+.dash__action:hover {
+  border-color: var(--color-border-default);
+  background-color: var(--color-bg-surface-hover);
+  color: var(--color-text-primary);
+}
+.dash__action:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* A bare glyph in the tile's own colour, not a tinted square. Five filled
+   squares in a card whose head already carries one is six of the same object,
+   and the head stops reading as a head — the same reason the stat tiles are
+   the only place on this screen that spends a tint on a mark. */
+.dash__action-icon {
+  flex: none;
+  width: var(--icon-size-md);
+  height: var(--icon-size-md);
+  color: var(--color-text-tertiary);
+}
+.dash__action:hover .dash__action-icon { color: var(--color-brand-text); }
+
+/* One line, and it truncates rather than wrapping: two tiles in a row whose
+   labels wrap to different depths leave the grid stepping, and "Book
+   Appointment" over two lines is taller than the tile beside it for no gain.
+   The full label is on the title with the rest of the explanation. */
+.dash__action-label {
+  min-width: 0;
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --- The day, and the rail beside it -------------------------------------------
+   Two tracks, and only one of them is elastic. Quick Actions was a third:
+   five rows naming Patients, Scheduling, Tasks, Referrals and Reports is the
+   top bar drawn a second time a few pixels below the first, and paying a whole
+   column for a copy of the navigation — on the screen with the least room to
+   spare — was the wrong trade. The column it gave up went to Messages, which
+   had been truncating every name and every preview line it drew, and the
+   actions came back under the inbox in the track Messages was already given.
+
+   The rail is a fixed width because its content has a natural one; everything
+   spare still goes to the day, the only panel that can turn width into
+   information rather than into longer lines.
+   -------------------------------------------------------------------------- */
+
+/*
+ * THE TWO CARDS TAKE WHAT IS LEFT OF THE WINDOW.
+ *
+ * The row used to be a fixed 44rem, which meant the screen was 44rem tall
+ * whatever the window was: short of that it scrolled the whole page, and on a
+ * tall monitor it left a band of empty gutter under two cards that both had
+ * more to show. Neither is a thing the dashboard should do — it is the screen
+ * you glance at, and a glance does not scroll.
+ *
+ * So the grid takes the height the tiles above it did not, and the cards
+ * scroll their own overflow inside it (see .dash__card-body). The floor is
+ * there for a genuinely short window: below it the page scrolls again, which
+ * is the honest answer when the room really is not there.
+ */
+.dash__grid {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 35rem;
+  grid-template-rows: minmax(var(--dash-row-min), 1fr);
+  gap: var(--layout-gap);
+}
+
+/* min-height:0 is the half that actually does the work — without it a flex
+   child refuses to shrink below its content and the card grows past the row it
+   was given. */
+.dash__grid > * { min-height: 0; }
+
+/* Narrower, the inbox gives its width back first: the day grid is the panel
+   that stops working when squeezed, and a preview line truncates gracefully
+   where an appointment block does not. */
+@media (max-width: 85rem) {
+  .dash__grid { grid-template-columns: minmax(0, 1fr) 22rem; }
+}
+
+@media (max-width: 60rem) {
+  /* Stacked, nothing is beside anything, so nothing has to be matched in
+     height — but both keep a ceiling, because a day grid is twenty-four hours
+     tall and an inbox is as long as the inbox. */
+  .dash__grid {
+    flex: none;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    grid-auto-rows: auto;
+  }
+}
+
+/* --- The rail: two cards sharing one column -------------------------------------
+   Messages and Quick Actions stack in the second track, and they do not split
+   it evenly or by ratio: the actions take the height their two rows of tiles
+   need and the inbox takes everything else. A ratio was the first go and it
+   scrolled a fixed list to save space for an inbox that was already the longer
+   of the two — the split has to follow which list GROWS, and only one of them
+   does. It is also what makes the tiles pay off: every pixel taken off the
+   actions lands in Messages without a second number being touched.
+
+   min-height: 0 on the children is what makes either card scroll its own
+   overflow instead of growing the rail past the row — the same reason it is
+   set on the grid's own children.
+   -------------------------------------------------------------------------- */
+
+.dash__rail {
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--layout-gap);
+}
+/* height: auto undoes the card shell's `height: 100%`, which in this column
+   resolves against the rail and makes every card fill it whatever its flex
+   says — the actions card came out its natural height with a hand's width of
+   empty card under it. Here the flex line below is what sets the height. */
+.dash__rail > .dash__card { min-height: 0; height: auto; }
+/* The inbox is the elastic one: it takes whatever the rail has left, because
+   it is the list that grows and the one worth another two rows of. */
+.dash__rail > [data-testid='dash--messages-card'] { flex: 1 1 0; }
+/* Quick Actions takes exactly the height its tiles need — no growing, because
+   a fixed set stretched to fill a track is two rows with a band of empty card
+   under them; and no basis of zero, because that would scroll a grid that
+   fits. It may still SHRINK, which is what a genuinely short window gets. */
+.dash__rail > [data-testid='dash--actions-card'] { flex: 0 1 auto; }
+
+/* Stacked, the rail is not a column any more — it is two more rows of the one
+   column everything is in. `display: contents` hands its cards straight to the
+   grid so they pick up the grid's gap and the stacked card ceiling below,
+   rather than being a nested flex column inside a row that is now auto-height
+   (where a flex basis of zero would collapse both cards to nothing). */
+@media (max-width: 60rem) {
+  .dash__rail { display: contents; }
+  /* And the height rules go back to the stacked ones. `height: auto` above is
+     for the flex column only; left standing here it would out-specify the
+     stacked card ceiling and let the inbox run to its full length, taking the
+     scroll out of the card and on to the page. The actions card keeps auto —
+     two rows of tiles is already less than the ceiling, and a ceiling would leave the
+     same empty band under them that the ratio did. Stacked, the rail is full
+     width and the five tiles come out on one row. */
+  .dash__rail > .dash__card { height: var(--dash-row-height); }
+  .dash__rail > [data-testid='dash--actions-card'] { height: auto; }
+}
+
+/* --- Card shell ---------------------------------------------------------------- */
+
+.dash__card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  /* The card fills the grid row it was given and scrolls its own overflow
+     rather than growing past it. */
+  height: 100%;
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-xl);
+  background-color: var(--color-bg-surface);
+  overflow: hidden;
+}
+
+/* Stacked, there is no row to fill and `height: 100%` resolves against an auto
+   row — which is to say against the card's own content, so the card grows to
+   the full length of the inbox and takes the scroll back out of itself and on
+   to the page. Each keeps its own ceiling instead. This has to sit AFTER the
+   rule above rather than up with the grid it belongs to: same specificity, and
+   the later of the two is the one that lands. */
+@media (max-width: 60rem) {
+  .dash__card { height: var(--dash-row-height); }
+}
+
+.dash__card-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  flex: none;
+  padding: var(--space-6) var(--space-7);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+/* Neutral, not brand.
+   A card head is a place marker — it says "this section starts here", which is
+   not a thing worth the brand colour. Every card carrying a green tile made
+   green the default decoration rather than a signal, and by the time the eye
+   reached a real one (a primary button, the active nav item, a link) it had
+   already been told to ignore that colour four times.
+   Hierarchy here comes from weight and shape instead: a filled tile and a
+   semibold heading above, bare glyphs and body text below. */
+.dash__card-icon {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-10);
+  height: var(--space-10);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+  color: var(--color-text-secondary);
+}
+.dash__card-icon .ui-icon { width: var(--icon-size-md); height: var(--icon-size-md); }
+
+.dash__card-title {
+  font-size: var(--font-size-title-card);
+  line-height: var(--line-height-tight);
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+  color: var(--color-text-primary);
+}
+
+.dash__card-count {
+  display: inline-flex;
+  align-items: center;
+  height: 1.125rem;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-full);
+  background-color: var(--color-status-success-surface);
+  color: var(--color-status-success-text);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-medium);
+  font-variant-numeric: tabular-nums;
+}
+
+.dash__spacer { flex: 1; }
+
+.dash__card-link {
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+  white-space: nowrap;
+}
+
+/* The scrolling part. Every card's head and sub-bar stay put; only this moves,
+   which is what lets a card of any natural length sit in a row of fixed
+   height without pushing it open. */
+.dash__card-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+
+
+/* --- Sub-bar: the day being shown -----------------------------------------------
+   Sunken rather than white, so it reads as a control strip belonging to the
+   card below it rather than as the card's first row of content. The time zone
+   sits on the left because it qualifies every time in the column under it —
+   a clinic day drawn in the wrong zone is worse than no clinic day.
+   -------------------------------------------------------------------------- */
+
+.dash__daybar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  flex: none;
+  padding: var(--space-4) var(--space-7);
+  background-color: var(--color-bg-surface-sunken);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.dash__tz {
+  flex: none;
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-wide);
+  color: var(--color-text-tertiary);
+}
+
+.dash__daynav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.dash__daynav-btn {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-9);
+  height: var(--space-9);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+}
+.dash__daynav-btn .ui-icon { width: var(--icon-size-sm); height: var(--icon-size-sm); }
+.dash__daynav-btn:hover { background-color: var(--color-bg-surface-hover); color: var(--color-text-primary); }
+.dash__daynav-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.dash__daynav-label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+}
+
+/* What the day is made of, in words. It answers the question the hatching
+   answers visually, for anyone who is reading rather than scanning — and it is
+   the one place a block day's reason is spelled out in full, since the band
+   across the grid truncates. */
+.dash__daysum {
+  min-width: 0;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Only shown when the arrows have walked off today — the way back is worth a
+   control, but only once there is somewhere to go back to. */
+.dash__today-btn {
+  flex: none;
+  padding: 0 var(--space-5);
+  height: var(--space-9);
+  border-radius: var(--radius-md);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  background-color: var(--color-bg-surface);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+}
+.dash__today-btn:hover { background-color: var(--color-bg-surface-hover); color: var(--color-text-primary); }
+.dash__today-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* ============================================================================
+   THE DAY GRID
+
+   Geometry comes in as custom properties written into a generated stylesheet
+   by js/screens/dashboard.js — the same technique the scheduler uses, and for
+   the same reason: per-block numbers cannot be tokens and must not be inline
+   style attributes.
+
+     --dsh-top     minutes from the top of the grid
+     --dsh-len     length in minutes
+     --dsh-lane    which lane of a set of overlapping blocks this one takes
+     --dsh-lanes   how many lanes that set needs
+
+   Everything below turns those minutes into pixels through --dash-hour, so the
+   grid keeps its proportions whatever that is set to.
+   ========================================================================= */
+
+.dash__day {
+  position: relative;
+  padding: var(--space-5) var(--space-7) var(--space-7) 0;
+}
+
+/* The hour rows are the grid's height: the blocks float over them absolutely,
+   so something has to hold the card open, and hours are the honest thing to
+   do it with. */
+.dash__hours { position: relative; }
+
+.dash__hour {
+  position: relative;
+  height: var(--dash-hour);
+  margin-left: 4.25rem;
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+}
+/* The half-hour, drawn lighter than the hour. Enough to place a 10:30 start
+   at a glance, not enough to become a second set of rules. */
+.dash__hour::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  top: 50%;
+  border-top: var(--border-width-thin) dashed var(--color-border-subtle);
+  opacity: 0.55;
+}
+
+/* The label hangs in the gutter, lifted half a line so it sits ON its rule
+   rather than under it — the convention every calendar uses, and the thing
+   that makes the topmost hour readable at all. */
+.dash__hour-label {
+  position: absolute;
+  left: -4.25rem;
+  top: calc(var(--space-4) * -1);
+  width: 3.75rem;
+  text-align: right;
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-tertiary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* --- What the day is made of ----------------------------------------------------
+   Underneath the hour rules and the bookings: the hours I work at this site
+   drawn as plain surface, everything else hatched, and any named block day
+   over the top of both. Same geometry properties as a booking — these are
+   spans of the same axis — but full width, because unavailability is not
+   something two people can do at once in different lanes.
+   -------------------------------------------------------------------------- */
+
+.dash__bands {
+  position: absolute;
+  inset: var(--space-5) var(--space-7) var(--space-7) 4.25rem;
+}
+
+.dash__band {
+  position: absolute;
+  inset-inline: 0;
+  top: calc(var(--dsh-top) * var(--dash-hour) / 60);
+  height: calc(var(--dsh-len) * var(--dash-hour) / 60);
+}
+
+/* Hatched, and hatched exactly the way the scheduler hatches a closed column:
+   135°, seven transparent to one of --dash-hatch. Someone who books from the
+   scheduler and reads their day here is looking at the same day drawn twice,
+   and two different textures for "you are not working" makes them two
+   different facts — the reader has to stop and work out whether the coarser
+   diagonals on the dashboard mean something the finer ones on the scheduler
+   did not.
+
+   Nothing under the diagonals but the card. The sunken fill that used to sit
+   here was doing the scheduler's job twice over: a flat grey panel is a
+   colour, and a colour in a grid full of coloured blocks reads as another
+   kind of booking. Taking it away also lets the hour rules run across the
+   band, so an unavailable morning is still a morning you can read a time off
+   — which is the whole reason the rules are drawn under the bookings. */
+.dash__band--off {
+  background-image: repeating-linear-gradient(
+    135deg,
+    transparent 0 7px,
+    var(--dash-hatch) 7px 8px
+  );
+}
+
+/* A block day has a REASON, and the reason is the whole content of it — leave,
+   a training day, an audit.
+
+   Red and hatched, again as the scheduler draws one. It was a flat orange
+   band with its title laid across the middle, and that was the right answer
+   only for as long as the plain "Unavailable" hatching underneath was
+   competing with it: two labels crossing each other read as a rendering fault
+   rather than as two true things. The hatch no longer carries a label at all,
+   so the block day is free to be the thing it is on the other screen — the
+   red band with the faint red diagonals, its reason in the top corner and the
+   solid edge down its leading side.
+
+   The tint is opaque and the diagonals sit over it, so nothing behind shows
+   through and the title is read against a flat ground however tall the band
+   comes out. */
+.dash__band--blocked {
+  background-color: var(--color-status-critical-surface);
+  border-top: var(--border-width-thin) solid var(--color-status-critical-border);
+  box-shadow: inset 3px 0 0 0 var(--color-status-critical-solid);
+  background-image: repeating-linear-gradient(
+    135deg,
+    transparent 0 6px,
+    rgb(179 38 30 / 0.08) 6px 12px
+  );
+}
+
+/* In the corner, not across the middle. A centred label is a caption for the
+   whole band, which is fine on a band that fills the card and wrong on one
+   forty minutes long — it drifts towards whatever booking happens to sit
+   beside it. Pinned to the band's own start, which is where a reader looks
+   for what a span of a calendar is.
+
+   Sticky rather than simply pinned, which is the one place this card cannot
+   copy the scheduler outright. The scheduler draws seven in the morning to
+   eight at night and a block day's label is on screen the moment the column
+   is; this grid is all twenty-four hours and scrolls, so a leave day running
+   00:00–20:00 has its label eight hours above wherever the card opened, and
+   the reader gets a wall of red diagonals with nothing on it saying why.
+   Sticking it to the top of the scroll port keeps the reason with the band it
+   belongs to at every scroll position, and its containing block is the band,
+   so it can never ride past the end of the day it is naming. */
+.dash__band-label {
+  position: sticky;
+  top: var(--space-2);
+  display: block;
+  width: max-content;
+  max-width: calc(100% - var(--space-7));
+  margin-left: var(--space-4);
+  font-size: var(--font-size-2xs);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  color: var(--color-status-critical-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Under three quarters of an hour there is no room for a word: a 20-minute
+   band is 20 pixels tall and a label in it collides with the edge of the next
+   thing down. */
+.dash__band--slim .dash__band-label { display: none; }
+
+/* --- A booked block ------------------------------------------------------------
+   Tinted in its status tone with a solid edge on the leading side. The tint
+   alone was not enough at these heights — a 30-minute block is 1.9rem tall and
+   a wash that pale over that little area reads as "a card", not "a cancelled
+   one". The edge carries the status; the tint keeps the block from looking
+   like a button.
+   -------------------------------------------------------------------------- */
+
+.dash__blocks {
+  position: absolute;
+  inset: var(--space-5) var(--space-7) var(--space-7) 4.25rem;
+}
+
+.dash__appt {
+  position: absolute;
+  top: calc(var(--dsh-top) * var(--dash-hour) / 60);
+  height: calc(var(--dsh-len) * var(--dash-hour) / 60 - 3px);
+  min-height: 1.75rem;
+  /* Lanes split the width only as far as they have to. Two overlapping blocks
+     halve; six would leave slivers, so the split stops at four and the rest
+     cascade behind — the same compromise the scheduler makes. */
+  width: calc((100% - 2px) / min(var(--dsh-lanes), 4));
+  left: calc(var(--dsh-lane) * (100% - 2px) / min(var(--dsh-lanes), 4) + 1px);
+  z-index: calc(1 + var(--dsh-lane));
+
+  /* One row, centred in whatever height the duration gives it. The content is
+     the same in a 20-minute sliver and an hour-long block; only the box around
+     it changes, which is the point of drawing the day to scale. */
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  overflow: hidden;
+  padding: var(--space-2) var(--space-5);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-inline-start: 3px solid var(--color-text-tertiary);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+  color: inherit;
+  text-decoration: none;
+}
+.dash__appt:hover { box-shadow: var(--shadow-sm); z-index: 20; }
+.dash__appt:focus-visible { outline: none; box-shadow: var(--focus-ring); z-index: 20; }
+
+.dash__appt--brand    { background-color: var(--color-brand-surface);           border-inline-start-color: var(--color-brand-solid); }
+.dash__appt--info     { background-color: var(--color-status-info-surface);     border-inline-start-color: var(--color-status-info-solid); }
+.dash__appt--success  { background-color: var(--color-status-success-surface);  border-inline-start-color: var(--color-status-success-solid); }
+.dash__appt--warning  { background-color: var(--color-status-warning-surface);  border-inline-start-color: var(--color-status-warning-solid); }
+.dash__appt--critical { background-color: var(--color-status-critical-surface); border-inline-start-color: var(--color-status-critical-solid); }
+.dash__appt--neutral  { background-color: var(--color-status-neutral-surface);  border-inline-start-color: var(--color-status-neutral-solid); }
+
+/* A cancelled or no-show slot is not work you will do — it is drawn so the
+   hour does not look free, and struck so it is never mistaken for a patient
+   who is coming. */
+.dash__appt--void .dash__appt-name { text-decoration: line-through; }
+.dash__appt--void { opacity: 0.72; }
+
+.dash__appt-time {
+  flex: none;
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* THE ORDER OF SURRENDER, left to right as the lane narrows.
+   The name is fixed and never truncates before the reason does — you can work
+   out what a visit is for from a diagnosis code, and you cannot work out who
+   it is with from half a surname. So the reason is the flexible one: it takes
+   every pixel spare in a wide single-lane block and disappears first when
+   three bookings share the hour. */
+.dash__appt-name {
+  flex: none;
+  max-width: 60%;
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-semibold);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dash__appt-why {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The status word, not a badge. <ui-badge> at sm is 1.125rem tall with its own
+   fill, and a filled pill inside an already-tinted block is the third colour
+   nobody chose. The one status too long to sit here whole, "Pending
+   Confirmation", is shortened in the painter rather than ellipsised. */
+.dash__appt-status {
+  flex: none;
+  min-width: 0;
+  max-width: 40%;
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --- The now-line -------------------------------------------------------------
+   Live, from the wall clock, and only drawn when the day on screen is today
+   and the current minute falls inside the drawn window. It is the one element
+   here that answers "what happens next" without being read.
+   -------------------------------------------------------------------------- */
+
+/* One hair-line across the day with a dot on its leading end, in the brand
+   ink — the scheduler's now-line, because it is the same now.
+
+   It was a two-pixel red rule with a filled red pill on the right-hand end,
+   and red is the loudest thing this product has: the pill outweighed every
+   appointment on the grid and read as an alert about the time rather than as
+   the time. Red is also spent here already — a critical band is a blocked
+   day — so a red line across an unavailable morning was two different
+   criticals crossing. Brand green says "you are here" without claiming
+   anything is wrong, and matches the line the reader saw on the scheduler
+   five minutes ago.
+
+   Drawn over the bookings, but never takes a click: a now-line a block can
+   hide is a now nobody can find, and one that eats the click is a block
+   nobody can open. */
+.dash__now {
+  position: absolute;
+  left: 4.25rem;
+  right: var(--space-7);
+  top: calc(var(--space-5) + var(--dsh-top) * var(--dash-hour) / 60);
+  height: 0;
+  z-index: 30;
+  border-top: var(--border-width-thin) solid var(--color-brand-solid);
+  pointer-events: none;
+}
+
+.dash__now::before {
+  content: '';
+  position: absolute;
+  left: -0.3125rem;
+  top: -0.3125rem;
+  width: var(--space-5);
+  height: var(--space-5);
+  border-radius: var(--radius-full);
+  background-color: var(--color-brand-solid);
+}
+
+/* The clock time in the gutter, in the line's own colour and on the line's own
+   baseline — same size, same right edge and same half-line lift as the hour
+   labels it sits among, so "now" reads as one of them that happens to be
+   true. Its background is the card's, which is what lets it cover the hour
+   label underneath on the twelve minutes an hour they would otherwise
+   overprint. */
+.dash__now-time {
+  position: absolute;
+  left: -4.25rem;
+  top: 0;
+  width: 3.75rem;
+  transform: translateY(-0.5em);
+  text-align: right;
+  background-color: var(--color-bg-surface);
+  color: var(--color-brand-text);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* ============================================================================
+   MESSAGES
+   ========================================================================= */
+
+.dash__msgs { display: flex; flex-direction: column; }
+
+.dash__msg {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: var(--space-2) var(--space-4);
+  padding: var(--space-6) var(--space-7);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+  color: inherit;
+  text-decoration: none;
+}
+.dash__msg:first-child { border-top: none; }
+.dash__msg:hover { background-color: var(--color-bg-surface-hover); }
+.dash__msg:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* The unread mark. A dot in the brand ink rather than a bold row: the count on
+   the right already says how many, and two ways of saying "unread" on one row
+   is one too many. Read threads keep the column so the names stay aligned. */
+.dash__msg-dot {
+  grid-row: 1;
+  align-self: center;
+  width: 0.4375rem;
+  height: 0.4375rem;
+  border-radius: var(--radius-full);
+  background-color: var(--color-brand-solid);
+}
+.dash__msg-dot[data-read='true'] { background-color: transparent; }
+
+.dash__msg-who {
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.dash__msg-name {
+  min-width: 0;
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dash__msg-when {
+  grid-row: 1;
+  align-self: center;
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+}
+
+.dash__msg-text {
+  grid-row: 2;
+  grid-column: 2;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dash__msg-count {
+  grid-row: 2;
+  grid-column: 3;
+  justify-self: end;
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.25rem;
+  height: 1.25rem;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-full);
+  background-color: var(--color-brand-solid);
+  color: var(--color-text-inverse);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Empty states -------------------------------------------------------------- */
+
+.dash__empty {
+  padding: var(--space-10) var(--space-9);
+  text-align: center;
+  font-size: var(--font-size-body);
+  color: var(--color-text-tertiary);
+}

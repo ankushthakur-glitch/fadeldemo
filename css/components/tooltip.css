@@ -1,0 +1,109 @@
+/* ============================================================================
+   ui-tooltip — a short note attached to its trigger.
+
+   Shown on hover AND on focus, because a keyboard user has no hover. The
+   bubble is aria-describedby'd from the trigger rather than being the trigger's
+   label: a tooltip explains a control that already has a name; it is not
+   allowed to be the only place that name exists.
+
+   Escape hides it while focus stays put — a tooltip that covers the thing you
+   are trying to read is a trap otherwise.
+   ========================================================================= */
+
+ui-tooltip { display: inline-flex; }
+
+.ui-tooltip {
+  --tooltip-offset: var(--space-4);
+  --tooltip-arrow: var(--space-4);
+  --tooltip-arrow-half: var(--space-2);
+  position: relative;
+  display: inline-flex;
+}
+
+.ui-tooltip__trigger { display: inline-flex; }
+
+.ui-tooltip__bubble {
+  position: absolute;
+  z-index: var(--z-dropdown);
+  width: max-content;
+  max-width: 16rem;
+  padding: var(--space-3) var(--space-6);
+  /* Square corners: the bubble reads as a hard-edged overlay, matching the
+     rest of the dense surfaces rather than softening into them. */
+  border-radius: var(--radius-none);
+  background-color: var(--color-bg-surface-inverse);
+  color: var(--color-text-inverse);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-snug);
+  box-shadow: var(--elevation-raised);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity var(--duration-fast) var(--ease-out),
+    visibility var(--duration-fast) var(--ease-out);
+}
+
+.ui-tooltip:hover .ui-tooltip__bubble,
+.ui-tooltip:focus-within .ui-tooltip__bubble {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Escape-dismissed: stay hidden until hover or focus starts again. */
+.ui-tooltip--dismissed:focus-within .ui-tooltip__bubble,
+.ui-tooltip--dismissed:hover .ui-tooltip__bubble {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.ui-tooltip__arrow {
+  position: absolute;
+  width: var(--tooltip-arrow);
+  height: var(--tooltip-arrow);
+  background-color: var(--color-bg-surface-inverse);
+  transform: rotate(45deg);
+}
+
+.ui-tooltip--top .ui-tooltip__bubble {
+  bottom: calc(100% + var(--tooltip-offset));
+  left: 50%;
+  transform: translateX(-50%);
+}
+.ui-tooltip--top .ui-tooltip__arrow {
+  bottom: calc(-1 * var(--tooltip-arrow-half));
+  left: 50%;
+  margin-left: calc(-1 * var(--tooltip-arrow-half));
+}
+
+.ui-tooltip--bottom .ui-tooltip__bubble {
+  top: calc(100% + var(--tooltip-offset));
+  left: 50%;
+  transform: translateX(-50%);
+}
+.ui-tooltip--bottom .ui-tooltip__arrow {
+  top: calc(-1 * var(--tooltip-arrow-half));
+  left: 50%;
+  margin-left: calc(-1 * var(--tooltip-arrow-half));
+}
+
+.ui-tooltip--left .ui-tooltip__bubble {
+  right: calc(100% + var(--tooltip-offset));
+  top: 50%;
+  transform: translateY(-50%);
+}
+.ui-tooltip--left .ui-tooltip__arrow {
+  right: calc(-1 * var(--tooltip-arrow-half));
+  top: 50%;
+  margin-top: calc(-1 * var(--tooltip-arrow-half));
+}
+
+.ui-tooltip--right .ui-tooltip__bubble {
+  left: calc(100% + var(--tooltip-offset));
+  top: 50%;
+  transform: translateY(-50%);
+}
+.ui-tooltip--right .ui-tooltip__arrow {
+  left: calc(-1 * var(--tooltip-arrow-half));
+  top: 50%;
+  margin-top: calc(-1 * var(--tooltip-arrow-half));
+}

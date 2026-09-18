@@ -1,0 +1,268 @@
+/* ============================================================================
+   ui-filter — the standard filter control: a button, and a panel of tickable
+   answers grouped under the question they answer.
+
+   The shape is deliberately plain. A filter panel is read once per visit and
+   then acted on quickly, so everything that is not an answer is drawn quiet:
+   the questions are small grey caps, the sections are separated by a hairline
+   rather than by a box, and the only saturated ink on the whole panel is the
+   Done button and the ticks themselves.
+
+   Geometry (top, left, max-height) is written by js/components/ui-filter.js
+   into a generated stylesheet keyed to #ui-filter-panel, the same way the row
+   menu and the dropdown list place theirs. Everything else lives here.
+   ========================================================================= */
+
+/* The configuration children carry the questions into the component and are
+   read once at upgrade. They are never drawn. */
+ui-filter-group,
+ui-filter-fields {
+  display: none;
+}
+
+ui-filter {
+  position: relative;
+  display: inline-flex;
+}
+
+/* display:inline-flex would otherwise win over the attribute, and a screen
+   that swaps its header per tab hides this control by setting `hidden`. */
+ui-filter[hidden] { display: none; }
+
+/* --- The button ----------------------------------------------------------- */
+
+/* It is drawn as the outline button rather than reusing <ui-button>, because
+   the count badge has to sit on its corner and a badge positioned against a
+   component whose internals may change is a promise this file cannot keep. */
+.ui-filter__trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+  height: var(--control-height-md);
+  padding: 0 var(--space-6);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  line-height: 1;
+  cursor: pointer;
+}
+
+.ui-filter__trigger:hover:not(:disabled) {
+  background-color: var(--color-bg-surface-hover);
+}
+
+.ui-filter__trigger:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.ui-filter__trigger:disabled {
+  color: var(--color-text-disabled);
+  cursor: not-allowed;
+}
+
+/* Icon only, for a rail or a toolbar with no room for the word. */
+.ui-filter__trigger--icon {
+  width: var(--control-height-md);
+  padding: 0;
+  justify-content: center;
+}
+
+.ui-filter__icon {
+  width: 1rem;
+  height: 1rem;
+  flex: none;
+  color: var(--color-text-secondary);
+}
+
+/* An open panel keeps its button looking pressed, so the two read as one
+   object while the panel is floating somewhere else in the DOM. */
+.ui-filter--open .ui-filter__trigger,
+.ui-filter--active .ui-filter__trigger {
+  border-color: var(--color-brand-solid);
+  color: var(--color-brand-text);
+}
+.ui-filter--open .ui-filter__icon,
+.ui-filter--active /* Icon only, for a rail or a toolbar with no room for the word. */
+.ui-filter__trigger--icon {
+  width: var(--control-height-md);
+  padding: 0;
+  justify-content: center;
+}
+
+.ui-filter__icon {
+  color: inherit;
+}
+
+/* How many answers are ticked. Without it a filtered list just looks like a
+   short list — which is how someone concludes a patient does not exist. */
+.ui-filter__count {
+  position: absolute;
+  top: -0.375rem;
+  right: -0.375rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.125rem;
+  height: 1.125rem;
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-full);
+  background-color: var(--color-brand-solid);
+  color: var(--color-text-inverse);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-semibold);
+  pointer-events: none;
+}
+
+/* --- The panel ------------------------------------------------------------ */
+
+.ui-filter-panel {
+  position: fixed;
+  top: var(--filter-panel-top, 0);
+  left: var(--filter-panel-left, 0);
+  z-index: var(--z-dropdown);
+  display: flex;
+  flex-direction: column;
+  width: var(--filter-panel-width, 17.5rem);
+  max-width: calc(100vw - var(--space-9));
+  max-height: var(--filter-panel-max-height, 32rem);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+  box-shadow: var(--elevation-overlay);
+  transform-origin: var(--filter-panel-origin, top) left;
+  animation: ui-filter-in 120ms ease-out;
+  overflow: hidden;
+}
+
+@keyframes ui-filter-in {
+  from { opacity: 0; transform: scaleY(0.97); }
+  to { opacity: 1; transform: scaleY(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-filter-panel { animation: none; }
+}
+
+/* The groups scroll; the foot does not. Clear and Done are the two things you
+   always need in reach, and a panel long enough to scroll is exactly the panel
+   where they would otherwise have scrolled away. */
+.ui-filter-panel__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+/* --- A group -------------------------------------------------------------- */
+
+.ui-filter-group {
+  padding: var(--space-7) var(--space-7) var(--space-6);
+}
+
+/* A hairline rather than a box: the sections are one list divided, not several
+   cards stacked. */
+.ui-filter-group + .ui-filter-group {
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.ui-filter-group__label {
+  margin-bottom: var(--space-5);
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+}
+
+.ui-filter-group__options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+/* Fields — a date range, an MRN — sit in the same rhythm as the ticks, one per
+   line, so a panel mixing the two still reads as one column of answers. */
+.ui-filter-group__fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+/* Two dates side by side is the one exception worth making: From and To are
+   one answer asked twice, and stacking them reads as two questions. */
+.ui-filter-group__fields--pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5);
+}
+
+/* ----------------------------------------------------------------------------
+   A QUESTION ASKED AS A FIELD
+
+   The parameter sheet a report is run from — nine questions over vocabularies
+   of twenty providers and forty codes, which as tick lists would be several
+   hundred rows. See the chapter in js/components/ui-filter.js.
+
+   The field fills the panel's width, under the same small grey heading a tick
+   group gets, so a panel mixing the two still reads as one column of answers.
+   ------------------------------------------------------------------------- */
+.ui-filter-group > ui-select,
+.ui-filter-group > ui-input {
+  display: block;
+  width: 100%;
+}
+
+/* A RUN OF TICK BOXES IS ONE BLOCK, NOT THREE SECTIONS.
+
+   "Show grouping details", "Show patient details" and "Split CPT with
+   modifiers" are three separate questions to the code and one paragraph of
+   switches to the reader — each is already a whole sentence, so none of them
+   carries a heading. Left as ordinary sections they would be divided by two
+   hairlines and padded apart like three questions; this closes them up into
+   the block a parameter sheet ends with, while keeping the rule above the
+   first of them. */
+.ui-filter-group--check { padding-block: var(--space-4); }
+.ui-filter-group--check + .ui-filter-group--check {
+  padding-top: 0;
+  border-top: none;
+}
+.ui-filter-group--check:last-child { padding-bottom: var(--space-6); }
+
+/* --- The foot ------------------------------------------------------------- */
+
+.ui-filter-panel__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-6);
+  padding: var(--space-6) var(--space-7);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+/* Clear is destructive-ish and used rarely, so it is drawn as text — present,
+   reachable, and never mistaken for the button you came here to press. */
+.ui-filter-panel__clear {
+  padding: var(--space-3) var(--space-4);
+  margin-left: calc(var(--space-4) * -1);
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+}
+.ui-filter-panel__clear:hover {
+  background-color: var(--color-bg-surface-hover);
+  color: var(--color-text-primary);
+}
+.ui-filter-panel__clear:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.ui-filter-panel__done {
+  margin-left: auto;
+}

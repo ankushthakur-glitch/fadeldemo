@@ -1,0 +1,146 @@
+/* ============================================================================
+   THE APP BAR — the green band across the top of every clinician screen.
+
+   It used to live in css/screen-patient.css, which is where it was first
+   built, and every other screen picked it up by loading that file for the one
+   block it actually wanted. Chart v2 could not do even that — it carries its
+   own page layout — so it grew a second copy of the same rules under `c2__`
+   names, and the two drifted (the actions row was a step tighter, the tabs
+   lost their gap). The bar is furniture, not a screen, so it is its own
+   stylesheet now and both copies are gone.
+
+   Pairs with <ui-main-nav> (js/components/ui-main-nav.js), which paints the
+   tabs from the one list in js/lib/main-nav.js.
+   ========================================================================= */
+
+/* --- Top bar (52px) -------------------------------------------------------- */
+
+.pt__bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-9);
+  height: 3.25rem;
+  padding: 0 var(--space-8);
+  background-color: var(--color-bg-nav);
+  border-bottom: var(--border-width-thin) solid var(--color-border-nav);
+}
+
+/* The supplied logo is a 316×66 bitmap shown at half size, so it stays
+   crisp on retina screens. Width/height are on the <img> itself so the bar
+   never reflows while the image loads. */
+.pt__logo {
+  flex: none;
+  width: 9.875rem; /* 158px */
+  height: auto;
+  /* The supplied mark is drawn in near-black and stone grey, which is a mark
+     nobody can see on a dark band, so the bar takes a reversed copy of it.
+
+     This used to be `filter: brightness(0) invert(1)` on the one asset, to
+     avoid a second file going stale. It cost too much: a filter cannot tell
+     the two fills apart, so the stone disc and the knot drawn on top of it
+     both came out the same white and the disc swallowed the line — a white
+     blob with green cracks in it where the gaps between the strokes were.
+     The reversed file keeps the drawing intact: the disc is a dim white wash
+     that stays behind the knot, the knot and the wordmark are solid white.
+
+     Swapped here rather than in the thirty screens that carry the bar, so the
+     markup keeps pointing at the one logo and this rule stays the only place
+     that knows the dark band wants a different copy of it. */
+  content: url("../../assets/img/medinova-logo-reversed.svg");
+}
+
+/* --- Primary nav tabs ------------------------------------------------------ */
+
+/* The tabs come from <ui-main-nav>, which paints a real <nav class="pt__nav">
+   inside itself so the landmark and its label survive. The custom element
+   itself is not a box: `display: contents` hands the <nav> straight to the
+   bar's flex row, so the layout is exactly what it was when the markup was
+   written out by hand. */
+ui-main-nav { display: contents; }
+
+/* Eight items now. On a narrow window the nav scrolls rather than squeezing
+   the clock and avatar out of the bar. */
+.pt__nav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.pt__nav::-webkit-scrollbar { display: none; }
+
+/* 10px of inset, not 12. Nine sections fit the 1280 bar at 10 and overflow it
+   by 15px at 12 — and a nav that scrolls sideways hides whichever section is
+   last, which is Settings. The scroll behaviour above is still the fallback if
+   a tenth section arrives. */
+.pt__nav-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  height: 2.25rem;
+  padding: 0 var(--space-5);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-body);
+  color: var(--color-text-on-nav);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.pt__nav-item:hover { background-color: var(--color-bg-nav-hover); color: var(--color-text-on-nav-strong); }
+.pt__nav-item:focus-visible { outline: none; box-shadow: var(--focus-ring-on-nav); }
+
+/* A lighter green pill, one step up from the band it sits on. The section you
+   are in is also the only label at full white and the only one with a weight
+   change, so it is still legible as the current one where the two greens are
+   close — which they are, deliberately: a pill bright enough to separate on
+   colour alone would be a second primary action on every screen. */
+.pt__nav-item--active {
+  background-color: var(--color-bg-nav-active);
+  color: var(--color-text-on-nav-strong);
+  font-weight: var(--font-weight-medium);
+}
+.pt__nav-item--active:hover { background-color: var(--color-brand-solid); color: var(--color-text-on-nav-strong); }
+/* Both rings are white here: the green pair the rest of the product focuses
+   with vanishes against the band. */
+.pt__nav-item--active:focus-visible { box-shadow: var(--focus-ring-on-nav); }
+
+.pt__bar-actions { margin-left: auto; display: flex; align-items: center; gap: var(--space-6); }
+
+.pt__icon-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-10);
+  height: var(--space-10);
+  border-radius: var(--radius-md);
+  color: var(--color-text-on-nav);
+  cursor: pointer;
+}
+.pt__icon-action:hover { background-color: var(--color-bg-nav-hover); color: var(--color-text-on-nav-strong); }
+.pt__icon-action:focus-visible { outline: none; box-shadow: var(--focus-ring-on-nav); }
+
+/* --- Nav badge — how many submissions nobody has looked at ------------------
+   Lived in css/screen-leads.css, next to the module that counts them, which
+   meant the count could only be painted on the one screen that loaded that
+   file. The badge belongs to the bar; what goes in it belongs to Leads. */
+
+.pt__nav-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.125rem;
+  height: 1.125rem;
+  margin-left: var(--space-3);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-full);
+  background-color: var(--color-status-critical-surface);
+  color: var(--color-status-critical-text);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-semibold);
+}
+.pt__nav-item--active .pt__nav-badge {
+  background-color: var(--color-bg-surface);
+  color: var(--color-brand-text);
+}

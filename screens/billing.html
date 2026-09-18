@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MediNova EHR — Billing</title>
+    <link rel="icon" type="image/svg+xml" href="../assets/img/favicon.svg" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="../css/reset.css" />
+    <link rel="stylesheet" href="../css/tokens.css" />
+    <link rel="stylesheet" href="../css/base.css" />
+    <link rel="stylesheet" href="../css/ui-kit.css" />
+    <link rel="stylesheet" href="../css/screen-patient.css" />
+    <link rel="stylesheet" href="../css/screen-leads.css" />
+    <link rel="stylesheet" href="../css/screen-billing.css" />
+
+    <script type="module" src="../js/main.js"></script>
+    <script type="module" src="../js/screens/billing.js"></script>
+    <script src="../js/open-me-properly.js"></script>
+  </head>
+
+  <body class="pt bil">
+    <header class="pt__bar">
+      <img class="pt__logo" src="../assets/img/medinova-logo.svg" width="158" height="32"
+        alt="MediNova Gastroenterology Clinic" />
+      <ui-main-nav active="billing"></ui-main-nav>
+      <div class="pt__bar-actions">
+        <ui-time-clock></ui-time-clock>
+        <button type="button" class="pt__icon-action" aria-label="Notifications">
+          <svg class="ui-icon" aria-hidden="true"><use href="#i-bell"></use></svg>
+        </button>
+        <ui-avatar name="Amara Mensah" size="sm"></ui-avatar>
+      </div>
+    </header>
+
+    <!-- Pinned rather than inline: the body swaps between the worklist and two
+         full-screen stages, and a banner parented to one of them would vanish
+         the moment the other took over. -->
+
+    <!-- PRIMARY level — the three sections of Billing, and the one place a
+         claim's life is divided. The header's right-hand half is rebuilt per
+         view: which buttons belong there depends on both the tab and the
+         status chip, and showing all of them would leave dead controls on
+         every view but one.
+
+         Claims is ONE tab, not two. Unbilled and Submitted were the same
+         object either side of a postmark, which meant a claim had to be
+         deleted from one list and rebuilt in the other to travel, and a
+         biller chasing a rejection had to know which of the two to look in
+         before they could search for it.
+
+         The strip reads left to right as the money does: the encounter that
+         has not been billed, the claim sent to the payer, the remittance that
+         comes back on it, the invoice for whatever the payer left on the
+         patient, and finally what is still outstanding across both.
+
+         PAYMENTS & DENIALS is gone, and nothing went with it that is not
+         reachable from a better place. Its ERAs were remittance advice, which
+         is what Remits is a list of. Its denials and rejections were claims —
+         the same rows Claims already holds, carrying their own denial code
+         and opening the same stage — so a second list of them was a second
+         place to look for one thing. Its appeals hang off the claim they
+         argue with, on that claim's own row menu.
+
+         Payer Overdue, the ERA posting stage and the EOB, Post Payment and
+         Secondary Claim dialogs were reached from nowhere else and went with
+         it. Anything wanted back belongs on Claims or Remits — beside the
+         document it is about — rather than in a tab of its own. -->
+    <!-- --flush: no rule under the band. It exists for screens whose work runs
+         flush up against the header with nothing else marking the join; every
+         panel below this one is a card with its own top edge, so the rule was
+         a second horizontal line a few pixels above the first. -->
+    <div class="ui-page-head ui-page-head--flush bil__head">
+      <div class="ui-page-head__lead">
+        <h1 class="u-sr-only">Billing</h1>
+        <ui-tabs selected="ready" primary data-testid="bil--tabs">
+          <!-- "Unbilled Encounters", not "Ready for Billing". The tab holds locked
+               encounters that have not yet been turned into a claim or an
+               invoice, and naming it for that fact says which pile it is; the
+               old name described a readiness the biller has to take on trust
+               and shares its first word with the "Ready to Submit" claim
+               status two tabs along, which is a different pile at a different
+               stage. Unbilled is checkable: either something has been billed
+               or it has not. -->
+          <ui-tab value="ready" label="Unbilled Encounters"></ui-tab>
+          <ui-tab value="claims" label="Claims"></ui-tab>
+          <ui-tab value="remits" label="Remits"></ui-tab>
+          <ui-tab value="invoice" label="Invoice"></ui-tab>
+          <ui-tab value="ar" label="AR Management"></ui-tab>
+          <ui-tab value="collection" label="Patient Collection"></ui-tab>
+        </ui-tabs>
+      </div>
+
+      <!-- The right-hand half of the header is rebuilt per view, which is why
+           the filter control sits OUTSIDE it: it holds what the reader has
+           ticked, and a control rebuilt on every repaint would forget it — and
+           would be torn out from under an open panel. It is one control for
+           every tab on this screen, restocked with that tab's questions; see
+           filterSpecFor() in js/screens/billing.js. -->
+      <div class="ui-page-head__actions">
+        <span id="toolbarActions" class="bil__toolbar"></span>
+        <ui-filter id="wlFilter" label="" panel-label="Filter list"
+          data-testid="bil--filter" hidden>
+          <!-- The questions are set from JS, because they are not the same
+               questions on every tab: see filterSpecFor(). The one thing
+               declared here is the date pair, because a <ui-filter-fields>
+               lends the screen's OWN inputs to the panel — and inputs the
+               screen holds a reference to cannot be conjured per repaint.
+
+               Every tab that filters by date filters by the SAME two dates —
+               the one the list is read by. One pair, shown when the open tab
+               has a date to bracket. -->
+          <ui-filter-fields id="wlRange" name="range" label="Date range" hidden>
+            <div class="ui-filter-group__fields--pair">
+              <ui-input id="wlFrom" type="date" label="From" size="sm"
+                data-testid="bil--f-from"></ui-input>
+              <ui-input id="wlTo" type="date" label="To" size="sm"
+                data-testid="bil--f-to"></ui-input>
+            </div>
+          </ui-filter-fields>
+        </ui-filter>
+      </div>
+    </div>
+
+    <!-- ================= WORKLIST =================
+         Three panels because the tab strip controls three, but ONE worklist:
+         the filter bar, the second-level switch, the table and the pager are
+         a single instance that moves into whichever panel is open. Three
+         copies of the same table would be three things to keep in step, and
+         the tab is a change of subject, not a change of machinery.
+
+         It starts in Unbilled Encounters — the first thing a claim is. -->
+    <div class="bil__panel-host" id="panel-ready" role="tabpanel" aria-labelledby="tab-ready">
+      <div class="bil__home" id="billingHome">
+        <!-- No filter bars over the table. Claims and Remits each used to
+             carry a row of six named fields here, on the argument that six is
+             more than a popover should hide — which was true of a popover
+             made of dropdowns, and is not true of one that shows its answers.
+             Both are behind the header's funnel now, with every other tab's,
+             so this screen filters the way the rest of the product does. -->
+
+        <!-- ONE edge around the switch, the rows and the pager — the shape
+             the scheduler's Encounters worklist uses over its own Unsigned /
+             Signed switch, and the patient portal over its Current / Past one.
+
+             It was three boxes: a chip row floating in a band of its own, a
+             bordered table under it, and a bordered pager under that. Which
+             put a control over ONE list on the same footing as the tab strip
+             in the page header, and drew three edges where a reader sees one
+             thing. The card owns the edge now; the table keeps
+             .ui-table-card for the scroll behaviour it takes from it and
+             gives up its border and its corners, which two nested rounded
+             boxes would only fight over. -->
+        <div class="bil__list-card">
+          <!-- The second level, in the band at the top of the card. One shape
+               on every tab — see paintChips(); the word that used to sit in
+               front of it survives as the strip's aria-label. -->
+          <div class="bil__statusbar" id="statusBar">
+            <div class="bil__subtabs" role="tablist" aria-label="Status" id="statusChips"></div>
+          </div>
+
+          <div class="ui-table-card">
+            <ui-data-table id="worklist" data-testid="bil--table"
+              empty-text="No claims match this filter."></ui-data-table>
+            <div data-foot="worklist"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="bil__panel-host" id="panel-claims" role="tabpanel"
+      aria-labelledby="tab-claims" hidden></div>
+    <div class="bil__panel-host" id="panel-remits" role="tabpanel"
+      aria-labelledby="tab-remits" hidden></div>
+    <div class="bil__panel-host" id="panel-invoice" role="tabpanel"
+      aria-labelledby="tab-invoice" hidden></div>
+    <div class="bil__panel-host" id="panel-collection" role="tabpanel"
+      aria-labelledby="tab-collection" hidden></div>
+
+    <!-- ================= AR MANAGEMENT =================
+         The one tab that does NOT borrow the worklist. Unbilled Encounters,
+         Claims and Payments are three subjects sharing one table, one chip
+         row and one pager, which is why they share one panel that moves
+         between them. AR is a different machine: its Summary is a chart with
+         no rows at all, and its two tables are AGGREGATES — one line per
+         patient or payer, totalled across a set of documents — rather than a
+         page of the documents themselves. Bending the worklist to that would
+         have meant a `selectable` table that cannot be ticked, a pager over
+         rows that are sums, and a chip row over a bar chart.
+
+         So it keeps its own panel and its own sub-tab strip, and the card
+         holds its controls on the strip rather than in the page header: the
+         as-of date and the bucket width change what the numbers MEAN, not
+         which of them are shown, and that belongs beside the figures they
+         re-cut rather than up beside a tab strip they do not apply to. -->
+    <div class="bil__panel-host" id="panel-ar" role="tabpanel" aria-labelledby="tab-ar" hidden>
+      <!-- No card title. "Account Receivable" was the tab that was clicked to
+           get here and the heading printed a hand-span below it — the same two
+           words twice, taking a band of the card that the plot then had to be
+           squeezed out of. The report names itself: the sub-tab strip says
+           which of the three views is open, and the chart carries its own
+           caption. -->
+      <section class="bil__ar" aria-label="Account receivable">
+        <div class="bil__ar-card">
+          <div class="bil__ar-bar">
+            <div class="bil__subtabs" role="tablist" aria-label="Account receivable view" id="arTabs"></div>
+            <div class="bil__ar-controls" id="arControls"></div>
+          </div>
+
+          <div class="bil__ar-body" id="arBody"></div>
+        </div>
+        <div data-foot="ar"></div>
+      </section>
+    </div>
+
+    <!-- ================= STAGE: one account's documents =================
+         The row opened from the Patient or Insurance table, and the
+         receivables that add up to its balance. One stage for both, because
+         it is the same act — "show me what this total is made of" — and the
+         only difference is which columns the documents have. -->
+    <section class="bil__stage" id="stageAr" hidden data-testid="bil--ar-stage">
+      <div class="bil__stage-head">
+        <button type="button" class="bil__back" data-back aria-label="Back to AR Management"
+          data-testid="bil--ar-back">
+          <svg class="ui-icon" aria-hidden="true"><use href="#i-caret-left"></use></svg>
+        </button>
+        <h1 class="bil__stage-title" id="arStageTitle">Listing</h1>
+      </div>
+
+      <div class="bil__ar-stage-body">
+        <div class="bil__ar-table" id="arStageAccount"></div>
+        <div class="bil__ar-table" id="arStageDocs"></div>
+      </div>
+    </section>
+
+    <!-- ================= STAGE: claim detail =================
+         One stage, three modes. Scrub Error opens it as "View Encounter",
+         a clearing-house rejection as "Correct Claim" and a payer denial as
+         "Claim Details" — the banner, the footer and the rail change, the
+         claim underneath does not. -->
+    <section class="bil__stage" id="stageClaim" hidden data-testid="bil--claim-stage">
+      <div class="bil__stage-head">
+        <button type="button" class="bil__back" data-back aria-label="Back to worklist"
+          data-testid="bil--claim-back">
+          <svg class="ui-icon" aria-hidden="true"><use href="#i-caret-left"></use></svg>
+        </button>
+        <h1 class="bil__stage-title" id="claimStageTitle">Claim</h1>
+        <div class="bil__stage-tags" id="claimStageTags"></div>
+      </div>
+
+      <div class="bil__stage-shell">
+        <div class="bil__stage-main" id="claimMain"></div>
+        <aside class="bil__stage-rail" id="claimRail" aria-label="Claim context"></aside>
+      </div>
+
+      <div class="bil__stage-foot" id="claimFoot"></div>
+    </section>
+
+    <!-- ================= STAGE: one remit =================
+         The payment advice opened from the Remits worklist: what the payer
+         says it is paying, and the claims that money is for.
+
+         No pager under the claims. A remit carries a handful of claims, not a
+         page of them, and the whole point of opening one is to see all of it
+         before posting — a pager here would hide the last two claims behind a
+         click and let somebody post what they had not read. -->
+    <section class="bil__stage" id="stageRemit" hidden data-testid="bil--remit-stage">
+      <div class="bil__stage-head">
+        <button type="button" class="bil__back" data-back aria-label="Back to Remits"
+          data-testid="bil--remit-back">
+          <svg class="ui-icon" aria-hidden="true"><use href="#i-caret-left"></use></svg>
+        </button>
+        <h1 class="bil__stage-title">Remit Details</h1>
+        <div class="bil__stage-tags" id="remitStageTags"></div>
+        <span class="u-spacer"></span>
+        <ui-button variant="outline" id="remitViewPdf" data-testid="bil--remit-pdf">View PDF</ui-button>
+        <ui-button variant="primary" id="remitPost" data-testid="bil--remit-post">Post Remit</ui-button>
+      </div>
+
+      <!-- The control number is the document's identity, so it heads the
+           facts rather than sitting as one of them. -->
+      <div class="bil__remit-band" id="remitBand"></div>
+      <dl class="bil__facts bil__facts--strip bil__facts--quad" id="remitFacts"></dl>
+
+      <div class="bil__table bil__table--custom" id="remitClaimsTable"></div>
+    </section>
+
+    <!-- ================= MODAL: a collection account =================
+         What the Total Outstanding on a row is actually made of. A modal
+         rather than a stage: the answer is one fact strip and one short list
+         of charges, and taking the whole screen away to show six rows would
+         lose the queue the user is working through. -->
+    <ui-modal id="modalCollection" heading="Patient Account" size="lg">
+      <dl class="bil__facts bil__facts--boxed" id="collectionFacts"></dl>
+      <h3 class="bil__section-title">Outstanding Charges</h3>
+      <div id="collectionCharges"></div>
+      <div class="ui-modal__actions">
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="tertiary" data-close data-testid="bil--coll-close">Close</ui-button>
+        <ui-button variant="primary" id="collectionNotice"
+          data-testid="bil--coll-notice">Send Notice</ui-button>
+      </div>
+    </ui-modal>
+
+    <!-- ================= MODAL: apply filter ================= -->
+
+    <!-- ================= MODAL: filter Patient Collection =================
+         Six fields, and its own dialog rather than a sixth field bolted onto
+         the one above: nothing on a claim has an attempt count or an entity,
+         and a shared panel would have to hide half of itself per tab.
+
+         Status leads, because it is the rung of the chasing ladder — it was a
+         row of "Quick view" chips over the table until those and the inline
+         filter bar collapsed into this one panel. -->
+
+    <!-- ================= MODAL: confirm a bulk action =================
+         Batch scrub, batch submission and submit-to-payer are the same
+         dialog: say how much is about to move, then ask once. -->
+    <ui-modal id="modalConfirm" heading="Confirm" size="md">
+      <div class="bil__confirm" id="confirmBody"></div>
+      <div class="ui-modal__actions">
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="tertiary" data-close data-testid="bil--confirm-cancel">Cancel</ui-button>
+        <!-- Rebuilt per flow by confirmThen(): the commit button's wording and
+             weight change with what is being confirmed, and <ui-button> reads
+             its label once, so it is replaced rather than relabelled. Cancel
+             stays put and keeps the listener ui-modal bound to it. -->
+        <span id="confirmGoHost"></span>
+      </div>
+    </ui-modal>
+
+    <!-- ================= MODAL: work in progress ================= -->
+    <ui-modal id="modalProgress" heading="Working" size="sm">
+      <div class="bil__progress">
+        <ui-spinner size="lg" label="Submitting claim"></ui-spinner>
+        <p class="bil__progress-title" id="progressTitle"></p>
+        <p class="bil__progress-note" id="progressNote"></p>
+        <div class="ui-modal__actions">
+          <span class="ui-modal__actions-spacer"></span>
+          <ui-button variant="outline" id="progressCancel"
+            data-testid="bil--progress-cancel">Cancel Process</ui-button>
+          <span class="ui-modal__actions-spacer"></span>
+        </div>
+      </div>
+    </ui-modal>
+
+    <!-- ================= MODAL: the result ================= -->
+    <ui-modal id="modalDone" heading="Done" size="md">
+      <div class="bil__done" id="doneBody"></div>
+      <div class="ui-modal__actions" id="doneActions"></div>
+    </ui-modal>
+
+    <!-- ================= MODAL: paper claim (CMS-1500) ================= -->
+    <ui-modal id="modalPaperClaim" heading="Generate Paper Claim" size="xl">
+      <div class="bil__cms-actions">
+        <ui-button variant="outline" size="sm" icon="download" id="cmsExport"
+          data-testid="bil--cms-export">Export PDF</ui-button>
+        <ui-button variant="outline" size="sm" icon="mail" id="cmsEmail"
+          data-testid="bil--cms-email">Send to Email</ui-button>
+      </div>
+      <div class="bil__cms-head">
+        <div class="bil__cms-qr" aria-hidden="true">
+          <svg viewBox="0 0 64 64" class="bil__cms-qr-svg">
+            <rect width="64" height="64" fill="var(--color-bg-surface)" />
+            <g fill="var(--color-text-primary)">
+              <rect x="4" y="4" width="16" height="16" /><rect x="44" y="4" width="16" height="16" />
+              <rect x="4" y="44" width="16" height="16" />
+              <rect x="8" y="8" width="8" height="8" fill="var(--color-bg-surface)" />
+              <rect x="48" y="8" width="8" height="8" fill="var(--color-bg-surface)" />
+              <rect x="8" y="48" width="8" height="8" fill="var(--color-bg-surface)" />
+              <rect x="24" y="4" width="4" height="4" /><rect x="32" y="4" width="4" height="4" />
+              <rect x="24" y="24" width="16" height="16" /><rect x="44" y="28" width="4" height="4" />
+              <rect x="52" y="24" width="4" height="4" /><rect x="24" y="44" width="4" height="16" />
+              <rect x="32" y="48" width="4" height="4" /><rect x="44" y="44" width="4" height="4" />
+              <rect x="52" y="52" width="8" height="8" />
+            </g>
+          </svg>
+        </div>
+        <div>
+          <h3 class="bil__cms-title">HEALTH INSURANCE CLAIM FORM</h3>
+          <p class="bil__cms-approved">APPROVED BY NATIONAL UNIFORM CLAIM COMMITTEE (NUCC) 02/12</p>
+        </div>
+      </div>
+      <div class="bil__cms-form" id="cmsFormBody"></div>
+
+      <div class="ui-modal__actions">
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="tertiary" data-close data-testid="bil--cms-cancel">Cancel</ui-button>
+        <ui-button variant="primary" id="cmsSave" data-testid="bil--cms-save">Save</ui-button>
+      </div>
+    </ui-modal>
+
+    <!-- ================= MODAL: paper claim (UB-04 / CMS-1450) =================
+         The institutional half of the pair. A CMS-1500 bills the clinician's
+         work, a UB-04 bills the facility that housed it — same encounter, two
+         documents, two payer addresses. They share the form chrome and the
+         export buttons because they are the same act; only the boxes differ. -->
+    <ui-modal id="modalUb04" heading="Generate Paper Claim — UB-04" size="xl">
+      <div class="bil__cms-actions">
+        <ui-button variant="outline" size="sm" icon="download" id="ubExport"
+          data-testid="bil--ub-export">Export PDF</ui-button>
+        <ui-button variant="outline" size="sm" icon="mail" id="ubEmail"
+          data-testid="bil--ub-email">Send to Email</ui-button>
+      </div>
+      <div class="bil__cms-head">
+        <div>
+          <h3 class="bil__cms-title">UB-04 · UNIFORM BILL</h3>
+          <p class="bil__cms-approved">APPROVED BY NATIONAL UNIFORM BILLING COMMITTEE (NUBC) — CMS-1450</p>
+        </div>
+      </div>
+      <div class="bil__cms-form" id="ubFormBody"></div>
+
+      <div class="ui-modal__actions">
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="tertiary" data-close data-testid="bil--ub-cancel">Cancel</ui-button>
+        <ui-button variant="primary" id="ubSave" data-testid="bil--ub-save">Save</ui-button>
+      </div>
+    </ui-modal>
+
+    <!-- ================= MODAL: clearing-house rejection detail ================= -->
+    <ui-modal id="modalRejection" heading="Claim Error Details" size="lg">
+      <div id="rejectionBody"></div>
+    </ui-modal>
+
+    <!-- ================= MODAL: upload ERA ================= -->
+    <ui-modal id="modalEraUpload" heading="Upload ERA (ANSI 835 Files)" size="lg">
+      <ui-file-upload accept=".txt,.835,.edl" max-size="20MB" data-testid="bil--era-upload"></ui-file-upload>
+      <dl class="bil__stat-list" id="eraUploadSummary"></dl>
+
+      <div class="ui-modal__actions">
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="tertiary" data-close data-testid="bil--era-upload-cancel">Cancel</ui-button>
+        <ui-button variant="primary" id="eraUploadGo" data-testid="bil--era-upload-go">Upload</ui-button>
+      </div>
+    </ui-modal>
+
+    <!-- ================= MODAL: upload a paper remit =================
+         A PDF is a picture of a remittance, not a remittance: nothing in it
+         can be posted until somebody keys the numbers in. The dialog says so
+         rather than implying the file will be read. -->
+    <ui-modal id="modalRemitPdf" heading="Upload Remit PDF" size="lg">
+      <ui-file-upload accept=".pdf,.png,.jpg" max-size="10MB"
+        data-testid="bil--remit-pdf-upload"></ui-file-upload>
+
+      <div class="ui-modal__actions">
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="tertiary" data-close data-testid="bil--remit-pdf-cancel">Cancel</ui-button>
+        <ui-button variant="primary" id="remitPdfGo" data-testid="bil--remit-pdf-go">Upload</ui-button>
+      </div>
+    </ui-modal>
+
+    <!-- ================= MODAL: add a remit by hand =================
+         The header fields only. A hand-keyed remit starts with no claims on
+         it — which is honest, and is why it opens Not Posted with nothing to
+         post until its claims are matched. -->
+    <ui-modal id="modalRemitAdd" heading="Add Remit" size="lg">
+      <form class="bil__form" id="remitAddForm">
+        <fieldset class="bil__fieldset">
+          <legend class="bil__fieldset-title">Payment Details</legend>
+          <div class="bil__grid-3">
+            <ui-input id="raControl" label="ERA Control Number" placeholder="Enter" required
+              data-testid="bil--ra-control"></ui-input>
+            <ui-input id="raEraDate" label="ERA Date" type="date" data-testid="bil--ra-era-date"></ui-input>
+            <ui-input id="raCheck" label="Check/EFT No" placeholder="Enter" data-testid="bil--ra-check"></ui-input>
+            <ui-select id="raMethod" label="Payment Method" options="EFT,Check" placeholder="Select"
+              data-testid="bil--ra-method"></ui-select>
+            <ui-input id="raPaymentDate" label="Payment Date" type="date"
+              data-testid="bil--ra-payment-date"></ui-input>
+            <ui-input id="raAmount" label="Amount ($)" placeholder="0.00" required
+              data-testid="bil--ra-amount"></ui-input>
+          </div>
+        </fieldset>
+
+        <fieldset class="bil__fieldset">
+          <legend class="bil__fieldset-title">Payer &amp; Provider</legend>
+          <div class="bil__grid-3">
+            <ui-select id="raPayer" label="Payer Name" placeholder="Select"
+              data-testid="bil--ra-payer"></ui-select>
+            <ui-select id="raProvider" label="Billing Provider" placeholder="Select"
+              data-testid="bil--ra-provider"></ui-select>
+            <ui-input id="raPostDate" label="Post Date" type="date" data-testid="bil--ra-post-date"></ui-input>
+          </div>
+        </fieldset>
+
+        <fieldset class="bil__fieldset">
+          <legend class="bil__fieldset-title">Bank Details</legend>
+          <div class="bil__grid-3">
+            <ui-input id="raPayerRouting" label="Payer Bank Routing Number" placeholder="Enter"
+              data-testid="bil--ra-payer-routing"></ui-input>
+            <ui-input id="raPayerAccount" label="Payer Account Number" placeholder="Enter"
+              data-testid="bil--ra-payer-account"></ui-input>
+            <ui-input id="raReceiverRouting" label="Receiver Bank Routing Number" placeholder="Enter"
+              data-testid="bil--ra-receiver-routing"></ui-input>
+            <ui-input id="raReceiverAccount" label="Receiver Account Number" placeholder="Enter"
+              data-testid="bil--ra-receiver-account"></ui-input>
+          </div>
+        </fieldset>
+
+        <div class="ui-modal__actions">
+          <span class="ui-modal__actions-spacer"></span>
+          <ui-button variant="tertiary" data-close data-testid="bil--ra-cancel">Cancel</ui-button>
+          <ui-button variant="primary" id="remitAddSave" data-testid="bil--ra-save">Add Remit</ui-button>
+        </div>
+      </form>
+    </ui-modal>
+
+    <!-- ================= MODAL: create appeal ================= -->
+    <ui-modal id="modalAppeal" heading="Create Appeal" size="lg">
+      <dl class="bil__facts bil__facts--boxed" id="appealFacts"></dl>
+      <div class="bil__field-block">
+        <span class="bil__field-label">Attach Evidence</span>
+        <ui-file-upload accept=".pdf,.png,.jpg" max-size="5MB" data-testid="bil--appeal-upload"></ui-file-upload>
+      </div>
+      <ui-textarea id="appealNote" label="Description" rows="6" placeholder="Type here…"
+        data-testid="bil--appeal-note"></ui-textarea>
+
+      <div class="ui-modal__actions">
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="tertiary" data-close data-testid="bil--appeal-cancel">Cancel</ui-button>
+        <ui-button variant="primary" icon="download" id="appealDownload"
+          data-testid="bil--appeal-download">Download PDF</ui-button>
+      </div>
+    </ui-modal>
+
+    <!-- ================= MODAL: the invoice document =================
+         One dialog, three modes — raise one, amend one, read one. The heading
+         says which, and the primary button is rebuilt per mode rather than
+         relabelled, for the reason confirmThen() gives. The body is painted
+         from JavaScript because its item rows are data: an invoice has as
+         many lines as it has, and a fixed three in the markup would be three
+         empty rows on the invoice that only has one. -->
+    <ui-modal id="modalInvoice" heading="Add Invoice" size="xl">
+      <div class="bil__inv-form" id="invoiceBody"></div>
+      <div class="ui-modal__actions">
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="tertiary" data-close data-testid="bil--inv-cancel">Cancel</ui-button>
+        <span id="invoiceGoHost"></span>
+      </div>
+    </ui-modal>
+
+    <!-- ================= MODAL: payment receipt =================
+         What the patient is handed after money changes hands. Download and
+         Print sit at the top of the body rather than in the dialog's header
+         bar, matching the paper-claim dialogs — a receipt is a document, and
+         the two things anyone does with a document belong on it. -->
+    <ui-modal id="modalReceipt" heading="Payment Receipt" size="lg">
+      <div class="bil__cms-actions">
+        <ui-button variant="outline" size="sm" icon="download" id="receiptDownload"
+          data-testid="bil--receipt-download">Download</ui-button>
+        <ui-button variant="outline" size="sm" icon="printer" id="receiptPrint"
+          data-testid="bil--receipt-print">Print</ui-button>
+      </div>
+      <div id="receiptBody"></div>
+    </ui-modal>
+
+    <!-- ================= MODAL: collect a payment =================
+         Cash, bank and card are three ways of doing one thing, so they are a
+         rail beside one form rather than three dialogs: the amount, the
+         reason and the notes are the same whichever is picked, and only the
+         instrument underneath changes.
+
+         Two commit buttons, and they are not alternatives. Collect takes the
+         money now, at the desk. Send Request asks the patient to pay it
+         themselves — the same amount, from an invoice they receive — which is
+         what happens when nobody is standing there with a card. -->
+    <ui-modal id="modalCollect" heading="Payment" size="lg">
+      <div class="bil__collect">
+        <div class="bil__collect-methods" role="tablist" aria-label="Payment method"
+          id="collectMethods"></div>
+        <div class="bil__collect-body" id="collectBody"></div>
+      </div>
+      <div class="ui-modal__actions">
+        <span class="ui-modal__actions-spacer"></span>
+        <ui-button variant="tertiary" data-close data-testid="bil--collect-cancel">Cancel</ui-button>
+        <ui-button variant="outline" id="collectRequest"
+          data-testid="bil--collect-request">Send Request</ui-button>
+        <ui-button variant="primary" id="collectGo" data-testid="bil--collect-go">Collect</ui-button>
+      </div>
+    </ui-modal>
+  </body>
+</html>

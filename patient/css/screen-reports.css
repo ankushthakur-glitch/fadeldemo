@@ -1,0 +1,84 @@
+/* ============================================================================
+   REPORTS
+
+   The table is the shared .pp-table. What is here is the filter bar above it
+   and the flash a deep link leaves on the row it landed on.
+   ========================================================================= */
+
+/*
+ * Search wide, the two dates narrow, Clear at the end.
+ *
+ * The search field takes the slack because it is the control people use;
+ * From and To are fixed-width because a date input does not get better with
+ * more room, and letting them stretch made the bar read as three equal
+ * questions rather than one question with two qualifiers.
+ */
+.pp-reports__filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--pp-space-3);
+  margin-bottom: var(--pp-space-3);
+}
+
+.pp-reports__search {
+  flex: 1 1 20rem;
+  min-width: 0;
+}
+
+.pp-reports__filters .pp-field {
+  margin-bottom: 0;
+}
+
+/* Sits on the baseline of the inputs beside it rather than on the labels. */
+.pp-reports__clear {
+  margin-bottom: 0;
+}
+
+/* "2 of 4 reports" — the live region under the bar. Quiet, because it is a
+   fact about the table rather than a message about it. */
+.pp-reports__count {
+  margin: 0 0 var(--pp-space-3);
+  color: var(--pp-text-muted);
+  font-size: var(--pp-size-xs);
+}
+
+/* ============================================================================
+   THE DEEP-LINK FLASH
+
+   A search result or a notification lands on ?report=<id>. The row is marked
+   rather than opened — see the note in js/screens/health-reports.js.
+   ========================================================================= */
+
+.pp-row--spot {
+  animation: pp-row-spot 2.6s ease-out;
+}
+
+@keyframes pp-row-spot {
+  0%,
+  55% {
+    background-color: var(--pp-surface-tint);
+    box-shadow: inset 3px 0 0 var(--pp-action);
+  }
+  100% {
+    background-color: transparent;
+    box-shadow: inset 3px 0 0 transparent;
+  }
+}
+
+/* Somebody who has asked for less motion still needs to be told which row, so
+   the mark is held rather than animated away. */
+@media (prefers-reduced-motion: reduce) {
+  .pp-row--spot {
+    animation: none;
+    background-color: var(--pp-surface-tint);
+    box-shadow: inset 3px 0 0 var(--pp-action);
+  }
+}
+
+@media (width < 48rem) {
+  .pp-reports__filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

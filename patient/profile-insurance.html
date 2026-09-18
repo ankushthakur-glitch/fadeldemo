@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Insurance — MediNova Clinic Patient Portal</title>
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="css/reset.css" />
+    <link rel="stylesheet" href="css/tokens.css" />
+    <link rel="stylesheet" href="css/base.css" />
+    <link rel="stylesheet" href="css/components.css" />
+    <link rel="stylesheet" href="css/shell.css" />
+    <link rel="stylesheet" href="css/screen-profile.css" />
+    <link rel="stylesheet" href="css/select-menu.css" />
+
+    <script src="js/guard.js"></script>
+    <script type="module" src="js/screens/profile-insurance.js"></script>
+    <script type="module" src="js/lib/select-menu.js"></script>
+    <script type="module" src="js/comments.js"></script>
+    <script src="js/open-me-properly.js"></script>
+  </head>
+
+  <body class="pp-app">
+    <header class="pp-topbar" id="topbar"></header>
+
+    <div class="pp-body">
+      <nav class="pp-side pp-scroll" id="sidenav" aria-label="Portal sections"></nav>
+
+      <main class="pp-main">
+        <div class="pp-content pp-scroll">
+          <!--
+            The Profile / Insurance strip and Add Insurance, on one row. Drawn
+            by lib/profile-tabs.js, which owns the list and the bar; the button
+            markup is handed to it by the screen — see
+            js/screens/profile-insurance.js.
+
+            The bar also carries this page's <h1>, visually hidden, which is why
+            there is no heading written out here.
+
+            Add Insurance used to sit in a .pp-actions row of its own beneath
+            the strip, which spent a whole band of height on one button.
+          -->
+          <div id="tabs"></div>
+
+          <div class="pp-insurance" id="plans"></div>
+        </div>
+      </main>
+    </div>
+
+    <!--
+      ADD INSURANCE
+
+      A native <dialog> again — same element as the upload modal on Documents,
+      and now the same shape: a centred popup (.pp-modal--form-lg in
+      components.css), not the right-hand drawer it used to be.
+
+      WHY IT STOPPED BEING A DRAWER. The drawer was 34rem of column, which is
+      room for two fields to a row and no more — so a sixteen-field form ran to
+      nine rows of pairs and the card slots landed far below the fold. Centred
+      and wide, the same fields sit three to a row and the two card slots sit
+      side by side at half the box each, which is the layout the reference
+      draws. The height it costs is bounded: the box caps at the viewport and
+      only the field list scrolls, exactly as the drawer did.
+
+      THE FIELDS ARE THE PROVIDER PORTAL'S, deliberately. The clinician-side
+      form lives at js/screens/chart-profile-billing.js (#pbInsuranceModal) and
+      is itself the Patient Intake insurance tab. A policy a patient adds here
+      and one a front-desk clerk adds there become the same record, so asking
+      for different things would mean one of the two is wrong. Field order,
+      labels and option lists all match; only the components differ, because
+      the portal shares no code with the EHR.
+    -->
+    <dialog class="pp-modal pp-modal--form-lg" id="insuranceModal"
+      aria-labelledby="insuranceModalTitle">
+      <form class="pp-modal__form" method="dialog" id="insuranceForm" novalidate>
+        <div class="pp-modal__head">
+          <h2 class="pp-modal__title" id="insuranceModalTitle">Add Insurance</h2>
+          <button type="button" class="pp-modal__close" id="closeInsurance" aria-label="Close"
+            data-testid="insurance--close">
+            <svg class="pp-icon" aria-hidden="true"><use href="#pi-close"></use></svg>
+          </button>
+        </div>
+
+        <div class="pp-modal__body pp-scroll">
+          <div class="pp-form-grid pp-form-grid--three">
+            <div class="pp-field">
+              <label class="pp-label" for="insOrder">Coverage Order</label>
+              <div class="pp-control pp-control--icon">
+                <select class="pp-select" id="insOrder" data-testid="insurance--order">
+                  <option>Primary</option>
+                  <option>Secondary</option>
+                  <option>Tertiary</option>
+                </select>
+                <span class="pp-control__icon">
+                  <svg class="pp-icon" aria-hidden="true"><use href="#pi-chevron-down"></use></svg>
+                </span>
+              </div>
+            </div>
+
+            <div class="pp-field">
+              <label class="pp-label" for="insKind">Insurance Type</label>
+              <div class="pp-control pp-control--icon">
+                <select class="pp-select" id="insKind" data-empty="true"
+                  data-testid="insurance--kind">
+                  <option value="" disabled hidden selected>Select</option>
+                  <option>Commercial</option>
+                  <option>Medicare</option>
+                  <option>Medicaid</option>
+                  <option>Workers comp</option>
+                  <option>Self-pay</option>
+                </select>
+                <span class="pp-control__icon">
+                  <svg class="pp-icon" aria-hidden="true"><use href="#pi-chevron-down"></use></svg>
+                </span>
+              </div>
+            </div>
+
+            <div class="pp-field">
+              <label class="pp-label" for="insName">
+                Insurance Name <span class="pp-label__req" aria-hidden="true">*</span>
+              </label>
+              <input class="pp-input" id="insName" required data-testid="insurance--name" />
+              <p class="pp-field__error" id="insNameError" hidden></p>
+            </div>
+
+            <div class="pp-field">
+              <label class="pp-label" for="insMemberId">Member ID</label>
+              <input class="pp-input" id="insMemberId" data-testid="insurance--member" />
+            </div>
+
+            <div class="pp-field">
+              <label class="pp-label" for="insPlan">Insurance Plan</label>
+              <!-- NOT insurance--plan: that testid belongs to the plan
+                   <section> on the screen behind this dialog, and sharing it
+                   made getByTestId('insurance--plan') resolve to three
+                   elements instead of two. -->
+              <input class="pp-input" id="insPlan" data-testid="insurance--field-plan" />
+            </div>
+
+            <div class="pp-field">
+              <label class="pp-label" for="insGroupName">Insured Group Name</label>
+              <input class="pp-input" id="insGroupName" data-testid="insurance--group-name" />
+            </div>
+
+            <div class="pp-field">
+              <label class="pp-label" for="insGroupNumber">Group Number</label>
+              <input class="pp-input" id="insGroupNumber" data-testid="insurance--group-number" />
+            </div>
+
+            <div class="pp-field">
+              <label class="pp-label" for="insStart">Effective Start Date</label>
+              <div class="pp-control pp-control--icon">
+                <input class="pp-input" id="insStart" type="date" data-testid="insurance--start" />
+                <span class="pp-control__icon">
+                  <svg class="pp-icon" aria-hidden="true"><use href="#pi-calendar"></use></svg>
+                </span>
+              </div>
+            </div>
+
+            <div class="pp-field">
+              <label class="pp-label" for="insEnd">Effective End Date</label>
+              <div class="pp-control pp-control--icon">
+                <input class="pp-input" id="insEnd" type="date" data-testid="insurance--end" />
+                <span class="pp-control__icon">
+                  <svg class="pp-icon" aria-hidden="true"><use href="#pi-calendar"></use></svg>
+                </span>
+              </div>
+              <p class="pp-field__error" id="insEndError" hidden></p>
+            </div>
+
+            <div class="pp-field">
+              <label class="pp-label" for="insRelationship">Patient Relationship To Insured</label>
+              <div class="pp-control pp-control--icon">
+                <select class="pp-select" id="insRelationship"
+                  data-testid="insurance--relationship">
+                  <option>Self</option>
+                  <option>Spouse</option>
+                  <option>Child</option>
+                  <option>Other</option>
+                </select>
+                <span class="pp-control__icon">
+                  <svg class="pp-icon" aria-hidden="true"><use href="#pi-chevron-down"></use></svg>
+                </span>
+              </div>
+            </div>
+
+            <div class="pp-field">
+              <label class="pp-label" for="insSubFirst">Subscriber First Name</label>
+              <input class="pp-input" id="insSubFirst" data-testid="insurance--sub-first" />
+            </div>
+
+            <div class="pp-field">
+              <label class="pp-label" for="insSubLast">Subscriber Last Name</label>
+              <input class="pp-input" id="insSubLast" data-testid="insurance--sub-last" />
+            </div>
+
+            <div class="pp-field">
+              <label class="pp-label" for="insSubDob">Subscriber Date of Birth</label>
+              <div class="pp-control pp-control--icon">
+                <input class="pp-input" id="insSubDob" type="date"
+                  data-testid="insurance--sub-dob" />
+                <span class="pp-control__icon">
+                  <svg class="pp-icon" aria-hidden="true"><use href="#pi-calendar"></use></svg>
+                </span>
+              </div>
+            </div>
+
+            <div class="pp-field">
+              <label class="pp-label" for="insSubSex">Subscriber Sex</label>
+              <div class="pp-control pp-control--icon">
+                <select class="pp-select" id="insSubSex" data-empty="true"
+                  data-testid="insurance--sub-sex">
+                  <option value="" disabled hidden selected>Select</option>
+                  <option>Female</option>
+                  <option>Male</option>
+                  <option>Other</option>
+                </select>
+                <span class="pp-control__icon">
+                  <svg class="pp-icon" aria-hidden="true"><use href="#pi-chevron-down"></use></svg>
+                </span>
+              </div>
+            </div>
+
+            <div class="pp-field--wide">
+              <label class="pp-check">
+                <input type="checkbox" id="insSameAddress" checked
+                  data-testid="insurance--same-address" />
+                <span>Subscriber address same as patient</span>
+              </label>
+            </div>
+          </div>
+
+          <!--
+            The heading, and nothing under it but the slots.
+
+            A line of prose sat here — "Photograph both sides, or attach a
+            scan. JPG, PNG or PDF, up to 10MB each." — which is what each empty
+            slot already says on its own face, twice over on a two-slot form.
+            The rule belongs on the control it constrains, not above it.
+          -->
+          <h3 class="pp-eyebrow pp-eyebrow--slots">Upload Insurance Card</h3>
+
+          <!--
+            THE SAME SLOTS AS THE SCREEN BEHIND THIS POPUP.
+
+            Drawn by lib/card-scans.js into this container rather than written
+            out here, because there were two different upload controls for one
+            job: a pair of small drop zones in this dialog that accepted PNG
+            and JPG up to 5MB, and four labelled placeholders on the screen
+            that accepted nothing at all. A patient who learns one should not
+            have to learn the other, and two sets of rules about what a card
+            image may be is one set too many.
+          -->
+          <div id="insCardSlots"></div>
+        </div>
+
+        <div class="pp-modal__foot">
+          <button type="button" class="pp-btn pp-btn--neutral" id="cancelInsurance"
+            data-testid="insurance--cancel">Cancel</button>
+          <button type="submit" class="pp-btn pp-btn--primary" data-testid="insurance--submit">
+            Add Insurance
+          </button>
+        </div>
+      </form>
+    </dialog>
+  </body>
+</html>

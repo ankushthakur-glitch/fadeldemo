@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(Get-ChildItem -Recurse -Force \"c:\\\\Users\\\\TTPL-LNV-328\\\\Desktop\\\\Projects\\\\Fadel-Gastro EHR\\\\Ref Components\" | Select-Object @{n='Rel';e={$_.FullName.Replace\\(\"c:\\\\Users\\\\TTPL-LNV-328\\\\Desktop\\\\Projects\\\\Fadel-Gastro EHR\\\\\",\"\"\\)}}, Length | Format-Table -AutoSize)",
+      "PowerShell(node --version)",
+      "PowerShell(npm --version)",
+      "WebFetch(domain:www.figma.com)"
+    ]
+  }
+}

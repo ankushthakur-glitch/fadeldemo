@@ -1,0 +1,2980 @@
+/* ============================================================================
+   ENCOUNTER — the clinical documentation workspace.
+
+   Three columns: the patient on the left, the note in the middle, the tools on
+   the right. Only the middle scrolls with the note; the sidebars scroll
+   independently so the record and the tools stay reachable from anywhere in
+   the document.
+
+   The middle column is the one that gets the room. The left is a fixed 320px
+   because a patient summary has a natural width and does not benefit from
+   more, and the right collapses to a rail so the note can take its space when
+   the clinician is writing rather than looking things up.
+   ========================================================================= */
+
+.enc {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+  background-color: var(--color-bg-page);
+}
+
+/* The standard screen header: back and title first, content underneath. */
+/* The page header is .ui-page-head in base.css — one band, every screen.
+   Nothing was different about this one, so nothing is redeclared here. */
+
+/* What is being done and who is doing it. Right-aligned in the header so the
+   back button and title keep the reading position. */
+.enc__facts {
+  display: flex;
+  gap: var(--space-8);
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+.enc__facts dt {
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+.enc__facts dd {
+  margin-top: var(--space-1);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+}
+
+/* --- Stage tabs --------------------------------------------------------------
+   A procedure visit is three documents signed by three people at three times.
+   The badge on each tab answers "where is this up to" without opening it.
+   -------------------------------------------------------------------------- */
+
+/* The stage strip sits in the LEFT column, under the patient it belongs to.
+   Full-bleed across the top made the stage look like page-level navigation;
+   it is the state of this one encounter, so it lives with the patient and
+   leaves the main column entirely to the document being worked on. */
+.enc__stages {
+  flex: none;
+  display: flex;
+  gap: var(--space-2);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+  overflow-x: auto;
+}
+
+.enc__stage-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  /* Tighter than a page-level tab: three of these share a 20rem column. */
+  padding: var(--space-4) var(--space-3);
+  border-bottom: var(--border-width-thick) solid transparent;
+  background: none;
+  white-space: nowrap;
+  font-family: inherit;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.enc__stage-tab:hover { color: var(--color-text-primary); }
+.enc__stage-tab:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.enc__stage-tab[aria-selected='true'] {
+  border-bottom-color: var(--color-brand-solid);
+  color: var(--color-brand-text);
+  font-weight: var(--font-weight-medium);
+}
+
+/* No locked state. All three stages are reachable at any time — the ordering
+   the record depends on is enforced by the signatures, not by refusing to open
+   a tab. See the note above paintStages(). */
+
+.enc__stage-badge {
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-bg-surface-sunken);
+  font-family: var(--font-family-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-tertiary);
+}
+.enc__stage-tab[aria-selected='true'] .enc__stage-badge {
+  background-color: var(--color-brand-surface);
+  color: var(--color-brand-text);
+}
+
+.enc__stage { display: flex; flex-direction: column; gap: var(--space-6); }
+
+/* #preBody holds several independent card()s (Sedation record, Aldrete
+   score, Medication administration record, IV/Oxygen) concatenated as plain
+   markup — without this the cards butt straight into one another, since
+   .enc__card carries no margin of its own. */
+#preBody { display: flex; flex-direction: column; gap: var(--space-7); }
+
+/* A clinic visit has no stages, so both the tab strip and the procedure facts
+   go away entirely — display beats [hidden] without these. */
+.enc__stage[hidden],
+.enc__stages[hidden],
+.enc__facts[hidden] { display: none; }
+
+/*
+ * Three columns: who the patient is, the note, the record.
+ *
+ * The right-hand track is a custom property rather than two separate
+ * `grid-template-columns` declarations, so folding the rail animates — the
+ * browser interpolates a length, and cannot interpolate one track list into
+ * another.
+ */
+.enc__cols {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 20rem minmax(0, 1fr) var(--enc-right);
+  --enc-right: 21rem;
+  transition: grid-template-columns var(--duration-base) var(--ease-out);
+}
+
+/* Folded to its spine — the width of the rotated label and nothing else. */
+.enc__cols[data-right='collapsed'] { --enc-right: 2.75rem; }
+
+/*
+ * THE CLINICAL RAIL, WEARING THIS SCREEN'S EDGES.
+ *
+ * The component (css/components/clinical-rail.css) draws itself as a rounded
+ * card, because on the procedure's step run every column is a card floating in
+ * a padded frame. This screen has no frame: its columns run flush to the window
+ * and are separated by a rule. A rounded card butted against the right edge
+ * with no air around it would read as a panel that had failed to load its
+ * margins, so the rail takes the same border this screen's left rail has, on
+ * the side that faces the note.
+ *
+ * Nothing INSIDE the rail changes. The cards, the numbering, the copy buttons
+ * and the spelled-out severities are the step run's, unaltered — which is the
+ * whole point of it being one component.
+ */
+.enc__rail-slot {
+  border: 0;
+  border-left: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: 0;
+}
+
+/* ============================ LEFT SIDEBAR =============================== */
+
+.enc__side {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-6);
+  gap: var(--space-6);
+  background-color: var(--color-bg-surface);
+  border-right: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+/* --- Patient summary -------------------------------------------------------- */
+
+.enc__patient {
+  padding: var(--card-padding-tight);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+}
+
+.enc__patient-top { display: flex; align-items: center; gap: var(--space-5); }
+
+.enc__avatar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-11);
+  height: var(--space-11);
+  border-radius: var(--radius-full);
+  background-color: var(--color-brand-surface);
+  color: var(--color-brand-text);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+}
+
+.enc__patient-heading { flex: 1; min-width: 0; }
+
+.enc__patient-name {
+  font-size: var(--font-size-heading-md);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  color: var(--color-text-link);
+}
+
+/*
+ * "WHO IS THIS", IN TWO DELIBERATE LINES.
+ *
+ * The identifiers on one, the demographics on the other. It used to be a
+ * single string with the punctuation inside it — "DOB: 11-05-1975 (51 yrs)
+ * (Male)" — which put two bracketed asides in a row and broke wherever the
+ * card happened to run out of room.
+ *
+ * Two rows rather than a wrapping row: nothing this long fits across a 20rem
+ * rail, so letting it wrap only decides at render time which fact gets orphaned
+ * and leaves a separator stranded at the end of a line. Choosing the break
+ * puts it between the two kinds of fact, where a reader would have put it.
+ */
+.enc__patient-idline {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-5);
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+}
+
+.enc__patient-facts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+  padding-top: var(--space-6);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+/* 7.5rem for a three-word label left the value column too narrow to hold
+   "Blue Cross Blue Shield ND — PPO" on one line, so the one card that is meant
+   to be read at a glance wrapped in the middle of the payer's name. The
+   labels are short; the values are not. */
+.enc__fact { display: grid; grid-template-columns: 5.25rem minmax(0, 1fr); gap: var(--space-4); }
+.enc__fact dt {
+  font-size: var(--font-size-2xs);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  font-weight: var(--font-weight-semibold);
+}
+.enc__fact dd { font-size: var(--font-size-caption); overflow-wrap: anywhere; }
+
+/* --- Sidebar ----------------------------------------------------------------
+   The rail was a tab strip — Clinical Data / Visit Note / Orders — then the
+   clinical panel alone, and now the patient card and the stage tabs. The panel
+   and every rule that dressed it are gone: its sections, its counts, its dotted
+   rows and its pair of hover actions were a second rendering of the record the
+   procedure encounter already draws on the right, and they now share that one
+   — see .encv__rail in css/components/clinical-rail.css and the note at the
+   head of js/lib/clinical-rail.js.
+   -------------------------------------------------------------------------- */
+
+/* ============================ MAIN COLUMN ================================ */
+
+.enc__main { display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+
+/* --- Sticky toolbar --------------------------------------------------------- */
+
+.enc__toolbar {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding: var(--space-5) var(--space-7);
+  background-color: var(--color-bg-surface);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.enc__toolbar-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  flex-wrap: wrap;
+}
+
+.enc__back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-9);
+  height: var(--space-9);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+}
+.enc__back:hover { background-color: var(--color-bg-surface-hover); color: var(--color-text-primary); }
+.enc__back:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.enc__heading { flex: 1; min-width: 0; }
+.enc__title {
+  font-size: var(--font-size-title-page);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  color: var(--color-text-primary);
+}
+.enc__meta {
+  margin-top: var(--space-1);
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+}
+
+
+.enc__spacer { flex: 1; }
+.enc__toolbar ui-select { width: 11rem; }
+
+/* --- The note --------------------------------------------------------------- */
+
+.enc__note {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-6) var(--space-7) var(--space-10);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+/* --- Note cards -------------------------------------------------------------- */
+
+.enc__card {
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+}
+
+.enc__card-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-6) var(--space-7);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.enc__card-title {
+  flex: 1;
+  font-size: var(--font-size-title-card);
+  line-height: var(--line-height-tight);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.enc__toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-9);
+  height: var(--space-9);
+  border-radius: var(--radius-md);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+}
+.enc__toggle:hover { background-color: var(--color-bg-surface-hover); color: var(--color-text-primary); }
+.enc__toggle:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.enc__toggle[aria-expanded='false'] .ui-icon { transform: rotate(180deg); }
+
+.enc__card-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: var(--space-7);
+}
+.enc__card-body[hidden] { display: none; }
+
+.enc__subhead { display: flex; align-items: center; gap: var(--space-5); }
+.enc__subtitle {
+  flex: 1;
+  font-size: var(--font-size-heading-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+}
+.enc__row { display: flex; gap: var(--space-5); flex-wrap: wrap; }
+
+/* --- Quick inserts and the editor -------------------------------------------- */
+
+.enc__inserts { display: flex; flex-wrap: wrap; gap: var(--space-4); }
+
+.enc__insert {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  height: var(--control-height-sm);
+  padding: 0 var(--space-5);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-full);
+  background-color: var(--color-bg-surface);
+  font-family: inherit;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.enc__insert:hover {
+  border-color: var(--color-border-brand);
+  background-color: var(--color-brand-surface);
+  color: var(--color-brand-text);
+}
+.enc__insert:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.enc__editor {
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.enc__editor:focus-within { border-color: var(--color-border-focus); }
+
+.enc__editor-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+  background-color: var(--color-bg-surface-sunken);
+}
+
+.enc__tool {
+  min-width: var(--space-9);
+  height: var(--space-9);
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-sm);
+  background: none;
+  font-family: inherit;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.enc__tool:hover { background-color: var(--color-bg-surface-hover); color: var(--color-text-primary); }
+.enc__tool:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.enc__tool[aria-pressed='true'] {
+  background-color: var(--color-brand-surface);
+  color: var(--color-brand-text);
+}
+
+.enc__tool-rule { width: 1px; height: var(--space-7); background-color: var(--color-border-subtle); }
+
+.enc__editor-body {
+  min-height: 11rem;
+  max-height: 26rem;
+  overflow-y: auto;
+  padding: var(--space-6);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-normal);
+}
+.enc__editor-body:focus { outline: none; }
+.enc__editor-body h4 {
+  margin-bottom: var(--space-3);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+}
+.enc__editor-body p + h4 { margin-top: var(--space-6); }
+.enc__editor-body ul, .enc__editor-body ol { margin: var(--space-4) 0 var(--space-4) var(--space-8); }
+.enc__editor-body:empty::before {
+  content: 'Type the history, or use a quick insert above.';
+  color: var(--color-text-tertiary);
+}
+
+/* --- Objective --------------------------------------------------------------- */
+
+.enc__vitals {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: var(--space-5);
+}
+
+.enc__readout {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: var(--space-4);
+}
+
+.enc__readout-item {
+  padding: var(--space-5);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-caption);
+}
+.enc__readout-item strong { display: block; font-size: var(--font-size-body); }
+.enc__readout-item span { color: var(--color-text-tertiary); }
+.enc__readout-item--flag { border-color: var(--color-status-critical-border); background-color: var(--color-status-critical-surface); }
+.enc__readout-item--flag strong { color: var(--color-status-critical-text); }
+
+/* --- Assessment --------------------------------------------------------------- */
+
+.enc__results {
+  display: flex;
+  flex-direction: column;
+  max-height: 14rem;
+  overflow-y: auto;
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+}
+.enc__results[hidden] { display: none; }
+
+.enc__result {
+  display: flex;
+  gap: var(--space-5);
+  padding: var(--space-4) var(--space-5);
+  background: none;
+  font-family: inherit;
+  font-size: var(--font-size-caption);
+  text-align: left;
+  cursor: pointer;
+}
+.enc__result:hover { background-color: var(--color-bg-surface-hover); }
+.enc__result:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.enc__result code {
+  flex: none;
+  width: 4.5rem;
+  font-family: var(--font-family-numeric);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-text-brand);
+}
+
+.enc__chips { display: flex; flex-wrap: wrap; gap: var(--space-4); }
+
+.enc__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-5);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-full);
+  background-color: var(--color-bg-surface);
+  font-family: inherit;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.enc__chip:hover { border-color: var(--color-border-brand); color: var(--color-brand-text); }
+.enc__chip:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.enc__chip[aria-pressed='true'] {
+  border-color: var(--color-brand-solid);
+  background-color: var(--color-brand-surface);
+  color: var(--color-brand-text);
+}
+
+.enc__suggestions, .enc__dx, .enc__cds { display: flex; flex-direction: column; gap: var(--space-4); }
+
+.enc__suggestion {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-5);
+  padding: var(--space-5);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+}
+.enc__suggestion-text { flex: 1; min-width: 0; font-size: var(--font-size-caption); }
+.enc__suggestion-text strong { display: block; font-size: var(--font-size-body); font-weight: var(--font-weight-medium); }
+.enc__suggestion-why { display: block; margin-top: var(--space-2); color: var(--color-text-tertiary); }
+
+.enc__dx-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-5);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-body);
+}
+.enc__dx-row code { font-family: var(--font-family-numeric); font-variant-numeric: tabular-nums; color: var(--color-text-brand); }
+.enc__dx-row span { flex: 1; min-width: 0; }
+
+.enc__empty { font-size: var(--font-size-caption); color: var(--color-text-tertiary); }
+
+.enc__remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-9);
+  height: var(--space-9);
+  border-radius: var(--radius-md);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+}
+.enc__remove:hover { background-color: var(--color-status-critical-surface); color: var(--color-status-critical-text); }
+.enc__remove:focus-visible { outline: none; box-shadow: var(--focus-ring-critical); }
+
+/* --- Plan ---------------------------------------------------------------------- */
+
+.enc__plan { display: flex; flex-direction: column; gap: var(--space-6); }
+
+.enc__plan-group {
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.enc__plan-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  background-color: var(--color-bg-surface-sunken);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+}
+.enc__plan-count { margin-left: auto; font-size: var(--font-size-2xs); color: var(--color-text-tertiary); }
+
+.enc__plan-body { padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-4); }
+.enc__plan-body ui-select { width: 100%; }
+
+.enc__plan-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+  font-size: var(--font-size-caption);
+}
+.enc__plan-item span { flex: 1; min-width: 0; }
+
+/* --- Narrow windows ------------------------------------------------------------ */
+
+/*
+ * Under 70rem the patient card and the stage tabs give up their column, and the
+ * note takes the width. The clinical rail does NOT: it is folded to a spine
+ * already, costs 2.75rem, and is the one of the two panels a clinician opens
+ * mid-sentence. Losing the record on a narrow window and keeping the address
+ * would be the wrong way round.
+ */
+@media (max-width: 70rem) {
+  .enc__cols { grid-template-columns: minmax(0, 1fr) var(--enc-right); }
+  .enc__side { display: none; }
+}
+
+/*
+ * Under 64rem an opened rail would leave the note too narrow to write in, so it
+ * stops squeezing the note and overlays it instead — the same arrangement the
+ * step run makes at this width, and the width its JS starts choosing a folded
+ * default at (see js/lib/clinical-rail.js).
+ */
+@media (max-width: 64rem) {
+  .enc__cols {
+    grid-template-columns: minmax(0, 1fr) 2.5rem;
+    position: relative;
+    transition: none;
+  }
+  .enc__rail-slot[data-collapsed='false'] {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    z-index: var(--z-dropdown);
+    width: 22rem;
+    /* An overlay, and it says so: the rail is over the note rather than beside
+       it at this width, which is the one thing the elevation has to carry. */
+    box-shadow: var(--elevation-overlay);
+  }
+}
+
+/* --- Phone width -----------------------------------------------------------------
+   Below this, there is no room for the note editor beside the patient
+   record, and no room to hold both in one fixed-height pane either — the
+   whole page scrolls instead, with the patient summary, stage/panel tabs
+   and clinical sections stacked above the note, in place of the desktop's
+   two independently-scrolling columns. */
+
+@media (max-width: 30rem) {
+  .enc { height: auto; min-height: 100vh; overflow: visible; }
+  .enc__cols { grid-template-columns: minmax(0, 1fr); overflow: visible; }
+
+  .enc__side {
+    display: flex;
+    overflow-y: visible;
+    border-right: none;
+    border-bottom: var(--border-width-thick) solid var(--color-border-subtle);
+  }
+
+  .enc__main { overflow: visible; }
+  .enc__note { overflow-y: visible; }
+
+  /*
+   * No folding at this width. A "collapsed" rail has nothing to get out of the
+   * way of in a single column, and folding it would leave a full-width box with
+   * a sideways label in the middle of it. So the handle goes, data-collapsed
+   * stops meaning anything visually, and the record stacks under the note like
+   * everything else. The rail's JS forces it open here for the same reason —
+   * the control that would take the instruction back is not on screen.
+   */
+  .enc__cols { position: static; }
+  .enc__rail-slot,
+  .enc__rail-slot[data-collapsed='false'] {
+    position: static;
+    width: auto;
+    min-height: 0;
+    box-shadow: none;
+    border-left: 0;
+    border-top: var(--border-width-thick) solid var(--color-border-subtle);
+  }
+  .enc__rail-slot .encv__rail-body { overflow: visible; }
+  .enc__rail-slot .encv__rail-handle { display: none; }
+  .enc__rail-slot[data-collapsed='true'] .encv__rail-body { display: flex; }
+  .enc__rail-slot[data-collapsed='true'] .encv__rail-title { display: flex; }
+  .enc__rail-slot .encv__rail-spine { display: none; }
+
+  /* Identity stays one line (enc__patient-idline); Mobile/Insurance/Provider
+     get a narrower label column so the value has room to breathe. */
+  .enc__fact { grid-template-columns: auto minmax(0, 1fr); gap: var(--space-3); }
+
+}
+
+
+
+/* --- Findings picker in the note --------------------------------------------- */
+
+.enc__finds { display: flex; flex-direction: column; gap: var(--space-5); }
+.enc__find-row { display: flex; flex-wrap: wrap; gap: var(--space-3); }
+.enc__exam { display: flex; flex-direction: column; gap: var(--space-5); }
+
+/* --- Commit bar --------------------------------------------------------------
+   Save and Sign sit at the end of the note, where the clinician arrives after
+   writing it, rather than in the toolbar above it.
+   -------------------------------------------------------------------------- */
+
+.enc__foot {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-6) var(--space-7);
+  background-color: var(--color-bg-surface);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.enc__foot-hint {
+  flex: 1;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-tertiary);
+}
+
+/* The record panel copies INTO the note, so the control says so. A bare plus
+   reads as "create a new record", which is the opposite of what it does. */
+.enc__action {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+  font-family: inherit;
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.enc__action:hover {
+  border-color: var(--color-border-brand);
+  background-color: var(--color-brand-surface);
+  color: var(--color-brand-text);
+}
+.enc__action:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.enc__action .ui-icon { width: var(--icon-size-xs); height: var(--icon-size-xs); }
+
+/* ============================================================================
+   THE REPORT DOCUMENT
+
+   Everything below draws a printed report on screen: prose, a specimen list
+   and a signature block. It reads as paper on purpose — this is the artefact
+   that leaves the building.
+   ========================================================================= */
+
+/* The alert strip is gone with the band it painted into — it carried two
+   standing notices for the whole visit that nobody acted on from here. The
+   sedation record flags its own out-of-range rows, which is where a blood
+   pressure trend is actually read. */
+
+/* --- Lock banner ----------------------------------------------------------------
+   Shown once all three documents are signed. Sits above the two-column layout
+   rather than inside the note, so it stays visible no matter which stage tab
+   is open and is never itself disabled by the note going read-only. */
+.enc__lock-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin: 0 var(--space-7) var(--space-5);
+  padding: var(--space-4) var(--space-6);
+  border-radius: var(--radius-md);
+  background-color: var(--color-status-success-surface);
+  color: var(--color-status-success-text);
+  font-size: var(--font-size-caption);
+}
+.enc__lock-banner .ui-icon { flex: none; }
+.enc__lock-link {
+  margin-left: auto;
+  color: inherit;
+  font-weight: var(--font-weight-semibold);
+  text-decoration: underline;
+  white-space: nowrap;
+}
+
+/* Once locked, the note is read-only. The foot buttons disable themselves in
+   script; everything else in the note is simply taken out of the tab/click
+   order, so a closed encounter cannot be edited by accident. */
+body.is-locked .enc__note {
+  pointer-events: none;
+}
+
+/* --- Document toolbar ---------------------------------------------------------- */
+
+.enc__doc-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  flex-wrap: wrap;
+  padding: var(--space-5) var(--space-6);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  border-bottom: none;
+  background-color: var(--color-bg-surface);
+}
+
+.enc__doc-name { font-size: var(--font-size-body); font-weight: var(--font-weight-semibold); }
+
+/* The template picker sits with the document actions it belongs to, wide
+   enough that "Colonoscopy with polypectomy" reads without truncating. */
+.enc__doc-bar ui-select { width: 16rem; }
+
+/* --- The document itself --------------------------------------------------------- */
+
+.enc__doc {
+  padding: var(--space-8);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  background-color: var(--color-bg-surface);
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-normal);
+}
+
+/* Sections are the document's rhythm, so their spacing is the one measurement
+   that has to be right: too tight and two sections read as one, too loose and
+   a five-section note does not fit on a screen. 12px above the heading and 8px
+   under it puts three times as much space between sections as inside one,
+   which is what makes the grouping legible without a box around it. */
+.enc__doc-section { padding-top: var(--space-6); }
+.enc__doc-section h3 {
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-3);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+/* --- The clinic visit note ------------------------------------------------
+   The visit note reuses the report's section, pulled-block and signature
+   styles wholesale — that is the point of it, and see js/screens/clinic-visit.js
+   for why. What it adds is the two-column question grid and the one marked
+   field, both of which the report expresses in bespoke markup and the note
+   expresses through a spec.
+   ------------------------------------------------------------------------- */
+
+/* ------------------------------------------------------------------------
+   THE VISIT NOTE FILLS THE COLUMN IT IS GIVEN.
+
+   .enc--visit is on <body> for a clinic visit and absent for the procedure
+   workspace.
+
+   This used to cap the note at 58rem and centre it, on the measure argument:
+   ninety characters is where a textarea stops being a field you read back and
+   starts being one you scan. The argument is sound about PROSE and wrong about
+   this document. The note is not a page of running text — it is a form, and
+   more than half of it is the two-column question grid, selects and short
+   inputs that do not gain a thing from a narrow measure. What the cap actually
+   produced on a clinic monitor was a column of fields down the middle with two
+   empty grey margins either side of it, wider than the fields themselves once
+   the rail was shut. The clinician gets the width of the screen because the
+   screen is what they are charting on.
+   ------------------------------------------------------------------------ */
+.enc--visit .enc__stage {
+  width: 100%;
+}
+
+/* --- A NOTE SECTION IS A CARD ------------------------------------------------
+
+   The note used to be a flat column: a small grey uppercase heading over a
+   hairline, four or five times down the page. That is the procedure report's
+   rhythm, and it is right there — fourteen dense sections cannot each afford a
+   border, and the report is read straight through. A visit note is not read
+   straight through. It is four to six blocks of questions, each answered and
+   then left, and coming back up the column the eye had nothing to catch on:
+   Objective ended and Assessment began at a grey line the same weight as every
+   other grey line on the screen.
+
+   So a section takes the shape the pre-procedure sheet gives its eleven — see
+   .encv .pck__section in css/screen-encounter.css, which these measurements are
+   taken from unchanged. A bordered card, a header band inset like the fields
+   below it, and one green bar before the title. The bar is the only colour on
+   an otherwise black-on-white document, and it is what makes the sections
+   countable at a glance without reading any of them.
+
+   SCOPED TO .enc__vn-section, which only the visit note carries. The
+   colonoscopy report, the H&P and the anaesthesia documents on this same screen
+   go on being flat .enc__doc-sections, because they are the dense fourteen the
+   flat treatment was written for.
+   -------------------------------------------------------------------------- */
+
+.enc--visit {
+  --enc-section-gap: var(--space-9); /* 24px — card to card */
+  --enc-section-inset: var(--space-7); /* 16px — header and body alike */
+  --enc-section-lead: var(--space-6); /* 12px — title to first field */
+  --enc-section-mark: var(--space-7); /* 16px — the marked edge */
+}
+
+.enc--visit .enc__vn-section {
+  /* Air BELOW rather than above, so the first card sits flush against the top
+     of the column and the last one carries the gap that separates it from the
+     signature. */
+  padding-top: 0;
+  margin-bottom: var(--enc-section-gap);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+}
+
+/* The heading becomes the card's header band. No rule under it: the band is
+   inset like everything else, so the line would be a second answer to a
+   question the spacing has already answered — and five of them down the column
+   read as a document ruled into a table rather than as a stack of cards. */
+.enc--visit .enc__vn-section > h3 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin: 0;
+  padding: var(--enc-section-inset) var(--enc-section-inset) var(--enc-section-lead);
+  border-bottom: 0;
+  /* The flat treatment's small grey uppercase is dropped wholesale. A card's
+     title is the thing the eye lands on when it is looking for where one block
+     of questions stops and the next starts, and tertiary ink at the smallest
+     size on the sheet is not that. */
+  font-size: var(--font-size-title-section);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: normal;
+  text-transform: none;
+  line-height: var(--line-height-tight);
+  color: var(--color-text-primary);
+}
+
+.enc--visit .enc__vn-section > h3::before {
+  content: '';
+  flex: none;
+  width: var(--border-width-thick);
+  height: var(--enc-section-mark);
+  border-radius: var(--radius-full);
+  background-color: var(--color-brand-solid);
+}
+
+/* No top padding on the body: the header band's own bottom inset is the gap
+   between the title and the first question, and a second one under it would put
+   the questions further from their heading than the heading is from the card's
+   edge. */
+.enc--visit .enc__vn-section-body {
+  padding: 0 var(--enc-section-inset) var(--enc-section-inset);
+}
+
+/* Nothing follows the last card but the signature, which carries its own top
+   border and its own air. */
+.enc--visit .enc__vn-section:last-of-type { margin-bottom: 0; }
+
+/* Prose spans both columns. A four-line textarea in a half-width column is a
+   ransom note, and every template has at least one. */
+.enc__span-2 { grid-column: 1 / -1; }
+
+/* Tighter than the general .enc__grid-2, because these rows are label-over-
+   control pairs rather than whole labelled groups: the 16px gap the grid uses
+   elsewhere separates a select from the select beneath it by more than the
+   label is separated from its own control, which inverts the grouping. */
+.enc__vn-grid { gap: var(--space-6) var(--space-7); }
+
+/*
+ * THE ONE FIELD ON THE NOTE SOMEBODY ACTS ON LATER.
+ *
+ * The plan the patient leaves with, the interval a recall is booked from, the
+ * "fit to infuse" a nurse works to. It used to be marked — first as an amber
+ * wash, then as a green rule down the field's left edge — and now it is not
+ * marked at all.
+ *
+ * The rule was the second attempt and it failed for its own reason. A textarea
+ * already carries a border on all four sides; thickening one of them in the
+ * brand colour did not read as "this field matters", it read as a stray focus
+ * state on a field nobody had focused, and it broke the straight left edge the
+ * rest of the stack of controls lines up on. The section heading beside it
+ * already names the field, which is emphasis enough on a note this short.
+ *
+ * The class is still emitted (see visitNoteSectionHtml in
+ * js/screens/clinic-visit.js) so the one field stays addressable if the mark
+ * comes back in a form that survives contact with the control it sits on.
+ */
+
+/* Guidance under a heading, above the questions it is about — so it reads as
+   an instruction rather than as a footnote to whatever came before.
+
+   Two rules that used to follow this one are gone with the read-only block they
+   spaced: the note no longer opens a section by quoting the chart at it. See
+   the note over visitNoteSectionHtml in js/screens/clinic-visit.js. */
+.enc__doc-caption--lead { margin-top: 0; margin-bottom: var(--space-5); }
+
+.enc__doc-field,
+.enc__doc-input,
+.enc__doc-area {
+  width: 100%;
+  padding: var(--space-4) var(--space-5);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+  font-family: inherit;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-primary);
+}
+.enc__doc-input:focus-visible,
+.enc__doc-area:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.enc__doc-area { resize: vertical; line-height: var(--line-height-normal); }
+
+/* The plan is the one field the patient leaves with, but it is no longer
+   marked with an edge rule — see .enc__vn-field--emphasis above for why the
+   rule came off the note's fields, which is the same reason it comes off this
+   one. The two documents stay in step. */
+
+/* Anything the report pulled in rather than someone typing it.
+   A left rule and a sunken ground rather than a filled slab: at full width the
+   slab read as one more control in the stack of controls, which is the one
+   thing a read-only block must not look like. */
+.enc__doc-pulled {
+  padding: var(--space-4) var(--space-5);
+  border-left: 2px solid var(--color-border-default);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  background-color: var(--color-bg-surface-sunken);
+  color: var(--color-text-secondary);
+}
+.enc__doc-pulled span {
+  display: block;
+  margin-top: var(--space-2);
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-tertiary);
+}
+
+.enc__doc-narrative {
+  padding: var(--space-6);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+}
+.enc__doc-narrative p + p { margin-top: var(--space-5); }
+
+/*
+ * An unset token stays loud. The alternative — printing nothing — produces a
+ * sentence that reads as finished but is not, which is the single worst
+ * failure mode a templated report has.
+ */
+.enc__token {
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-status-warning-surface);
+  font-family: var(--font-family-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--font-size-2xs);
+  color: var(--color-status-warning-text);
+  white-space: nowrap;
+}
+.enc__token-gone { color: var(--color-text-disabled); }
+
+.enc__doc-caption {
+  margin-top: var(--space-3);
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-tertiary);
+}
+
+.enc__doc-table { width: 100%; border-collapse: collapse; }
+.enc__doc-table th {
+  padding: var(--space-3) 0;
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+  text-align: left;
+  font-size: var(--font-size-2xs);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+.enc__doc-table td {
+  padding: var(--space-4) 0;
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+}
+.enc__doc-table code { font-family: var(--font-family-numeric); font-variant-numeric: tabular-nums; }
+
+/* Findings are generated, never typed, so they read as a quoted block. */
+.enc__doc-findings {
+  padding: var(--space-5) var(--space-6);
+  border-left: 3px solid var(--color-status-info-solid);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  background-color: var(--color-status-info-surface);
+}
+.enc__doc-findings p + p { margin-top: var(--space-4); }
+
+.enc__doc-add { margin-top: var(--space-5); display: flex; flex-direction: column; gap: var(--space-4); }
+.enc__doc-add .enc__find-row[hidden] { display: none; }
+
+.enc__doc-pending {
+  padding: var(--space-5);
+  border-radius: var(--radius-md);
+  background-color: var(--color-status-warning-surface);
+  color: var(--color-status-warning-text);
+}
+
+.enc__doc-sign {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  margin-top: var(--space-8);
+  padding-top: var(--space-6);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+/* A signed report says who and when in its own words, not only as a badge —
+   the attestation is part of the document, and prints with it. */
+.enc__doc-signed { display: flex; flex-direction: column; gap: var(--space-1); }
+.enc__doc-signed strong { color: var(--color-status-success-text); }
+.enc__doc-signed span { font-size: var(--font-size-2xs); color: var(--color-text-secondary); }
+
+/* ==========================================================================
+   PRE- AND POST-PROCEDURE PANELS
+
+   Everything either side of the scope: the nurse's checklist, the anaesthesia
+   record, recovery and discharge. They share one card shell so a form the
+   anaesthetist fills in and a form recovery fills in read the same way.
+   ======================================================================== */
+
+.enc__panel-card {
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+  overflow: hidden;
+}
+
+.enc__panel-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  flex-wrap: wrap;
+  padding: var(--space-5) var(--space-6);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.enc__panel-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  font-size: var(--font-size-title-card);
+  line-height: var(--line-height-tight);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.enc__panel-actions { display: flex; gap: var(--space-4); margin-left: auto; }
+
+.enc__panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding: var(--space-6);
+}
+
+.enc__panel-foot {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  padding-top: var(--space-5);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+/* A qualifier on a card title — the scale a score is on, how many specimens
+   are outstanding. Sits with the title because it modifies it. */
+.enc__pill {
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-full);
+  background-color: var(--color-bg-surface-sunken);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-tertiary);
+}
+.enc__pill--warn {
+  background-color: var(--color-status-warning-surface);
+  color: var(--color-status-warning-text);
+}
+
+.enc__legend {
+  margin-top: var(--space-3);
+  padding-bottom: var(--space-3);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+  font-size: var(--font-size-title-eyebrow);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+.enc__legend:first-child { margin-top: 0; }
+
+/* The row gap has to beat what separates a label from its own control, or a
+   grid of labelled groups reads as one flat list. A <ui-radio-group> puts 6px
+   between its legend and its options; at the old 10px row gap the airway pairs
+   on the anaesthesia note were 6px apart inside a group and 10px apart between
+   two — near enough identical that "Dentition" looked like it belonged to the
+   radios above it rather than the ones below. */
+.enc__grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-7) var(--space-7);
+  align-items: start;
+}
+
+.enc__stack { display: flex; flex-direction: column; gap: var(--space-4); }
+
+.enc__checks { display: grid; gap: var(--space-4); }
+.enc__checks--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4) var(--space-7); }
+.enc__checks--stack { grid-template-columns: minmax(0, 1fr); }
+
+.enc__caption {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-tertiary);
+}
+
+/* --- Pre-procedure: checklist banner + anaesthesia steps ---------------------
+   The nurse's checklist is settled before anaesthesia begins, so it is one
+   line at the top of the stage. The two anaesthesia documents are ORDERED —
+   the report is written from the management log — so they are a numbered run
+   rather than a row of equal cards, which is what they used to be.
+   -------------------------------------------------------------------------- */
+
+.enc__banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  width: 100%;
+  padding: var(--space-5) var(--space-6);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-left: 3px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+}
+.enc__banner:hover { border-color: var(--color-border-strong); }
+.enc__banner:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.enc__banner--signed {
+  border-left-color: var(--color-status-success-solid);
+  background-color: var(--color-status-success-surface);
+}
+.enc__banner--recording { border-left-color: var(--color-status-warning-solid); }
+.enc__banner[aria-expanded='true'] { border-color: var(--color-brand-solid); }
+
+.enc__banner-title {
+  font-size: var(--font-size-title-section);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+.enc__banner-staff { font-size: var(--font-size-caption); color: var(--color-text-secondary); }
+/* Warning orange is 3.96:1 on white — under AA at this size. The status is
+   already carried by the badge and the left border, so this line takes the
+   readable colour and keeps the weight rather than adding a third warning
+   signal that nobody with low vision could read. */
+.enc__banner-outstanding {
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+.enc__banner code { font-family: var(--font-family-numeric); font-variant-numeric: tabular-nums; }
+
+/* The run. All four steps on one row, joined by the rule between them — a
+   numbered name apiece and nothing else, so the strip stays one line high
+   above the document being worked. Two rows of two read as a block of cards
+   to choose between rather than as a sequence to walk. */
+.enc__steps {
+  display: grid;
+  /* auto-fit, not a fixed four: the strip sits in the encounter's middle
+     column, which is a good deal narrower than the window — a viewport media
+     query was folding it to two rows on a screen that had room for one. This
+     asks the container instead. */
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+  overflow: hidden;
+}
+
+.enc__step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-6) var(--space-7);
+  background: none;
+  border: none;
+  border-left: var(--border-width-thin) solid var(--color-border-subtle);
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+}
+.enc__step:first-child { border-left: none; }
+.enc__step:hover { background-color: var(--color-bg-surface-hover); }
+.enc__step:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.enc__step--on { background-color: var(--color-brand-surface); }
+
+/* The number carries the order; the fill carries which one you are on, so the
+   state survives being read without colour. */
+.enc__step-num {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-9);
+  height: var(--space-9);
+  border-radius: var(--radius-full);
+  background-color: var(--color-bg-surface-active);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+.enc__step--on .enc__step-num {
+  background-color: var(--color-brand-solid);
+  color: var(--color-text-inverse);
+}
+
+/* A finished step: the tick replaces the numeral in the same circle, so the
+   run reads as done/not-done without a word of text or a pixel of height. */
+.enc__step--done .enc__step-num {
+  background-color: var(--color-status-success-surface);
+  color: var(--color-status-success-text);
+}
+.enc__step--done .enc__step-num .ui-icon { width: var(--icon-size-sm); height: var(--icon-size-sm); }
+.enc__step--on.enc__step--done .enc__step-num {
+  background-color: var(--color-brand-solid);
+  color: var(--color-text-inverse);
+}
+
+.enc__step-title {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.enc__step--on .enc__step-title { color: var(--color-brand-text); }
+
+/* Once the row does fold, the joining rule has to fold with it — a left border
+   on the first step of a second row is a line hanging off the edge. */
+@media (max-width: 48rem) {
+  .enc__step { border-left: none; border-top: var(--border-width-thin) solid var(--color-border-subtle); }
+  .enc__step:first-child { border-top: none; }
+}
+
+/* --- Sedation phases ---------------------------------------------------------
+   The chip is the phase being recorded into, not a filter — the log below
+   always shows the whole case, because that is what it is for.
+   -------------------------------------------------------------------------- */
+
+.enc__phases { display: flex; gap: var(--space-3); flex-wrap: wrap; }
+
+.enc__phase {
+  padding: var(--space-3) var(--space-5);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-full);
+  background-color: var(--color-bg-surface-sunken);
+  font-family: inherit;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.enc__phase:hover { border-color: var(--color-border-strong); }
+.enc__phase:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.enc__phase[aria-pressed='true'] {
+  border-color: var(--color-brand-solid);
+  background-color: var(--color-brand-solid);
+  color: var(--color-text-inverse);
+  font-weight: var(--font-weight-medium);
+}
+
+/* --- Log tables --------------------------------------------------------------
+   Observations, drugs, solutions, oxygen. Times and doses are numeric so they
+   are set in the numeric face and line up down the column.
+   -------------------------------------------------------------------------- */
+
+.enc__log {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-caption);
+}
+.enc__log th {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: var(--border-width-thin) solid var(--color-border-default);
+  text-align: left;
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+}
+.enc__log td {
+  padding: var(--space-4);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+  vertical-align: middle;
+}
+.enc__log tr:last-child td { border-bottom: none; }
+.enc__log code { font-family: var(--font-family-numeric); font-variant-numeric: tabular-nums; }
+
+/* A reading outside range is coloured on the row and again on the value, so
+   it survives being skim-read and being read closely. */
+.enc__log-row--high { background-color: var(--color-status-critical-surface); }
+.enc__log-flag code {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-status-critical-text);
+}
+
+/* --- Formulary quick select --------------------------------------------------- */
+
+.enc__formulary { display: flex; gap: var(--space-4); flex-wrap: wrap; }
+
+.enc__drug {
+  padding: var(--space-3) var(--space-5);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+  font-family: var(--font-family-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+.enc__drug:hover { border-color: var(--color-brand-solid); background-color: var(--color-brand-surface); }
+.enc__drug:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* Reversal agents are outlined in the error colour because reaching for one
+   is a sedation event, not a dose. */
+.enc__drug--reversal {
+  border-color: var(--color-status-critical-border);
+  color: var(--color-status-critical-text);
+}
+.enc__drug--reversal:hover {
+  border-color: var(--color-status-critical-solid);
+  background-color: var(--color-status-critical-surface);
+}
+
+/* --- Medication formulary modal ------------------------------------------------ */
+
+.enc__formulary-manager { display: flex; flex-direction: column; gap: var(--space-7); }
+.enc__formulary-add { display: flex; flex-direction: column; gap: var(--space-5); }
+
+.enc__formulary-list-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+  margin-bottom: var(--space-4);
+}
+.enc__formulary-list-head .enc__legend { margin: 0; padding: 0; border: none; }
+.enc__formulary-list-head ui-input { width: 14rem; }
+
+.enc__formulary-actions { display: flex; gap: var(--space-2); white-space: nowrap; }
+
+/* The name and dosage cells are stacks now — the practice's name over the
+   generic and the brand, the dose over the concentration — so their captions
+   need to be blocks and to sit tight under the line they belong to. Everything
+   else in this table is still one line per cell, so the rule is scoped to the
+   two columns rather than let loose on .enc__caption. */
+.enc__fm-table td > .enc__caption {
+  display: block;
+  margin-top: var(--space-1);
+  line-height: var(--line-height-tight);
+}
+.enc__fm-table td { vertical-align: top; }
+.enc__fm-table code { white-space: nowrap; }
+
+.enc__icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-9);
+  height: var(--space-9);
+  border-radius: var(--radius-md);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+}
+.enc__icon-btn:hover { background-color: var(--color-bg-surface-hover); color: var(--color-text-primary); }
+.enc__icon-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* --- Aldrete score ------------------------------------------------------------ */
+
+.enc__score {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-4);
+  align-self: end;
+  padding: var(--space-5) var(--space-6);
+  border-radius: var(--radius-md);
+  background-color: var(--color-status-success-surface);
+  color: var(--color-status-success-text);
+}
+.enc__score strong { font-size: var(--font-size-heading-lg); font-weight: var(--font-weight-semibold); }
+.enc__score span { font-size: var(--font-size-caption); }
+.enc__score--low {
+  background-color: var(--color-status-warning-surface);
+  color: var(--color-status-warning-text);
+}
+
+/* --- Pre-sedation assessment -------------------------------------------------
+   Three sections in one card: airway risk, fasting, room readiness. They are
+   separated by a rule rather than split into three cards, because they are one
+   question — is this patient safe to sedate now — asked three ways, and three
+   cards would read as three unrelated jobs.
+   -------------------------------------------------------------------------- */
+
+.enc__sb + .enc__npo,
+.enc__npo + .enc__readiness {
+  margin-top: var(--space-7);
+  padding-top: var(--space-7);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.enc__sub-title {
+  font-size: var(--font-size-title-section);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.enc__sb-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-5);
+}
+/* The running total sits with its heading rather than under the questions —
+   it is what the section is FOR, and at the bottom it was below the fold on
+   a laptop with all eight questions open. */
+.enc__sb-head .enc__score { align-self: center; }
+
+.enc__sb-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+  gap: var(--space-4) var(--space-6);
+}
+
+/* The whole row is the target. Eight questions each with a small box at the
+   left is eight small targets; the label, the mnemonic letter and the prompt
+   all belong to the same answer, so all three take the click. */
+.enc__sb-row {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+.enc__sb-row:hover { background-color: var(--color-bg-surface-hover); }
+
+/* The mnemonic, for whoever already knows the tool. Monospace so the eight
+   letters line up as STOP-BANG down the column. */
+.enc__sb-letter {
+  font-family: var(--font-family-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-tertiary);
+}
+
+.enc__sb-text { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
+.enc__sb-text strong { font-weight: var(--font-weight-medium); }
+.enc__sb-hint { font-size: var(--font-size-caption); color: var(--color-text-tertiary); }
+
+/* What the score changes about today. A number with no consequence attached is
+   a number nobody acts on. */
+.enc__sb-action {
+  margin-top: var(--space-5);
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+}
+
+.enc__npo .enc__grid-2 { margin-bottom: var(--space-5); }
+
+.enc__check-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+  gap: var(--space-4) var(--space-6);
+}
+
+/* --- The discharge sign-off --------------------------------------------------
+   The one line that says a person took responsibility, so it is given its own
+   band rather than sitting in the run of checkboxes above it.
+   -------------------------------------------------------------------------- */
+
+.enc__confirm {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  flex-wrap: wrap;
+  padding: var(--space-5) var(--space-6);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+}
+.enc__confirm--on {
+  border-color: var(--color-status-success-border);
+  background-color: var(--color-status-success-surface);
+}
+
+/* The Reschedule dialog body — a sentence, a reason and the actions. */
+.enc__reschedule {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-normal);
+}
+
+/* --- Post-anaesthesia: "Now" buttons and the signature block ------------------ */
+
+.enc__row--end { align-items: flex-end; }
+.enc__row--end ui-input { flex: 1; min-width: 8rem; }
+
+.enc__sign-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+  padding: var(--space-5) var(--space-6);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+}
+
+.enc__signed-panel {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-5) var(--space-6);
+  border: var(--border-width-thin) solid var(--color-status-success-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-status-success-surface);
+  color: var(--color-status-success-text);
+}
+.enc__signed-panel > .ui-icon { flex: none; width: var(--icon-size-lg); height: var(--icon-size-lg); }
+.enc__signed-panel > div { flex: 1; }
+.enc__signed-panel strong { display: block; color: var(--color-text-primary); font-weight: var(--font-weight-semibold); }
+.enc__signed-panel p { margin-top: var(--space-2); font-size: var(--font-size-caption); }
+.enc__confirm-meta {
+  margin-left: auto;
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-tertiary);
+}
+
+/* --- The record drawer -------------------------------------------------------- */
+
+.enc__record { display: flex; flex-direction: column; gap: var(--space-6); }
+.enc__record-note:empty { display: none; }
+.enc__record-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-5);
+}
+
+@media (max-width: 75rem) {
+  .enc__facts { gap: var(--space-6); }
+  .enc__docs { grid-template-columns: minmax(0, 1fr); }
+  .enc__grid-2,
+  .enc__checks--2,
+  .enc__record-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* --- Physical exam editor ----------------------------------------------------
+   Opened from the report's Physical exam block. Every row starts normal and the
+   examiner unticks what is not, because a normal exam is the common case and
+   typing it out seven times is how exams stop getting recorded.
+   -------------------------------------------------------------------------- */
+
+.enc__doc-pulled--edit {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: var(--border-width-thin) dashed var(--color-border-default);
+  font-family: inherit;
+  font-size: var(--font-size-body);
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+.enc__doc-pulled--edit:hover {
+  border-color: var(--color-brand-solid);
+  background-color: var(--color-bg-surface-hover);
+}
+.enc__doc-pulled--edit:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.enc__exam-editor { display: flex; flex-direction: column; gap: var(--space-6); }
+
+.enc__exam-tabs {
+  display: flex;
+  gap: var(--space-2);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.enc__exam-tab {
+  padding: var(--space-4) var(--space-6);
+  border-bottom: var(--border-width-thick) solid transparent;
+  background: none;
+  font-family: inherit;
+  font-size: var(--font-size-body);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.enc__exam-tab:hover { color: var(--color-text-primary); }
+.enc__exam-tab:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.enc__exam-tab[aria-selected='true'] {
+  border-bottom-color: var(--color-brand-solid);
+  color: var(--color-brand-text);
+  font-weight: var(--font-weight-medium);
+}
+
+.enc__exam-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+}
+/* The two selects wrap as a pair, so the system set never strands itself on a
+   line of its own when the bar runs out of room. */
+.enc__exam-selects { display: flex; gap: var(--space-4); }
+.enc__exam-selects ui-select { width: 10rem; }
+
+.enc__exam-rule {
+  width: var(--border-width-thin);
+  align-self: stretch;
+  background-color: var(--color-border-default);
+}
+
+.enc__exam-flags { display: flex; gap: var(--space-5); flex-wrap: wrap; }
+.enc__exam-flag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.enc__exam-when { display: flex; align-items: flex-end; gap: var(--space-5); flex-wrap: wrap; }
+.enc__exam-when ui-input { width: 11rem; }
+
+/* Two columns, as the reference lays it out — seven systems stacked is a
+   scroll for something that should read at a glance. */
+.enc__exam-systems {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-7) var(--space-8);
+  align-items: start;
+}
+.enc__exam-systems[hidden] { display: none; }
+
+.enc__exam-group h4 {
+  padding-bottom: var(--space-3);
+  margin-bottom: var(--space-4);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+}
+
+.enc__exam-line {
+  display: grid;
+  grid-template-columns: minmax(0, 11rem) minmax(0, 1fr);
+  gap: var(--space-3) var(--space-4);
+  align-items: center;
+  padding: var(--space-3) 0;
+}
+
+.enc__exam-check {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-size: var(--font-size-caption);
+  cursor: pointer;
+}
+
+.enc__exam-tokens { display: flex; gap: var(--space-3); flex-wrap: wrap; }
+.enc__exam-tokens code {
+  font-family: var(--font-family-numeric);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-tertiary);
+}
+
+.enc__exam-detail {
+  grid-column: 1 / -1;
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  font-family: inherit;
+  font-size: var(--font-size-caption);
+}
+.enc__exam-detail:disabled {
+  border-style: dashed;
+  background-color: var(--color-bg-surface-sunken);
+  color: var(--color-text-disabled);
+}
+.enc__exam-detail:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* ===================== In-procedure: H&P / Orders / EGD report ================
+   The tab bar reuses .enc__exam-tab's underline look — a plain tab set within
+   a panel, same idiom already used for the physical-exam editor's own two
+   tabs, just with a different data attribute driving selection. ------------ */
+
+.enc__exam-tabs--sub {
+  margin-top: var(--space-2);
+  margin-bottom: var(--space-6);
+}
+
+.enc__exam-tab-check {
+  color: var(--color-status-success-text);
+  font-weight: var(--font-weight-semibold);
+}
+
+#intraHp,
+#intraOrders,
+#intraReport { display: flex; flex-direction: column; gap: var(--space-7); }
+
+.enc__kv-list { display: flex; flex-direction: column; gap: var(--space-4); }
+.enc__kv-list dt {
+  font-size: var(--font-size-fact-label);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-fact-label);
+}
+.enc__kv-list dd { font-size: var(--font-size-caption); }
+
+/* A history row whose value is a list rather than a sentence — active problems,
+   prior operations, allergies, the current medication list. The bullets sit
+   inside the dd so the label still governs the whole block, and the row spacing
+   inside a value is tighter than the gap BETWEEN rows: otherwise four
+   medications read as four separate facts instead of one list. */
+.enc__kv-sublist {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.enc__kv-sublist li { display: flex; flex-direction: column; gap: var(--space-1); }
+
+.enc__kv-sub-meta {
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-secondary);
+}
+
+/* The row somebody flagged — an anaphylactic allergy, a medication with a
+   caution on it. Weight rather than colour: the document is read end to end
+   before it is signed, and a red line in the middle of it competes with the
+   alert bar that is already carrying the same three facts. */
+.enc__kv-flag .enc__kv-sub-text { font-weight: var(--font-weight-semibold); }
+
+.enc__kv-line {
+  font-size: var(--font-size-caption);
+  padding: var(--space-3) 0;
+}
+.enc__kv-line strong { font-weight: var(--font-weight-semibold); }
+
+.enc__order-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-left: var(--space-6);
+  font-size: var(--font-size-caption);
+}
+
+.enc__chip-row { display: flex; flex-wrap: wrap; gap: var(--space-3); margin-top: var(--space-4); }
+.enc__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-full);
+  background-color: var(--color-bg-surface-sunken);
+  font-size: var(--font-size-2xs);
+}
+.enc__chip button {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: var(--font-size-caption);
+  line-height: 1;
+  color: var(--color-text-tertiary);
+}
+.enc__chip button:hover { color: var(--color-text-primary); }
+
+/* --- Attached diagnoses: an ICD-10 code, and the CPT it is billed under -----
+   One row per attached diagnosis. The ICD takes the space it needs to be read
+   as a sentence; the CPT select is fixed-width so a column of them lines up
+   down the list rather than stepping in and out with the text beside it.
+   -------------------------------------------------------------------------- */
+
+.enc__codes { display: flex; flex-direction: column; gap: var(--space-4); margin-top: var(--space-4); }
+
+.enc__code-add { display: flex; align-items: flex-end; gap: var(--space-4); }
+.enc__code-add ui-select { flex: 1; min-width: 0; }
+
+.enc__code-list { display: flex; flex-direction: column; gap: var(--space-3); }
+
+/* A diagnosis is a block, not a line: the ICD names it and the CPT codes
+   billed under it stack beneath, indented so the nesting is visible without a
+   second border drawn around them. */
+.enc__code-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+}
+
+.enc__code-head { display: flex; align-items: center; gap: var(--space-4); }
+
+.enc__code-icd { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: var(--space-4); }
+.enc__code-icd code { font-weight: var(--font-weight-semibold); }
+.enc__code-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+}
+
+/* --- The CPT codes one diagnosis is billed under -------------------------- */
+
+/* Everything under the ICD line hangs off a rule, so a row's own codes are
+   never mistaken for the next diagnosis. */
+.enc__cpt-list,
+.enc__cpt-add,
+.enc__cpt-empty {
+  margin-left: var(--space-5);
+  padding-left: var(--space-5);
+  border-left: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.enc__cpt-list { list-style: none; display: flex; flex-direction: column; gap: var(--space-2); }
+
+.enc__cpt {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-4);
+  font-size: var(--font-size-caption);
+}
+.enc__cpt code { font-weight: var(--font-weight-medium); font-variant-numeric: tabular-nums; }
+
+.enc__cpt-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-text-secondary);
+}
+
+.enc__cpt-add { display: flex; align-items: flex-end; gap: var(--space-4); padding-top: var(--space-1); }
+.enc__cpt-add ui-select { flex: none; width: 22rem; max-width: 100%; }
+
+.enc__cpt-empty { font-size: var(--font-size-caption); color: var(--color-text-tertiary); }
+
+@media (max-width: 60rem) {
+  .enc__cpt-add { flex-direction: column; align-items: stretch; }
+  .enc__cpt-add ui-select { width: 100%; }
+}
+
+.enc__code-drop {
+  flex: none;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: var(--font-size-body);
+  line-height: 1;
+  color: var(--color-text-tertiary);
+}
+.enc__code-drop:hover { color: var(--color-text-primary); }
+.enc__code-drop:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.enc__code-empty { font-size: var(--font-size-caption); color: var(--color-text-tertiary); }
+
+.enc__icon-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-9);
+  height: var(--space-9);
+  flex: none;
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background: none;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+}
+.enc__icon-action:hover { color: var(--color-status-critical-text); border-color: var(--color-status-critical-border); }
+.enc__icon-action:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.enc__doc-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+  margin-bottom: var(--space-4);
+  padding-bottom: var(--space-3);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+}
+.enc__doc-section-head h3 { margin: 0; padding: 0; border: none; }
+
+.enc__grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-5) var(--space-7);
+  align-items: start;
+}
+
+/* Procedures Performed / Modifiers — collapsible, nested one level inside
+   the report rather than the page-level Output Manager card.
+
+   ONE HEADING LEVEL PER DOCUMENT.
+   These two carried .enc__card-title, which is 16px semibold — larger and
+   heavier than the uppercase labels on every section beneath them. So a
+   reader scanning the report met "Procedures Performed" and "Modifiers"
+   looking like the document's two main headings, with Diagnostic Indication,
+   Procedure Details, Findings and Impression apparently filed underneath
+   them. They are peers, not parents: they are collapsible only because they
+   hold twenty checkboxes each, which is a fact about their SIZE and not about
+   their rank. Matching them to the section heading puts the outline back. */
+.enc__card--sub {
+  margin-bottom: var(--space-6);
+  border-color: var(--color-border-subtle);
+}
+.enc__card--sub .enc__panel-head,
+.enc__card--sub .enc__card-head { padding: var(--space-4) var(--space-5); }
+
+.enc__doc .enc__card--sub .enc__card-title {
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+/* The "(select all that apply)" rider is part of the heading, not a second
+   voice in it — same size, so the line reads as one label. */
+.enc__doc .enc__card--sub .enc__card-title .enc__caption {
+  font-size: inherit;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+/* --- EGD findings: a stacked, clickable GI-tract silhouette, drawn in CSS
+   rather than a literal image asset — proportioned loosely like the
+   reference (a narrow esophagus, a wider stomach, a narrower duodenum). --- */
+.enc__egd-findings {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 14rem;
+  gap: var(--space-7);
+  align-items: start;
+}
+
+.enc__egd-findings-list { display: flex; flex-direction: column; gap: var(--space-4); }
+
+.enc__egd-finding-row {
+  display: grid;
+  grid-template-columns: 6rem minmax(0, 1fr) auto;
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.enc__egd-finding-tag {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-brand-surface);
+  color: var(--color-brand-text);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-medium);
+  text-align: center;
+  align-self: start;
+}
+
+.enc__egd-diagram {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+}
+
+.enc__egd-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 6rem;
+}
+
+.enc__egd-region {
+  width: 100%;
+  border: var(--border-width-thick) solid var(--color-border-default);
+  background-color: var(--color-bg-surface);
+  font-family: inherit;
+  font-size: var(--font-size-2xs);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  padding: var(--space-4) var(--space-3);
+}
+.enc__egd-region:hover,
+.enc__egd-region:focus-visible {
+  outline: none;
+  border-color: var(--color-brand-solid);
+  color: var(--color-brand-text);
+}
+.enc__egd-region--esophagus {
+  width: 40%;
+  height: 6rem;
+  border-radius: var(--radius-full) var(--radius-full) 0 0;
+  border-bottom: none;
+}
+.enc__egd-region--stomach {
+  height: 5rem;
+  border-radius: var(--radius-lg);
+  margin: calc(var(--space-2) * -1) 0;
+  z-index: 1;
+}
+.enc__egd-region--duodenum {
+  width: 60%;
+  height: 3.5rem;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  border-top: none;
+}
+
+.enc__egd-diagram-legend {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  font-size: var(--font-size-title-eyebrow);
+  color: var(--color-text-tertiary);
+}
+.enc__egd-diagram-legend span { display: inline-flex; align-items: center; gap: var(--space-2); }
+.enc__egd-swatch {
+  display: inline-block;
+  width: var(--space-4);
+  height: var(--space-4);
+  border-radius: var(--radius-full);
+  background-color: var(--color-border-default);
+}
+.enc__egd-swatch--on { background-color: var(--color-status-critical-solid); }
+
+.enc__egd-biopsy-row {
+  padding: var(--space-4) 0;
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+}
+.enc__egd-biopsy-row:last-child { border-bottom: none; }
+
+.enc__egd-custom-rec {
+  display: flex;
+  gap: var(--space-4);
+  align-items: flex-end;
+  margin-top: var(--space-5);
+}
+.enc__egd-custom-rec ui-input { flex: 1; }
+
+.enc__egd-photos-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-5);
+}
+
+.enc__egd-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr));
+  gap: var(--space-4);
+}
+
+.enc__egd-photo {
+  position: relative;
+  margin: 0;
+  aspect-ratio: 1;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.enc__egd-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.enc__egd-photo .enc__icon-action {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  background-color: var(--color-bg-surface);
+}
+
+@media (max-width: 64rem) {
+  .enc__egd-findings { grid-template-columns: minmax(0, 1fr); }
+  .enc__grid-3 { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 64rem) {
+  .enc__exam-systems { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ============================================================================
+   PRE-PROCEDURE HEAD: CHECKLIST + ALERTS + STEPS, COMPACTED
+
+   These four rows — the checklist banner, two alerts and the two-step strip —
+   were taking about a third of the working area before the document under them
+   started. Between them they carry four facts, none of which needs a full row
+   of its own to say.
+
+   Nothing is removed: the checklist still leads (it is the gate), the alerts
+   still read as alerts, and both steps are still one click away. They are just
+   sized for what they say rather than for the space available.
+   ========================================================================= */
+
+.enc__note { gap: var(--space-5); }
+
+.enc__banner {
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-5);
+  font-size: var(--font-size-caption);
+}
+
+/* The step strip is already one line of numbered names; compact just tightens
+   what is there. */
+.enc__steps { border-radius: var(--radius-md); }
+
+.enc__step { gap: var(--space-4); padding: var(--space-4) var(--space-6); }
+
+.enc__step-num { width: var(--space-8); height: var(--space-8); font-size: var(--font-size-2xs); }
+
+.enc__step-title { font-size: var(--font-size-caption); }
+
+/* ============================================================================
+   TAB HIERARCHY
+
+   The encounter has four levels of tab and, before this, three of them looked
+   identical. A strip that looks the same as the strip above it reads as the
+   same strip — so switching Colonoscopy/EGD felt like it should have switched
+   the whole stage, and nothing on screen said which strip owned which panel.
+
+   Each level now carries a different weight, heaviest at the top:
+
+     1  stage         Pre / In / Post          — the run, in the sidebar
+     2  section       Clinical Data / Orders   — quiet underline, sidebar
+     3  document      Pre-procedure / Report   — SEGMENTED, the strongest strip
+     4  report type   Colonoscopy / EGD        — small, quiet, plainly a child
+
+   Level 3 is segmented rather than underlined because it is the one that
+   swaps the whole working surface; level 4 is indented under it and sized
+   down, so the nesting is visible without reading the labels.
+   ========================================================================= */
+
+/* --- Level 3: the document switch -----------------------------------------
+   A class rather than an id, because two strips now wear it: In-procedure's
+   H&P / Orders / Report switch, and the Anesthesia Procedure Note's own pair
+   of tabs on the pre-anaesthesia steps. Both are the same level of the
+   hierarchy — "which document am I looking at" — so they are the same object.
+   -------------------------------------------------------------------------- */
+
+.enc__exam-tabs--pill {
+  gap: var(--space-1);
+  padding: var(--space-1);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+  align-self: flex-start;
+}
+
+.enc__exam-tabs--pill .enc__exam-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-7);
+  border-bottom: none;
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+}
+
+.enc__exam-tabs--pill .enc__exam-tab[aria-selected='true'] {
+  background-color: var(--color-bg-surface);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  color: var(--color-text-primary);
+}
+
+/* --- The document bar ------------------------------------------------------
+   One line above the note: which document on the left, the three ways to get
+   it onto paper on the right. They share a line because they are the same
+   question asked twice — which document am I looking at, and how do I take it
+   away — and because a Print sitting at the foot of a long form is a Print
+   nobody finds without scrolling past the thing they wanted to print.
+
+   It wraps rather than squeezing: below the pill strip's own width the actions
+   drop to their own line instead of the tabs losing their labels. --- */
+
+.enc__doc-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+/* The pill strip sets `align-self: flex-start` for the column it usually
+   lives in. On this row that would top-align it against taller buttons. */
+.enc__doc-bar .enc__exam-tabs--pill { align-self: center; }
+
+.enc__doc-bar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-left: auto;
+}
+
+/* --- A document's own actions --------------------------------------------
+   Not the encounter footer. The footer commits the STAGE; this row acts on
+   the document in front of you, so it ends where the document ends. Spacing
+   above and below comes from #preBody's own column gap. --- */
+
+.enc__doc-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-4);
+}
+
+/* --- Level 4: which report ------------------------------------------------ */
+
+.enc__exam-tabs--sub {
+  margin-top: 0;
+  margin-bottom: var(--space-5);
+  margin-left: var(--space-6);
+  gap: var(--space-5);
+  border-bottom: none;
+}
+
+.enc__exam-tabs--sub .enc__exam-tab {
+  padding: var(--space-2) 0;
+  font-size: var(--font-size-2xs);
+  text-transform: uppercase;
+  letter-spacing: var(--letter-spacing-wide);
+  border-bottom-width: var(--border-width-thin);
+}
+
+/* The header band no longer carries an alert row — see the note above
+   .enc__banner. The band is back to one line: back, title and the four facts
+   that decide what happens on the day. */
+.enc__head { flex-wrap: wrap; row-gap: var(--space-5); }
+
+/* --- Stage sign-off ---------------------------------------------------------
+   Four documents, four people, one signature that says the set of them is
+   finished. It sits under the open document rather than in the footer beside
+   Save & Proceed: the footer walks the run, this closes it, and two commits
+   on one row is how the wrong one gets pressed. */
+
+.enc__signoff {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  margin-top: var(--space-7);
+  padding: var(--space-6) var(--space-7);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-left: 3px solid var(--color-border-brand);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+}
+
+.enc__signoff--done {
+  border-left-color: var(--color-status-success-solid);
+  background-color: var(--color-status-success-surface);
+}
+.enc__signoff--done .ui-icon {
+  flex: none;
+  color: var(--color-status-success-text);
+}
+
+.enc__signoff-body { min-width: 0; display: flex; flex-direction: column; gap: var(--space-1); }
+
+.enc__signoff-title {
+  font-size: var(--font-size-title-section);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+/* Names what is outstanding rather than counting it: "3 of 4" says how much
+   is left, not what to go and do. */
+.enc__signoff-note {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+}
+
+/* --- Sign and Lock dialog ----------------------------------------------------
+   Fields on the left, the signature they produce on the right, side by side so
+   the name being typed and the mark it makes are read together. It collapses
+   to one column on a narrow window rather than squeezing two: the preview is
+   the point of the dialog, and half of it is worth less than none. */
+
+/* The line above the fields, saying which document this signature closes.
+   Sits outside the two-column grid so it spans both halves — it is about the
+   whole dialog, not about the form beside the preview. */
+.enc__sign-lead {
+  /* The same 16px that separates the two columns, so the sentence sits off
+     the fields by exactly as much as they sit off each other. */
+  margin: 0 0 var(--space-7);
+  font-size: var(--font-size-body-sm);
+  line-height: var(--line-height-normal);
+  color: var(--color-text-secondary);
+}
+
+/*
+ * The two halves are stretched rather than top-aligned, so they finish level
+ * as well as start level. Start-aligned, the card stopped 74px above the foot
+ * of the note field beside it and the dialog ended on a ragged edge.
+ */
+.enc__sign {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-7);
+  align-items: stretch;
+}
+
+.enc__sign-form { display: flex; flex-direction: column; gap: var(--space-6); }
+
+/* Label over card, spaced exactly as .ui-field spaces label over control
+   (--space-2), which is what puts the card's top border on the same line as
+   the Name field's. */
+.enc__sign-preview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+/* Type-matched to .ui-field__label rather than inheriting from it: the two
+   sit on one line and a difference of a pixel in either would show. */
+.enc__sign-preview-label {
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-caption);
+  color: var(--color-text-primary);
+}
+
+/*
+ * The card takes whatever height the fields beside it come to, and lays itself
+ * out the way a signed page does: the mark at the top where a pen would leave
+ * it, who and when at the foot under a rule.
+ */
+.enc__sign-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-7);
+  border: var(--border-width-thin) solid var(--color-border-brand);
+  border-radius: var(--radius-md);
+  background-color: var(--color-brand-surface);
+}
+
+/* Typed rather than an image: the signature renders from whatever name was
+   typed, and this prototype ships no font files. Same face the encounter
+   summary signs with, so one person's mark looks the same on both screens. */
+.enc__sign-ink {
+  display: block;
+  /* Holds the card's height steady while the name is being typed — an empty
+     preview that grows a line as the first character lands makes the button
+     below it move under the pointer. */
+  min-height: var(--space-9);
+  /* The product is set in one typeface, so this is Inter like everything
+     else. Italic and the 24px size do the work the script face used to: a
+     signature has to read as a signature rather than as another answer. */
+  font-family: var(--font-family-signature);
+  font-style: italic;
+  font-size: var(--font-size-24);
+  line-height: var(--line-height-normal);
+  color: var(--color-text-primary);
+}
+
+.enc__sign-ink--empty { color: var(--color-text-tertiary); }
+
+/*
+ * Pushed to the foot of the card by the auto margin, with a floor under it so
+ * the pair never collides with the mark on a narrow window, where the column
+ * stacks and the card is only as tall as what is in it.
+ *
+ * The rule is what makes the space above it read as deliberate rather than as
+ * a gap nobody closed: it is the line the mark was written on, and who signed
+ * and when belong under it the way they do on paper.
+ */
+.enc__sign-attrib {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: auto;
+  padding-top: var(--space-6);
+  border-top: var(--border-width-thin) solid var(--color-border-brand-subtle);
+}
+
+.enc__sign-by {
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+
+.enc__sign-when {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+}
+
+@media (max-width: 48rem) {
+  .enc__sign { grid-template-columns: 1fr; }
+}
+
+/* ============================================================================
+   IN-PROCEDURE: THE NURSING RECORD
+
+   Two documents laid out the same way — an entry form on the left and what has
+   been entered on the right, paired row by row. The pairing is the layout: the
+   nurse types a reading and reads it back without either half moving, so the
+   pair is aligned to the top rather than stretched, and each panel keeps its
+   own height instead of both taking the taller one's.
+   ========================================================================= */
+
+#intraNursing,
+#intraMeds {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+/* The anaesthesia management step: the nursing times, five paired entry/record
+   rows and the discharge decision.
+
+   It carried no rule at all, so a bare block stacked seven cards with nothing
+   between them — every card's bottom border sat directly on the next card's
+   top border, reading as one ruled table rather than as separate documents.
+   The gap matches the step body's own, so a card sits the same distance from
+   its neighbour as the group does from the edge of the step. */
+.enc__np {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-7);
+}
+
+/* The icon a nursing panel wears in its heading — tertiary, like every other
+   icon in a card head. The title is what is read; the glyph is a landmark. */
+.enc__panel-icon {
+  width: var(--icon-size-md);
+  height: var(--icon-size-md);
+  margin-right: var(--space-3);
+  color: var(--color-text-tertiary);
+  vertical-align: -0.15em;
+}
+
+/* --- Current patient --------------------------------------------------------- */
+
+.enc__np-name {
+  font-size: var(--font-size-heading-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.enc__np-meta { font-size: var(--font-size-caption); color: var(--color-text-secondary); }
+
+.enc__np-status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding-top: var(--space-5);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.enc__np-status-label {
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+}
+
+/* --- Nursing times ------------------------------------------------------------
+   Label, stamp, then the button that takes it. Three of the four rows read
+   "Not recorded" at different widths, so the button is pushed to the right-hand
+   end rather than trailing the stamp — a ragged column of buttons reads as four
+   unrelated lines instead of one sequence.
+   -------------------------------------------------------------------------- */
+
+.enc__nt-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  min-height: var(--control-height-md);
+}
+
+.enc__nt-label {
+  font-size: var(--font-size-label);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+}
+
+.enc__nt-value { font-family: var(--font-family-numeric); font-variant-numeric: tabular-nums; }
+.enc__nt-value--empty { color: var(--color-text-tertiary); }
+
+.enc__nt-row ui-button,
+.enc__nt-row .enc__caption { margin-left: auto; }
+
+/* --- The bar that files a form -----------------------------------------------
+   Outside the card rather than in its head: this is the action that commits the
+   form, and the head's actions are the ones that do something to the panel.
+   -------------------------------------------------------------------------- */
+
+/* The action sits inside the card it files, as the last thing in the body —
+   so it inherits the body's gap and cannot drift away from its own fields. */
+.enc__np-submit { display: flex; margin-top: var(--space-2); }
+.enc__np-submit ui-button { flex: 1; }
+
+/* The × on a card that has become a form. It cancels the entry rather than
+   closing a dialog, so it sits where the panel's actions sit. */
+.enc__np-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2);
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+}
+.enc__np-close:hover {
+  background-color: var(--color-bg-surface-hover);
+  color: var(--color-text-primary);
+}
+.enc__np-close:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.enc__np-close .enc__panel-icon { margin: 0; }
+
+/* --- Vital signs -------------------------------------------------------------- */
+
+/* Eight columns in half the page width, so the log scrolls inside its own panel
+   rather than pushing the page sideways. */
+.enc__table-scroll { overflow-x: auto; }
+.enc__np-vitals .enc__panel-body { overflow-x: auto; }
+
+/* The newest reading, which is the one being acted on. A tint rather than a
+   rule, so it survives the table scrolling under it. */
+.enc__log-row--latest { background-color: var(--color-brand-surface); }
+
+.enc__vs-time { white-space: nowrap; }
+
+/* The correction affordance, sitting with the time it corrects. It only takes
+   its full colour on hover — a pencil per row at full strength turns the log
+   into a column of buttons with a few numbers between them. */
+.enc__row-edit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: var(--space-2);
+  padding: var(--space-1);
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  vertical-align: middle;
+}
+.enc__row-edit:hover {
+  background-color: var(--color-bg-surface-hover);
+  color: var(--color-text-primary);
+}
+.enc__row-edit:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.enc__row-edit .ui-icon {
+  margin: 0;
+  width: var(--icon-size-sm);
+  height: var(--icon-size-sm);
+}
+
+/* --- Aldrete ------------------------------------------------------------------ */
+
+.enc__np-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+  padding: var(--space-5);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+}
+
+.enc__pill--ok {
+  background-color: var(--color-status-success-surface);
+  color: var(--color-status-success-text);
+}
+
+/* Transposed — categories down, assessments across — so the first column is a
+   heading column and carries a heading's weight. */
+.enc__log--matrix th[scope="row"] {
+  text-align: left;
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+.enc__log--matrix td { text-align: center; }
+
+/* --- Staff initials -----------------------------------------------------------
+   A press, not a text box. The record needs a named person to have said they
+   gave the drug, and a typed field is the one filled with whatever is quickest.
+   Confirmed is carried by the label changing to the initials themselves as well
+   as by colour, so it does not rest on colour alone.
+   -------------------------------------------------------------------------- */
+
+.enc__initials {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  flex-wrap: wrap;
+}
+
+.enc__initials-button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--control-height-md);
+  padding: 0 var(--space-5);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+  cursor: pointer;
+}
+.enc__initials-button:hover {
+  border-color: var(--color-border-strong);
+  background-color: var(--color-bg-surface-hover);
+}
+.enc__initials-button:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+.enc__initials-button--on {
+  border-color: var(--color-status-success-solid);
+  background-color: var(--color-status-success-surface);
+  color: var(--color-status-success-text);
+}
+.enc__initials-button--on .enc__panel-icon { color: var(--color-status-success-text); }
+
+.enc__initials-hint { font-size: var(--font-size-caption); color: var(--color-text-tertiary); }
+
+/* --- Discharge ---------------------------------------------------------------- */
+
+.enc__np-criteria {
+  padding: var(--space-5);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+}
+.enc__np-criteria .enc__legend { margin-top: 0; }
+
+/* Two columns: five short lines down one column is a list nobody reads to the
+   end of. */
+.enc__np-criteria-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4) var(--space-7);
+  margin-top: var(--space-5);
+  list-style: none;
+}
+
+.enc__np-criteria-list li {
+  position: relative;
+  padding-left: var(--space-6);
+  font-size: var(--font-size-body);
+  color: var(--color-text-secondary);
+}
+.enc__np-criteria-list li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.45em;
+  width: var(--space-3);
+  height: var(--space-3);
+  border-radius: 50%;
+  background-color: var(--color-border-focus);
+}
+
+.enc__np-latest {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+}
+.enc__np-latest > div { flex: 1; min-width: 0; }
+.enc__np-latest ui-badge { flex: none; }
+
+.enc__np-ready {
+  padding: var(--space-5);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+}
+.enc__np-ready .enc__caption { margin-top: var(--space-3); padding-left: var(--space-8); }
+
+.enc__np-updated { text-align: center; }
+
+/* --- Medications --------------------------------------------------------------
+   The formulary is a stack of full-width targets rather than a chip row: each
+   one carries a drug, its strength and its route, which is three things to read
+   and more than a chip can hold legibly.
+   -------------------------------------------------------------------------- */
+
+.enc__np-formulary {
+  padding: var(--space-5);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+}
+.enc__np-formulary .enc__legend {
+  margin-top: 0;
+  padding-bottom: 0;
+  border: none;
+  font-size: var(--font-size-label);
+  color: var(--color-text-secondary);
+}
+
+.enc__np-drug {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  width: 100%;
+  margin-top: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+  text-align: left;
+  cursor: pointer;
+}
+.enc__np-drug:hover {
+  border-color: var(--color-border-strong);
+  background-color: var(--color-bg-surface-hover);
+}
+.enc__np-drug:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.enc__np-drug strong { font-size: var(--font-size-body); color: var(--color-text-primary); }
+.enc__np-drug span { font-size: var(--font-size-caption); color: var(--color-text-tertiary); }
+
+/* --- What is running right now ------------------------------------------------ */
+
+/* Green rather than blue: a line here is something that is running NOW, which
+   is the same "in progress and fine" the Active badge beside it carries. The
+   End that stops it sits on the line, because stopping the wrong bag is the
+   mistake a shared button at the foot of the card would invite. */
+.enc__np-running {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  list-style: none;
+}
+.enc__np-running li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-md);
+  background-color: var(--color-status-success-surface);
+}
+.enc__np-running li > div {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.enc__np-running li ui-button { flex: none; }
+.enc__np-running span { font-size: var(--font-size-caption); color: var(--color-text-secondary); }
+
+/* "Started:" reads as the label of the time under it, not as part of it. */
+.enc__np-started {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-tertiary);
+}
+
+@media (max-width: 75rem) {
+  .enc__np-criteria-list { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ============================================================================
+   THE ANAESTHESIA CONSENT FORM
+
+   A document to be read before it is signed, so the body is set as prose
+   rather than as fields: measure limited, lines spaced, nothing competing with
+   the sentence the patient is agreeing to.
+   ========================================================================= */
+
+.enc__consent-text {
+  max-width: 78ch;
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-relaxed, 1.6);
+  color: var(--color-text-secondary);
+}
+.enc__consent-text strong { color: var(--color-text-primary); }
+
+.enc__consent-sig {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+}
+.enc__consent-sig .enc__legend { margin: 0; padding: 0; border: none; }
+
+.enc__consent-hint {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-tertiary);
+}
+
+/* The provider does not draw — a name and a press is what an electronic
+   signature means for a clinician who is already signed in. */
+.enc__consent-provider {
+  padding: var(--space-5) var(--space-6);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+}
+.enc__consent-provider-name { display: flex; flex-direction: column; gap: var(--space-1); }
+.enc__consent-provider-name strong {
+  font-size: var(--font-size-body);
+  color: var(--color-text-primary);
+}
+.enc__consent-provider-name span {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+}
+
+/* A signature that has been taken. Small — a receipt that it exists, not the
+   signing surface over again. */
+.enc__consent-mark {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+  padding: var(--space-5) var(--space-6);
+  border: var(--border-width-thin) solid var(--color-status-success-border, var(--color-border-subtle));
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+}
+.enc__consent-mark img {
+  max-width: min(100%, 16rem);
+  max-height: 4rem;
+  object-fit: contain;
+}
+.enc__consent-mark figcaption { display: flex; flex-direction: column; gap: var(--space-1); }
+.enc__consent-mark figcaption strong {
+  font-size: var(--font-size-body);
+  color: var(--color-text-primary);
+}
+.enc__consent-mark figcaption span {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+}
+

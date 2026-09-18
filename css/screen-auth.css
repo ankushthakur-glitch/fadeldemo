@@ -1,0 +1,465 @@
+/* ============================================================================
+   Authentication — sign in, forgot password, reset password.
+
+   These are the only screens without the app shell, so they carry their own
+   layout.
+
+   The layout is now the PATIENT PORTAL's: a full-bleed 38/62 split with the
+   form on plain white at the left and one inset, rounded promotional panel at
+   the right. The two products are the same practice seen from two sides, and
+   a clinician and a patient arriving at their own door should recognise the
+   same building. What changed from the old centred card:
+
+     - the card-on-a-ground became a full-bleed split, so the door is the page
+       rather than an object floating on it;
+     - the cover photograph became the portal's green gradient panel, which
+       carries a caption that rotates rather than one fixed blurb;
+     - the wordmark left its white plate and sits on white, which is where a
+       dark mark belongs.
+
+   What did NOT change: the form. Staff sign in here a dozen times a day and
+   the fastest path to the password field is still the whole design — no
+   testimonials, no feature grid, no second call to action.
+   ========================================================================= */
+
+.auth {
+  min-height: 100vh;
+  background-color: var(--color-bg-surface);
+}
+
+.auth__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 38fr) minmax(0, 62fr);
+  min-height: 100vh;
+}
+
+/* --- Left: the form ------------------------------------------------------------
+   The right padding is larger than the left on purpose. Left of the form is
+   the window edge; right of it is the promo panel, which is a solid dark
+   block. The gutter is this padding plus the panel's own inset, and it wants
+   to be visibly wider than the space above the form.
+   -------------------------------------------------------------------------- */
+
+.auth__side {
+  display: flex;
+  flex-direction: column;
+  padding: var(--space-10) var(--space-11);
+  padding-right: calc(var(--space-11) + var(--space-9));
+}
+
+/* The wordmark, on white and at its own size — no plate. The plate existed
+   only because the mark used to sit on a photograph. */
+.auth__brand {
+  display: inline-flex;
+  align-self: flex-start;
+}
+
+/* Sized by HEIGHT, matching the patient portal's wordmark exactly. Both marks
+   are the same 4.94:1 lockup, so one height puts the two doors on the same
+   optical weight without either file being edited. */
+.auth__logo {
+  height: 2.375rem;
+  width: auto;
+  display: block;
+}
+
+/*
+ * The form sits in the optical middle of the column, not the mathematical
+ * one. flex:1 with centred content puts it dead centre of the space BELOW the
+ * wordmark, which reads as centred rather than measured to be.
+ */
+.auth__main {
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.auth__card {
+  width: min(28rem, 100%);
+  border: none;
+  box-shadow: none;
+  padding: 0;
+}
+
+/* The one line of this screen that is neither branding nor the form. It is a
+   notice, so it sits at the foot of the column in the smallest type on the
+   page and is the last thing read, not the first. */
+.auth__legal {
+  margin-top: var(--space-10);
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-caption);
+  color: var(--color-text-tertiary);
+}
+
+.auth__title {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+}
+
+.auth__subtitle {
+  margin-top: var(--space-3);
+  font-size: var(--font-size-body);
+  color: var(--color-text-secondary);
+}
+
+.auth__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  margin-top: var(--space-8);
+}
+
+/* Remember-me and Forgot-password share a line: one is a setting, the other a
+   way out, and neither deserves a row of its own. */
+.auth__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+}
+
+.auth__link {
+  color: var(--color-text-link);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+}
+.auth__link:hover { text-decoration: underline; }
+.auth__link:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* Caps Lock lives in its own live region rather than the field's hint, because
+   setting a hint re-renders <ui-input> — which would replace the <input> and
+   drop what had been typed, mid-password. */
+.auth__caps {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: calc(var(--space-4) * -1);
+  font-size: var(--font-size-caption);
+  color: var(--color-status-warning-text);
+}
+.auth__caps .ui-icon { width: var(--icon-size-sm); height: var(--icon-size-sm); flex: none; }
+
+/* --- Footer -------------------------------------------------------------------- */
+
+.auth__foot {
+  margin-top: var(--space-8);
+  padding-top: var(--space-6);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+  font-size: var(--font-size-caption);
+  color: var(--color-text-tertiary);
+  text-align: center;
+}
+
+/* --- Demo credentials ----------------------------------------------------------
+   Only a prototype has this. It is styled as a note, not as part of the form,
+   so nobody mistakes it for something the real screen would show. */
+.auth__demo {
+  margin-top: var(--space-6);
+  padding: var(--space-5) var(--space-6);
+  border: var(--border-width-thin) dashed var(--color-border-default);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+  font-size: var(--font-size-caption);
+  color: var(--color-text-secondary);
+}
+.auth__demo dt { font-weight: var(--font-weight-semibold); color: var(--color-text-primary); }
+.auth__demo dd { margin: 0 0 var(--space-3); font-family: var(--font-family-numeric); font-variant-numeric: tabular-nums; }
+.auth__demo dd:last-child { margin-bottom: 0; }
+
+/* --- Password strength ----------------------------------------------------------
+   A bar alone is a colour-only signal, so the checklist below it is the real
+   content and the bar is the summary. */
+
+.auth__strength { display: flex; flex-direction: column; gap: var(--space-4); }
+
+.auth__meter {
+  display: flex;
+  gap: var(--space-2);
+  height: var(--space-2);
+}
+
+.auth__meter-seg {
+  flex: 1;
+  border-radius: var(--radius-full);
+  background-color: var(--color-bg-surface-active);
+}
+.auth__meter-seg--weak { background-color: var(--color-status-critical-solid); }
+.auth__meter-seg--fair { background-color: var(--color-status-warning-solid); }
+.auth__meter-seg--strong { background-color: var(--color-status-success-solid); }
+
+.auth__strength-label {
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-medium);
+}
+
+.auth__rules {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2) var(--space-5);
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-tertiary);
+}
+
+.auth__rule { display: flex; align-items: center; gap: var(--space-3); }
+.auth__rule .ui-icon { width: var(--icon-size-xs); height: var(--icon-size-xs); flex: none; }
+/* Met rules change ICON as well as colour — a tick versus a dot — so the state
+   survives being printed, or being read by someone who cannot separate them. */
+.auth__rule--met { color: var(--color-status-success-text); }
+
+/* --- Confirmation screens -------------------------------------------------------- */
+
+.auth__confirm { text-align: center; }
+
+.auth__confirm-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-11);
+  height: var(--space-11);
+  margin-bottom: var(--space-6);
+  border-radius: var(--radius-full);
+  background-color: var(--color-brand-surface);
+  color: var(--color-brand-text);
+}
+.auth__confirm-icon .ui-icon { width: var(--icon-size-lg); height: var(--icon-size-lg); }
+
+.auth__confirm .auth__subtitle { margin-bottom: var(--space-8); }
+
+.auth__actions { display: flex; flex-direction: column; gap: var(--space-4); }
+
+.auth__back {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-6);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-body);
+  text-decoration: none;
+  border-radius: var(--radius-sm);
+}
+.auth__back:hover { color: var(--color-text-primary); }
+.auth__back:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.auth__back .ui-icon { width: var(--icon-size-sm); height: var(--icon-size-sm); }
+
+/* ============================================================================
+   RIGHT: THE PROMO PANEL
+
+   ⚠ THE PHOTOGRAPHS ARE NOT HERE.
+
+   The design fills this panel with clinical photography. None was supplied
+   and none is invented — an AI-generated "doctor" standing in for a real
+   practice's own picture is a worse placeholder than an obvious one, because
+   it looks finished and nobody replaces it. (The stock cover this panel used
+   to carry is still at assets/img/auth-cover.jpg if it is wanted back: give
+   .auth__slide a background-image and it takes over.)
+
+   What IS the design, and is built: the panel's proportions, the rounded
+   inset, the scrim, the caption's position and type, the dot control, and the
+   timing of the advance.
+   ========================================================================= */
+
+.auth__promo {
+  position: relative;
+  overflow: hidden;
+  margin: var(--space-9);
+  border-radius: var(--radius-xl);
+  /* The floor of the slide gradients, literal and deliberately BELOW the ramp:
+     it is only what shows in the instant before a gradient paints, and it must
+     not be an interface green. --color-brand-09 would put the button's own
+     pressed colour on a surface the size of two thirds of the screen. */
+  background-color: #0c1a33;
+  isolation: isolate;
+}
+
+.auth__slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+
+.auth__slide[data-current='true'] {
+  opacity: 1;
+}
+
+/* Four related grounds rather than four unrelated ones: the brand green,
+   rotated and taken darker than any interface green so the panel reads as a
+   photograph's place rather than as a very large button. A carousel whose
+   slides do not look like siblings reads as four different products.
+
+   These are literal hex rather than tokens: the ramp only carries greens light
+   enough to sit under interface text, and every value here is deliberately
+   below the darkest of them. */
+.auth__slide:nth-child(1) {
+  background-image: radial-gradient(
+      120% 90% at 15% 12%,
+      rgb(86 132 214 / 52%) 0%,
+      transparent 62%
+    ),
+    linear-gradient(148deg, #1e3a6e 0%, #172f5a 48%, #0c1a33 100%);
+}
+
+.auth__slide:nth-child(2) {
+  background-image: radial-gradient(
+      110% 85% at 82% 18%,
+      rgb(118 156 226 / 48%) 0%,
+      transparent 60%
+    ),
+    linear-gradient(160deg, #20407a 0%, #15294f 52%, #0a1630 100%);
+}
+
+.auth__slide:nth-child(3) {
+  background-image: radial-gradient(
+      130% 95% at 25% 85%,
+      rgb(70 120 210 / 48%) 0%,
+      transparent 62%
+    ),
+    linear-gradient(135deg, #1a3566 0%, #1f3d74 45%, #0b1934 100%);
+}
+
+.auth__slide:nth-child(4) {
+  background-image: radial-gradient(
+      115% 90% at 70% 78%,
+      rgb(96 140 220 / 46%) 0%,
+      transparent 60%
+    ),
+    linear-gradient(200deg, #1d3a70 0%, #142a52 50%, #08142b 100%);
+}
+
+/* A faint diagonal weave over whichever slide is showing. Enough texture that
+   a flat gradient does not read as a failed image load. */
+.auth__promo::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background-image: repeating-linear-gradient(
+    115deg,
+    rgb(255 255 255 / 4%) 0 1px,
+    transparent 1px 22px
+  );
+  pointer-events: none;
+}
+
+/* The scrim. Without it the caption's legibility depends on whatever the
+   image happens to be doing behind it, which is not a thing to leave to
+   chance on the one screen everybody sees. */
+.auth__scrim {
+  position: absolute;
+  inset: auto 0 0;
+  z-index: 2;
+  height: 48%;
+  background-image: linear-gradient(
+    to top,
+    rgb(6 14 32 / 88%) 0%,
+    rgb(6 14 32 / 62%) 45%,
+    transparent 100%
+  );
+  pointer-events: none;
+}
+
+.auth__caption {
+  position: absolute;
+  inset: auto 0 0;
+  z-index: 3;
+  padding: var(--space-11) var(--space-11) var(--space-10);
+  color: var(--color-text-inverse);
+}
+
+/*
+ * Bigger than anything the type scale carries.
+ *
+ * The EHR scale stops at 24px because every other screen in the product is a
+ * dense working surface where 24px is already a page title. This is the one
+ * marketing surface in the build, and a marketing headline set at the page-
+ * title size does not read as a headline. It is declared here, once, rather
+ * than added to the scale, so nothing inside the app can reach for it.
+ */
+.auth__caption h2 {
+  font-size: 2.25rem;
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  letter-spacing: -0.015em;
+}
+
+.auth__caption p {
+  max-width: 44rem;
+  margin-top: var(--space-6);
+  font-size: var(--font-size-lg);
+  line-height: var(--line-height-normal);
+  /* Not pure white: a long line at full contrast vibrates. Over the scrim's
+     darkest band this still clears AA comfortably. */
+  color: rgb(255 255 255 / 88%);
+}
+
+.auth__dots {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-4);
+  margin-top: var(--space-10);
+}
+
+/*
+ * The dot is a small pill inside a larger hit area.
+ *
+ * Padding rather than a bigger pill: the design's control is small, and a
+ * target a pointer can actually land on is not optional just because the mark
+ * is decorative. The visible pill stays as drawn; the button around it does
+ * not.
+ */
+.auth__dot {
+  display: flex;
+  align-items: center;
+  padding: var(--space-4);
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.auth__dot::before {
+  content: '';
+  width: 1.5rem;
+  height: 0.3125rem;
+  border-radius: var(--radius-full);
+  background-color: rgb(255 255 255 / 40%);
+  transition: background-color 0.2s ease, width 0.2s ease;
+}
+
+.auth__dot[aria-current='true']::before {
+  width: 2.25rem;
+  background-color: var(--color-base-white);
+}
+
+/* ============================================================================
+   NARROW SCREENS
+
+   Below 64rem the promo panel is the first thing to go. It carries no
+   information the caption does not repeat, and a sign-in form squeezed into a
+   third of a laptop screen so a decorative gradient can keep two thirds is
+   the wrong trade.
+
+   These rules sit at the END of the file for a reason. .auth__main and
+   .auth__card used to be re-declared below the media queries, which quietly
+   cancelled the responsive padding here — a later rule of equal specificity
+   wins regardless of the media query. Anything added after this point will do
+   the same, so it goes above instead.
+   ========================================================================= */
+
+@media (max-width: 64rem) {
+  .auth__grid { grid-template-columns: minmax(0, 1fr); }
+  .auth__promo { display: none; }
+  .auth__side { padding: var(--space-10) var(--space-9); }
+  .auth__main { justify-content: center; }
+  .auth__legal { text-align: center; }
+}
+
+@media (max-width: 40rem) {
+  .auth__side { padding: var(--space-9) var(--space-7); }
+  .auth__rules { grid-template-columns: minmax(0, 1fr); }
+}

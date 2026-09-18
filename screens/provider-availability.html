@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MediNova EHR — Availability Preferences</title>
+    <link rel="icon" type="image/svg+xml" href="../assets/img/favicon.svg" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+
+    <link rel="stylesheet" href="../css/reset.css" />
+    <link rel="stylesheet" href="../css/tokens.css" />
+    <link rel="stylesheet" href="../css/base.css" />
+    <link rel="stylesheet" href="../css/ui-kit.css" />
+    <!-- overlay.css carries the ui-tabs styling. Without it the tab strip
+         renders as run-together plain text. -->
+    <link rel="stylesheet" href="../css/screen-patient.css" />
+    <link rel="stylesheet" href="../css/screen-leads.css" />
+    <link rel="stylesheet" href="../css/screen-settings.css" />
+
+    <script type="module" src="../js/main.js"></script>
+    <script type="module" src="../js/screens/provider-availability.js"></script>
+    <script src="../js/open-me-properly.js"></script>
+  </head>
+
+  <body class="pt">
+    <header class="pt__bar">
+      <img class="pt__logo" src="../assets/img/medinova-logo.svg" width="158" height="32"
+        alt="MediNova Gastroenterology Clinic" />
+      <ui-main-nav active="settings"></ui-main-nav>
+      <div class="pt__bar-actions">
+        <ui-time-clock></ui-time-clock>
+        <button type="button" class="pt__icon-action" aria-label="Notifications">
+          <svg class="ui-icon" aria-hidden="true"><use href="#i-bell"></use></svg>
+        </button>
+        <ui-avatar name="Amara Mensah" size="sm"></ui-avatar>
+      </div>
+    </header>
+
+    <div class="ui-page-head ui-page-head--flush ui-page-head--tabs set__head">
+      <div class="ui-page-head__lead">
+        <a class="ui-page-head__back" href="appointment-settings.html" data-testid="pa--back"
+           aria-label="Back to appointment settings">
+          <svg class="ui-icon" aria-hidden="true"><use href="#i-caret-left"></use></svg>
+        </a>
+        <h1 class="ui-page-head__title" data-testid="pa--title">Availability Preferences</h1>
+      </div>
+
+      <ui-tabs selected="slots" primary data-testid="pa--tabs">
+        <ui-tab value="slots" label="Day Slots"></ui-tab>
+        <ui-tab value="block" label="Block Days"></ui-tab>
+      </ui-tabs>
+    </div>
+
+    <main class="set__body">
+      <!-- ================= DAY SLOTS ================= -->
+      <div id="panel-slots" role="tabpanel" aria-labelledby="tab-slots">
+        <div id="slotList" data-testid="pa--slots"></div>
+        <div>
+          <ui-button variant="outline" icon="plus" data-testid="pa--add-slot">Add New Slot</ui-button>
+        </div>
+      </div>
+
+      <!-- ================= BLOCK DAYS ================= -->
+      <div id="panel-block" role="tabpanel" aria-labelledby="tab-block" hidden>
+        <!-- Inline add row, matching the legacy screen's "type straight into
+             the table header" behaviour but as a real labelled form. -->
+        <form class="set__add-row" id="blockForm">
+          <ui-input label="Title" placeholder="Enter Title" data-testid="pa--block-title"></ui-input>
+          <ui-input label="Start Date" type="date" data-testid="pa--block-start"></ui-input>
+          <ui-input label="End Date" type="date" data-testid="pa--block-end"></ui-input>
+          <ui-input label="Start Time" type="time" value="00:00"></ui-input>
+          <ui-input label="End Time" type="time" value="20:00"></ui-input>
+          <ui-button variant="primary" data-testid="pa--block-add">Add</ui-button>
+        </form>
+
+        <div class="ui-table-card">
+          <ui-data-table id="blockTable" data-testid="pa--block-table"></ui-data-table>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>
