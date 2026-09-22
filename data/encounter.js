@@ -11,23 +11,23 @@
  */
 
 /*
- * The note templates the encounter offers.
+ * THE TOP STRIP'S TWO LISTS ARE GONE.
  *
- * Derived from the documents themselves rather than typed out again. Each
- * title in this list used to be a label with nothing behind it — every one of
- * them rendered the same colonoscopy report — and the way that stayed true for
- * so long is that the list of names and the list of documents were two
- * separate lists. They are one list now: a template exists here because a
- * document for it exists in data/visit-note-templates.js, and adding a name
- * without a document is no longer possible.
+ * This module used to re-export VISIT_NOTE_TITLES as NOTE_TEMPLATES and carry a
+ * SMART_TEMPLATES list of stock wordings beside it. Both existed for one strip
+ * across the top of the procedure encounter: a note-type picker and a Templates
+ * menu that dropped a paragraph into whichever document was open.
+ *
+ * The strip is gone. On a procedure day the note type was never a decision —
+ * a booking with a procedure on it files a Procedure Follow-up and the other
+ * entries belonged to the clinic note, which carries the picker on its own
+ * document bar (see screens/clinic-visit.html). The Templates menu went with
+ * it: it wrote into "the first free-text field of whatever is open", which on a
+ * run of fourteen documents is a different box every time it is pressed.
+ *
+ * The titles themselves are not lost — they live where they always did, in
+ * data/visit-note-templates.js, and the clinic note reads them from there.
  */
-export { VISIT_NOTE_TITLES as NOTE_TEMPLATES } from './visit-note-templates.js';
-
-export const SMART_TEMPLATES = [
-  'Insert last visit’s plan',
-  'Carry forward active problems',
-  'Build HPI from triage note',
-];
 
 export const FAVOURITE_TEMPLATES = ['SOAP Note', 'Colonoscopy Follow-up'];
 

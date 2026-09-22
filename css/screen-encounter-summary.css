@@ -37,83 +37,12 @@
   background-color: var(--color-bg-surface);
 }
 
-/* Top-aligned, not centred: the badge belongs against the name it qualifies,
-   and with a two-line id block under the name centring drags it half a line
-   down and leaves the avatar floating. */
-.es__pc-top {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-4);
-}
 
-.es__avatar {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--space-10);
-  height: var(--space-10);
-  border-radius: var(--radius-full);
-  background-color: var(--color-brand-surface);
-  color: var(--color-brand-text);
-  font-size: var(--font-size-caption);
-  font-weight: var(--font-weight-semibold);
-}
-
-.es__pc-heading { flex: 1; min-width: 0; }
-
-/* Link blue here, unlike the encounter's card: this name DOES go somewhere —
-   the chart — so the colour is promising a navigation it can honour. */
-.es__pc-name {
-  font-size: var(--font-size-heading-sm);
-  font-weight: var(--font-weight-semibold);
-  line-height: var(--line-height-tight);
-  color: var(--color-text-link);
-  text-decoration: none;
-}
-.es__pc-name:hover { text-decoration: underline; }
-
-.es__pc-idline {
-  margin-top: var(--space-1);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  font-size: var(--font-size-2xs);
-  color: var(--color-text-tertiary);
-}
-
-/* --- The three looked-up facts ---------------------------------------------
-   A label column and a value column, so Mobile, Insurance and Provider read
-   down one edge. 5.5rem matches the encounter rail exactly — the same three
-   labels stopping at the same place on both screens is the point of moving
-   this card over.
-   -------------------------------------------------------------------------- */
-
-.es__pc-facts {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  margin-top: var(--space-5);
-  padding-top: var(--space-5);
-  border-top: var(--border-width-thin) solid var(--color-border-subtle);
-}
-
-.es__pc-fact {
-  display: grid;
-  grid-template-columns: 5.5rem minmax(0, 1fr);
-  gap: var(--space-3);
-  align-items: baseline;
-}
-.es__pc-fact dt {
-  font-size: var(--font-size-2xs);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-tertiary);
-}
-.es__pc-fact dd {
-  font-size: var(--font-size-2xs);
-  color: var(--color-text-primary);
-  overflow-wrap: anywhere;
-}
+/* Everything INSIDE the card is drawn by js/lib/patient-card.js and styled by
+   css/components/patient-card.css — this screen's version was one of four,
+   and the only one that already linked the name to the chart. That link went
+   into the component and out to the other three. What stays here is how the
+   card sits in this screen's rail. */
 
 
 /* --- Layout ---------------------------------------------------------------- */

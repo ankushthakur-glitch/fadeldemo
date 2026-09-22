@@ -360,6 +360,14 @@
 
   --z-sticky: 100;
   --z-dropdown: 400;
+  /* A panel the user has put somewhere and can move — the live scope feed is
+     the first. Above the page and above anything the page opens inside itself,
+     because it was dragged there on purpose and a menu unrolling over it would
+     hide the picture somebody is working from. BELOW the overlay, because a
+     dialog is a question that has to be answered before anything else, and a
+     floating panel that covered the scrim would look like part of the dialog
+     while behaving like part of the page. */
+  --z-floating-panel: 500;
   --z-overlay: 600;
   --z-modal: 700;
   /* Above the modal, and deliberately so: a dropdown opened inside a dialog is
@@ -437,6 +445,35 @@
   --color-text-on-nav: rgb(255 255 255 / 0.78);
   --color-text-on-nav-strong: var(--color-base-white);
 
+  /* --- Chrome over a moving picture ---------------------------------------
+     The second dark region of the product, and it arrived with the live scope
+     feed on the Procedure report. Its own roles rather than the bar's, for the
+     reason the bar has its own rather than the surface tokens': what is behind
+     these is not a colour the product chose. It is a picture coming out of a
+     video processor, and it is different in every frame — so a control laid
+     over it cannot be given a fixed ground, and a caption over it cannot be
+     given a fixed grey.
+
+     So the ground is BLACK and everything on it is white at an alpha. Black
+     rather than Grey/09, which the inverted surface above uses: an inverted
+     tooltip is a panel of the product sitting on the page, and this is the
+     inside of a monitor. Anything warmer than black reads as a tint somebody
+     applied to the picture.
+
+     The alphas are the whole point. A control over video has to stay legible
+     whether the frame under it is the near-black of a lumen or the near-white
+     of a specular highlight, and only a wash that lets the picture through can
+     do that — a fixed grey would disappear into one of the two. */
+  --color-bg-media: var(--color-base-black); /* [DERIVED] */
+  --color-bg-media-control: rgb(255 255 255 / 0.14); /* [DERIVED] */
+  --color-bg-media-control-hover: rgb(255 255 255 / 0.24); /* [DERIVED] */
+  --color-border-media: rgb(255 255 255 / 0.2); /* [DERIVED] */
+  /* Same split as the bar's two text roles, for the same reason: the header
+     facts and the pedal caption are read past, and the one word that says
+     whether the picture is live is read. */
+  --color-text-on-media: rgb(255 255 255 / 0.72); /* [DERIVED] */
+  --color-text-on-media-strong: var(--color-base-white); /* [DERIVED] */
+
   /* The unfilled part of a progress bar or a slider. It is NOT a border and it
      is NOT a sunken panel: it is the part of a measure that has not happened
      yet, and it has to stay visible against the surface behind it while never
@@ -488,6 +525,23 @@
   --color-brand-surface-subtle: var(--color-brand-00);
   --color-border-brand-subtle: var(--color-brand-02);
   --color-brand-text: var(--color-brand-07);
+
+  /* --- Neutral / deliberate action ----------------------------------------
+     A filled control with no brand in it, for a commit the reader GOES to
+     rather than one that has to catch their eye from across the screen — the
+     visit note's footer is the case this exists for. It is the same three-step
+     shape --color-brand-solid has, so a neutral button hovers and presses with
+     the same rhythm as a brand one, and it is drawn from the grey ramp's
+     middle rather than its ends: light enough to carry primary ink on top,
+     dark enough not to read as a disabled surface.
+     [DERIVED] from the Figma grey ramp — no Figma component uses these yet. */
+  --color-neutral-solid: var(--color-grey-03);
+  --color-neutral-solid-hover: var(--color-grey-04);
+  --color-neutral-solid-active: var(--color-grey-05);
+  --color-neutral-border: var(--color-grey-04);
+  --color-neutral-border-strong: var(--color-grey-05);
+  /* The quiet half of a neutral pair: an outline, not a fill. */
+  --color-neutral-border-subtle: var(--color-grey-03);
 
   /* --- Status: critical --------------------------------------------------- */
   --color-status-critical-solid: var(--color-error-07);

@@ -54,11 +54,23 @@ export const NOTE_STATES = {
 /**
  * The seeded state of the notes for the demo bookings.
  *
- * Keyed by appointment id, which is positional in data/schedule.js (`ap1` is
- * the first row of ROWS) — the same join SCOPE_LISTS makes there. Each line
- * names its patient so the table can be read without counting rows, and so a
- * reordering of ROWS shows up as an obviously wrong name rather than a silent
- * mis-mapping.
+ * EMPTY ON PURPOSE. Every booking now opens Unsigned — the state a booking made
+ * in the prototype starts in anyway — so the encounters worklist is one queue
+ * with everything in it rather than a demo that arrives half worked through.
+ * A reviewer who wants to see the Signed half puts something there by signing
+ * it, which is the route a clinician has and the only one that proves the
+ * screens behind it work.
+ *
+ * It stays as a register rather than being deleted, because `noteFor` below is
+ * written against it and because the shape is the documentation for seeding a
+ * state back. Keyed by appointment id, which is positional in data/schedule.js
+ * (`ap1` is the first row of ROWS) — the same join SCOPE_LISTS makes there —
+ * and a line names its patient so the table can be read without counting rows,
+ * and so a reordering of ROWS shows up as an obviously wrong name rather than
+ * a silent mis-mapping:
+ *
+ *   ap1: { state: 'signed', signedOn: '2026-08-03' },  // Priya Raman
+ *   ap3: { state: 'co-sign', draftedBy: 'u4' },        // Henryk Duszynski
  *
  *   signed    filed and closed; `signedOn` is the day it was signed, which is
  *             what the Updated column shows.
@@ -68,25 +80,11 @@ export const NOTE_STATES = {
  *             physician" per data/practice-roles.js) and waiting on the
  *             provider's countersignature.
  *
- * Anything not listed here is Unsigned, which is also where every booking made
- * in the prototype starts.
+ * NOTE_STATES keeps both entries whatever is seeded here: a note signed during
+ * a session is 'signed' at runtime, and the worklist has to have a badge and a
+ * row action for it.
  */
-export const NOTE_REGISTER = {
-  /* --- Filed and closed --- */
-  ap1: { state: 'signed', signedOn: '2026-08-03' }, //  Priya Raman
-  ap4: { state: 'signed', signedOn: '2026-08-03' }, //  Callum Fraser
-  ap6: { state: 'signed', signedOn: '2026-08-04' }, //  Kofi Mensah — signed next morning
-  ap9: { state: 'signed', signedOn: '2026-08-03' }, //  Aisha Bello
-  ap11: { state: 'signed', signedOn: '2026-08-04' }, // Nadia Karimi
-  ap74: { state: 'signed', signedOn: '2026-07-30' }, // Kofi Mensah
-  ap75: { state: 'signed', signedOn: '2026-08-03' }, // Amara Nwosu — signed three days late
-
-  /* --- Written, waiting on a countersignature --- */
-  ap3: { state: 'co-sign', draftedBy: 'u4' }, //  Henryk Duszynski
-  ap8: { state: 'co-sign', draftedBy: 'u5' }, //  Henna West
-  ap13: { state: 'co-sign', draftedBy: 'u4' }, // Mei-Ling Chen
-  ap46: { state: 'co-sign', draftedBy: 'u5' }, // Kofi Mensah
-};
+export const NOTE_REGISTER = {};
 
 /** Bookings that never became a visit, so never a note. */
 const NO_VISIT = ['Cancelled', 'Rescheduled', 'No Show', 'Pending Confirmation'];
@@ -109,9 +107,10 @@ export function hasVisitNote(appt, today) {
 /**
  * Which template the note was written on.
  *
- * The strings are the ones the encounter itself offers (NOTE_TEMPLATES in
- * data/encounter.js), so the column names a template a clinician can actually
- * open rather than a label invented for this table.
+ * The strings are the ones the clinic note's own picker offers
+ * (VISIT_NOTE_TITLES in data/visit-note-templates.js), so the column names a
+ * template a clinician can actually open rather than a label invented for this
+ * table.
  */
 export function noteTypeFor(kindId, typeTitle = '') {
   if (kindId === 'procedure') return 'Procedure Follow-up';

@@ -120,7 +120,14 @@ export const PATIENTS = {
     mrn: '326486',
     name: 'Henna West',
     preferredName: 'Hennie',
-    photo: null, // no photo on file — the header falls back to initials
+    /* The one patient in this demo set with a photograph on file, so every
+       screen with a photo slot can be seen in both of its states: this record
+       filled, and every other record falling back to initials in the same
+       disc. The file itself is a drawn portrait rather than a photograph of a
+       real person — see the note in assets/img/patient-photo-01.svg. Relative
+       to the page, the way every other asset path in data/ is (see
+       MEDINOVA_LOGO in data/print-config.js). */
+    photo: '../assets/img/patient-photo-01.svg',
     dob: '20-02-1961',
     gender: 'Female',
     language: 'English',

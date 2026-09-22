@@ -1,0 +1,327 @@
+/* ===========================================================================
+   THE BODY MAP — the diagram, its pins and the legend under it.
+
+   One sheet for two contexts. In the dialog it is a working surface: the
+   clinician presses it and a numbered pin appears. In the note it is a figure
+   in a document, half the size and inert. Those are not two components — they
+   are the same drawing under two amounts of pressure — so the difference is
+   carried by `--static` modifiers rather than by a second set of class names
+   that would drift apart the first time a pin changed colour.
+
+   See js/lib/body-diagram.js for what a mark is and why it is stored as a
+   fraction of the viewBox rather than as a pixel.
+   ======================================================================== */
+
+.bodymap {
+  display: grid;
+  grid-template-columns: minmax(0, 19rem) minmax(0, 1fr);
+  gap: var(--space-9);
+  align-items: start;
+}
+
+/* Under about 640px the marks list beside the diagram is a column of
+   half-width text inputs, which is worse than a list under a diagram. */
+@media (max-width: 640px) {
+  .bodymap { grid-template-columns: 1fr; }
+}
+
+.bodymap__side {
+  display: grid;
+  gap: var(--space-5);
+}
+
+/* --- Which diagram ----------------------------------------------------------
+   Two choices, so a segmented pair rather than a dropdown: both options are
+   visible, and choosing is one press instead of three.
+   -------------------------------------------------------------------------- */
+
+.bodymap__maps {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+}
+
+.bodymap__map-btn {
+  flex: 1;
+  padding: var(--space-3) var(--space-4);
+  border: var(--border-width-thin) solid transparent;
+  border-radius: var(--radius-sm);
+  background: none;
+  font-family: inherit;
+  font-size: var(--font-size-body-sm);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.bodymap__map-btn[aria-pressed='true'] {
+  background-color: var(--color-bg-surface);
+  border-color: var(--color-border-default);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-brand);
+}
+
+.bodymap__map-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* --- The canvas -------------------------------------------------------------
+   The figures are drawn taller than they are wide, and the canvas is given
+   room to fit the tallest of them. The SVG is centred inside whatever it is
+   given, so the two maps — 200×400 and 200×240 — sit on the same centre line
+   and switching between them does not jump the dialog's height around.
+   -------------------------------------------------------------------------- */
+
+.bodymap__canvas {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-5);
+  min-height: 23rem;
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+}
+
+.bodymap__svg {
+  width: 100%;
+  max-height: 21rem;
+  overflow: visible;
+}
+
+/* The figure is a silhouette, not an illustration: a flat fill a shade off the
+   page, with a hairline to keep it from dissolving into the canvas. It never
+   takes a press — see the note in js/lib/body-diagram.js about why the hit
+   target is a rect over the whole box instead. */
+.bodymap__figure {
+  fill: var(--color-bg-surface-sunken);
+  stroke: var(--color-border-default);
+  stroke-width: 1.5;
+  pointer-events: none;
+}
+
+.bodymap__guide {
+  fill: none;
+  stroke: var(--color-border-default);
+  stroke-width: 1;
+  stroke-dasharray: 4 3;
+  pointer-events: none;
+}
+
+.bodymap__umbilicus {
+  fill: var(--color-border-default);
+  stroke: none;
+}
+
+/* The region names. Sized by a font-size attribute on the group in
+    data/body-maps.js, because the number is in the diagram's own coordinate
+    space: the label has to keep its size relative to the nine boxes it names,
+    on a figure that is drawn at 11rem in the note and 19rem in the dialog. A
+    rem from the type scale would hold still while the drawing around it
+    changed size. The ink and the family are tokenised, as they should be. */
+.bodymap__region-label {
+  fill: var(--color-text-tertiary);
+  font-family: inherit;
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+/* Transparent rather than `fill: none`: a shape with no fill takes no pointer
+   events, which would make this rect an elaborate way of catching nothing. */
+.bodymap__hit {
+  fill: transparent;
+  cursor: crosshair;
+}
+
+/* --- The pins ---------------------------------------------------------------
+   The brand navy, which is the only saturated colour on the figure, so a mark
+   is countable at a glance against the grey silhouette. The white ring is what
+   keeps two adjacent pins legible as two.
+   -------------------------------------------------------------------------- */
+
+.bodymap__pin { cursor: pointer; }
+
+.bodymap__pin-dot {
+  fill: var(--color-brand-solid);
+  stroke: var(--color-bg-surface);
+  stroke-width: 2;
+}
+
+/* The numeral inside a pin. Sized on the <text> itself, for the same reason
+   .bodymap__region-label is — it belongs to the drawing, not to the page. */
+.bodymap__pin-num {
+  fill: var(--color-text-inverse);
+  font-family: inherit;
+  font-weight: var(--font-weight-bold);
+  text-anchor: middle;
+  pointer-events: none;
+}
+
+.bodymap__pin:focus-visible .bodymap__pin-dot {
+  stroke: var(--color-border-focus);
+  stroke-width: 3;
+}
+
+.bodymap__caption {
+  margin: 0;
+  font-size: var(--font-size-caption);
+  color: var(--color-text-tertiary);
+  text-align: center;
+}
+
+.bodymap__hint {
+  margin: 0;
+  font-size: var(--font-size-body-sm);
+  line-height: var(--line-height-normal);
+  color: var(--color-text-secondary);
+}
+
+/* --- The marks list ---------------------------------------------------------
+   One row per pin: its number, and the words that make it a finding.
+   -------------------------------------------------------------------------- */
+
+.bodymap__marks { display: grid; gap: var(--space-5); align-content: start; }
+
+.bodymap__marks-title {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.bodymap__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--space-4);
+}
+
+.bodymap__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+/* The number is the only thing tying this row to a dot on a picture, so it is
+   drawn as that dot: same navy, same white numeral, same diameter. */
+.bodymap__row-num,
+.bodymap__legend-num {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-8);
+  height: var(--space-8);
+  border-radius: var(--radius-full);
+  background-color: var(--color-brand-solid);
+  color: var(--color-text-inverse);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-bold);
+}
+
+.bodymap__row-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: var(--control-height-sm);
+  padding: 0 var(--space-4);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+  font-family: inherit;
+  font-size: var(--font-size-body-sm);
+  color: var(--color-text-primary);
+}
+
+.bodymap__row-input:focus {
+  outline: none;
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px var(--color-brand-surface);
+}
+
+.bodymap__row-static {
+  flex: 1 1 auto;
+  font-size: var(--font-size-body-sm);
+  color: var(--color-text-primary);
+}
+
+/* The selected row is the one whose pin was just pressed. A tinted edge rather
+   than a tinted fill: the row holds a white text input, and a filled row with a
+   white box in it reads as a field that has gone wrong. */
+.bodymap__row.is-selected .bodymap__row-input {
+  border-color: var(--color-border-brand);
+}
+
+.bodymap__row-drop {
+  flex: none;
+  padding: 0 var(--space-3);
+  border: 0;
+  background: none;
+  font-size: var(--font-size-lg);
+  line-height: 1;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+}
+
+.bodymap__row-drop:hover { color: var(--color-status-critical-text); }
+.bodymap__row-drop:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: var(--radius-sm);
+}
+
+.bodymap__empty {
+  margin: 0;
+  font-size: var(--font-size-body-sm);
+  font-style: italic;
+  color: var(--color-text-tertiary);
+}
+
+/* --- In the note ------------------------------------------------------------
+   Smaller, unpressable, and laid out as a figure with its legend beside it —
+   which is how it will print. Nothing here is a control.
+   -------------------------------------------------------------------------- */
+
+.bodymap--static {
+  display: grid;
+  grid-template-columns: minmax(0, 14rem) minmax(0, 1fr);
+  grid-template-areas:
+    'canvas legend'
+    'caption legend';
+  gap: var(--space-3) var(--space-7);
+  align-items: start;
+  margin: 0;
+}
+
+@media (max-width: 640px) {
+  .bodymap--static {
+    grid-template-columns: 1fr;
+    grid-template-areas: 'canvas' 'caption' 'legend';
+  }
+}
+
+.bodymap--static .bodymap__canvas {
+  grid-area: canvas;
+  min-height: 0;
+  padding: var(--space-4);
+}
+.bodymap--static .bodymap__caption { grid-area: caption; }
+.bodymap--static .bodymap__legend,
+.bodymap--static .bodymap__empty { grid-area: legend; }
+
+.bodymap__canvas--static .bodymap__svg { max-height: 16rem; }
+
+.bodymap__legend {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--space-4);
+}
+
+.bodymap__legend-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  font-size: var(--font-size-body-sm);
+  color: var(--color-text-primary);
+}

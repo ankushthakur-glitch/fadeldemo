@@ -180,75 +180,13 @@
   background-color: var(--color-bg-surface);
 }
 
-.enc__patient-top { display: flex; align-items: center; gap: var(--space-5); }
 
-.enc__avatar {
-  flex: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--space-11);
-  height: var(--space-11);
-  border-radius: var(--radius-full);
-  background-color: var(--color-brand-surface);
-  color: var(--color-brand-text);
-  font-size: var(--font-size-body);
-  font-weight: var(--font-weight-semibold);
-}
-
-.enc__patient-heading { flex: 1; min-width: 0; }
-
-.enc__patient-name {
-  font-size: var(--font-size-heading-md);
-  font-weight: var(--font-weight-semibold);
-  line-height: var(--line-height-tight);
-  color: var(--color-text-link);
-}
-
-/*
- * "WHO IS THIS", IN TWO DELIBERATE LINES.
- *
- * The identifiers on one, the demographics on the other. It used to be a
- * single string with the punctuation inside it — "DOB: 11-05-1975 (51 yrs)
- * (Male)" — which put two bracketed asides in a row and broke wherever the
- * card happened to run out of room.
- *
- * Two rows rather than a wrapping row: nothing this long fits across a 20rem
- * rail, so letting it wrap only decides at render time which fact gets orphaned
- * and leaves a separator stranded at the end of a line. Choosing the break
- * puts it between the two kinds of fact, where a reader would have put it.
- */
-.enc__patient-idline {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  margin-top: var(--space-5);
-  font-size: var(--font-size-caption);
-  color: var(--color-text-secondary);
-}
-
-.enc__patient-facts {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-  margin-top: var(--space-6);
-  padding-top: var(--space-6);
-  border-top: var(--border-width-thin) solid var(--color-border-subtle);
-}
-
-/* 7.5rem for a three-word label left the value column too narrow to hold
-   "Blue Cross Blue Shield ND — PPO" on one line, so the one card that is meant
-   to be read at a glance wrapped in the middle of the payer's name. The
-   labels are short; the values are not. */
-.enc__fact { display: grid; grid-template-columns: 5.25rem minmax(0, 1fr); gap: var(--space-4); }
-.enc__fact dt {
-  font-size: var(--font-size-2xs);
-  letter-spacing: var(--letter-spacing-wide);
-  text-transform: uppercase;
-  color: var(--color-text-tertiary);
-  font-weight: var(--font-weight-semibold);
-}
-.enc__fact dd { font-size: var(--font-size-caption); overflow-wrap: anywhere; }
+/* Everything INSIDE the card is drawn by js/lib/patient-card.js and styled by
+   css/components/patient-card.css. This screen used to hold its own copy of
+   the photograph, the name, the identity line and the three facts, and the
+   procedure encounter and the encounter summary held two more — see the head
+   of that module for what four copies of one card cost. What stays here is
+   how the card sits in this screen's rail. */
 
 /* --- Sidebar ----------------------------------------------------------------
    The rail was a tab strip — Clinical Data / Visit Note / Orders — then the
@@ -703,9 +641,6 @@
   .enc__rail-slot[data-collapsed='true'] .encv__rail-title { display: flex; }
   .enc__rail-slot .encv__rail-spine { display: none; }
 
-  /* Identity stays one line (enc__patient-idline); Mobile/Insurance/Provider
-     get a narrower label column so the value has room to breathe. */
-  .enc__fact { grid-template-columns: auto minmax(0, 1fr); gap: var(--space-3); }
 
 }
 
@@ -824,6 +759,44 @@ body.is-locked .enc__note {
 /* The template picker sits with the document actions it belongs to, wide
    enough that "Colonoscopy with polypectomy" reads without truncating. */
 .enc__doc-bar ui-select { width: 16rem; }
+
+/* --- The encounter clock ---------------------------------------------------
+   A bordered pill in the brand tint rather than plain text, because it is the
+   only thing on this screen that changes on its own: a number that moves
+   without anybody touching it needs to look like an instrument, or it reads as
+   a rendering fault.
+
+   Tabular figures, and that is not cosmetic — proportional digits make the
+   whole pill jump sideways every time a 1 turns into a 2, once a second, for as
+   long as the note is open.
+   -------------------------------------------------------------------------- */
+
+.enc__timer {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-6);
+  border: var(--border-width-thin) solid var(--color-border-brand-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-brand-surface-subtle);
+  color: var(--color-brand-text);
+}
+
+.enc__timer .ui-icon { color: var(--color-brand-text); }
+
+.enc__timer-value {
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--line-height-tight);
+}
+
+/* A clock is a fact about the SESSION, not about the document. On paper it
+   would read as a claim about the case rather than an artefact of printing it. */
+@media print {
+  .enc__timer { display: none !important; }
+}
 
 /* --- The document itself --------------------------------------------------------- */
 
@@ -2978,3 +2951,442 @@ body.is-locked .enc__note {
   color: var(--color-text-secondary);
 }
 
+
+/* ===========================================================================
+   WHAT THE REBUILD ADDED, FOLDED BACK IN
+
+   Everything below this line spent the rebuild in a second file,
+   css/screen-clinic-visit-v2.css, linked after this one by a second copy of
+   the screen so that the version being replaced was never edited while the
+   replacement was being shown to people. The rebuild won, took this address,
+   and the second file came home — appended rather than interleaved, because
+   the cascade these rules were written against is "after everything above",
+   and merging them into the sections they overrule would change which
+   declaration wins in a file this long.
+
+   So the headings below still speak of V2. That is not a leftover to tidy: it
+   is the only remaining record of which half of this sheet is the rebuild, and
+   the comments under them explain choices that only make sense as "instead of
+   what was here before".
+
+   The scribe itself is a component and brings its own sheet
+   (css/components/ai-scribe.css); what follows is only what the SCREEN has to
+   do to make room for it.
+   ======================================================================== */
+
+
+/* The scribe sits at the end of the document bar, after the template picker.
+   It is `position: relative` in its own sheet, which is what its panel hangs
+   off; all this does is stop the bar stretching it. */
+#aiScribe {
+  flex: none;
+  margin-left: var(--space-4);
+}
+
+/* The bar has to be able to show a panel that leaves it. Without this the
+   panel is clipped by the document card the moment it opens, and the draft
+   appears as a 20px sliver. */
+.enc__doc-bar {
+  overflow: visible;
+}
+
+/* Where a copied section landed. A short flash on the field itself, because
+   the note is long and the draft panel is at the top of it: without this, Copy
+   to note is a button that appears to do nothing. */
+.enc__vn-field--landed {
+  animation: vn-landed 1.2s var(--ease-out);
+}
+
+@keyframes vn-landed {
+  from {
+    background: #f3efff; /* [DERIVED] the scribe's own surface — see ai-scribe.css */
+  }
+  to {
+    background: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .enc__vn-field--landed {
+    animation: none;
+    outline: 2px solid #d9ccfa; /* [DERIVED] */
+  }
+}
+
+/* ===========================================================================
+   WHAT THE PLAN COMMITS TO
+
+   The orders raised from the Plan, and the recall its follow-up interval will
+   write. Both sit at the foot of the Plan card, inside it — see
+   planCommitmentsHtml() in js/screens/clinic-visit.js for what they are and
+   why they are staged rather than filed.
+
+   THEY ARE ON A SUNKEN SURFACE, and that is the whole of the visual argument.
+   Everything above them in the card is the note: prose a clinician writes and
+   signs their name under. These are records the note PRODUCES — a lab that
+   will exist on the chart, a recall that will exist on a worklist — and
+   drawing them as two more questions in the same white would say they were
+   more of the document. Sunk behind a hairline, they read as the machinery the
+   plan drives, which is what they are.
+   ======================================================================== */
+
+.enc__commit {
+  display: grid;
+  gap: var(--space-8);
+  margin-top: var(--space-7);
+  padding: var(--space-7);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+}
+
+.enc__commit-group {
+  display: grid;
+  gap: var(--space-5);
+}
+
+/* A fourth-level heading inside a card whose title is already an h3, so it is
+   deliberately quieter than that title: this is a part OF the Plan, not a
+   section beside it. */
+.enc__commit-title {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  color: var(--color-text-primary);
+}
+
+/* The three raise buttons. They wrap rather than scroll: at the narrow end of
+   the column three outline buttons do not fit on one row, and a row that
+   scrolls sideways hides the third of three choices. */
+.enc__commit-raise {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.enc__commit-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--space-3);
+}
+
+/* A staged order is one line: what kind, what it is, and a way to take it off
+   again. Not a table — three columns of headers over what is usually one row
+   is chrome outnumbering content. */
+.enc__commit-item {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-bg-surface);
+  font-size: var(--font-size-body-sm);
+  color: var(--color-text-primary);
+}
+
+/* The kind leads, in the brand ink, because a list mixing labs and scopes is
+   read by kind first — "what did I order" before "which one". */
+.enc__commit-kind {
+  flex: none;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-brand);
+}
+
+.enc__commit-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* A plain × rather than a ui-button: removing a staged order is a correction,
+   not an action worth a control the size of the thing it sits beside. */
+.enc__commit-drop {
+  flex: none;
+  padding: 0 var(--space-3);
+  border: 0;
+  background: none;
+  font-size: var(--font-size-lg);
+  line-height: 1;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+}
+
+.enc__commit-drop:hover { color: var(--color-status-critical-text); }
+
+.enc__commit-drop:focus-visible {
+  outline: var(--border-width-thick) solid var(--color-border-focus);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+.enc__commit-empty {
+  padding: var(--space-4) 0;
+  font-size: var(--font-size-body-sm);
+  font-style: italic;
+  color: var(--color-text-tertiary);
+}
+
+/* The line that says what happens on signature. It is the only place the
+   screen states the staging rule, so it is secondary ink rather than tertiary
+   — quiet, but not so quiet it reads as a caption nobody has to finish. */
+.enc__commit-foot {
+  margin: 0;
+  font-size: var(--font-size-body-sm);
+  line-height: var(--line-height-normal);
+  color: var(--color-text-secondary);
+}
+
+.enc__commit-fields { margin: 0; }
+
+/* One column once the note is narrow enough that two selects side by side stop
+   being two selects and start being two slivers — the same break the note's
+   own field grid takes. */
+@media (max-width: 900px) {
+  .enc__commit-fields { grid-template-columns: 1fr; }
+}
+
+/* ===========================================================================
+   V2: THE SECTION BAND
+
+   A section heading was a title in ink on the card's own white, with a navy
+   bar before it — the shape the first half of this sheet gives it, taken
+   from the pre-procedure sheet. It becomes a BAND: a grey strip across the top of
+   the card, closed by a hairline, with the title in the brand navy.
+
+   WHY, GIVEN THE OLD ONE WORKED.
+
+   Because the note has grown blocks it did not have. A template's four or five
+   sections could be told apart by air alone; a note that can also carry a
+   fourteen-row review of systems and a figure with a legend cannot. Those two
+   are full of their own furniture — radio groups, a diagram, a numbered list —
+   and against them a title floating on white stopped reading as the top of a
+   card and started reading as one more label inside whatever came before it.
+
+   A filled band is the oldest answer to that and still the right one: it is a
+   horizontal rule with a height, so it works as a divider AND as a heading at
+   the same time. The navy is what keeps it from reading as a disabled row —
+   grey on grey says "unavailable", and grey under navy says "heading".
+
+   THE NAVY BAR BEFORE THE TITLE COMES OFF. It marked where a section started,
+   and that is now the band's job; keeping both would be saying the same thing
+   twice at the same place, and the bar was the quieter of the two.
+   ======================================================================== */
+
+.enc--visit .enc__vn-section > h3 {
+  padding: var(--space-6) var(--enc-section-inset);
+  background-color: var(--color-bg-surface-sunken);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+  /* The card's own radius, less its border, so the fill stops inside the
+     corner instead of squaring it off. */
+  border-radius: calc(var(--radius-lg) - 1px) calc(var(--radius-lg) - 1px) 0 0;
+  font-size: var(--font-size-title-section);
+  color: var(--color-text-brand);
+}
+
+.enc--visit .enc__vn-section > h3::before { display: none; }
+
+/* The body regains the top inset the old header band's own bottom padding used
+   to provide. With a rule under the title, the first field needs air below it
+   or it sits on the line. */
+.enc--visit .enc__vn-section-body {
+  padding-top: var(--enc-section-inset);
+}
+
+/* A count or a qualifier at the end of a band — "6 of 14", "Abdomen". Pushed
+   to the right so the title keeps the left edge every other band shares, and
+   set in secondary ink because it is a fact about the section, not its name. */
+.enc__ros-count {
+  margin-left: auto;
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-regular);
+  letter-spacing: normal;
+  color: var(--color-text-secondary);
+}
+
+/* ===========================================================================
+   V2: THE TOOL ROW UNDER THE PLAN
+
+   Three things a clinician can add to a note no template offered them. It sits
+   at the very foot of the last card, under the plan's own commitments, and it
+   is drawn ABOVE the card's floor rather than inside a box of its own: these
+   are controls that act on the whole note, and putting them in a third sunken
+   panel under the second one would have made the Plan card a stack of three
+   boxes with the plan itself at the top of it.
+   ======================================================================== */
+
+.enc__vn-tools {
+  display: grid;
+  gap: var(--space-4);
+  margin-top: var(--space-7);
+  padding-top: var(--space-6);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.enc__vn-tools-label {
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+/* Wraps rather than scrolls, for the reason .enc__commit-raise does: a row
+   that scrolls sideways hides the third of three choices. */
+.enc__vn-tools-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+/* ===========================================================================
+   V2: THE REVIEW OF SYSTEMS
+
+   Fourteen systems, each a three-way answer. Two columns, because fourteen in
+   one is a column of radio groups taller than the screen and the clinician
+   loses their place in it; and only two, because three puts "Not examined"
+   hard against the next system's legend at any width a note is actually read
+   at.
+   ======================================================================== */
+
+.enc__ros-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin-bottom: var(--space-7);
+}
+
+.enc__ros-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-6) var(--space-8);
+}
+
+@media (max-width: 900px) {
+  .enc__ros-grid { grid-template-columns: 1fr; }
+}
+
+.enc__ros-row {
+  display: grid;
+  gap: var(--space-2);
+  padding-bottom: var(--space-5);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+/* The prompt is what the clinician would have said out loud, and it goes UNDER
+   the answers rather than between the legend and them: a line of grey text
+   dropped in the middle of a field's own label is a line that gets read as
+   part of the question and then answered instead of the question. */
+.enc__ros-prompt {
+  margin: 0;
+  font-size: var(--font-size-caption);
+  line-height: var(--line-height-normal);
+  color: var(--color-text-tertiary);
+}
+
+.enc__ros-detail-field { margin-top: var(--space-7); }
+
+/* --- Under a signature ------------------------------------------------------
+   The same answers as prose. See rosSectionHtml() for why the form is not
+   simply greyed out and left where it was.
+   -------------------------------------------------------------------------- */
+
+.enc__ros-signed {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-4) var(--space-6);
+  margin: 0;
+  font-size: var(--font-size-body-sm);
+  line-height: var(--line-height-normal);
+}
+
+.enc__ros-signed dt {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+
+.enc__ros-signed dd {
+  margin: 0;
+  color: var(--color-text-primary);
+}
+
+.enc__ros-detail {
+  margin: var(--space-6) 0 0;
+  font-size: var(--font-size-body-sm);
+  line-height: var(--line-height-normal);
+  color: var(--color-text-primary);
+}
+
+/* ===========================================================================
+   V2: A GREY FOOTER
+
+   The two commits on a clinic visit were an outlined navy Save as Draft and a
+   solid navy Save & Sign. They are both grey now, and the labels do not move:
+   the primary commit still reads Save & Sign, because the label is what tells
+   the clinician what the button does and nothing about this change is about
+   that.
+
+   WHY TAKE THE COLOUR OFF THE ONE BUTTON THAT FILES THE DOCUMENT.
+
+   Because it was the only solid navy in the middle column, and it was at the
+   bottom of it, three feet below anything the clinician was reading. A screen
+   has one high-emphasis action and this screen's is not "finish" — it is
+   whatever the clinician is writing at the time. The footer is where you go
+   when you are done, and a commit you go to deliberately does not need to be
+   shouted at across the page; what it needs is to be unmistakable when you get
+   there, which is what keeping the label does.
+
+   The two stay TOLD APART: Save & Sign keeps a darker fill and a border, Save
+   as Draft is the quieter of the pair. A footer whose two buttons are the same
+   grey is a footer where the wrong one gets pressed.
+
+   SCOPED TO .enc--visit, which is on <body> for a clinic visit and absent for
+   the procedure workspace. A procedure signs its report in place and its
+   footer keeps the emphasis it was built with.
+   ======================================================================== */
+
+.enc--visit .enc__foot .ui-btn--primary {
+  background-color: var(--color-neutral-solid);
+  border-color: var(--color-neutral-border);
+  color: var(--color-text-primary);
+}
+
+.enc--visit .enc__foot .ui-btn--primary:hover:not(:disabled) {
+  background-color: var(--color-neutral-solid-hover);
+  border-color: var(--color-neutral-border-strong);
+}
+
+.enc--visit .enc__foot .ui-btn--primary:active:not(:disabled) {
+  background-color: var(--color-neutral-solid-active);
+  color: var(--color-text-inverse);
+}
+
+/* The solid variant's focus ring is drawn for a dark fill. On a light grey it
+   disappears, so the field's own ring is used instead. */
+.enc--visit .enc__foot .ui-btn--primary:focus-visible {
+  box-shadow: var(--focus-ring);
+}
+
+.enc--visit .enc__foot .ui-btn--secondary {
+  background-color: var(--color-bg-surface);
+  border-color: var(--color-neutral-border-subtle);
+  color: var(--color-text-secondary);
+}
+
+.enc--visit .enc__foot .ui-btn--secondary:hover:not(:disabled) {
+  background-color: var(--color-bg-surface-sunken);
+  border-color: var(--color-neutral-border);
+  color: var(--color-text-primary);
+}
+
+.enc--visit .enc__foot .ui-btn--secondary:active:not(:disabled) {
+  background-color: var(--color-bg-surface-active);
+}
+
+/* The hint is empty until the note is signed, so the footer's buttons would
+   sit hard left with nothing pushing them over. The spacer keeps them at the
+   right-hand end where they have always been. */
+.enc--visit .enc__foot-hint { min-height: 1em; }

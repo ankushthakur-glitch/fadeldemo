@@ -30,6 +30,37 @@
    ========================================================================= */
 
 .encv {
+  /*
+   * WHERE THE SCRIBE'S FLOATING BUTTON GOES ON THIS SCREEN.
+   *
+   * "Top right" is a different pixel here than on any other page. There is one
+   * header band — the page head — and then the collapsed Clinical data spine
+   * runs down the whole right edge. The component's own default lands on the
+   * head's Procedure / Endoscopist facts.
+   *
+   * So the top clears the head, and then goes one band further down, to rest
+   * level with the BOOKING CARD. It used to sit lower still, clearing a second
+   * band of note-type and template controls that this screen no longer has.
+   *
+   * It is not enough to clear the head. The button has two widths: a 2.75rem
+   * square while the scribe is idle, which does ride the collapsed Clinical
+   * data spine and touches nothing — and an 8.5rem pill reading "View Notes"
+   * once there is a draft, which reaches about 4.5rem back over the work
+   * column. Level with the document's toolbar that pill lands on Download PDF.
+   * Level with the alerts band it lands on the band's expand chevron. The
+   * booking card is the one full-width row up here whose right-hand end holds
+   * nothing to press, so that is the row it is parked on.
+   *
+   * Set here, where the chrome being cleared is actually declared, rather than
+   * as a number inside a component that cannot see any of it — see .scribe__fab
+   * in css/components/ai-scribe.css.
+   *
+   * There is no right inset to set. The button is a tab pinned to the window's
+   * own edge, which is the one horizontal position that needs no arithmetic
+   * and cannot be wrong.
+   */
+  --scribe-fab-top: 12rem;
+
   display: flex;
   flex-direction: column;
   height: 100vh;
@@ -201,79 +232,13 @@
   background-color: var(--color-bg-surface);
 }
 
-.encv__patient-top {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-4);
-}
-
-.encv__avatar {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--space-10);
-  height: var(--space-10);
-  border-radius: var(--radius-full);
-  background-color: var(--color-brand-surface);
-  color: var(--color-brand-text);
-  font-size: var(--font-size-caption);
-  font-weight: var(--font-weight-semibold);
-}
-
-.encv__patient-heading { flex: 1; min-width: 0; }
-
-.encv__patient-name {
-  font-size: var(--font-size-heading-sm);
-  font-weight: var(--font-weight-semibold);
-  line-height: var(--line-height-tight);
-  /* Primary ink, not link blue. The name is not a link — nothing happens when
-     it is pressed — and blue would promise a navigation this card cannot
-     honour. */
-  color: var(--color-text-primary);
-}
-
-.encv__patient-idline {
-  margin-top: var(--space-1);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  font-size: var(--font-size-2xs);
-  color: var(--color-text-secondary);
-}
-
-/* --- The three looked-up facts ---------------------------------------------
-   A label column and a value column, so Mobile, Insurance and Provider read
-   down one edge. 5.5rem rather than the 7.5rem a wider card would take: the
-   rail is narrow, an uppercase 2xs label needs no more than this, and 7.5 would
-   take the value column below the width a plan name can wrap in sensibly.
+/* Everything INSIDE the card — the photograph, the name, the identity line,
+   the three labelled facts — is drawn by js/lib/patient-card.js and styled by
+   css/components/patient-card.css, because the clinic visit, its fork and the
+   encounter summary draw the same card. What stays here is the rule above:
+   how a card sits in THIS screen's rail, which is the one thing about it that
+   is this screen's business.
    -------------------------------------------------------------------------- */
-
-.encv__patient-facts {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  margin-top: var(--space-5);
-  padding-top: var(--space-5);
-  border-top: var(--border-width-thin) solid var(--color-border-subtle);
-}
-
-.encv__fact {
-  display: grid;
-  grid-template-columns: 5.5rem minmax(0, 1fr);
-  gap: var(--space-3);
-  align-items: baseline;
-}
-.encv__fact dt {
-  font-size: var(--font-size-2xs);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-tertiary);
-}
-.encv__fact dd {
-  font-size: var(--font-size-2xs);
-  color: var(--color-text-primary);
-  overflow-wrap: anywhere;
-}
 
 /* --- The stepper -------------------------------------------------------------
    Six steps down the rail, each a row: marker, number, name, role, caret.
@@ -581,6 +546,117 @@ ul.encv__substeps {
 .encv__doc-spacer { flex: 1; }
 
 /* --- The working surface --------------------------------------------------- */
+
+/* --- The booking ------------------------------------------------------------
+
+   What the front desk booked, under the document's title and its toolbar and
+   above the body that scrolls. `flex: none` so it keeps its height while the
+   document below it scrolls: it is a fact about the ENCOUNTER, and a fact
+   about the encounter that scrolled away with one of its fourteen documents
+   would be a fact half the room never saw.
+
+   IT IS THE SAME CARD AS EVERY OTHER SECTION IN THIS COLUMN. It used to be a
+   band of its own at the very top: drawn on the sunken surface, bled to the
+   panel's own edges, and labelled with an uppercase brand-blue eyebrow in a
+   header band of its own. Nothing else in the work column looked like that, so
+   the one object the eye met first was the one object that matched nothing —
+   and it sat between the reader and the name of the document they had come to
+   work on.
+
+   So it is drawn from --encv-section-*, the properties .encv__doc-section and
+   the checklist's own cards are drawn from (see .encv at the top of this file):
+   white, a 16px inset, a brand-coloured mark at the left of a plain section
+   title. The horizontal margin is the column's gutter, the same measure the
+   alerts band above it is set to and the body's padding below it — so the card
+   lines up with the sections it now reads as the first of.
+   -------------------------------------------------------------------------- */
+
+.encv__appt {
+  flex: none;
+  margin: var(--space-6) var(--space-6) 0;
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-lg);
+  background-color: var(--color-bg-surface);
+}
+
+/* THE STEPS THAT DO NOT CARRY IT — the Procedure step, today. Its own document
+   opens on the service, the indication and the date and then asserts them again
+   in the report it writes, so the card would be a third copy of the same six
+   facts on the one step where room in the work column is scarcest. See
+   STEPS_WITHOUT_BOOKING in js/screens/encounter.js.
+
+   display: none rather than the `hidden` attribute, because this is a fact
+   about the SCREEN and not about the document: the card is still painted and
+   still files, and @media print turns it back on. */
+.encv__appt[data-off-step='true'] { display: none; }
+
+/* The section legend, letter for letter what .encv__doc-legend is — including
+   the brand-coloured mark at its left, which is the thing that says "section
+   card" on this screen. It is an <h2> rather than the sections' <h3> because
+   this one labels the encounter rather than a part of the open document, and
+   the level is the one piece of it that is not about how it looks. */
+.encv__appt-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin: 0;
+  padding: var(--encv-section-inset) var(--encv-section-inset) var(--encv-section-lead);
+  line-height: var(--line-height-tight);
+  font-size: var(--font-size-title-section);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.encv__appt-title::before {
+  content: '';
+  flex: none;
+  width: var(--border-width-thick);
+  height: var(--encv-section-mark);
+  border-radius: var(--radius-full);
+  background-color: var(--color-brand-solid);
+}
+
+/* Six facts laid on a track that fits as many as the column is wide enough
+   for. Not a six-column grid: the work column is between 30rem and 70rem
+   depending on which rails are open, and a fixed six would either crush the
+   date into two lines at the narrow end or strand the facts at the wide one.
+
+   `align-items: start` so a fact whose value wraps to two lines does not drag
+   the labels of the five beside it off their shared baseline. */
+.encv__appt-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  align-items: start;
+  gap: var(--space-6) var(--space-8);
+  padding: 0 var(--encv-section-inset) var(--encv-section-inset);
+}
+
+.encv__appt-fact dt {
+  font-size: var(--font-size-fact-label);
+  color: var(--color-fact-label);
+}
+.encv__appt-fact dd {
+  margin-top: var(--space-2);
+  font-size: var(--font-size-fact-value);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-fact-value);
+  overflow-wrap: anywhere;
+}
+
+/* The reason for the visit is a sentence, and a sentence in a 10rem column
+   wraps four times. It takes the whole row under the six, with a hairline
+   above it: it is the one fact here that is a different KIND of fact — a
+   clinical statement rather than a booking field — and the rule is what stops
+   it reading as a seventh column that happens to have run long. */
+.encv__appt-fact--full {
+  grid-column: 1 / -1;
+  padding-top: var(--space-6);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+}
+.encv__appt-fact--full dd {
+  font-weight: var(--font-weight-regular);
+  line-height: var(--line-height-normal);
+}
 
 /* --- The active-alerts band -----------------------------------------------
    Between the title and the working column, on every step. `flex: none` so it
@@ -2761,10 +2837,11 @@ p.encv__alert-by {
  */
 .encv__sheet-list[data-tone='danger'] { color: var(--color-status-critical-text); }
 
+/* The card's own border. The marker that used to go with it — the brand bar
+   before the title, recoloured critical — is drawn by the section band now
+   that the bar is gone from every card on this screen; see
+   `.encv__doc-section--danger > .encv__doc-legend` at the foot of this file. */
 .encv__doc-section--danger { border-color: var(--color-status-critical-border); }
-.encv__doc-section--danger .encv__doc-legend::before {
-  background-color: var(--color-status-critical-solid);
-}
 
 .encv__sheet-line {
   max-width: 46rem;
@@ -3184,15 +3261,14 @@ p.encv__alert-by {
 .encv__log td { color: var(--color-text-primary); }
 
 /* Meta: units, stamps, the person who wrote the row. The rail's own meta line
-   is set with the rail — see the note on the headings above. */
+   is set with the rail, and the patient card's with the card — see the note on
+   the headings above, and css/components/patient-card.css. */
 .encv__log-note,
 .encv__doc-note,
 .encv__check-hint,
-.encv__patient-idline,
 .encv__score-action,
 .encv__empty-note,
-.encv__foot-hint,
-.encv__fact dt { color: var(--color-text-tertiary); }
+.encv__foot-hint { color: var(--color-text-tertiary); }
 
 /* --- The procedure documents ------------------------------------------------
    The same three ranks, applied to the parts only the document renderer draws.
@@ -3325,6 +3401,17 @@ p.encv__alert-by {
   .encv__foot,
   .ui-modal,
   .ui-toast-region { display: none !important; }
+
+  /* The booking band is KEPT, on every step INCLUDING the ones that put it away
+     on screen. A printed procedure report has to say whose booking it was — it
+     is the one thing a page pulled out of a folder cannot be read without — so
+     the screen-only hide is lifted here and the card prints whole rather than
+     breaking across a page. */
+  .encv__appt { break-inside: avoid; }
+  /* `:not([hidden])` so this lifts the screen-only hide and nothing else — a
+     page opened with no booking behind it has an empty card marked `hidden`,
+     and an !important display would print that instead of leaving it out. */
+  .encv__appt[data-off-step='true']:not([hidden]) { display: block !important; }
 
   /* The screen's three-column grid is a viewport-height layout with two
      scrolling boxes in it. On paper there is no viewport and nothing scrolls,
@@ -3576,3 +3663,1003 @@ p.encv__alert-by {
 }
 
 .encv-sheet__list li { margin-bottom: var(--space-2); }
+
+
+/* ===========================================================================
+   THE PROCEDURE REPORT — the specimen table, the live feed, the derived cards
+
+   Everything below arrived with the rebuild, in a sheet of its own
+   (css/screen-encounter-v2.css) loaded only by the second address while the
+   two versions ran side by side. The rebuild won and took this address, so the
+   sheet is folded in here and that file is gone — which was the plan the day
+   it was created. See the head of js/screens/encounter.js.
+   ======================================================================== */
+
+/* ===================== The specimen table ===================== */
+
+/* The count and the controls live in the section's own <h3>, so "Specimens ·
+   2 jars" is one line and the controls sit at the end of it. The slot takes the
+   rest of the heading's width and pushes the buttons to the right; the heading
+   itself is already a flex row (see .encv__doc-legend in
+   css/screen-encounter.css), so nothing about it needs overruling. */
+.spec__legend-slot {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.spec__count {
+  padding: var(--space-1) var(--space-4);
+  border-radius: var(--radius-full);
+  background: var(--color-brand-surface);
+  color: var(--color-brand-text);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+}
+
+.spec__head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  /* Pushed to the far end of the heading, away from the count it is not part
+     of. The count describes the card; these act on it. */
+  margin-left: auto;
+  /* The heading is bold and large; its controls are neither, and inherit both
+     unless told otherwise. */
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-regular);
+}
+
+/* The table scrolls sideways rather than squeezing: nine columns do not fit a
+   narrow centre column at a readable size, and a cell that has been squeezed to
+   fit is a cell somebody misreads a fixative out of. */
+.spec__scroll {
+  overflow-x: auto;
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.spec__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+
+.spec__table thead th {
+  padding: var(--space-4) var(--space-5);
+  background: var(--color-bg-surface-sunken);
+  border-bottom: 1px solid var(--color-border-subtle);
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.spec__row + .spec__row .spec__cell {
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.spec__row:hover {
+  background: var(--color-bg-surface-hover);
+}
+
+/* Read, not typed into. Every answer here was committed in the dialog, so the
+   row is text at a glance — which is the only way nine columns stay legible to
+   somebody holding a scope. */
+.spec__cell {
+  padding: var(--space-4) var(--space-5);
+  color: var(--color-text-secondary);
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+/* The row that holds the space open when there is nothing in the list. Tall
+   enough to read as a row, quiet enough not to read as data. */
+.spec__cell--empty {
+  padding: var(--space-9) var(--space-5);
+  color: var(--color-text-tertiary);
+  text-align: center;
+}
+
+.spec__row--empty:hover {
+  background: transparent;
+}
+
+.spec__cell--site {
+  color: var(--color-text-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+/* The one column that is allowed to be long, and the one that has to be: a
+   finding is a sentence, and truncating it would hide the thing the jar is
+   labelled against. */
+.spec__cell--finding {
+  max-width: 20rem;
+  white-space: normal;
+}
+
+/* The jar number is the one thing on the row that is written on something
+   physical, so it is drawn as the token it is rather than as a number. */
+.spec__jar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.75rem;
+  height: 1.75rem;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--color-brand-surface);
+  color: var(--color-brand-text);
+  font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+.spec__status {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+}
+
+.spec__status--labelling {
+  background: var(--color-status-warning-surface);
+  color: var(--color-status-warning-text);
+}
+
+.spec__status--labelled {
+  background: var(--color-status-success-surface);
+  color: var(--color-status-success-text);
+}
+
+.spec__status--sent {
+  background: var(--color-status-info-surface);
+  color: var(--color-status-info-text);
+}
+
+.spec__cell--actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.spec__icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+}
+
+.spec__icon-btn:hover {
+  background: var(--color-brand-surface);
+  color: var(--color-brand-text);
+}
+
+.spec__icon-btn--drop:hover {
+  background: var(--color-status-critical-surface);
+  color: var(--color-status-critical-text);
+}
+
+.spec__icon-btn:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 1px;
+}
+
+/* ===================== The dialog ===================== */
+
+/* Two columns, with the finding across both: it is the answer the jar cannot be
+   saved without, and the one that fills in three of the answers under it, so it
+   is asked first and given the width of a sentence. */
+.specform {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-6);
+}
+
+.specform__wide {
+  grid-column: span 2;
+}
+
+/* The line that stands where the finding list would be, on a report with
+   nothing recorded on it yet. It sits directly under the empty control it
+   explains, and goes the moment there is anything to pick. */
+.specform__none {
+  grid-column: span 2;
+  margin: calc(var(--space-5) * -1) 0 0;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+}
+
+/* ===================== The marks on the findings ===================== */
+
+/* A jar chip sits with the finding's own summary, not beside its buttons: it is
+   a fact about the finding, and the buttons are things to do to it. */
+.spec__chip {
+  display: inline-flex;
+  align-items: center;
+  margin-top: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  background: var(--color-brand-surface);
+  color: var(--color-brand-text);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* The offer is drawn as an invitation rather than as a button among buttons:
+   dashed, quiet, and only on findings whose tissue is otherwise unaccounted
+   for. */
+.spec__offer {
+  display: inline-flex;
+  align-items: center;
+  margin-top: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border: 1px dashed var(--color-border-brand);
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-text-brand);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+.spec__offer:hover {
+  background: var(--color-brand-surface);
+}
+
+.spec__offer:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 1px;
+}
+
+/* A segment holding tissue. The ring is drawn inside the hotspot so it reads as
+   a mark ON the anatomy rather than as a second, larger hotspot over it. */
+.segf__hotspot--specimen::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 2px solid var(--color-brand-solid);
+  border-radius: var(--radius-sm);
+  pointer-events: none;
+}
+
+.spec__swatch {
+  border: 2px solid var(--color-brand-solid);
+  background: transparent;
+}
+
+/* ===================== What prints ===================== */
+
+/* Labels are laid out as a sheet of them, sized to a common 50 × 25 mm pot
+   label. They only exist inside a print, so everything here is deliberately
+   physical: millimetres, not tokens. */
+.speclabels__title {
+  margin: 0 0 var(--space-6);
+  font-size: var(--font-size-lg);
+}
+
+.speclabels__sheet {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4mm;
+}
+
+.speclabel {
+  width: 50mm;
+  min-height: 25mm;
+  padding: 2mm 3mm;
+  border: 1px solid #000;
+  border-radius: 1mm;
+  font-size: 7pt;
+  line-height: 1.25;
+  break-inside: avoid;
+}
+
+.speclabel__jar {
+  margin: 0;
+  font-size: 9pt;
+  font-weight: 700;
+}
+
+.speclabel__jar span {
+  font-weight: 400;
+}
+
+.speclabel__name,
+.speclabel__site {
+  margin: 0.5mm 0 0;
+  font-weight: 700;
+}
+
+.speclabel__meta {
+  margin: 0;
+  color: #333;
+}
+
+/* The requisition is a form a laboratory reads, so it is plain: black on white,
+   one table, no brand surfaces that a fax or a photocopier would turn to mud. */
+.specreq__head {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-9);
+  padding-bottom: var(--space-6);
+  border-bottom: 2px solid #000;
+}
+
+.specreq__title {
+  margin: 0;
+  font-size: var(--font-size-xl);
+}
+
+.specreq__lab {
+  margin: var(--space-1) 0 0;
+  font-size: var(--font-size-sm);
+}
+
+.specreq__facts {
+  display: grid;
+  grid-template-columns: auto auto;
+  gap: var(--space-2) var(--space-6);
+  margin: 0;
+  font-size: var(--font-size-sm);
+}
+
+.specreq__facts div {
+  display: contents;
+}
+
+.specreq__facts dt {
+  color: #555;
+}
+
+.specreq__facts dd {
+  margin: 0;
+  font-weight: 600;
+}
+
+.specreq__sub {
+  margin: var(--space-8) 0 var(--space-4);
+  font-size: var(--font-size-md);
+}
+
+.specreq__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+
+.specreq__table th,
+.specreq__table td {
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid #999;
+  text-align: left;
+}
+
+.specreq__table th {
+  background: #eee;
+}
+
+.specreq__prose {
+  margin: 0;
+  font-size: var(--font-size-sm);
+}
+
+.specreq__sign {
+  margin: var(--space-10) 0 0;
+  padding-top: var(--space-4);
+  border-top: 1px solid #999;
+  font-size: var(--font-size-sm);
+}
+
+/* ===================== The live feed ===================== */
+
+/*
+ * The panel itself is a floating window and is styled with the component it
+ * belongs to — see css/components/scope-feed.css. What is left here is
+ * everything the feed changes about the REPORT while it is running: the clock
+ * in the toolbar, the aim on the findings list, and what a capture looks like
+ * on the photo card.
+ *
+ * There was a two-track split here once, laying the feed out beside Findings.
+ * It is gone with the card it laid out.
+ */
+
+/* ===================== The clock in the toolbar ===================== */
+
+/*
+ * The pill beside End feed. Not a <ui-badge>: a badge states a status that is
+ * true of a record, and this is a running clock — it changes four times a
+ * second and it says the room is mid-case, which is a fact about right now
+ * rather than about the document.
+ */
+.encv__feed-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-5);
+  border: var(--border-width-thin) solid var(--color-status-critical-border);
+  border-radius: var(--radius-full);
+  background-color: var(--color-status-critical-surface);
+  color: var(--color-status-critical-text);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.encv__feed-dot {
+  width: var(--space-4);
+  height: var(--space-4);
+  border-radius: var(--radius-full);
+  background-color: var(--color-status-critical-solid);
+}
+
+/* ===================== Aiming the captures ===================== */
+
+/*
+ * The press on a recorded finding that sends the next capture to it, and the
+ * label the aimed-at one wears instead.
+ *
+ * Deliberately the quietest control on the row. The two icon buttons beside it
+ * edit and delete a finding; this one changes where a photo will be filed, and
+ * a third loud control on a row that is mostly read would make the list harder
+ * to read for the sake of a press most rows never get.
+ */
+.feed__aim {
+  display: inline-block;
+  margin-top: var(--space-3);
+  padding: var(--space-1) var(--space-4);
+  border: var(--border-width-thin) dashed var(--color-border-default);
+  border-radius: var(--radius-full);
+  background: none;
+  color: var(--color-text-tertiary);
+  font: inherit;
+  font-size: var(--font-size-2xs);
+  cursor: pointer;
+}
+
+.feed__aim:hover {
+  border-color: var(--color-border-brand);
+  color: var(--color-text-brand);
+}
+
+.feed__aim:focus-visible {
+  outline: var(--focus-ring);
+}
+
+/* And the one it is on now: a statement, not a press. Solid rather than
+   dashed, in the same success family the Capture button and the measurement
+   box wear, so "where the picture goes" is one colour across the monitor and
+   the list. */
+.feed__aim--on {
+  border-style: solid;
+  border-color: var(--color-status-success-border);
+  background-color: var(--color-status-success-surface);
+  color: var(--color-status-success-text);
+  font-weight: var(--font-weight-semibold);
+  cursor: default;
+}
+
+/* The row itself, marked so the aim is findable without reading every chip. */
+.segf__item--capturing {
+  border-color: var(--color-status-success-border);
+  box-shadow: inset var(--border-width-thick) 0 0 var(--color-status-success-solid);
+}
+
+/* The Findings card's instruction while a feed is beside it — see
+   markFeedOnFindings. Brand-coloured because it is the one line on the card
+   that is an instruction rather than an explanation. */
+.encv__doc-note--live {
+  color: var(--color-text-brand);
+  font-weight: var(--font-weight-medium);
+}
+
+/* ===================== What a capture looks like on the card ===================== */
+
+.encv__photo figcaption {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.encv__photo-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The clock, held to the end of the caption and never squeezed: a strip of
+   stills is read as a sequence, and the sequence is the times down the right
+   of it. */
+.encv__photo-at {
+  flex: none;
+  color: var(--color-text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* A clip says so on the picture rather than in the caption, because the
+   caption is what a tile is FOR and this is what KIND of tile it is. */
+.encv__photo-clip {
+  position: absolute;
+  top: var(--space-2);
+  left: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-bg-media);
+  color: var(--color-text-on-media-strong);
+  font-size: var(--font-size-2xs);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Where the next press will land — see photosMarkup. Dashed and empty,
+   because it is not a photo: it is the space the next one will take. */
+.encv__photo--next {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 7rem;
+  padding: var(--space-6);
+  border-style: dashed;
+  border-color: var(--color-border-brand-subtle);
+  background-color: var(--color-brand-surface-subtle);
+  text-align: center;
+}
+
+.encv__photo-next-lead {
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-2xs);
+}
+
+.encv__photo-next-target {
+  color: var(--color-text-brand);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-semibold);
+  overflow-wrap: anywhere;
+}
+
+/* ===================== The instrument ===================== */
+
+/*
+ * The scope's identity, read from the unit's register rather than typed. A
+ * definition list because that is what it is — six labelled facts about one
+ * object — and laid out as a grid so serial, asset tag and cycle line up in a
+ * column somebody can run an eye down when they are checking one against a
+ * washer log.
+ */
+.scope__facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: var(--space-5) var(--space-7);
+  margin: 0;
+}
+
+.scope__facts dt {
+  margin-bottom: var(--space-1);
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-2xs);
+}
+
+.scope__facts dd {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  /* Serials and cycle ids are compared digit by digit against a sticker or a
+     printout, which is the one job proportional figures are bad at. */
+  font-variant-numeric: tabular-nums;
+}
+
+/* A scope outside its hang-time window. A warning and not a refusal: it is in
+   the patient by the time anybody reads this. */
+.scope__stale {
+  margin: var(--space-6) 0 0;
+  padding: var(--space-5) var(--space-6);
+  border-radius: var(--radius-md);
+  background-color: var(--color-status-warning-surface);
+  color: var(--color-status-warning-text);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-normal);
+}
+
+/* ===================== The timings ===================== */
+
+.timings {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-5);
+  margin: 0;
+}
+
+/* The three derived intervals sit under the three marks they are computed
+   from, separated by a rule rather than a heading: the relationship between
+   the two rows is subtraction, and a word for that would be in the way. */
+.timings--derived {
+  margin-top: var(--space-6);
+  padding-top: var(--space-6);
+  border-top: var(--border-width-thin) solid var(--color-border-subtle);
+}
+
+.timing {
+  padding: var(--space-5) var(--space-6);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+}
+
+.timing__label {
+  margin-bottom: var(--space-1);
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-2xs);
+}
+
+.timing__value {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+  line-height: var(--line-height-tight);
+}
+
+/*
+ * WITHDRAWAL IS THE ONE DRAWN LOUD.
+ *
+ * It is the number this card exists for — the best-evidenced process measure
+ * in screening colonoscopy, and the one a unit audits per endoscopist. Beside
+ * two other clock readings in the same weight it would be read as a third
+ * equal fact, which is exactly what it is not.
+ */
+.timing--lead {
+  background-color: var(--color-status-success-surface);
+}
+
+.timing--lead .timing__value {
+  color: var(--color-status-success-text);
+}
+
+/* Short, and marked rather than scolded — the sentence under the card says
+   why a short withdrawal is often the right answer. */
+.timing--short {
+  background-color: var(--color-status-warning-surface);
+}
+
+.timing--short .timing__value {
+  color: var(--color-status-warning-text);
+}
+
+.timings__note {
+  margin: var(--space-6) 0 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-normal);
+}
+
+.timings__note--warn {
+  color: var(--color-status-warning-text);
+}
+
+/* ===================== The narrative note ===================== */
+
+/*
+ * Set as a document rather than as a form field: a measure that stops short of
+ * the full column width, a reading line height, and blocks with their own
+ * small headings. It is the one thing on this screen that is going to be read
+ * as prose — by the referrer, and by whoever opens the notes in two years —
+ * and 14px at form leading across a 1200px column is not how anybody reads
+ * five paragraphs.
+ */
+.narrative {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-7);
+  max-width: 44rem;
+}
+
+.narrative__title {
+  margin: 0 0 var(--space-2);
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.narrative__text {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--font-size-md);
+  line-height: var(--line-height-normal);
+}
+
+.narrative__actions {
+  display: flex;
+  margin-top: var(--space-7);
+}
+
+/* ===================== Provenance on a card ===================== */
+
+/*
+ * "AI FILLED" — WHAT THE SIGNATURE AT THE FOOT IS COVERING.
+ *
+ * A paragraph the scribe wrote and the clinician accepted looks, from the
+ * moment the dialog closes, exactly like one they typed. The signature at the
+ * foot of the report covers both. This badge is the only thing on the page
+ * that can still tell them apart, and it is the thing a reader six months
+ * later has no other way of recovering.
+ *
+ * It is NOT a warning, and it is drawn accordingly: the scribe's own purple
+ * rather than an alert colour, quiet, at the end of the card's own title.
+ * Nothing is wrong with a card wearing it — the clinician read the paragraph
+ * and pressed a button — and a badge that looked like a problem would train
+ * people to clear it rather than to notice it.
+ */
+.encv__ai-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: none;
+  /* Pushed to the end of the heading, past the title and any controls, so a
+     column of cards reads as a column of titles with the marked ones flagged
+     at the same x — rather than as titles of varying length. */
+  margin-left: auto;
+  padding: var(--space-1) var(--space-4);
+  border-radius: var(--radius-full);
+  background-color: var(--scribe-chip);
+  color: var(--scribe-chip-ink);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-semibold);
+  /* The heading is bold and 14px; this is neither, and inherits both unless
+     told otherwise. */
+  letter-spacing: 0;
+  white-space: nowrap;
+}
+
+.encv__ai-badge .ui-icon {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+/* ===========================================================================
+   V2: THE SECTION BAND, ON EVERY CARD IN THE PROCEDURE WORKSPACE
+
+   Three blocks in this file draw the same object, and have drawn it the same
+   way since the work column was built: the booking card at the top
+   (.encv__appt-title), the pre-procedure checklist's eleven sections
+   (.encv .pck__section) and every section of every document the run writes
+   (.encv__doc-section). A title in primary ink on the card's own white, with a
+   brand-coloured bar before it, at the same inset as the fields below.
+
+   The clinic visit note was drawn from those measurements and has since moved
+   past them — see "V2: THE SECTION BAND" in css/screen-clinic-visit.css. Its
+   heading is now a grey strip across the top of the card, closed by a hairline,
+   with the title in the brand navy and no bar. This block takes the same shape
+   for the procedure workspace, on the same argument and one more.
+
+   THE ARGUMENT THE NOTE MADE. A title floating on white reads as the top of a
+   card only for as long as the card is four or five fields. Once a section is
+   full of its own furniture the title stops winning against it and starts
+   reading as one more label inside whatever came before. The procedure
+   documents have more of that furniture than the note ever will: a live scope
+   feed, a specimen table with its own count chip and controls, a photo strip, a
+   nine-column intra-procedure log, a findings picker. A filled band is the
+   oldest answer and still the right one — it is a horizontal rule with a
+   height, so it divides and labels in the same stroke. The navy is what keeps
+   grey-on-grey from reading as a disabled row.
+
+   THE ARGUMENT THIS SCREEN ADDS. A nurse works step 1 and a physician works
+   step 3, and between them somebody works the check-out sheet — three
+   documents, one column, one session. They were meant to look identical and
+   the whole point of --encv-section-* is that they stay identical. Restyling
+   one of the three would have been the drift those properties exist to
+   prevent, so all three move together, and the clinic visit note makes four:
+   the same object in the same product now looks the same wherever it is met.
+
+   THE BAR COMES OFF. It marked where a section started, which is now the
+   band's job. Keeping both says the same thing twice in the same place, and
+   the bar was the quieter of the two.
+   ======================================================================== */
+
+.encv__appt-title,
+.encv .pck__legend,
+.encv__doc-legend {
+  padding: var(--space-6) var(--encv-section-inset);
+  background-color: var(--color-bg-surface-sunken);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+  /* The card's own radius, less its border, so the fill stops inside the
+     corner instead of squaring it off. */
+  border-radius: calc(var(--radius-lg) - 1px) calc(var(--radius-lg) - 1px) 0 0;
+  color: var(--color-text-brand);
+}
+
+.encv__appt-title::before,
+.encv .pck__legend::before,
+.encv__doc-legend::before { display: none; }
+
+/* The bodies regain the top inset the old header band's own bottom padding
+   used to provide. With a rule under the title, the first field needs air
+   below it or it sits on the line. */
+.encv__appt-facts,
+.encv .pck__grid,
+.encv__doc-section-body {
+  padding-top: var(--encv-section-inset);
+}
+
+/* --- The two sections whose answer sits on the title's line ------------------
+   "Patient Arrival" and "Staff Initials" on the pre-procedure sheet, which
+   become a row rather than a stack once the sheet is wide enough — see
+   .encv .pck__section--compact above. A band across the top of a card is the
+   wrong shape for them: the title is not a header there, it is the left half
+   of a row, and a grey strip that stopped halfway across would read as a fill
+   that had failed to paint.
+
+   So the band turns ninety degrees with the layout. It keeps its fill and its
+   hairline, on the edge it actually meets the answer at, and takes the two
+   corners it is now in. `align-self: stretch` is what makes it a panel rather
+   than a label with a background: the section centres its children, so without
+   it the fill would be the height of one line of text floating in a card.
+   -------------------------------------------------------------------------- */
+@container pck-sheet (width >= 34rem) {
+  .encv .pck__section--compact > .pck__legend {
+    align-self: stretch;
+    padding: var(--space-6) var(--encv-section-inset);
+    border-bottom: 0;
+    border-right: var(--border-width-thin) solid var(--color-border-subtle);
+    border-radius: calc(var(--radius-lg) - 1px) 0 0 calc(var(--radius-lg) - 1px);
+  }
+}
+
+/* --- The warning signs ------------------------------------------------------
+   One section on the discharge sheet is drawn in critical rather than body
+   colour, and it is the only one for the reason recorded at
+   .encv__doc-section--danger above: a page where three things are red is a
+   page where nothing is. Its marker used to be the brand bar recoloured. The
+   bar is gone, so the band carries it instead — critical ink on the critical
+   surface, closed by a critical hairline, inside the critical border the card
+   already wears. It is the one band on the run that is not grey, which is
+   exactly as loud as this block is supposed to be.
+   -------------------------------------------------------------------------- */
+.encv__doc-section--danger > .encv__doc-legend {
+  background-color: var(--color-status-critical-surface);
+  border-bottom-color: var(--color-status-critical-border);
+  color: var(--color-status-critical-text);
+}
+
+@media print {
+  /* A band is a fill, and a fill is the first thing a practice printer either
+     eats a cartridge over or drops entirely — which on the discharge sheet
+     would leave the warning signs as the one heading that came out grey. The
+     same logic that takes the card's border off on paper takes the fill off
+     too, and for the same reason: what is wanted on paper is one document with
+     headings in it, not eleven boxes.
+
+     THE HAIRLINE STAYS, because a heading with a rule under it is what a form
+     looks like printed — and it is what the section rule above this one has
+     always preserved. The navy goes back to body ink with the fill: navy on
+     white is a colour cartridge spent on something the weight and the rule
+     have already said, and on a mono printer it is grey text at the top of
+     every section. Critical ink is the exception and stays, because the point
+     of that block is that it is not read in the same voice as the rest. */
+  .encv__appt-title,
+  .encv .pck__legend,
+  .encv__doc-legend {
+    background: none;
+    color: var(--color-text-primary);
+  }
+
+  .encv__doc-section--danger > .encv__doc-legend {
+    background: none;
+    color: var(--color-status-critical-text);
+  }
+}
+
+/* ===========================================================================
+   THE BOOKING CARD FOLDS
+
+   The band above is now a button, and the six facts behind it. Everything that
+   makes it look like a section band is the rule further up this file, which it
+   shares with the checklist's headings and the documents' — this block is only
+   what a band has to add to stop looking like a heading somebody made
+   clickable: the browser's own button chrome off, the whole strip as the hit
+   area rather than the words, a hover, a focus ring and a caret at the end.
+
+   See the comment on `apptOpen` in js/screens/encounter.js for why it arrives
+   shut, and the markup in screens/encounter.html for why the <h2> is still
+   there with the button inside it.
+   ======================================================================== */
+
+/* The heading is now a wrapper and nothing else: every measurement it used to
+   carry is on the button, because a hit area that stops short of the band's
+   edges is a hit area that misses. */
+.encv__appt-head { margin: 0; }
+
+.encv__appt-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  width: 100%;
+  /* The button's own frame off, and the band's hairline put straight back:
+     `border: 0` alone would take the rule under the title with it, because
+     this block is read after the one that drew it. */
+  border: 0;
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.encv__appt-title:hover { background-color: var(--color-bg-surface-hover); }
+.encv__appt-title:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+
+/* SHUT, THE BAND IS THE WHOLE CARD. Its hairline would sit one pixel above the
+   card's own bottom border — two lines drawn at the same place, which reads as
+   a card that has failed to paint rather than as one that is folded. The
+   colour goes rather than the border, so the band keeps its height and the
+   strip does not jump a pixel on every press; and the radius closes at the
+   bottom because there is nothing under it to stay square for. */
+.encv__appt-title[aria-expanded='false'] {
+  border-bottom-color: transparent;
+  border-radius: calc(var(--radius-lg) - 1px);
+}
+
+/* Which booking this is, on the head, so shut still answers the one question a
+   shut card has to: service, slot, provider. Set in secondary ink at caption
+   size because it is a reminder of what is behind the press and not the card's
+   name — and clipped to one line, because it is a summary and the whole of it
+   is one press away. */
+.encv__appt-summary {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-caption);
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-secondary);
+}
+
+/* At the far end, so a column of bands reads as a column of titles with their
+   carets at one x — the same argument `.encv__doc-legend-actions` makes about
+   the buttons that sit in the documents' own bands. `margin-left: auto` still
+   earns its place with the summary stretching beside it: the summary can be
+   empty, which is exactly the open state, and without this the caret would
+   walk back to the title. */
+.encv__appt-caret {
+  display: inline-flex;
+  flex: none;
+  margin-left: auto;
+  color: var(--color-text-secondary);
+}
+
+/* The facts declare `display: grid`, which beats the browser's own rule for
+   `[hidden]` — an author declaration against a user-agent one — so a folded
+   card would paint its six facts under a caret pointing down at them. This is
+   the one line that actually folds it. */
+.encv__appt-facts[hidden] { display: none; }
+
+@media print {
+  /* A printed booking is six facts, not a control. The caret goes with the
+     toolbar and the rest of the navigation, and the card prints OPEN however
+     the screen left it: what is being filed is the booking, and a document
+     that files whichever half of it the last reader happened to leave showing
+     is not a record of anything. */
+  .encv__appt-caret,
+  .encv__appt-summary { display: none !important; }
+
+  .encv__appt-facts[hidden] { display: grid !important; }
+
+  .encv__appt-title[aria-expanded='false'] {
+    border-bottom-color: var(--color-border-subtle);
+  }
+}

@@ -34,6 +34,20 @@
          it is a component rather than part of this screen's sheet. Loaded
          before that sheet, which still owns the columns the rails sit in. -->
     <link rel="stylesheet" href="../css/components/clinical-rail.css" />
+    <!-- The live scope feed on the Procedure report — the picture from the
+         processor and the controls laid over it. A component sheet of its own
+         because it is the one region of the product that sits on top of a
+         moving image, and therefore the only one that reaches for the media
+         roles in tokens.css. See js/lib/scope-feed.js. -->
+    <link rel="stylesheet" href="../css/components/scope-feed.css" />
+    <!-- The scribe's own sheet — the purple tile, the recording bar, the
+         transcript card and the dialog it drafts behind. -->
+    <link rel="stylesheet" href="../css/components/ai-scribe.css" />
+    <!-- The patient card at the top of the left rail. A component sheet
+         because four note screens draw the same card — see the head of
+         js/lib/patient-card.js. Loaded before the screen's own sheet so the
+         screen can still say how the card sits in its rail. -->
+    <link rel="stylesheet" href="../css/components/patient-card.css" />
     <link rel="stylesheet" href="../css/screen-encounter.css" />
 
     <script type="module" src="../js/main.js"></script>
@@ -48,12 +62,15 @@
     the case is on the left, what you are doing in the middle, what you need to
     know while doing it on the right.
 
-    This screen used to have a rival. A three-stage workspace lived at this
-    same address and a V1/V2 switch in the header carried a reviewer between
-    the two on one case. The review is over — the step run won, the switch and
-    the three-stage screen are both gone, and every flow that opens an
-    encounter lands here. What is left of that history is in CHANGELOG.md;
-    nothing in the running prototype should still speak of two versions.
+    THIS SCREEN WAS REBUILT AT A SECOND ADDRESS AND CAME BACK TO THIS ONE.
+    For a while there were two: this file and screens/encounter-v2.html, with a
+    V1 / V2 switch in the head bar carrying one reviewer between them on the
+    same case. The rebuild won, so it took this address and the other file, the
+    switch and its wiring are gone — which is what the fork was set up to allow
+    from the day it was made. What it brought with it is the Procedure report:
+    the jars a biopsy produces, the live scope feed and the captures that file
+    against a finding, the instrument by serial, the timings the withdrawal is
+    read off, and the narrative note assembled from all of it.
 
     Steps whose centre column is still empty say so in place. Each one names
     what will go there.
@@ -145,6 +162,14 @@
                badge whose text is rewritten in place keeps the first step's
                role forever. -->
           <div id="docRole" data-testid="encv--doc-role"></div>
+
+          <!-- THE AI SCRIBE, on the procedure report as on the visit note. The
+               room is different — an endoscopist calls findings over a scope
+               rather than holding a consultation — so the screen hands the
+               component its own material. See PROCEDURE_TRANSCRIPT in
+               data/scribe-transcript.js and mountAiScribe in
+               js/lib/ai-scribe.js. -->
+          <div class="scribe" id="aiScribe" data-testid="encv--scribe"></div>
         </div>
 
         <!-- THE SEGMENT STRIP, FOR THE ONE STEP THAT IS EIGHT DOCUMENTS DEEP.
@@ -181,6 +206,79 @@
              than of one screenful of it. -->
         <section class="encv__alerts" id="docAlerts" data-testid="encv--alerts"
           aria-label="Active patient alerts" hidden></section>
+
+        <!-- ===================== THE BOOKING =========================
+
+             What the front desk booked, painted once and left there while the
+             fourteen documents come and go underneath — the same arrangement,
+             and for the same reason, as the alerts band above it: a fact that
+             appears only on the document that happened to render it is a fact
+             nobody can rely on having seen.
+
+             It is read at two moments — arriving at a case you did not book,
+             and coding one you did — and both of them are moments when leaving
+             the screen to look it up is the whole cost.
+
+             IT IS THE FIRST SECTION CARD, NOT A BAND OF ITS OWN. It used to sit
+             at the very top of the column, above the document's name and its
+             toolbar, drawn on the sunken surface under an uppercase brand-blue
+             eyebrow — the only object in the work column that looked like that.
+             Being first and being different is a lot of emphasis for reference
+             material, and it put a grey box between the reader and the title of
+             the thing they had actually come to work on.
+
+             So it moved below the heading and its buttons, and it is now drawn
+             as the section card every other block in this column is: white, a
+             brand-coloured mark at the left of a plain section title, the same
+             inset. It still sits OUTSIDE #docBody, `flex: none`, so it is
+             painted once and stays put rather than scrolling away with whichever
+             document is open.
+
+             The nurse's triage handover used to sit with this, tinted and
+             dismissible. It was three sentences saying the obs were
+             unremarkable and the medication list had been checked — read once
+             on the cases where it said anything and skipped on the rest — and a
+             band that is usually skipped is a band that trains the eye to skip
+             the place a real alert lands in. The chart's standing alerts are
+             above, in their own priority colours, and they are the ones worth
+             the room. -->
+        <!-- IT FOLDS, AND IT ARRIVES FOLDED.
+
+             It is reference material. The six facts are read at two moments —
+             arriving at a case you did not book, and coding one you did — and
+             on every other screenful of the encounter they are a hundred
+             pixels of answer to a question nobody is asking, at the very top
+             of the column the work happens in.
+
+             So it takes the shape the alerts band above it already has: a head
+             that is a button, the body folded behind it, and a summary on the
+             head so that shut still says which booking this is. The state
+             lives in `state.apptOpen` rather than being re-derived per
+             document, so a press sticks for the rest of the encounter — the
+             clinician who wants it open is the one coding, and they want it
+             open on all fourteen documents, not on the one they happened to
+             press it on.
+
+             The <h2> stays and the button goes inside it, which is the
+             accordion pattern: the heading is what a screen reader lists when
+             somebody asks what is on this page, and a button alone is not in
+             that list. The heading's accessible name is the words only — the
+             summary and the caret are outside the element `aria-labelledby`
+             points at, because "Appointment Details EUS · 3 Aug 2026 · 07:30 ·
+             David Smith collapsed" is not the name of a region. -->
+        <section class="encv__appt" id="apptDetails" data-testid="encv--appt"
+          aria-labelledby="apptDetailsTitle" hidden>
+          <h2 class="encv__appt-head">
+            <button type="button" class="encv__appt-title" id="apptToggle"
+              aria-expanded="false" aria-controls="apptFacts"
+              data-testid="encv--appt-toggle">
+              <span id="apptDetailsTitle">Appointment Details</span>
+              <span class="encv__appt-summary" id="apptSummary"></span>
+              <span class="encv__appt-caret" id="apptCaret"></span>
+            </button>
+          </h2>
+          <dl class="encv__appt-facts" id="apptFacts" hidden></dl>
+        </section>
 
         <div class="encv__body" id="docBody"
           aria-labelledby="docName" data-testid="encv--doc-body"></div>

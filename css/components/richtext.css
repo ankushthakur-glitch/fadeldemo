@@ -1,0 +1,178 @@
+/* ===========================================================================
+   <ui-richtext> — the prose field with a formatting bar.
+
+   THE SHELL IS THE INPUT'S SHELL, down to the pixel: the same border, the same
+   radius, the same hover and the same focus halo as .ui-input in
+   css/components/forms.css. Those measurements are not copied out of that file,
+   they are the same tokens read a second time, so a change to how a field
+   focuses on this product reaches this one too.
+
+   What it adds is a bar across the top of the box rather than above it. A
+   toolbar floating outside the field would read as belonging to the section,
+   not to the field — and on a note where every other section is a plain
+   textarea, a detached row of buttons is the kind of thing a clinician tries to
+   press before they have put the caret anywhere.
+   ======================================================================== */
+
+.ui-richtext {
+  display: flex;
+  flex-direction: column;
+  background-color: var(--color-bg-surface);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  transition: border-color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.ui-richtext:hover:not(.ui-richtext--disabled):not(:focus-within) {
+  border-color: var(--color-border-strong);
+}
+
+.ui-richtext:focus-within {
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px var(--color-brand-surface);
+}
+
+.ui-richtext--error {
+  border-color: var(--color-status-critical-solid);
+  background-color: var(--color-status-critical-surface);
+}
+
+.ui-richtext--disabled {
+  background-color: var(--color-bg-surface-disabled);
+  border-color: var(--color-border-subtle);
+}
+
+/* --- The bar ---------------------------------------------------------------
+   Sunken, so it reads as the field's furniture rather than as more of the
+   writing surface. The hairline under it is the only rule inside the box: it
+   is what stops the first line of a history from looking like a caption to the
+   row of buttons above it.
+   -------------------------------------------------------------------------- */
+
+.ui-richtext__bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  background-color: var(--color-bg-surface-sunken);
+  border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: calc(var(--radius-md) - 1px) calc(var(--radius-md) - 1px) 0 0;
+}
+
+.ui-richtext__tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-9);
+  height: var(--space-9);
+  padding: 0;
+  border: var(--border-width-thin) solid transparent;
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-text-secondary);
+  font-family: inherit;
+  cursor: pointer;
+  transition: background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
+}
+
+.ui-richtext__tool:hover:not(:disabled) {
+  background-color: var(--color-bg-surface);
+  border-color: var(--color-border-default);
+  color: var(--color-text-primary);
+}
+
+/* Pressed is a STATE, not a hover that happens to have stuck: it carries the
+   brand tint and the brand ink, which nothing else in this bar does, so a
+   glance at the toolbar says what the caret is sitting inside. */
+.ui-richtext__tool[aria-pressed='true'] {
+  background-color: var(--color-brand-surface);
+  border-color: var(--color-border-brand-subtle);
+  color: var(--color-text-brand);
+}
+
+.ui-richtext__tool:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.ui-richtext__tool:disabled {
+  color: var(--color-text-disabled);
+  cursor: not-allowed;
+}
+
+/* The three letterforms. Each is drawn in the weight, slant or decoration it
+   applies, because that is the whole of what makes a B mean bold. */
+.ui-richtext__glyph {
+  font-size: var(--font-size-body-sm);
+  line-height: 1;
+}
+.ui-richtext__glyph--bold { font-weight: var(--font-weight-bold); }
+.ui-richtext__glyph--italic { font-style: italic; }
+.ui-richtext__glyph--underline { text-decoration: underline; text-underline-offset: 2px; }
+.ui-richtext__glyph--clear { font-size: var(--font-size-2xs); }
+
+/* The two list marks. `fill: currentColor` so they take the button's ink in
+   every state, the same contract .ui-icon keeps for the Phosphor sprite. */
+.ui-richtext__mark {
+  width: var(--icon-size-md);
+  height: var(--icon-size-md);
+  fill: currentColor;
+}
+
+/* The numerals inside the ordered-list mark.
+   THEIR SIZE IS A font-size ATTRIBUTE ON THE <text>, NOT A DECLARATION HERE,
+   and that is the correct home for it rather than a way around the token rule:
+   it is measured in the icon's own 20-unit viewBox, so it has to stay fixed
+   RELATIVE to the bars beside it. A rem from the type scale would resize the
+   digits against a drawing that does not move, which is the one thing this
+   number must never do. Everything about it that IS typography — the weight,
+   the family, the ink — is tokenised here. */
+.ui-richtext__num {
+  font-family: inherit;
+  font-weight: var(--font-weight-bold);
+  fill: currentColor;
+}
+
+/* --- The writing surface ----------------------------------------------------
+   Its min-height is set inline from the `rows` attribute, because that number
+   belongs to the field rather than to the component — a five-line history and
+   a fifteen-line one are the same control asked for different room.
+   -------------------------------------------------------------------------- */
+
+.ui-richtext__body {
+  padding: var(--space-4);
+  font-family: inherit;
+  font-size: var(--font-size-body);
+  line-height: var(--line-height-normal);
+  color: var(--color-text-primary);
+  overflow-wrap: break-word;
+}
+
+.ui-richtext__body:focus { outline: none; }
+
+/* A contenteditable has no placeholder of its own. This one is painted rather
+   than typed, so it never becomes content and never survives a copy. */
+.ui-richtext__body.is-empty::before {
+  content: attr(data-placeholder);
+  color: var(--color-text-tertiary);
+  pointer-events: none;
+}
+
+/* Prose inside the field is the prose that will be signed, so it is styled as
+   document text and not as a form control's contents. First and last blocks
+   lose their outer margin: the field's own padding is already the air. */
+.ui-richtext__body p { margin: 0 0 var(--space-5); }
+.ui-richtext__body > :first-child { margin-top: 0; }
+.ui-richtext__body > :last-child { margin-bottom: 0; }
+
+.ui-richtext__body ul,
+.ui-richtext__body ol {
+  margin: 0 0 var(--space-5);
+  padding-left: var(--space-8);
+}
+
+.ui-richtext__body li { margin-bottom: var(--space-2); }
+
+.ui-richtext--disabled .ui-richtext__body { color: var(--color-text-secondary); }

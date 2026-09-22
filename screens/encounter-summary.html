@@ -18,6 +18,11 @@
     <link rel="stylesheet" href="../css/base.css" />
     <link rel="stylesheet" href="../css/ui-kit.css" />
     <link rel="stylesheet" href="../css/screen-patient.css" />
+    <!-- The patient card at the top of the left rail. A component sheet
+         because four note screens draw the same card — see the head of
+         js/lib/patient-card.js. Loaded before the screen's own sheet so the
+         screen can still say how the card sits in its rail. -->
+    <link rel="stylesheet" href="../css/components/patient-card.css" />
     <link rel="stylesheet" href="../css/screen-encounter-summary.css" />
 
     <script type="module" src="../js/main.js"></script>

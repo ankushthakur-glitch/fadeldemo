@@ -1,0 +1,188 @@
+/* ============================================================================
+   THE PATIENT CARD — the block at the top of every screen that writes a note.
+
+   Drawn by js/lib/patient-card.js, which four screens mount: the procedure
+   encounter, the clinic visit, its fork, and the encounter summary. The
+   reasoning about WHAT is on the card is over there. This is how it sits.
+
+   THESE VALUES ARE THE CLINIC VISIT'S, and they live here rather than in
+   css/screen-clinic-visit.css because three other screens now draw the same
+   card. That screen's version was the one worth keeping: it is the one whose
+   identity block breaks where a reader would break it, whose label column was
+   cut to 5.25rem so that "Blue Cross Blue Shield ND — PPO" fits on one line,
+   and whose rule says where identity stops and reference begins. The other
+   three were each a slightly worse redrawing of it.
+
+   The card supplies no border or background of its own. Each screen's rail
+   already has an opinion about what a card in it looks like — see
+   .encv__patient, .enc__patient and .es__patient-card — and a component that
+   brought its own would give three of them a box inside a box.
+   ========================================================================= */
+
+/* The card is its own container, so the rule at the foot of this file can ask
+   how much room it actually got rather than how wide the window is. The four
+   rails hand it between 254 and 308 pixels at the very same 1600px viewport,
+   so a media query would give all four the same answer and be wrong for three
+   of them. */
+.pcard {
+  container: pcard / inline-size;
+}
+
+.pcard__top {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+}
+
+/* The disc, whether it holds a photograph or a pair of initials. One rule for
+   both, so a column of these does not go ragged down its left edge depending
+   on who has been photographed. */
+.pcard__avatar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-11);
+  height: var(--space-11);
+  border-radius: var(--radius-full);
+  background-color: var(--color-brand-surface);
+  color: var(--color-brand-text);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* A photograph is cropped to the disc rather than fitted inside it — a face
+   letterboxed into a circle with bars top and bottom is worse than no face.
+   The ring is what keeps a pale photograph from bleeding into the card. */
+.pcard__avatar--photo {
+  object-fit: cover;
+  background-color: var(--color-bg-surface-sunken);
+  box-shadow: 0 0 0 var(--border-width-thin) var(--color-border-subtle);
+}
+
+/* The name takes the slack and the allergy pill sits against the right edge,
+   which is where the eye goes when it is looking for a warning rather than
+   reading. */
+.pcard__line {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+/* Link blue, because it IS a link — to this patient's chart.
+
+   It truncates rather than wrapping: a name long enough to need two lines
+   would push the pill down with it, and the pill is the one thing on this card
+   that must not move. The whole name is in the title, and in the chart the
+   link opens. */
+.pcard__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-size-heading-md);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  color: var(--color-text-link);
+  text-decoration: none;
+}
+.pcard__name:hover {
+  color: var(--color-text-link-hover);
+  text-decoration: underline;
+}
+.pcard__name:focus-visible {
+  border-radius: var(--radius-sm);
+  box-shadow: var(--focus-ring);
+  outline: none;
+}
+
+/* The identity line. Under the disc rather than beside it, so it has the whole
+   card to run along — the column next to a 40px disc is 60 narrower, which is
+   the difference between one tidy row and three ragged ones.
+
+   The gap is the punctuation between the two groups: wider than the spaces
+   inside them, so the line reads as identifiers-then-demographics without a
+   separator being drawn between them. WHY it is two groups is argued in the
+   markup, beside the strings it is about. */
+.pcard__idline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2) var(--space-6);
+  margin-top: var(--space-6);
+  font-size: var(--font-size-caption);
+  color: var(--color-text-primary);
+}
+
+/* Neither group breaks internally — see the markup. */
+.pcard__id { white-space: nowrap; }
+
+/* --- The three looked-up facts ---------------------------------------------
+   Where the card stops being about who the patient IS and starts being about
+   what somebody has to go and find: ring the escort, check the plan before a
+   corrected claim, name the provider on a call.
+
+   NO RULE ACROSS THE CARD. There was one, and it was doing a job the layout
+   already does: a labelled column of three rows does not look like the line of
+   identifiers above it, and the space between them says where one stops. A
+   hairline as well cuts a card the size of a postcard into two boxes and makes
+   a block that is read at a glance into a block that is read in two halves.
+   -------------------------------------------------------------------------- */
+
+.pcard__facts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  margin-top: var(--space-7);
+}
+
+/* 7.5rem for a three-word label left the value column too narrow to hold
+   "Blue Cross Blue Shield ND — PPO" on one line, so the one card that is meant
+   to be read at a glance wrapped in the middle of the payer's name. The labels
+   are short; the values are not. */
+.pcard__fact {
+  display: grid;
+  grid-template-columns: 5.25rem minmax(0, 1fr);
+  gap: var(--space-4);
+}
+
+.pcard__fact dt {
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: var(--letter-spacing-wide);
+  text-transform: uppercase;
+  color: var(--color-text-tertiary);
+}
+
+.pcard__fact dd {
+  font-size: var(--font-size-caption);
+  color: var(--color-text-primary);
+  overflow-wrap: anywhere;
+}
+
+/* A LAST RESORT, and it does not fire in any of the four rails as they stand.
+
+   The label column beside the value is the design; a plan name that runs to a
+   second line under it is expected and is what overflow-wrap is for. Below
+   15rem, though, the value column is down to about 130px and a payer wraps
+   three or four times — at that point the label goes ABOVE its value instead,
+   which costs a row per fact and gives the value the whole card. It is here
+   for a rail somebody narrows later, not for a width this product has. */
+@container pcard (width < 15rem) {
+  .pcard__fact {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-1);
+  }
+}
+
+@media print {
+  /* On paper the name is not a link, and blue prints as the same grey as the
+     meta around it — which would lose the name entirely. */
+  .pcard__name {
+    color: var(--color-text-primary);
+    text-decoration: none;
+  }
+}

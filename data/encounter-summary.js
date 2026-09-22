@@ -21,22 +21,21 @@
 /**
  * The signature register: who has signed which encounter, and when.
  *
- * Seeded for the notes data/visit-notes.js already calls signed, so the two
- * agree on the first paint — a summary that showed "unsigned" for a row the
- * worklist filed under Signed would be the same bug in two places.
+ * EMPTY, BECAUSE NOTE_REGISTER IS. It is seeded for exactly the notes
+ * data/visit-notes.js calls signed, so that the two agree on the first paint —
+ * a summary that showed "unsigned" for a row the worklist filed under Signed
+ * would be the same bug in two places. That register is empty now, so this one
+ * is too, and the pairing is the thing to keep rather than either list.
  *
- * Written to at runtime when an encounter is signed, so it is a `let` export
- * read through the helpers below rather than a frozen table.
+ * An entry is { by, on, at }, keyed by appointment id:
+ *
+ *   ['ap1', { by: 'Olivia Rhye, MD', on: '3 Aug 2026', at: '04:12 PM' }],
+ *
+ * Written to at runtime when an encounter is signed, which is how a signature
+ * gets in here now — so it is a Map read through the helpers below rather than
+ * a frozen table.
  */
-const SIGNATURES = new Map([
-  ['ap1', { by: 'Olivia Rhye, MD', on: '3 Aug 2026', at: '04:12 PM' }],
-  ['ap4', { by: 'Olivia Rhye, MD', on: '3 Aug 2026', at: '05:30 PM' }],
-  ['ap6', { by: 'Michael Johnson, MD', on: '4 Aug 2026', at: '08:05 AM' }],
-  ['ap9', { by: 'Emily Chen, MD', on: '3 Aug 2026', at: '03:48 PM' }],
-  ['ap11', { by: 'Olivia Rhye, MD', on: '4 Aug 2026', at: '09:20 AM' }],
-  ['ap74', { by: 'Michael Johnson, MD', on: '30 Jul 2026', at: '02:15 PM' }],
-  ['ap75', { by: 'Emily Chen, MD', on: '3 Aug 2026', at: '11:02 AM' }],
-]);
+const SIGNATURES = new Map();
 
 export const signatureFor = (apptId) => SIGNATURES.get(apptId) ?? null;
 

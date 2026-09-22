@@ -27,6 +27,20 @@
  * There is deliberately no third kind. Every template below is expressible in
  * those two, and a spec language with an escape hatch stops being a spec.
  *
+ * `rich: true` ON A TEXTAREA, AND WHY IT IS A FLAG RATHER THAN A TYPE.
+ * Two fields in this file carry it — both of them the history of present
+ * illness — and it asks the renderer for a prose field with a formatting bar
+ * (<ui-richtext>) instead of a plain box. It is a flag on `type: 'textarea'`
+ * rather than `type: 'richtext'` for one specific reason: everything that
+ * decides where to PUT prose reads the type, and it reads it to mean "this
+ * field takes a paragraph". The rail's Import and the AI scribe's Copy to note
+ * both look for a textarea and both write plain text with newlines in it; a
+ * new type name would have hidden the HPI from both of them, which is the one
+ * section either of them is most likely to be filling. The flag changes how
+ * the field is DRAWN and leaves what it IS alone — and the v1 screen, which
+ * knows nothing about it, goes on rendering a plain textarea from the same
+ * spec.
+ *
  * THERE USED TO BE A THIRD: `pulled`, a read-only block quoting what the chart
  * already knew — the active problem list under Assessment, the medication list
  * under Medications and allergies, the check-in vitals under Examination, each
@@ -205,6 +219,7 @@ export const VISIT_NOTE_TEMPLATES = [
           {
             key: 'hpi',
             type: 'textarea',
+            rich: true,
             label: 'History of present illness',
             labelHidden: true,
             rows: 5,
@@ -280,6 +295,7 @@ export const VISIT_NOTE_TEMPLATES = [
           {
             key: 'hpi',
             type: 'textarea',
+            rich: true,
             label: 'History of present illness',
             rows: 5,
             placeholder: 'Onset, character, course, what has been tried…',

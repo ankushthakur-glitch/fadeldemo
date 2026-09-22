@@ -17,6 +17,23 @@
  *  encounter's own template picker defaults to. */
 export const TRIAGE_NOTE_TYPE = 'SOAP Note';
 
+/*
+ * THE STAND-IN HANDOVER IS GONE, AND SO IS THE BAND THAT READ IT.
+ *
+ * There was a TRIAGE_HANDOVER here: the wording of an unremarkable pass, which
+ * the procedure encounter drew in a tinted band at the top of the work column
+ * whenever the booking carried no pass of its own — which the fixture bookings
+ * never do, they being a day's diary rather than a day's work.
+ *
+ * That band is gone. It said the obs were unremarkable and the medication list
+ * had been checked, on nearly every case it appeared on, and a band that is
+ * almost always skipped trains the eye to skip the place a real warning lands
+ * in. A real pass saved from the scheduler is still written onto the
+ * appointment (`appt.triage`, see saveTriage in js/screens/scheduler.js) and is
+ * still read by everything that reads the booking; what went was the invented
+ * one and the banner that existed to show it off.
+ */
+
 /**
  * The vitals a nurse takes, in the order the grid prints them.
  *

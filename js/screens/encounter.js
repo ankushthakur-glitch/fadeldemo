@@ -10,13 +10,27 @@
  * shaped like a form. Steps whose document has not been built yet say so in
  * place rather than showing an empty middle column.
  *
- * HOW IT GOT HERE
- * This screen was one of two encounter designs for a while: a three-stage
- * workspace at this address and this step run at encounter-v2.html, with a
- * switch in the header carrying a reviewer between them on one case. The step
- * run won, so it took this address and the other screen, its stylesheet and
- * the switch module were deleted. Every flow that opens an encounter — the
- * scheduler, triage, check-in, the chart, instant scheduling — arrives here.
+ * HOW IT GOT HERE — TWICE, THE SAME WAY
+ * This address has been settled by a bake-off twice, and both times the same
+ * way: build the replacement at a second URL, put a V1 / V2 switch in the head
+ * bar so one reviewer can walk one case through both, and when the rebuild
+ * wins let it take this address while the other file, its stylesheet and the
+ * switch's wiring are deleted.
+ *
+ * The first time decided the SHAPE of the screen — a three-stage workspace
+ * against this step run — and the step run won. The second decided the
+ * PROCEDURE REPORT, and the rebuild won: the specimen table and the jar
+ * dialog, the live scope feed with its captures and its pedal, the instrument
+ * recorded by serial, the timings the withdrawal is read off, and the
+ * narrative note assembled from all of it — all of it simply part of this
+ * screen now.
+ *
+ * What survives the pattern is the pattern: nothing in here was edited while
+ * either rebuild was going on, which is the whole reason a fork at a second
+ * address is worth the duplication.
+ *
+ * Every flow that opens an encounter — the scheduler, triage, check-in, the
+ * chart, instant scheduling — arrives here.
  *
  * THE ONE PIECE OF STATE THAT MATTERS
  * `state.step` and `state.substep` are a two-level selection, and they move
@@ -33,6 +47,11 @@
    searches — the same one the rest of the product attaches diagnoses from, so
    a code attached here means what it means everywhere else. */
 import { CLINICAL_SECTIONS, ICD10 } from '../../data/encounter.js';
+/* What the booking implies the note should be, before anybody has picked
+   anything. The worklist and the encounter summary derive it the same way from
+   the same function — see noteTypeFor — so the three screens cannot disagree
+   about what kind of note a colonoscopy files. */
+import { noteTypeFor } from '../../data/visit-notes.js';
 /* The chart's alert notes, so the band under the title says exactly what the
    patient's chart says. A second list of alerts written for this screen would
    be a second answer to "what must everyone in the room know". */
@@ -67,7 +86,7 @@ import { PRACTICE_PROFILES } from '../../data/practice.js';
    that differs between two screens is a cap nobody can state. */
 import { EGD_MAX_PHOTOS as DOC_MAX_PHOTOS } from '../../data/procedure-intra.js';
 import { REPORT_STAFF } from '../../data/procedure-report.js';
-import { providerById, typeById, procedureById, coverageFor } from '../../data/schedule.js';
+import { providerById, typeById, procedureById } from '../../data/schedule.js';
 import { findAppointment } from '../../data/appointment-store.js';
 import { DIRECTORY } from '../../data/directory.js';
 import { iconMarkup } from '../lib/icons.js';
@@ -107,16 +126,62 @@ import {
 /* The other half: everything that is a form rather than a table — the consents,
    the assessments, the discharge summary. See that file's header for why the
    two are declared separately. */
-import { ENCOUNTER_DOCS } from '../lib/encounter-docs.js';
+import { ENCOUNTER_DOCS as BASE_ENCOUNTER_DOCS } from '../lib/encounter-docs.js';
+/*
+ * THE SPECIMEN TABLE, WHICH WAS THE REBUILD'S OPENING ARGUMENT.
+ *
+ * The record of the jars a case produces, the dialog that opens one, and the
+ * two things that print off them. Everything about why a jar links to a
+ * finding instead of carrying a site of its own — and why a jar is committed
+ * in a dialog rather than typed into a row — is over js/lib/specimen-table.js.
+ * This screen only hosts it.
+ */
+/*
+ * THE AI SCRIBE, ON THE PROCEDURE REPORT.
+ *
+ * The same component the visit note mounts, handed the procedure room's own
+ * material: an endoscopist calling findings over a scope, and a draft aimed at
+ * this document's fields rather than a consultation's. Why the draft does not
+ * fill the report by itself is over js/lib/ai-scribe.js.
+ */
+import { mountAiScribe } from '../lib/ai-scribe.js';
+import {
+  PROCEDURE_SPEAKERS,
+  PROCEDURE_TRANSCRIPT,
+  PROCEDURE_DURATION,
+  PROCEDURE_DRAFT,
+  PROCEDURE_STAGES,
+} from '../../data/scribe-transcript.js';
+import {
+  specimenStoreFor,
+  specimensHtml,
+  specimensHeadHtml,
+  specimenDialogHtml,
+  openSpecimenDialog,
+  describeSpecimens,
+  jarForFinding,
+  tookTissue,
+  jarLabelsMarkup,
+  requisitionMarkup,
+} from '../lib/specimen-table.js';
 /* The findings diagram on the Procedure report: a renderer that knows how to
    draw a clickable organ and the forms that hang off it, and the colon it is
    pointed at. Neither knows about this screen — see DIAGRAMS below. */
 import { findingsHtml, wireFindings, findingSummary } from '../lib/segment-findings.js';
+/* The one narrator, and the note it composes. Both moved out of this file when
+   the narrative card arrived: a finding's sentence is written once and used
+   twice — for the `findings` field the impression seeds from, and for the note
+   that prints — and two copies of it would be two accounts of one polyp. */
+import { narrateFindings, narrativeBlocks, narrativeText } from '../lib/procedure-narrative.js';
 import { COLON_SEGMENTS, COLON_FINDING_TYPES } from '../../data/colon-findings.js';
 /* The right rail: the fourteen clinical sections, the cards they sit in and the
    copy controls on them. Shared with the clinic visit, which mounts the same
    rail in the same place — see the note at the head of that module. */
 import { mountClinicalRail, wireRailCollapse } from '../lib/clinical-rail.js';
+/* The patient card at the top of the left rail. A component rather than this
+   screen's own markup because three other note screens draw the same card —
+   see the head of js/lib/patient-card.js. */
+import { paintPatientCard } from '../lib/patient-card.js';
 
 /* Signatures are check-in's, not a second answer to what counts as signed —
    the pad, the filed mark and Sign again all come from one place. */
@@ -132,8 +197,200 @@ import { notify } from '../lib/toast.js';
    composed document is rendered into, with everything else on the page taken
    off the paper for the length of the dialog. */
 import { printAsPdf, downloadAsPdf } from '../lib/print-document.js';
+/* the live picture from the endoscopy stack, and the facts about the stack
+   it mirrors. The panel is a lib because it is a MONITOR — it draws a lumen,
+   runs a pedal and hands back frames, and knows nothing about encounters,
+   findings or jars. Everything that decides what a capture MEANS is in this
+   file. See the head of js/lib/scope-feed.js. */
+import { mountScopeFeed } from '../lib/scope-feed.js';
+import {
+  FEED_SOURCE,
+  FEED_PEDALS,
+  FEED_CLIP_MAX_SECONDS,
+  FEED_GATE_STEP,
+  feedClock,
+} from '../../data/procedure-feed.js';
+/* The clock readings a colonoscopy is judged by, and the arithmetic on them —
+   the withdrawal time in particular. See the head of that module for why a
+   number nobody states is a number nobody audits. */
+import {
+  procedureTimings,
+  durationLabel,
+  TIMING_MARKS,
+  WITHDRAWAL_TARGET_MINUTES,
+} from '../../data/procedure-timings.js';
+/* Which instrument, not which kind of instrument. */
+import {
+  scopeById,
+  scopeLabel,
+  scopesFor,
+  scopeReady,
+  SCOPE_HANG_TIME_HOURS,
+} from '../../data/procedure-scopes.js';
 
 /* ===================== Helpers ===================== */
+
+/* ===========================================================================
+   WHAT THE REBUILD ADDED TO THE PROCEDURE REPORT
+
+   These sections are folded into the shared spec HERE rather than declared in
+   js/lib/encounter-docs.js, and the reason was that the rebuild ran at a
+   second address for a while: the two versions had to ask one set of
+   questions, from one place, without the older screen's document changing
+   under it overnight.
+
+   The older screen is gone and the arrangement has outlived its first reason,
+   but it has a second one that still holds. js/lib/encounter-docs.js is a
+   DECLARATION of what documents are — a file with no imports from data/ that
+   knows about cases, staff or equipment — and every card below needs one:
+   the instrument list is the unit's asset register, the timings are read off
+   another step's log, the note is assembled from the whole case. Putting them
+   there would make that file a thing that acts.
+
+   The Specimens card goes directly after Findings, which is the order the work
+   happens in: the polyp is described, then it goes in a pot. Putting it before
+   the narrative cards also means the endoscopist meets it while the tissue is
+   still in their hand, rather than after they have written the impression.
+
+   The live feed is NOT one of these additions, and the reason is worth saying
+   here because it was: it spent a version as a section of the report, drawn in
+   a two-track split beside Findings. The pairing was right and the mechanism
+   was wrong. A card in a scrolling document is somewhere the picture can be
+   scrolled away from, it is locked to one place on one step, and it takes half
+   the working column from the findings it is supposed to sit beside.
+
+   So the panel is a WINDOW now — floating over the report, dragged wherever
+   the endoscopist wants it, on top of whatever they scroll to. See feedWindow
+   below. Nothing about it is a section, which is why the report's spec does
+   not mention it and the foot never counts it.
+   ======================================================================== */
+
+const SPECIMEN_SECTION = {
+  id: 'specimens',
+  title: 'Specimens',
+  /*
+   * `headSlot` — A CARD WHOSE COUNT AND CONTROLS BELONG TO ITS HEADING.
+   *
+   * "Specimens" and "0 jars" are one statement and read as one line, and the
+   * three controls beside them act on the card rather than on any row. Drawn
+   * under the heading they became a second header bar with the title stranded
+   * above it; in the heading they are what the heading says.
+   *
+   * A slot rather than markup in the spec, because what goes in it is the
+   * specimen module's own and changes as jars are added — see
+   * specimensHeadHtml and mountSpecimenField.
+   */
+  headSlot: true,
+  fields: [{ key: 'specimens', type: 'specimens', label: 'Specimens', span: 2 }],
+};
+
+
+/*
+ * WHICH SCOPE WENT IN — A CHOICE, THEN THE FACTS THAT FOLLOW FROM IT.
+ *
+ * The select is an ordinary document field, so `required`, the foot's
+ * outstanding count and the print all treat it like any other answer. The
+ * panel under it is derived and holds nothing: serial, asset tag and the
+ * reprocessing cycle are properties of the instrument, read from the unit's
+ * register at the moment it is named. Asking anybody to retype a serial number
+ * off a sticker is asking for a digit to be wrong in the one record that is
+ * only ever read when a wrong digit matters.
+ */
+const SCOPE_SECTION = {
+  id: 'scope',
+  title: 'Instrument',
+  note: 'The physical scope, by serial — this is what a recall or an outbreak is traced through.',
+  fields: [
+    {
+      key: 'scopeId',
+      type: 'select',
+      label: 'Scope used',
+      options: [],
+      required: true,
+      span: 2,
+    },
+    { key: 'scopeRecord', type: 'scope-record', label: 'Instrument record', span: 2 },
+  ],
+};
+
+/*
+ * THE CLOCK, READ OFF THE TIMES LOG RATHER THAN ASKED FOR AGAIN.
+ *
+ * Every mark this card reports is already recorded by the circulating nurse on
+ * step 2, as the case happens, at the moment it happens. Asking the
+ * endoscopist for them again at the end would be asking for times
+ * reconstructed from memory next to times written down live — and the
+ * reconstructed set would win, because it is the one on the document being
+ * signed.
+ *
+ * So the card holds nothing and derives everything. What it ADDS is the
+ * arithmetic nobody does by hand: insertion, withdrawal, total.
+ */
+const TIMINGS_SECTION = {
+  id: 'timings',
+  title: 'Timings',
+  note: 'Read from the times recorded on Intra-procedure Management as the case ran.',
+  fields: [{ key: 'timings', type: 'timings', label: 'Timings', span: 2 }],
+};
+
+/*
+ * THE NOTE, ASSEMBLED FROM EVERYTHING ABOVE IT.
+ *
+ * Read-only on purpose, and the argument is the diagram's: record the anatomy
+ * and the prose writes itself. An editable copy of a generated note is two
+ * accounts of one case with nothing to say which is right — see the head of
+ * js/lib/procedure-narrative.js. The endoscopist's own words are the
+ * Impression, which is the next card and is theirs.
+ */
+const NARRATIVE_SECTION = {
+  id: 'narrative',
+  title: 'Narrative note',
+  note: 'Written from the record above. It changes as the record does; the Impression below is yours.',
+  fields: [{ key: 'narrative', type: 'narrative', label: 'Narrative note', span: 2 }],
+};
+
+/** The shared specs, with this screen's own cards folded into the report. */
+function reportDocs(base) {
+  const report = base['procedure-report'];
+  const at = report.sections.findIndex((section) => section.id === 'findings');
+  const sections = [...report.sections];
+  sections.splice(at + 1, 0, SPECIMEN_SECTION);
+
+  /*
+   * AND THE PICTURES COME UP TO SIT UNDER THE JARS.
+   *
+   * The photo card shipped at the foot of the report, after the impression and
+   * the recommendations, which is where it belonged when the only way onto it
+   * was choosing files off a disk at the end of the case. It is not where it
+   * belongs now. A capture is taken DURING the case, off the live feed, and it
+   * is taken in the same breath as the jar off the same finding — see the feed
+   * — so the three cards the endoscopist works while the scope is in are now
+   * consecutive: what was found, what went in a pot, what was photographed.
+   *
+   * Everything below them is written afterwards, with the scope out.
+   */
+  const photosAt = sections.findIndex((section) => section.id === 'photos');
+  const [photos] = sections.splice(photosAt, 1);
+  sections.splice(at + 2, 0, photos);
+
+  /* The instrument and the clock go ABOVE Findings, because both are true of
+     the whole examination rather than of anything found in it — and because
+     the scope is named before it goes in, not after it comes out. */
+  sections.splice(at, 0, SCOPE_SECTION, TIMINGS_SECTION);
+
+  /* And the note goes under everything it reads and directly above the
+     Impression, which is the order a reader meets them in: the account of the
+     case, then the judgement made on it. */
+  sections.splice(
+    sections.findIndex((section) => section.id === 'impression'),
+    0,
+    NARRATIVE_SECTION
+  );
+
+  return { ...base, 'procedure-report': { ...report, sections } };
+}
+
+const ENCOUNTER_DOCS = reportDocs(BASE_ENCOUNTER_DOCS);
 
 const el = (id) => document.getElementById(id);
 
@@ -249,19 +506,44 @@ const stepById = (id) => ENCOUNTER_STEPS.find((s) => s.id === id);
 /** The document a step opens on: its first, or none for a step with none. */
 const firstSubstep = (step) => step?.substeps?.[0]?.id ?? '';
 
+/*
+ * OPENING STRAIGHT ONTO A DOCUMENT.
+ *
+ * `?step=procedure&doc=procedure-report` opens the run on that step with that
+ * document showing. Added for the rebuild rather than inherited from v1, and
+ * for a reason the rebuild creates: a reviewer being shown what changed is
+ * being sent to ONE card on ONE document, and an instruction to open the
+ * encounter and then press the fifth step and its fifth document is an
+ * instruction half of them will get wrong.
+ *
+ * Both halves are checked against the run before they are believed. A link
+ * naming a step that does not exist — an old link, a typo, a step renamed since
+ * it was sent — falls back to where the encounter would have opened anyway.
+ */
+function linkedStep() {
+  const asked = stepById(searchParams.get('step') ?? '');
+  return asked ? asked.id : initialStepId();
+}
+
+function linkedSubstep(stepId) {
+  const step = stepById(stepId);
+  const asked = searchParams.get('doc') ?? '';
+  return step?.substeps?.some((substep) => substep.id === asked) ? asked : firstSubstep(step);
+}
+
 const state = {
   /* Which step is open in the rail and showing in the centre column. */
-  step: initialStepId(),
+  step: linkedStep(),
   /* Which of that step's documents. Empty for a step that holds no documents —
      step 1's checklist and step 5's post-anaesthesia record are each one sheet,
      not a set of them. */
-  substep: firstSubstep(stepById(initialStepId())),
+  substep: linkedSubstep(linkedStep()),
   /* Which steps show their documents in the rail. The open one always does;
      the others are the ones the user has expanded to look into, which is why
      this is a Set rather than "the open step, and nothing else" — three people
      work this screen, and reading ahead into someone else's step should not
      move the work column off yours. */
-  expanded: new Set([initialStepId()]),
+  expanded: new Set([linkedStep()]),
   /* Which clinical sections are open in the right rail. Diagnoses, allergies
      and medications start open because they are the three the sedation plan
      turns on; the histories are there to be gone looking for. */
@@ -294,6 +576,44 @@ const state = {
      the press sticks for the rest of the encounter because this lives in state
      rather than being re-derived per document. */
   alertsOpen: false,
+
+  /* --- Whether the booking card is open ---
+
+     Shut, like the alerts band above it and for a version of the same reason.
+     The six facts the front desk booked are reference material: they are read
+     when you arrive at a case you did not book and when you code one you did,
+     and on every other screenful they are a hundred pixels of answer to a
+     question nobody is asking, sitting between the reader and the document
+     they came to work on.
+
+     What makes shut defensible is that shut still says something. The head
+     carries the service, the slot and the provider — which booking this is —
+     and what the press buys is the location, the note type, the age of the
+     encounter and the reason. Those are the four somebody goes looking for,
+     and going looking for them is the moment the press belongs at.
+
+     In state rather than re-derived per document, so it sticks: the clinician
+     who opens it is coding, and they want it open on all fourteen documents
+     rather than on whichever one they happened to press it on. */
+  apptOpen: false,
+
+  /* --- What kind of note this encounter files ---
+
+     Read off the booking if the desk or an earlier session already settled it,
+     derived from the appointment otherwise — never hard-coded, because the
+     worklist prints the same answer in its Note Type column and the two must be
+     the same fact.
+
+     It is READ here and nowhere set. There was a picker for it in a strip
+     across the top of this screen, and on a procedure day it never had a
+     decision to offer: a booking with a procedure on it files a Procedure
+     Follow-up, and the other four entries in that list belong to the clinic
+     note, which now carries the picker (see the document bar in
+     screens/clinic-visit.html). What is left here is the fact, printed in the
+     booking band with the other five. */
+  noteType:
+    appointment?.noteType ??
+    noteTypeFor(appointment?.kind, typeById(appointment?.typeId)?.title ?? ''),
 };
 
 /** The mounted sheet, while step 1 is on screen. Null the rest of the time. */
@@ -346,61 +666,179 @@ function paintHeader() {
     .join('');
 }
 
+/* ===================== The booking ===================== */
+
+/**
+ * The patient's age at the time of this encounter, as years and months.
+ *
+ * "Age of Encounter" rather than "Age", because the two are different numbers
+ * on any note read after the day it was written — a report opened next year
+ * should say how old the patient was when the scope went in, not how old they
+ * are now. Months as well as years because the distinction matters at both
+ * ends of a list: paediatric dosing at one, and a surveillance interval that
+ * turned due three months ago at the other.
+ *
+ * The directory writes dates of birth DD-MM-YYYY and the scheduler writes
+ * appointment dates ISO, so both are parsed rather than compared as strings.
+ */
+function ageOfEncounter() {
+  const [dd, mm, yyyy] = String(patient?.dob ?? '').split('-').map(Number);
+  if (!yyyy) return patient?.age ? `${patient.age} yrs` : '—';
+
+  const on = appointment?.date ? new Date(`${appointment.date}T00:00:00`) : new Date();
+  let months = (on.getFullYear() - yyyy) * 12 + (on.getMonth() + 1 - mm);
+  if (on.getDate() < dd) months -= 1;
+  if (months < 0) return '—';
+
+  const years = Math.floor(months / 12);
+  const rest = months % 12;
+  return rest ? `${years} yrs, ${rest} mo` : `${years} yrs`;
+}
+
+/**
+ * The steps that do NOT carry the booking card.
+ *
+ * Everywhere else on the run, what the desk booked is reference the reader may
+ * not have: they have arrived at a case they did not book, or they are coding
+ * one they did, and leaving the screen to look up the service type is the whole
+ * cost of not printing it.
+ *
+ * The Procedure step is the one place none of that is true. Its own document
+ * opens on the service, the indication and the date as the first things it
+ * asks for and then asserts them again in the report it writes — so the card
+ * would be a third copy of the same six facts, a screenful above the report
+ * that is about to state them, on the one step where vertical room in the work
+ * column is scarcest.
+ *
+ * A Set rather than a comparison so the next step that earns the exemption is
+ * a word added here rather than a condition rewritten.
+ */
+const STEPS_WITHOUT_BOOKING = new Set(['procedure']);
+
+/**
+ * What the front desk booked, in one card.
+ *
+ * Six facts. The same six the encounter summary prints under the same heading
+ * (js/screens/encounter-summary.js), in the same order, because a clinician who
+ * reads the card here and the band there is reading one booking twice and
+ * should not have to find their place again.
+ *
+ * Hidden outright when the screen was opened without a booking behind it —
+ * the gallery links this page bare — rather than drawn as six em dashes.
+ *
+ * A step that does not carry it is a DIFFERENT kind of hidden, and the two are
+ * kept apart on purpose. `hidden` means there is no booking to show and there
+ * is nothing to print either; `data-off-step` means this step does not want it
+ * ON SCREEN, and the card is still painted and still filed — @media print puts
+ * it back, because a procedure report pulled out of a folder has to say whose
+ * booking it was. See the print block in css/screen-encounter.css.
+ *
+ * Repainted from paintWork rather than once at boot, because which step is open
+ * is now one of the things that decides whether it shows at all.
+ */
+function paintApptDetails() {
+  const band = el('apptDetails');
+  if (!band) return;
+
+  if (!appointment) {
+    band.hidden = true;
+    return;
+  }
+  band.hidden = false;
+  band.dataset.offStep = String(STEPS_WITHOUT_BOOKING.has(state.step));
+
+  const facts = [
+    ['Service Type', procedureLabel()],
+    ['Location', appointment.location || appointment.area || 'MediNova Gastroenterology'],
+    ['Note Type', state.noteType],
+    ['Age of Encounter', ageOfEncounter()],
+    [
+      'Service Date & Time',
+      [shortDate(appointment.date), appointment.start].filter(Boolean).join(' · '),
+    ],
+    ['Provider', providerById(appointment.providerId)?.name ?? REPORT_STAFF.endoscopist],
+  ];
+
+  /* The reason runs the whole width under the six, rather than taking a
+     seventh column. It is the one fact here that is a sentence, and a sentence
+     in a 10rem column wraps to four lines and drags the band down with it. */
+  const reason = appointment.reason || appointment.triage?.reason || '';
+
+  el('apptFacts').innerHTML =
+    facts
+      .map(
+        ([term, value]) =>
+          `<div class="encv__appt-fact"><dt>${esc(term)}</dt><dd>${esc(value)}</dd></div>`
+      )
+      .join('') +
+    (reason
+      ? `<div class="encv__appt-fact encv__appt-fact--full">
+           <dt>Reason For Visit</dt><dd>${esc(reason)}</dd>
+         </div>`
+      : '');
+
+  paintApptFold(facts);
+}
+
+/*
+ * The fold: the caret, the summary on the head, and the body behind it.
+ *
+ * WHICH THREE FACTS GO ON THE HEAD. The service, the slot and the provider —
+ * the three that answer "which booking is this", which is the only question a
+ * shut card has to be able to answer. They are taken off the same `facts`
+ * array the body is built from rather than recomputed here, so the head and
+ * the body cannot come to disagree about the provider's name.
+ *
+ * THE SUMMARY IS GONE WHEN THE CARD IS OPEN. The alerts band keeps its chips
+ * in both states because open renders something else entirely — the note's
+ * wording, its author, its date. Here open renders these same three values in
+ * a row forty pixels below, and a head that repeats the first line of its own
+ * body is a head that has stopped being a summary.
+ */
+function paintApptFold(facts) {
+  const open = state.apptOpen;
+  const toggle = el('apptToggle');
+  const body = el('apptFacts');
+  if (!toggle || !body) return;
+
+  toggle.setAttribute('aria-expanded', String(open));
+  body.hidden = !open;
+  el('apptCaret').innerHTML = iconMarkup(open ? 'caret-up' : 'caret-down');
+
+  const summary = ['Service Type', 'Service Date & Time', 'Provider']
+    .map((term) => facts.find(([name]) => name === term)?.[1])
+    .filter(Boolean)
+    .join(' · ');
+  el('apptSummary').textContent = open ? '' : summary;
+
+  /* Bound once, not per paint. The head is markup this screen ships rather
+     than markup it writes — unlike the alerts band, whose listener is thrown
+     away and replaced with its innerHTML on every paint — so a listener added
+     here would be added again on every step change and the card would flip
+     twice, then four times, then eight. */
+  if (toggle.dataset.wired) return;
+  toggle.dataset.wired = 'true';
+  toggle.addEventListener('click', () => {
+    state.apptOpen = !state.apptOpen;
+    paintApptDetails();
+  });
+}
+
 /* ===================== Left rail: the patient ===================== */
 
 /*
- * Six facts, in the order somebody reaches for them.
- *
- * This card opened as name, MRN and date of birth only, on the argument that
- * the clinical detail belongs in the right rail. That was wrong about which
- * facts these are: mobile, cover and the owning provider are not clinical,
- * they are the three things somebody stops mid-procedure to look up — ring the
- * escort, check the plan before an add-on code, name the provider on a call —
- * and having to leave the screen for them is the whole cost.
- *
- * A bordered card rather than the plain heading it started with: with six
- * facts and a rule inside it, the block needs an edge to say where it stops and
- * the run of steps begins.
+ * The card is js/lib/patient-card.js, which the clinic visit, its fork and the
+ * encounter summary mount as well — the same bargain the clinical rail on the
+ * right strikes. What stays here is the one thing this screen knows that the
+ * card cannot: which provider owns this booking.
  */
 function paintPatient() {
-  const allergies = CLINICAL_SECTIONS.find((s) => s.id === 'allergies').items;
-  const coverage = coverageFor(patient.mrn);
-
-  const facts = [
-    ['Mobile', patient.phone],
-    /* Read from the coverage record rather than written in. A hard-coded plan
-       here would be free to disagree with the payer named in the header band
-       two inches above it, which is exactly what it used to do. One source, so
-       the card and the header cannot drift. */
-    ['Insurance', coverage?.insurance ?? '—'],
-    ['Provider', providerById(appointment?.providerId)?.name ?? REPORT_STAFF.endoscopist],
-  ];
-
-  el('patientCard').innerHTML = `
-    <div class="encv__patient-top">
-      <span class="encv__avatar" aria-hidden="true">${esc(initials(patient.name))}</span>
-      <div class="encv__patient-heading">
-        <div class="encv__patient-name">${esc(patient.name)}</div>
-        <div class="encv__patient-idline">
-          <span>MRN ${esc(patient.mrn)}</span>
-          <span>DOB: ${esc(patient.dob)} (${patient.age} yrs) (${
-            patient.sex === 'M' ? 'Male' : 'Female'
-          })</span>
-        </div>
-      </div>
-      <ui-badge status="critical" size="sm" title="${esc(
-        allergies.map((a) => a.text).join(', ')
-      )}">${allergies.length} allergies</ui-badge>
-    </div>
-
-    <dl class="encv__patient-facts">
-      ${facts
-        .map(
-          ([term, value]) =>
-            `<div class="encv__fact"><dt>${esc(term)}</dt><dd>${esc(value)}</dd></div>`
-        )
-        .join('')}
-    </dl>`;
+  paintPatientCard({
+    host: el('patientCard'),
+    patient,
+    provider: providerById(appointment?.providerId)?.name ?? REPORT_STAFF.endoscopist,
+    testid: 'encv--patient',
+  });
 }
 
 /* ===================== The document toolbar ===================== */
@@ -888,6 +1326,11 @@ function paintWork() {
   const step = stepById(state.step);
   const sub = step.substeps.find((s) => s.id === state.substep);
 
+  /* The booking card comes and goes with the step — see STEPS_WITHOUT_BOOKING.
+     Painted here rather than once at boot so that moving between steps is what
+     puts it away and brings it back. */
+  paintApptDetails();
+
   /* Torn down before anything else touches the DOM. The sheet registers a
      beforeunload guard and holds ~180 upgraded custom elements; leaving one
      mounted while its markup is replaced leaks both. */
@@ -895,6 +1338,20 @@ function paintWork() {
     preCheckSheet.destroy();
     preCheckSheet = null;
   }
+
+  /* and the feed, for the same reason and one more of its own. It holds an
+     interval and a keydown listener on the DOCUMENT — the foot pedal — and a
+     pedal still bound while the nursing record is open would freeze and
+     capture a panel that is no longer on the page.
+     The window goes with it. It floats over the whole screen rather than
+     sitting in the document, so nothing else would have taken it away, and a
+     monitor still running over the top of somebody's Aldrete score is a panel
+     that has stopped belonging to anything on screen.
+     The feed's own STATE is untouched, including where the window was put: the
+     case has not stopped because somebody opened another step, and the panel
+     comes back where they left it when the report is opened again. */
+  stopFeedPanel();
+  hideFeedWindow();
 
   /*
    * THE BODY IS REPLACED, NOT EMPTIED.
@@ -919,7 +1376,6 @@ function paintWork() {
    */
   const body = el('docBody');
   body.replaceWith(body.cloneNode(false));
-
   el('docName').textContent = step.label;
 
   /* The step's documents as a segment strip, on the one step that is charted
@@ -1205,38 +1661,6 @@ function diagramStoreFor(key, values) {
   return values.diagrams[key];
 }
 
-/**
- * One recorded finding, as the sentence the report will carry.
- *
- * The structured record is the source of truth and the prose is read off it.
- * That is the whole reason the diagram replaced a textarea: two endoscopists
- * describing the same polyp now produce the same sentence, and the sentence
- * can be regenerated when the structure is corrected.
- */
-function narrateFinding(finding, config) {
-  const segment = config.segments.find((s) => s.id === finding.segment)?.label ?? finding.segment;
-  const type = config.types.find((t) => t.id === finding.type)?.label ?? finding.type;
-  const summary = findingSummary(finding, config.types);
-  const note = String(finding.values?.notes ?? '').trim();
-  const notes = note ? ` ${note.replace(/\.?$/, '.')}` : '';
-
-  /* "Normal" is the one type whose sentence is not "<thing> in the <place>" —
-     a normal segment is a statement ABOUT the segment, not a finding sitting
-     inside it. */
-  if (finding.type === 'normal') return `The ${segment.toLowerCase()} appeared normal.${notes}`;
-
-  return `${type}${summary ? ` — ${summary}` : ''} in the ${segment.toLowerCase()}.${notes}`;
-}
-
-/**
- * The findings, as the string `values.findings` has always held.
- *
- * One sentence per line, which is exactly what the textarea this replaced
- * asked for by hand — so everything downstream of it (the impression seed, the
- * required check, the print) is unchanged.
- */
-const narrateFindings = (list, config) =>
-  (list ?? []).map((finding) => narrateFinding(finding, config)).join('\n');
 
 /* ---------------------------------------------------------------------------
    ICD-10 ON A DOCUMENT
@@ -1378,20 +1802,62 @@ function describePhotos(list) {
   return list.length === 1 ? '1 photo attached' : `${list.length} photos attached`;
 }
 
-function photosMarkup(key, list) {
-  const grid = list.length
+/*
+ * A TILE SAYS WHEN IT WAS TAKEN, AND WHETHER IT MOVES.
+ *
+ * Uploaded photos carry a file name and nothing else, which was the whole of a
+ * caption while the only way onto this card was choosing files. A capture off
+ * the live feed arrives with two more facts and both of them are read rather
+ * than looked up: WHEN, because a run of stills is read as a sequence and the
+ * clock is what puts them in one, and WHETHER IT IS A CLIP, because a still
+ * and a ten-second recording are not the same kind of evidence and a strip of
+ * identical tiles cannot say which is which.
+ *
+ * Both are optional. A photo chosen from disk has neither, and its tile is the
+ * tile it always was.
+ */
+function photosMarkup(key, list, nextCapture = null) {
+  /*
+   * WHERE THE NEXT PRESS WILL LAND, SHOWN ON THE CARD IT WILL LAND ON.
+   *
+   * While the feed is running, the destination of a capture is a choice made
+   * three cards up — the finding selected in the Findings list — and the
+   * endoscopist's eyes are on the monitor, not on either. A dashed tile at the
+   * end of the strip is the cheapest possible answer to "if I press the pedal
+   * now, what does this become", and it is on the strip because that is where
+   * the answer shows up two seconds later.
+   */
+  const next = nextCapture
+    ? `<div class="encv__photo encv__photo--next" data-testid="encv--photo-next">
+        <span class="encv__photo-next-lead">next capture</span>
+        <span class="encv__photo-next-target">→ ${esc(nextCapture)}</span>
+      </div>`
+    : '';
+
+  const grid = list.length || next
     ? `<div class="encv__photo-grid">
         ${list
           .map(
             (photo) => `<figure class="encv__photo" data-testid="encv--photo-${photo.id}">
               <img src="${photo.dataUrl}" alt="${esc(photo.name)}" />
-              <figcaption>${esc(photo.name)}</figcaption>
+              ${
+                photo.seconds
+                  ? `<span class="encv__photo-clip" data-testid="encv--photo-clip-${photo.id}">${
+                      photo.seconds
+                    }s clip</span>`
+                  : ''
+              }
+              <figcaption>
+                <span class="encv__photo-name">${esc(photo.name)}</span>
+                ${photo.at ? `<span class="encv__photo-at">${esc(photo.at)}</span>` : ''}
+              </figcaption>
               <button type="button" class="encv__photo-drop" data-photo-drop="${photo.id}"
                 aria-label="Remove ${esc(photo.name)}"
                 data-testid="encv--photo-drop-${photo.id}">×</button>
             </figure>`
           )
           .join('')}
+        ${next}
       </div>`
     : `<p class="encv__icd-none">No photos attached yet.</p>`;
 
@@ -1485,11 +1951,41 @@ const docFieldMarkup = (field, values) => {
     </div>`;
   }
 
+  /* the jars. A whole-width host the mount fills, the same arrangement the
+     diagram and the photo grid use — the section's own markup is built by
+     js/lib/specimen-table.js, which is also what the Pathology step will draw
+     when a jar comes back. */
+  if (field.type === 'specimens') {
+    return `<div style="grid-column: span 2" class="spec" data-specimen-host="${esc(field.key)}"
+      data-testid="encv--df-${esc(field.key)}"></div>`;
+  }
+
+  /* THE THREE DERIVED PANELS. Each is a keyed field so the generic machinery
+     keeps working, and each holds a READABLE form of something recorded
+     elsewhere — the instrument register, the times log, the whole report.
+     None carries `data-doc-field`: nothing inside them is a control, and a
+     stray ui-change must not overwrite what they derive. */
+  if (field.type === 'scope-record') {
+    return `<div style="grid-column: span 2" data-scope-host="${esc(field.key)}"
+      data-testid="encv--df-${esc(field.key)}"></div>`;
+  }
+
+  if (field.type === 'timings') {
+    return `<div style="grid-column: span 2" data-timings-host="${esc(field.key)}"
+      data-testid="encv--df-${esc(field.key)}"></div>`;
+  }
+
+  if (field.type === 'narrative') {
+    return `<div style="grid-column: span 2" data-narrative-host="${esc(field.key)}"
+      data-testid="encv--df-${esc(field.key)}"></div>`;
+  }
+
   if (field.type === 'photos') {
     return `<div style="grid-column: span 2" data-photo-host="${esc(field.key)}"
       data-testid="encv--df-${esc(field.key)}">${photosMarkup(
       field.key,
-      photoStoreFor(field.key, values)
+      photoStoreFor(field.key, values),
+      feedNextCaptureLabel(values)
     )}</div>`;
   }
 
@@ -2226,8 +2722,19 @@ function patientHistoryMarkup() {
     ? pickerMarkup(section, values)
     : checks && `<div class="${checkClass}">${checks}</div>`;
 
-  return `<section class="encv__doc-section" data-testid="encv--section-${section.id}">
+  /* `data-section` carries the spec's own id onto the element. The testid
+     already spells it, and something that is not a test must not be pinned to
+     a test hook: the live feed reaches for the Findings card by name to swap
+     its instruction while a feed is beside it (see markFeedOnFindings), and
+     which card that is is a fact about the document rather than about how it
+     is tested. */
+  return `<section class="encv__doc-section"
+    data-section="${esc(section.id)}" data-testid="encv--section-${section.id}">
     <h3 class="encv__doc-legend">${esc(section.title)}
+      ${/* a host the section's own mount fills — the specimen count and
+           its controls, on the title's line. Absent from every other
+           section. */ ''}
+      ${section.headSlot ? '<span class="spec__legend-slot" data-head-slot></span>' : ''}
       ${section.defaults ? sectionDefaultsMarkup(id, section) : ''}
     </h3>
     <div class="encv__doc-section-body">
@@ -2387,6 +2894,11 @@ function mountDiagram(id, field, values) {
     repaint: () => {
       host.innerHTML = findingsHtml(store, config);
       mountDiagram(id, field, values);
+      /* the jars are drawn onto whatever the renderer just produced. */
+      markSpecimensOnDiagram(values);
+      /* and so is the capture target, for the same reason and in the same
+         place — the renderer has just replaced every row the marks were on. */
+      markFeedOnFindings(values);
     },
     /* The document's answer for this field is the prose, regenerated from the
        structure every time the structure changes. Nothing writes it by hand,
@@ -2396,8 +2908,1110 @@ function mountDiagram(id, field, values) {
     commit: () => {
       values[field.key] = narrateFindings(store.findings, config);
       paintDocFoot(id);
+      /* a finding is what a jar is labelled with, so the table under the
+         diagram follows every change to it — including a deletion, which
+         leaves its jar behind saying so rather than taking the only record of
+         some tissue with it. See siteOf in js/lib/specimen-table.js. */
+      repaintSpecimens(id, values);
+
+      /* and a finding is what a capture is filed against, so the aim
+         follows the list too. Recording a finding while the feed is running
+         moves the aim onto it — the endoscopist has just described the thing
+         they are looking at, and the next press of the pedal is a picture of
+         it. See ensureFeedTarget, which only ever fills a hole. */
+      ensureFeedTarget(values);
+      markFeedOnFindings(values);
+      feedPanel?.paintTarget();
+      repaintPhotos(id, values);
+      /* and the note, whose Findings paragraph IS this list. */
+      repaintDerived(id, values);
     },
   });
+
+  /* the offer on a finding whose tissue has nowhere to go. It opens the
+     same dialog as everything else, already linked to that finding and with the
+     technique and size read off it — so the commonest path is four answers
+     already filled in and one press. */
+  if (host.dataset.specOfferWired !== 'yes') {
+    host.dataset.specOfferWired = 'yes';
+    host.addEventListener('click', (event) => {
+      const offer = event.target.closest('[data-spec-offer]');
+      if (!offer) return;
+      const finding = store.findings.find((entry) => entry.id === offer.dataset.specOffer);
+      if (finding) openJarDialog(id, values, { finding, trigger: offer });
+    });
+  }
+
+  /* and the press that aims the feed at a finding. Delegated from the same
+     host and guarded the same way, because the rows it is on are rebuilt every
+     time anything about the findings changes. */
+  if (host.dataset.feedAimWired !== 'yes') {
+    host.dataset.feedAimWired = 'yes';
+    host.addEventListener('click', (event) => {
+      const aim = event.target.closest('[data-feed-aim]');
+      if (aim) aimFeedAt(id, values, aim.dataset.feedAim);
+    });
+  }
+
+  markSpecimensOnDiagram(values);
+  markFeedOnFindings(values);
+}
+
+/* ---------------------------------------------------------------------------
+   THE SPECIMENS
+
+   `type: 'specimens'` on a document field. The table, the dialog that fills it
+   and the whole argument for their shape are in js/lib/specimen-table.js; what
+   lives here is everything that needs to know which case is open — the findings
+   the jars link to, the patient whose name goes on the label, and the document
+   foot that counts what is outstanding.
+   ------------------------------------------------------------------------ */
+
+/**
+ * The findings the jars can be taken off, and the anatomy they are described in.
+ *
+ * Read live off the diagram's own store rather than copied when the section is
+ * drawn: a finding recorded after the specimen table was painted must be
+ * offerable as a jar without the report being reopened.
+ */
+function specimenContext(values) {
+  const config = DIAGRAMS.colon;
+  return {
+    findings: diagramStoreFor('findings', values).findings,
+    segments: config.segments,
+    types: config.types,
+  };
+}
+
+/** Everything a label and a requisition say about the case they came off. */
+function specimenHeader(values) {
+  return {
+    patient: patient?.name ?? 'Unknown patient',
+    mrn: patient?.mrn ?? '—',
+    dob: patient?.dob ?? '—',
+    date: shortDate(appointment?.date) || shortDate(new Date().toISOString()),
+    endoscopist: REPORT_STAFF.endoscopist,
+    procedure: procedureLabel(),
+    indication: values.indication ?? '',
+  };
+}
+
+/**
+ * The dialog, mounted once on <body> and kept there.
+ *
+ * NOT inside the document, which is replaced wholesale every time a step is
+ * opened — a dialog that lived in there would be torn out from under itself the
+ * moment anything repainted, and <ui-modal> reads its content once on connect,
+ * so a second copy per paint would be a second focus trap per paint too.
+ */
+function specimenDialog() {
+  let modal = document.getElementById('specimenModal');
+  if (!modal) {
+    document.body.insertAdjacentHTML('beforeend', specimenDialogHtml());
+    modal = document.getElementById('specimenModal');
+  }
+  return modal;
+}
+
+/**
+ * Open the jar dialog, and put back whatever it saved.
+ *
+ * One way in for all three routes — the card's Add biopsy, the prompt on a
+ * finding, and a row's pencil — because they are one question: what is in this
+ * pot, and which finding did it come off.
+ */
+function openJarDialog(id, values, { jar = null, finding = null, trigger = null } = {}) {
+  openSpecimenDialog({
+    modal: specimenDialog(),
+    store: specimenStoreFor(values),
+    ctx: specimenContext(values),
+    jar,
+    finding,
+    trigger,
+    announce: say,
+    onSave: (saved, edited) => {
+      repaintSpecimens(id, values);
+      markSpecimensOnDiagram(values);
+      /* the note's Specimens paragraph is read off the jars. */
+      repaintDerived(id, values);
+      say(
+        edited
+          ? `Jar ${saved.jar} updated.`
+          : `Jar ${saved.jar} labelled — and on the requisition when it builds.`
+      );
+    },
+  });
+}
+
+function mountSpecimenField(id, field, values) {
+  const host = el('docBody')?.querySelector(`[data-specimen-host="${field.key}"]`);
+  if (!host) return;
+
+  const store = specimenStoreFor(values);
+
+  /* The card, from its heading down: the count and controls sit in the slot in
+     the <h3> and the table fills the body, so both are repainted together and
+     cannot disagree about how many jars there are. */
+  const section = host.closest('.encv__doc-section');
+  const slot = section?.querySelector('[data-head-slot]');
+
+  const paint = () => {
+    host.innerHTML = specimensHtml(store, specimenContext(values));
+    if (slot) slot.innerHTML = specimensHeadHtml(store);
+    /* The diagram wears the jars too — see markSpecimensOnDiagram for why the
+       marks are put on rather than drawn by the renderer. */
+    markSpecimensOnDiagram(values);
+  };
+
+  /* The document's answer is the sentence, regenerated from the jars. Nothing
+     writes it by hand, so the two cannot disagree. */
+  const commit = () => {
+    values[field.key] = describeSpecimens(store);
+    paintDocFoot(id);
+  };
+
+  paint();
+
+  /* Built now rather than on the first press. It costs nothing to have an
+     unopened dialog on the page, and creating one inside a click handler means
+     the first Add biopsy of a case is the one press that has to build a focus
+     trap before it can answer. */
+  specimenDialog();
+
+  /* Delegated from the host and bound once per paint of the document: every row
+     is rebuilt whenever any of them changes, and a listener bound to a row is
+     bound to a row that stops existing. */
+  /* Bound to the SECTION, not to the body of it: the three controls are in the
+     heading now and the rows are below it, and one listener over both is what
+     keeps "add a jar" and "delete a jar" on the same path. */
+  const root = section ?? host;
+  if (root.dataset.specWired !== 'yes') {
+    root.dataset.specWired = 'yes';
+    root.addEventListener('click', (event) => {
+      const jarOf = (node) => {
+        const jarId = node.closest('[data-jar]')?.dataset.jar;
+        return store.jars.find((entry) => entry.id === jarId) ?? null;
+      };
+
+      const edit = event.target.closest('[data-jar-edit]');
+      if (edit) {
+        openJarDialog(id, values, { jar: jarOf(edit), trigger: edit });
+        return;
+      }
+
+      const drop = event.target.closest('[data-jar-drop]');
+      if (drop) {
+        const jar = jarOf(drop);
+        if (!jar) return;
+        store.jars = store.jars.filter((entry) => entry.id !== jar.id);
+        commit();
+        paint();
+        say(`Jar ${jar.jar} removed. Jar numbers already given out are not reused.`);
+        return;
+      }
+
+      const add = event.target.closest('[data-spec-add]');
+      if (add) {
+        openJarDialog(id, values, { trigger: add });
+        return;
+      }
+
+      const labels = event.target.closest('[data-spec-labels]');
+      const requisition = event.target.closest('[data-spec-requisition]');
+      if (!labels && !requisition) return;
+
+      /* Printing is the host's job rather than the table's: the table knows
+         what a label says, this knows how this prototype hands paper over.
+         Both refuse an empty run rather than printing a sheet with nothing on
+         it. */
+      if (!store.jars.length) {
+        say('No specimens to print yet — open a jar on a finding first.');
+        return;
+      }
+
+      const ctx = specimenContext(values);
+      const header = specimenHeader(values);
+
+      if (labels) {
+        say(`Printing labels for ${store.jars.length} jar${store.jars.length === 1 ? '' : 's'}.`);
+        printAsPdf({ markup: jarLabelsMarkup(store, ctx, header) });
+        return;
+      }
+
+      /* A requisition is the handover. Every jar on it has left the room with
+         it, which is what `sent` means — see SPECIMEN_STATUSES for why the
+         journey stops being modelled at that point. */
+      store.jars.forEach((jar) => {
+        jar.status = 'sent';
+      });
+      commit();
+      say('Requisition built from the specimen table.');
+      printAsPdf({ markup: requisitionMarkup(store, ctx, header) });
+      paint();
+    });
+  }
+
+  commit();
+}
+
+/**
+ * Redraw the specimen table after something else changed what it says.
+ *
+ * Goes through the same mount the painter uses rather than reaching into the
+ * markup: one way to draw it, whoever asked.
+ */
+function repaintSpecimens(id, values) {
+  const field = ENCOUNTER_DOCS[id]?.sections
+    ?.flatMap((section) => section.fields ?? [])
+    .find((entry) => entry.type === 'specimens');
+  if (field) mountSpecimenField(id, field, values);
+}
+
+/**
+ * THE JARS, ON THE DIAGRAM AND ON THE RECORDED FINDINGS.
+ *
+ * Put on after the fact rather than drawn by js/lib/segment-findings.js, and
+ * the reason is the same one that keeps v1 untouched: that renderer is shared
+ * with the screen this one is being compared against, and a specimen mark
+ * taught to the renderer would appear on v1's diagram too.
+ *
+ * So the marks are applied to what the renderer produced. Every repaint of the
+ * findings runs through here again — see the `repaint` handed to wireFindings
+ * in mountDiagram — so a jar opened, moved or dropped is on the picture within
+ * the same frame as it is in the table.
+ */
+function markSpecimensOnDiagram(values) {
+  const host = el('docBody')?.querySelector('[data-diagram-host="findings"]');
+  if (!host) return;
+
+  const store = specimenStoreFor(values);
+  const ctx = specimenContext(values);
+
+  /* The recorded findings list: a jar chip on the ones that have a jar, and an
+     offer on the ones whose tissue is otherwise unaccounted for. */
+  host.querySelectorAll('.segf__item').forEach((item) => {
+    const finding = ctx.findings.find((entry) => entry.id === item.dataset.finding);
+    if (!finding) return;
+
+    item.querySelector('.spec__chip, .spec__offer')?.remove();
+    const jar = jarForFinding(store, finding.id);
+    const body = item.querySelector('.segf__item-body');
+    if (!body) return;
+
+    if (jar) {
+      body.insertAdjacentHTML(
+        'beforeend',
+        `<span class="spec__chip" data-testid="encv--spec-chip-${jar.id}">Jar ${jar.jar}</span>`
+      );
+      return;
+    }
+
+    /* Only findings that actually produced tissue are asked about. An offer on
+       a graded haemorrhoid would train the endoscopist to ignore the offer,
+       which is the one thing it cannot afford — see tookTissue. */
+    if (!tookTissue(finding)) return;
+    body.insertAdjacentHTML(
+      'beforeend',
+      `<button type="button" class="spec__offer" data-spec-offer="${finding.id}"
+        data-testid="encv--spec-offer-${finding.id}">+ Add biopsy</button>`
+    );
+  });
+
+  /* And the segments themselves. A hotspot holding tissue is marked so that the
+     picture answers "what left the room, and from where" on its own — which is
+     the question asked at the end of a case, out loud, before the patient is
+     moved. */
+  const marked = new Set(
+    store.jars
+      .map((jar) => ctx.findings.find((finding) => finding.id === jar.findingId)?.segment)
+      .filter(Boolean)
+  );
+  host.querySelectorAll('.segf__hotspot').forEach((hotspot) => {
+    hotspot.classList.toggle('segf__hotspot--specimen', marked.has(hotspot.dataset.openSegment));
+  });
+
+  const legend = host.querySelector('.segf__legend');
+  if (legend && !legend.querySelector('.spec__legend')) {
+    legend.insertAdjacentHTML(
+      'beforeend',
+      '<span class="spec__legend"><span class="segf__swatch spec__swatch"></span> Specimen taken</span>'
+    );
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   THE LIVE FEED
+
+   `type: 'feed'` on a document field. The panel itself — the drawn lumen, the
+   pedal, the control bar, the frames it hands back — is js/lib/scope-feed.js
+   and knows nothing about this case. What lives here is everything that only
+   makes sense on a procedure report:
+
+     WHEN it may be opened      the gate on step 3's signatures
+     WHERE a capture goes       the photo card, as a still with a time on it
+     WHAT it is about           the finding the endoscopist has selected
+     WHAT ELSE a press can do   + Biopsy opens the jar dialog on that finding
+
+   THE FEED IS NOT AN ANSWER. Its field holds nothing, it is never required,
+   and closing it changes no part of the document. What it produces — captures
+   and jars — is the record, and every one of those is a thing the report could
+   already hold. A panel that had become load-bearing on the way to a signature
+   would be a report that cannot be written for a patient whose stack was down.
+   ------------------------------------------------------------------------ */
+
+/**
+ * The state of the feed, on the document's own answers.
+ *
+ * Under `liveFeed` rather than on the `feed` field for the reason the jars are
+ * under `specimenJars`: every keyed field is seeded with an empty string when
+ * the document is first opened, so a store kept under the field's own name
+ * would find a string sitting there and leave it alone.
+ *
+ * It survives leaving the document, which is deliberate. The case does not
+ * stop because somebody opened the nursing record to chart a set of obs, and a
+ * feed that closed itself when they did would have to be restarted — with a
+ * new clock, and with whatever was on screen in the meantime lost.
+ */
+function feedStoreFor(values) {
+  values.liveFeed ??= {
+    on: false,
+    startedAt: null,
+    frozen: false,
+    /* Which finding the next capture files against. Null is a legitimate
+       state: the landmark shots at the start of a withdrawal are taken before
+       anything has been found. */
+    findingId: null,
+    /* Whether that choice was made by hand. Until it is, the aim FOLLOWS the
+       most recently recorded finding — see ensureFeedTarget. */
+    pinned: false,
+    captures: 0,
+    clips: 0,
+  };
+  return values.liveFeed;
+}
+
+/** The live panel, while there is one. One per page — there is one monitor. */
+let feedPanel = null;
+
+function stopFeedPanel() {
+  feedPanel?.destroy();
+  feedPanel = null;
+}
+
+/** What the scope's own header calls this case. */
+const feedCaseRef = () => (patient?.mrn ? `MRN ${patient.mrn}` : '');
+
+/**
+ * WHAT THE CASE IS STILL WAITING FOR, OR NULL IF IT IS READY.
+ *
+ * The scope does not go in until the patient is asleep, and nobody is put to
+ * sleep until the anaesthesia professional has assessed them and signed to say
+ * so. This is that rule, as a sentence — shown on the panel and said once when
+ * it opens. It used to be a veto; see startFeed for why reporting it turned
+ * out to be the honest instrument and refusing was not. See FEED_GATE_STEP.
+ *
+ * `docValues` is read directly rather than through valuesFor: asking for a
+ * document's answers CREATES them, and a gate that seeded two anaesthesia
+ * documents as a side effect of being checked would be a gate with opinions.
+ * A document nobody has opened has no signature, which is the right answer.
+ */
+function feedGateReason() {
+  const step = stepById(FEED_GATE_STEP);
+  if (!step) return null;
+
+  const outstanding = step.substeps.filter((sub) => {
+    const spec = ENCOUNTER_DOCS[sub.id];
+    if (!spec) return false;
+    const marks = docValues[sub.id]?.signature ?? {};
+    return spec.sections
+      .filter((section) => section.signature)
+      .some((section) => !marks[section.signature.who]);
+  });
+
+  if (!outstanding.length) return null;
+  return `${step.label} is not signed yet — ${outstanding
+    .map((sub) => sub.label)
+    .join(' and ')} still to sign. The feed is open for set-up; the scope does not go in until it is.`;
+}
+
+/* ===== What a capture is about ===== */
+
+/** The findings on the report, read live off the diagram's own store. */
+const feedFindings = (values) => diagramStoreFor('findings', values).findings;
+
+/** The finding the next capture files against, or null. */
+function feedTarget(values) {
+  const { findingId } = feedStoreFor(values);
+  return feedFindings(values).find((finding) => finding.id === findingId) ?? null;
+}
+
+/**
+ * WHERE THE AIM GOES WHEN NOBODY HAS AIMED IT.
+ *
+ * At the most recently recorded finding, and it moves as the list grows. The
+ * endoscopist describes what they are looking at while they are looking at it,
+ * so the newest finding is a very good guess at what the next capture is a
+ * picture of — and a feature that made every capture cost an extra press on a
+ * list three cards away is a feature that gets used for the first polyp and
+ * abandoned for the rest of the case.
+ *
+ * Once the aim IS set by hand it stays where it was put (`pinned`), because
+ * the reason to press "capture here" on an older finding is that you have gone
+ * back to it and want the next three shots filed there.
+ *
+ * A pinned finding that is then DELETED unpins: the choice it recorded is
+ * gone, so the guess takes over again rather than the aim silently pointing at
+ * nothing.
+ */
+function ensureFeedTarget(values) {
+  const feed = feedStoreFor(values);
+  const findings = feedFindings(values);
+  const stands = feed.findingId && findings.some((finding) => finding.id === feed.findingId);
+  if (feed.pinned && stands) return;
+  if (feed.pinned) feed.pinned = false;
+  feed.findingId = findings.length ? findings[findings.length - 1].id : null;
+}
+
+/**
+ * The size recorded on a finding, whichever of the three shapes it is in.
+ *
+ * The finding forms ask for size as a range of millimetres, as a single
+ * number, or as small/medium/large, because each reads naturally in its own
+ * form — see data/colon-findings.js. The measurement box has to print one
+ * string, so this is the one place the three become one, and an unrecorded
+ * size is an empty string rather than a guess.
+ */
+function feedSizeText(finding) {
+  const size = finding?.values?.size;
+  if (!size) return '';
+  if (typeof size === 'object') {
+    const { from, to } = size;
+    if (!from && !to) return '';
+    return from && to ? `${from}–${to} mm` : `${from || to} mm`;
+  }
+  return /^\d/.test(String(size)) ? `${size} mm` : String(size);
+}
+
+/** The type of a finding, in the words the report uses for it. */
+function feedTypeLabel(finding) {
+  const config = DIAGRAMS.colon;
+  return config.types.find((type) => type.id === finding.type)?.label ?? finding.type;
+}
+
+/** The segment a finding is in, in the words the diagram labels it with. */
+function feedSegmentLabel(finding) {
+  const config = DIAGRAMS.colon;
+  return (
+    config.segments.find((segment) => segment.id === finding.segment)?.label ?? finding.segment
+  );
+}
+
+/** What the box over the lesion says, or null for no box. */
+function feedTargetLabel(values) {
+  const finding = feedTarget(values);
+  if (!finding) return null;
+  const size = feedSizeText(finding);
+  return { label: [size, feedTypeLabel(finding)].filter(Boolean).join(' · ') };
+}
+
+/**
+ * What a capture is titled on the photo card.
+ *
+ * The segment and the type, which is the caption a later reader wants: "a
+ * polyp in the ascending colon" is what they are looking through the strip
+ * for. A capture with no finding selected is a landmark shot and is titled as
+ * one — the caecum and the ileocaecal valve are photographed to prove the scope
+ * got there, not because anything was found.
+ */
+function feedCaptureName(finding, isClip) {
+  if (finding) return `${feedSegmentLabel(finding)} · ${feedTypeLabel(finding)}`;
+  return isClip ? 'Clip — no finding selected' : 'Landmark';
+}
+
+/** The line the photo card's dashed tile prints, or null when nothing is live. */
+function feedNextCaptureLabel(values) {
+  const feed = feedStoreFor(values);
+  if (!feed.on) return null;
+  const finding = feedTarget(values);
+  return finding
+    ? `${feedSegmentLabel(finding)} · ${feedTypeLabel(finding)}`
+    : 'landmark — no finding selected';
+}
+
+/* ===== The control in the document's toolbar ===== */
+
+/**
+ * START, OR THE CLOCK AND THE WAY OUT.
+ *
+ * In the toolbar and nowhere else. A second Start button on the panel's own
+ * card would be a control for the thing that is already open; a second one in
+ * the Findings card would be two places to press for one act. The toolbar is
+ * where the document's own controls are, and the feed is the document's.
+ */
+function feedToolbarMarkup(id) {
+  if (id !== 'procedure-report') return '';
+
+  const feed = feedStoreFor(valuesFor(id));
+  if (!feed.on) {
+    return `<ui-button variant="secondary" size="sm" icon="play" id="feedStart"
+      data-testid="encv--feed-start">Start live feed</ui-button>`;
+  }
+
+  return `<span class="encv__feed-pill" data-testid="encv--feed-pill">
+      <span class="encv__feed-dot" aria-hidden="true"></span>
+      Live · <span id="feedClock" data-testid="encv--feed-clock">00:00</span>
+    </span>
+    <ui-button variant="primary" size="sm" id="feedEnd"
+      data-testid="encv--feed-end">End feed</ui-button>`;
+}
+
+function wireFeedToolbar(id) {
+  el('feedStart')?.addEventListener('ui-click', () => startFeed(id));
+  el('feedEnd')?.addEventListener('ui-click', () => endFeed(id));
+}
+
+/* ===== Opening and closing ===== */
+
+/**
+ * Draw the open document again from its own store.
+ *
+ * The body is SWAPPED first, exactly as paintWork does and for exactly the
+ * same reason: paintDocument binds four delegated listeners to #docBody
+ * itself, and a second paint onto the same element leaves the first set
+ * attached. Nothing is lost by the swap — every answer on the page lives in
+ * `values`, which is the whole point of the arrangement — and the scroll
+ * position is carried across by hand, because starting a feed is not a reason
+ * to send somebody back to the top of a report they were halfway down.
+ */
+function repaintDocument(id) {
+  const body = el('docBody');
+  const scroll = body.scrollTop;
+  body.replaceWith(body.cloneNode(false));
+  paintDocument(id);
+  el('docBody').scrollTop = scroll;
+}
+
+/*
+ * THE PRESS ALWAYS OPENS THE FEED. THE SIGNATURE IS A WARNING, NOT A LOCK.
+ *
+ * It was a lock: the button refused while the pre-anaesthesia step was
+ * unsigned and said which documents were outstanding. The rule behind it is
+ * real — the scope does not go in until the patient is asleep — but a lock was
+ * the wrong instrument for it, for two reasons that turned out to matter more
+ * than the rule does.
+ *
+ * The first is that it was untrue to the room. The feed is a MIRROR of a
+ * monitor that is already on. It is switched on while the stack is set up,
+ * white-balanced and focused, which happens before anybody is anaesthetised —
+ * so a screen that refuses to show the picture until a signature is down is
+ * refusing to show something that is visibly happening three feet away.
+ *
+ * The second is that nothing is protected by it. The feed writes nothing to
+ * the record on its own; only a capture does, and a capture lands on a report
+ * whose own signature still gates everything that matters. There was no
+ * failure being prevented, only a picture being withheld.
+ *
+ * So the state is reported rather than enforced: the panel opens, and says on
+ * its own face that the case is not ready yet. See feedGateReason, which is
+ * now read for its words instead of for its veto.
+ */
+function startFeed(id) {
+  const feed = feedStoreFor(valuesFor(id));
+  feed.on = true;
+  feed.startedAt = Date.now();
+  feed.frozen = false;
+  repaintDocument(id);
+
+  /* Nothing to scroll to. The window opens over whatever is on screen, which
+     is the point of it being a window — the previous arrangement put a card
+     halfway down the report and had to send the reader after it. */
+  const waiting = feedGateReason();
+  if (waiting) notify(waiting, 'warning');
+  else say('Live feed open — drag it by its header, or its corner to resize.');
+}
+
+function endFeed(id) {
+  const values = valuesFor(id);
+  const feed = feedStoreFor(values);
+
+  /* A clip still recording is FILED rather than lost. Ending the feed with a
+     recording running is what happens when the case finishes on something
+     worth having recorded, and dropping it would be the one press on this
+     panel that silently destroys a record. */
+  if (feedPanel?.recording) feedPanel.stopClip();
+
+  const seconds = feed.startedAt ? Math.floor((Date.now() - feed.startedAt) / 1000) : 0;
+  const kept = [
+    `${feed.captures} capture${feed.captures === 1 ? '' : 's'}`,
+    feed.clips ? `${feed.clips} clip${feed.clips === 1 ? '' : 's'}` : '',
+  ]
+    .filter(Boolean)
+    .join(' and ');
+
+  feed.on = false;
+  feed.frozen = false;
+  feed.startedAt = null;
+
+  stopFeedPanel();
+  repaintDocument(id);
+  say(`Feed closed after ${feedClock(seconds)} — ${kept} on the report.`);
+}
+
+/* ===== The window ===== */
+
+/*
+ * THE PANEL IS A WINDOW, AND IT LIVES ON <body>.
+ *
+ * It spent a version as a card inside the report, in a two-track split beside
+ * Findings. Three things were wrong with that and all three are the same
+ * thing: a card belongs to a document. It could be scrolled away from while
+ * the endoscopist worked further down the report; it existed only on the one
+ * substep that declared it; and it took half the working column from the
+ * findings it was supposed to sit beside.
+ *
+ * A window is none of those. It floats over the report wherever it was put,
+ * it stays put while the column scrolls under it, and the findings card gets
+ * its full width back.
+ *
+ * Mounted once on <body> and kept, exactly as the jar dialog is and for the
+ * same reason: #docBody is replaced wholesale on every repaint, so a window
+ * living in there would be torn out from under itself — and torn out mid-drag,
+ * which is the one moment it must not move.
+ */
+function feedWindow() {
+  let node = document.getElementById('feedWindow');
+  if (!node) {
+    node = document.createElement('section');
+    node.id = 'feedWindow';
+    node.className = 'feed feed-window';
+    /* A region rather than a dialog: nothing is blocked while it is open, the
+       page behind it is still being worked, and a dialog role would promise a
+       focus trap and a close that this deliberately does not have. */
+    node.setAttribute('role', 'region');
+    node.setAttribute('aria-label', 'Live scope feed');
+    node.hidden = true;
+    document.body.append(node);
+  }
+  return node;
+}
+
+/**
+ * WHERE THE WINDOW SITS, AND WHY IT IS REMEMBERED.
+ *
+ * On the feed's own store, so it survives every repaint of the document and
+ * every trip to another step and back. Somewhere to put the picture is a
+ * decision the endoscopist makes once, about their own room and their own
+ * hands, and a window that returned to the middle of the screen each time the
+ * report repainted would be a window nobody bothers to move.
+ *
+ * `null` until it has been placed — see placeFeedWindow for where a window
+ * that has never been dragged opens.
+ */
+const FEED_WINDOW_MARGIN = 24;
+
+/*
+ * HOW BIG THE WINDOW MAY BE, AND WHY BOTH ENDS ARE FIXED.
+ *
+ * The floor is where the control bar stops fitting on one line. Below it the
+ * four buttons wrap into a keypad over the lumen, which is the one thing the
+ * bottom of this panel may not do — so rather than let somebody drag into that
+ * state and wonder what broke, the window stops.
+ *
+ * The ceiling is the screen. A monitor wider than the window it is in is a
+ * monitor with its own controls off the edge.
+ */
+const FEED_WINDOW_MIN_WIDTH = 384;
+
+const feedWidthRange = () => ({
+  min: FEED_WINDOW_MIN_WIDTH,
+  max: Math.max(FEED_WINDOW_MIN_WIDTH, window.innerWidth - FEED_WINDOW_MARGIN * 2),
+});
+
+function placeFeedWindow(node, feed) {
+  /* Width first, because everything below measures the box and the box is a
+     different size once it has been applied. The height is not set at all: it
+     follows the picture's own ratio (see .feed__scene in
+     css/components/scope-feed.css), which is what keeps a resized monitor a
+     monitor rather than a stretched one. */
+  if (feed.width) {
+    const { min, max } = feedWidthRange();
+    feed.width = Math.min(Math.max(feed.width, min), max);
+    node.style.width = `${feed.width}px`;
+  }
+
+  const box = node.getBoundingClientRect();
+  const maxLeft = Math.max(FEED_WINDOW_MARGIN, window.innerWidth - box.width - FEED_WINDOW_MARGIN);
+  const maxTop = Math.max(FEED_WINDOW_MARGIN, window.innerHeight - box.height - FEED_WINDOW_MARGIN);
+
+  /* Opening position: bottom right. Not the middle, which is where a dialog
+     goes and is therefore where something demanding an answer goes; not the
+     top left, which is the patient and the run. The bottom right of the
+     viewport is the corner a second monitor would be in. */
+  const left = feed.window ? feed.window.left : maxLeft;
+  const top = feed.window ? feed.window.top : maxTop;
+
+  /* Clamped on every paint, not only on drop: a window dragged to the right
+     of a wide screen and then met on a narrow one would otherwise open off
+     the edge, with no way left to reach it. */
+  feed.window = {
+    left: Math.min(Math.max(left, FEED_WINDOW_MARGIN), maxLeft),
+    top: Math.min(Math.max(top, FEED_WINDOW_MARGIN), maxTop),
+  };
+
+  node.style.left = `${feed.window.left}px`;
+  node.style.top = `${feed.window.top}px`;
+}
+
+/**
+ * Dragging, by the header that already names the panel.
+ *
+ * Pointer events rather than mouse events, so a finger on a tablet at the
+ * bedside moves it the same way a mouse does, and `setPointerCapture` so a
+ * drag that outruns the header — which every drag does — keeps being a drag
+ * rather than stopping the moment the cursor leaves the strip it started on.
+ *
+ * Bound once per window, not per paint: the node is kept on <body> across
+ * every repaint, so rebinding would stack a listener per repaint onto an
+ * element that is never replaced.
+ */
+function wireFeedWindow(node, feed) {
+  if (node.dataset.windowWired === 'yes') return;
+  node.dataset.windowWired = 'yes';
+
+  /*
+   * One pointerdown for both gestures, because they are the same gesture with
+   * a different sum: press somewhere, follow the pointer, commit on release.
+   * What differs is only what the movement is applied to — where the window is
+   * for the header, how wide it is for the corner.
+   */
+  node.addEventListener('pointerdown', (event) => {
+    if (event.button !== 0) return;
+
+    const grip = event.target.closest('[data-feed-drag]');
+    const corner = event.target.closest('[data-feed-resize]');
+    if (!grip && !corner) return;
+
+    const handle = grip ?? corner;
+    const box = node.getBoundingClientRect();
+    /* Where inside the window the pointer went down. Kept so the window moves
+       WITH the pointer rather than jumping its own corner under it — the one
+       thing that makes a drag feel like picking something up. */
+    const offsetX = event.clientX - box.left;
+    const offsetY = event.clientY - box.top;
+
+    node.dataset[grip ? 'dragging' : 'resizing'] = 'yes';
+    event.preventDefault();
+
+    /*
+     * Pointer capture is an ENHANCEMENT here, not the mechanism.
+     *
+     * It is what keeps the gesture smooth when the pointer crosses an iframe
+     * or leaves the document, and it throws where there is no live pointer to
+     * capture — which is rare in a browser and routine under a test harness
+     * driving synthetic events. It was called first and uncaught, so the throw
+     * took the rest of this handler with it and the window simply would not
+     * move: a capability that only improves a gesture must never be able to
+     * prevent it. The listeners below are on `window`, so the drag works
+     * either way.
+     */
+    try {
+      handle.setPointerCapture(event.pointerId);
+    } catch {
+      /* No pointer to capture. The window listeners do the work. */
+    }
+
+    const move = (moved) => {
+      if (grip) {
+        feed.window = { left: moved.clientX - offsetX, top: moved.clientY - offsetY };
+      } else {
+        /* The corner sets the WIDTH and nothing else. Height follows the
+           picture's own ratio, so the monitor cannot be stretched into a shape
+           no endoscopy stack produces — and the lumen stays round, which is
+           the whole reason anybody can judge a polyp's size off it. */
+        feed.width = Math.round(moved.clientX - box.left);
+      }
+      placeFeedWindow(node, feed);
+    };
+
+    const drop = () => {
+      delete node.dataset.dragging;
+      delete node.dataset.resizing;
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', drop);
+      window.removeEventListener('pointercancel', drop);
+    };
+
+    /* On `window` rather than on the handle. Every drag outruns the strip it
+       started on within a few pixels, and a listener bound to that strip stops
+       hearing the moment it does — which, without capture to paper over it,
+       leaves the window stuck to the first inch of the gesture. */
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', drop);
+    window.addEventListener('pointercancel', drop);
+  });
+
+  /*
+   * And both from the keyboard, from the handle that does each.
+   *
+   * A window that can only be moved or resized with a pointer cannot be
+   * touched at all by somebody driving the screen from the keys, and where the
+   * picture sits and how big it is are the entire point of it being a window.
+   * A whole step at a time, because nudging a panel one pixel across a 1600px
+   * screen is not a thing anybody will do twice; Shift for the fine version.
+   */
+  node.addEventListener('keydown', (event) => {
+    const grip = event.target.closest('[data-feed-drag]');
+    const corner = event.target.closest('[data-feed-resize]');
+    if (!grip && !corner) return;
+
+    const step = event.shiftKey ? 4 : 32;
+    const box = node.getBoundingClientRect();
+
+    if (corner) {
+      const by = { ArrowLeft: -step, ArrowRight: step, ArrowDown: step, ArrowUp: -step }[event.key];
+      if (by === undefined) return;
+      event.preventDefault();
+      feed.width = box.width + by;
+      placeFeedWindow(node, feed);
+      return;
+    }
+
+    const by = {
+      ArrowLeft: [-step, 0],
+      ArrowRight: [step, 0],
+      ArrowUp: [0, -step],
+      ArrowDown: [0, step],
+    }[event.key];
+    if (!by) return;
+    event.preventDefault();
+    feed.window = { left: box.left + by[0], top: box.top + by[1] };
+    placeFeedWindow(node, feed);
+  });
+
+  /* A resized viewport can strand the window off the edge, or leave it wider
+     than the screen. Same clamp, same place, so there is one answer to how big
+     it may be and where it may sit. */
+  window.addEventListener('resize', () => {
+    if (!node.hidden) placeFeedWindow(node, feed);
+  });
+}
+
+/**
+ * Show the window, or take it down — whichever the feed's state calls for.
+ *
+ * Called on every paint of the procedure report, so it is the one place that
+ * decides whether there is a panel at all.
+ */
+function paintFeedWindow(id, values) {
+  const feed = feedStoreFor(values);
+  const node = feedWindow();
+
+  /* Whatever was running is torn down first. The document is repainted for a
+     dozen reasons that have nothing to do with the feed, and a panel left
+     ticking would go on holding the pedal and the interval for the rest of
+     the session. */
+  stopFeedPanel();
+
+  if (!feed.on) {
+    node.hidden = true;
+    node.innerHTML = '';
+    return;
+  }
+
+  ensureFeedTarget(values);
+  node.hidden = false;
+
+  feedPanel = mountScopeFeed({
+    host: node,
+    source: FEED_SOURCE,
+    pedals: FEED_PEDALS,
+    clipMaxSeconds: FEED_CLIP_MAX_SECONDS,
+    caseRef: feedCaseRef(),
+    startedAt: feed.startedAt,
+    frozen: feed.frozen,
+    target: () => feedTargetLabel(values),
+    /* Frozen survives leaving the document and coming back, because a frame
+       somebody froze to look at is a frame they are still looking at. */
+    onFreeze: (frozen) => {
+      feed.frozen = frozen;
+    },
+    onElapsed: (seconds) => {
+      const clock = el('feedClock');
+      if (clock) clock.textContent = feedClock(seconds);
+    },
+    onCapture: (frame) => keepFrame(id, values, frame),
+    onClip: ({ seconds, frame, atCap }) => {
+      keepFrame(id, values, frame, { seconds });
+      if (atCap) {
+        notify(
+          `Clip stopped at the ${FEED_CLIP_MAX_SECONDS}-second limit and filed — start another if the case needs it.`,
+          'warning'
+        );
+      }
+    },
+    onBiopsy: () => openBiopsyFromFeed(id, values),
+  });
+
+  /* THE CORNER, appended after the panel rather than drawn by it. Resizing is
+     something the WINDOW does; the feed inside it neither knows nor cares how
+     wide it has been made, which is why the lib writes no handle and this does
+     — and why mounting the panel, which replaces everything in the node, has
+     to happen first. */
+  node.insertAdjacentHTML(
+    'beforeend',
+    `<button type="button" class="feed-window__corner" data-feed-resize
+      data-testid="encv--feed-resize"
+      aria-label="Resize the live feed panel — drag, or use the arrow keys"></button>`
+  );
+
+  /* Placed and wired after it has been filled, because both need the window's
+     real size: a clamp run against an empty box would put an empty rectangle
+     in the corner and the filled one half off the screen. */
+  placeFeedWindow(node, feed);
+  wireFeedWindow(node, feed);
+}
+
+/** Take the window down without touching the feed's state — see paintWork. */
+function hideFeedWindow() {
+  const node = document.getElementById('feedWindow');
+  if (!node) return;
+  node.hidden = true;
+  node.innerHTML = '';
+}
+
+/**
+ * A frame off the feed, onto the report.
+ *
+ * The same store the Add photos button fills, and deliberately so: a still is
+ * a still, and a card that kept captures apart from uploads would be two
+ * answers to "what pictures does this report carry". What a capture brings
+ * with it that an upload cannot is the two facts the room knows and a file
+ * name does not — the time, and the finding it is about.
+ *
+ * `findingId` is kept even though nothing reads it back yet. It is the link a
+ * later reader needs to ask "show me the pictures of jar 2", and recording it
+ * costs nothing at the moment the answer is known; deriving it afterwards from
+ * a caption is not possible at all.
+ */
+function keepFrame(id, values, frame, clip = null) {
+  const feed = feedStoreFor(values);
+  /* The card's own key, read off the document rather than written here: a
+     capture must land in the store the card is drawn from, whatever it is
+     called. */
+  const field = photoFieldOf(id);
+  if (!field) return;
+  const photos = photoStoreFor(field.key, values);
+
+  if (photos.length >= DOC_MAX_PHOTOS) {
+    notify(
+      `This report holds ${DOC_MAX_PHOTOS} images — remove one before capturing again.`,
+      'warning'
+    );
+    return;
+  }
+
+  const finding = feedTarget(values);
+  const at = nowTime();
+  photos.push({
+    id: nextDocPhotoId++,
+    name: feedCaptureName(finding, Boolean(clip)),
+    dataUrl: frame,
+    at,
+    findingId: finding?.id ?? null,
+    seconds: clip?.seconds ?? null,
+  });
+
+  if (clip) feed.clips += 1;
+  else feed.captures += 1;
+
+  repaintPhotos(id, values);
+  say(
+    clip
+      ? `${clip.seconds}s clip filed at ${at}${finding ? ` against ${feedSegmentLabel(finding)}` : ''}.`
+      : `Captured at ${at}${finding ? ` — filed against ${feedSegmentLabel(finding)}` : ' — no finding selected, filed as a landmark'}.`
+  );
+}
+
+/**
+ * + Biopsy, which is the jar dialog and not a second way of opening one.
+ *
+ * The endoscopist's hands are on the scope and the tissue is in the forceps;
+ * the jar has to be openable from the panel they are looking at. What opens is
+ * the SAME dialog the Specimens card and the finding prompt open, with the
+ * finding being captured against already filled in.
+ *
+ * IT OPENS WITH NO FINDING TOO. It used to refuse — "select a finding first" —
+ * on the argument that a jar is labelled with the finding it came off, which
+ * is true and is not this control's business to enforce. The dialog asks that
+ * question itself, first, and will not save without an answer; a button that
+ * pre-refused was a second guard on one rule, and the one it displaced was the
+ * one that can actually offer the list of findings to pick from.
+ */
+function openBiopsyFromFeed(id, values) {
+  openJarDialog(id, values, {
+    finding: feedTarget(values),
+    trigger: document.querySelector('#feedWindow [data-feed-act="biopsy"]'),
+  });
+}
+
+/**
+ * WHICH FINDING IS BEING CAPTURED AGAINST, ON THE FINDINGS LIST ITSELF.
+ *
+ * Put onto what js/lib/segment-findings.js produced rather than drawn by it,
+ * for the reason the specimen chips are: that renderer is shared with the
+ * screen this one is being compared against, and a capture target taught to it
+ * would appear on a screen that has no feed.
+ *
+ * Every recorded finding gets a press that aims the next capture at it, and
+ * the one currently aimed at says so instead of offering. Only while the feed
+ * is running — a report being read back the next morning has nothing to aim.
+ */
+function markFeedOnFindings(values) {
+  const host = el('docBody')?.querySelector('[data-diagram-host="findings"]');
+  if (!host) return;
+
+  const feed = feedStoreFor(values);
+
+  host.querySelectorAll('.segf__item').forEach((item) => {
+    item.querySelector('.feed__aim')?.remove();
+    const on = feed.on && item.dataset.finding === feed.findingId;
+    item.classList.toggle('segf__item--capturing', on);
+    if (!feed.on) return;
+
+    const body = item.querySelector('.segf__item-body');
+    if (!body) return;
+    body.insertAdjacentHTML(
+      'beforeend',
+      on
+        ? `<span class="feed__aim feed__aim--on" data-testid="encv--feed-aimed">capturing here</span>`
+        : `<button type="button" class="feed__aim" data-feed-aim="${esc(item.dataset.finding)}"
+            data-testid="encv--feed-aim-${esc(item.dataset.finding)}">capture here</button>`
+    );
+  });
+
+  /* And the card's own instruction, while there is something to instruct. The
+     note under the title normally explains the diagram; with a feed beside it
+     the more urgent sentence is what the list is FOR at that moment. */
+  const note = el('docBody')?.querySelector('[data-section="findings"] .encv__doc-note');
+  if (note) {
+    note.textContent = feed.on
+      ? 'Select a finding — captures from the feed attach to it.'
+      : ENCOUNTER_DOCS['procedure-report'].sections.find((s) => s.id === 'findings')?.note ?? '';
+    note.classList.toggle('encv__doc-note--live', feed.on);
+  }
+}
+
+/** Aim the next capture, from a press on the findings list. */
+function aimFeedAt(id, values, findingId) {
+  const feed = feedStoreFor(values);
+  feed.findingId = findingId;
+  /* Chosen, so it stops following the newest finding — see ensureFeedTarget. */
+  feed.pinned = true;
+  markFeedOnFindings(values);
+  feedPanel?.paintTarget();
+  /* The dashed tile at the end of the photo strip names the new destination —
+     see photosMarkup. */
+  repaintPhotos(id, values);
 }
 
 /**
@@ -2470,6 +4084,39 @@ function mountIcdField(id, field, values) {
  * because the alternative is a dialog that throws away a selection somebody has
  * just made.
  */
+/**
+ * Draw the photo card again and rebind it.
+ *
+ * Lifted out of the mount's own closure because three things now change what
+ * this card shows and only one of them is a press inside it: a capture off the
+ * live feed lands here, and so does a change of which finding the next capture
+ * is aimed at. One painter, whoever asked — see repaintPhotos.
+ */
+function paintPhotoField(id, field, values) {
+  const host = el('docBody')?.querySelector(`[data-photo-host="${field.key}"]`);
+  if (!host) return;
+
+  const photos = photoStoreFor(field.key, values);
+  values[field.key] = describePhotos(photos);
+  host.innerHTML = photosMarkup(field.key, photos, feedNextCaptureLabel(values));
+  mountPhotoField(id, field, values);
+  /* the note counts the images. */
+  repaintDerived(id, values);
+  paintDocFoot(id);
+}
+
+/** The photo field of a document, where it has one — the report is the only one. */
+const photoFieldOf = (id) =>
+  ENCOUNTER_DOCS[id]?.sections
+    ?.flatMap((section) => section.fields ?? [])
+    .find((entry) => entry.type === 'photos') ?? null;
+
+/** The photo card of whichever document is open, redrawn from outside it. */
+function repaintPhotos(id, values) {
+  const field = photoFieldOf(id);
+  if (field) paintPhotoField(id, field, values);
+}
+
 function mountPhotoField(id, field, values) {
   const host = el('docBody')?.querySelector(`[data-photo-host="${field.key}"]`);
   if (!host) return;
@@ -2477,12 +4124,7 @@ function mountPhotoField(id, field, values) {
   const photos = photoStoreFor(field.key, values);
   const input = host.querySelector('[data-photo-input]');
 
-  const repaint = () => {
-    values[field.key] = describePhotos(photos);
-    host.innerHTML = photosMarkup(field.key, photos);
-    mountPhotoField(id, field, values);
-    paintDocFoot(id);
-  };
+  const repaint = () => paintPhotoField(id, field, values);
 
   host.querySelector('[data-photo-add]')?.addEventListener('ui-click', () => input.click());
 
@@ -2517,11 +4159,280 @@ function mountPhotoField(id, field, values) {
   );
 }
 
+/* ---------------------------------------------------------------------------
+   THE THREE DERIVED CARDS
+
+   The instrument, the clock and the note. None of them collects anything: each
+   is a READING of something already recorded — the unit's scope register, the
+   nurse's times log, the whole report above it — drawn where the endoscopist
+   needs it rather than where it happens to be stored.
+
+   They repaint together, through repaintDerived, because all three read the
+   document's own answers and any one of those answers can change any of them:
+   naming the scope rewrites the note's first paragraph, and a finding recorded
+   on the diagram rewrites its fourth.
+   ------------------------------------------------------------------------ */
+
+/** The scopes this booking would reach for, as the select's options. */
+const scopeOptions = () =>
+  scopesFor(procedureLabel()).map((scope) => `${scope.model} · ${scope.asset}`);
+
+/** The instrument behind whatever the select is showing. */
+function chosenScope(values) {
+  const picked = String(values.scopeId ?? '').trim();
+  if (!picked) return null;
+  return (
+    scopesFor(procedureLabel()).find((scope) => `${scope.model} · ${scope.asset}` === picked) ??
+    scopeById(picked)
+  );
+}
+
+/**
+ * The instrument record: what was named, and what is known about it.
+ *
+ * Every line is read from the register rather than typed, which is the whole
+ * point — see data/procedure-scopes.js. The hang-time line is the one that can
+ * be bad news, and it is drawn as a warning rather than as a refusal: the
+ * scope is in the patient by the time anybody reads this card, and a screen
+ * that declined to record the truth about it would leave the unit with no
+ * record of the thing it most needs to investigate.
+ */
+function mountScopeField(id, field, values) {
+  const host = el('docBody')?.querySelector(`[data-scope-host="${field.key}"]`);
+  if (!host) return;
+
+  const scope = chosenScope(values);
+  if (!scope) {
+    host.innerHTML =
+      '<p class="encv__icd-none" data-testid="encv--scope-none">No scope named yet — the model on the booking is a type, not an instrument.</p>';
+    return;
+  }
+
+  /*
+   * MEASURED TO THE MOMENT OF USE, NOT TO NOW.
+   *
+   * Hang time is the gap between a scope coming out of the washer and going
+   * into a patient. Measuring it to the wall clock would make the same case
+   * read as compliant at eleven and non-compliant at nine that evening, purely
+   * because somebody opened the report again — and the fact being recorded
+   * happened once, at the moment the scope was passed.
+   *
+   * So it is measured to the case's own scope-in time, and falls back to the
+   * clock only for a case that has not started yet, where "how long has this
+   * been out of the washer" is genuinely a question about now.
+   */
+  const usedAt = procedureTimings(logRows.times ?? []).scopeIn ?? nowTime();
+  const ready = scopeReady(scope, usedAt);
+  const rows = [
+    ['Instrument', `${scope.kind} · ${scope.model}`],
+    ['Serial', scope.serial],
+    ['Asset tag', scope.asset],
+    ['Last reprocessed', `${scope.reprocessedAt}${scope.reprocessedYesterday ? ' (previous day)' : ''}`],
+    ['Washer', scope.aer],
+    ['Cycle', scope.cycle],
+  ];
+
+  host.innerHTML = `<dl class="scope__facts" data-testid="encv--scope-facts">
+      ${rows
+        .map(
+          ([label, value]) => `<div>
+            <dt>${esc(label)}</dt>
+            <dd>${esc(value)}</dd>
+          </div>`
+        )
+        .join('')}
+    </dl>
+    ${
+      ready.ready
+        ? ''
+        : `<p class="scope__stale" data-testid="encv--scope-stale">
+            Outside the ${SCOPE_HANG_TIME_HOURS}-hour window since reprocessing — the unit's policy is to
+            reprocess before use. Recorded as used; raise it with the lead nurse.
+          </p>`
+    }`;
+}
+
+/**
+ * The timings card.
+ *
+ * Three marks across the top and three intervals under them, and the
+ * withdrawal is the one drawn large — it is the number this card exists for.
+ * A missing mark is "—" and the interval that depends on it is "—" too; see
+ * procedureTimings for why nothing here is estimated.
+ */
+function mountTimingsField(id, field, values) {
+  const host = el('docBody')?.querySelector(`[data-timings-host="${field.key}"]`);
+  if (!host) return;
+
+  const t = procedureTimings(logRows.times ?? []);
+  const mark = (label, time) => `<div class="timing">
+      <dt class="timing__label">${esc(label)}</dt>
+      <dd class="timing__value">${esc(time ?? '—')}</dd>
+    </div>`;
+
+  const gap = (label, minutes, extra = '') => `<div class="timing${extra}">
+      <dt class="timing__label">${esc(label)}</dt>
+      <dd class="timing__value">${esc(durationLabel(minutes))}</dd>
+    </div>`;
+
+  host.innerHTML = `<dl class="timings" data-testid="encv--timings">
+      ${mark(TIMING_MARKS.scopeIn, t.scopeIn)}
+      ${mark(TIMING_MARKS.caecum, t.caecum)}
+      ${mark(TIMING_MARKS.scopeOut, t.scopeOut)}
+    </dl>
+    <dl class="timings timings--derived" data-testid="encv--timings-derived">
+      ${gap('Insertion', t.insertion)}
+      ${gap('Withdrawal', t.withdrawal, t.withdrawalShort ? ' timing--short' : ' timing--lead')}
+      ${gap('Total', t.total)}
+    </dl>
+    ${
+      t.withdrawal === null
+        ? `<p class="timings__note" data-testid="encv--timings-missing">
+            Withdrawal time needs both a caecal time and a scope-out time. Record them on
+            Intra-procedure Management ▸ Times.
+          </p>`
+        : t.withdrawalShort
+          ? `<p class="timings__note timings__note--warn" data-testid="encv--timings-short">
+              Under the ${WITHDRAWAL_TARGET_MINUTES}-minute standard for a screening examination. A short
+              withdrawal is expected where time went on taking something off; the number is recorded either way.
+            </p>`
+          : ''
+    }`;
+}
+
+/** Everything the note reads, gathered from the one case that is open. */
+function narrativeContext(values) {
+  const config = DIAGRAMS.colon;
+  const store = specimenStoreFor(values);
+  const findings = diagramStoreFor('findings', values).findings;
+
+  return {
+    procedure: procedureLabel(),
+    endoscopist: REPORT_STAFF.endoscopist,
+    sedation: values.sedation ?? '',
+    indication: values.indication ?? '',
+    icd: icdStoreFor('icd', values),
+    scope: chosenScope(values),
+    timings: procedureTimings(logRows.times ?? []),
+    prepType: values.prepType ?? '',
+    prepQuality: values.prepQuality ?? '',
+    /* "Depth Reached" on the Procedure details card — the caecum, the
+       hepatic flexure, wherever the scope actually got to. Read by its own
+       field id rather than guessed at, see COLONOSCOPY_PROCEDURE_DETAILS. */
+    extent: values.depth ?? '',
+    outcome: values.outcome ?? '',
+    findings,
+    config,
+    /* The jars, with the site read through the finding each came off — the one
+       rule the specimen record has, see data/procedure-specimens.js. */
+    jars: store.jars.map((jar) => {
+      const finding = findings.find((entry) => entry.id === jar.findingId);
+      const segment = config.segments.find((s2) => s2.id === finding?.segment);
+      return {
+        jar: jar.jar,
+        site: segment?.label ?? 'unlinked',
+        technique: jar.technique ?? '',
+      };
+    }),
+    photos: photoStoreFor('photos', values).length,
+    bloodLoss: values.bloodLoss ?? '',
+    bloodLossAmount: values.bloodLossAmount ?? '',
+    complications: values.complications ?? '',
+  };
+}
+
+/**
+ * The narrative note.
+ *
+ * Blocks with their own small headings rather than one wall of text: a report
+ * on a pile is skimmed for one of five things, and a reader looking for what
+ * was taken should not have to read what the prep was like to find out.
+ *
+ * Copy is the only control. There is nothing to edit — see NARRATIVE_SECTION —
+ * and what somebody actually wants from a generated note is to put it in the
+ * letter they are writing.
+ */
+function mountNarrativeField(id, field, values) {
+  const host = el('docBody')?.querySelector(`[data-narrative-host="${field.key}"]`);
+  if (!host) return;
+
+  const report = narrativeContext(values);
+  const blocks = narrativeBlocks(report);
+
+  host.innerHTML = `<div class="narrative" data-testid="encv--narrative">
+      ${blocks
+        .map(
+          (block) => `<section class="narrative__block" data-narrative-block="${esc(block.id)}">
+            <h4 class="narrative__title">${esc(block.title)}</h4>
+            <p class="narrative__text">${esc(block.text)}</p>
+          </section>`
+        )
+        .join('')}
+    </div>
+    <div class="narrative__actions">
+      <ui-button variant="outline" size="sm" icon="copy" data-narrative-copy
+        data-testid="encv--narrative-copy">Copy the note</ui-button>
+    </div>`;
+
+  /* The document's own answer for this field is the note as one block of text,
+     so a print, a required check and anything else generic reads the same
+     words that are on screen. Nothing writes it by hand. */
+  values[field.key] = narrativeText(report);
+
+  host.querySelector('[data-narrative-copy]')?.addEventListener('ui-click', async () => {
+    try {
+      await navigator.clipboard.writeText(values[field.key]);
+      say('Narrative note copied.');
+    } catch {
+      /* Clipboard access is refused in plenty of ordinary situations — an
+         insecure origin, a browser setting, a page that has not been clicked
+         in. Saying so is better than a button that appears to work. */
+      say('Could not reach the clipboard — select the note and copy it by hand.');
+    }
+  });
+}
+
+/**
+ * Redraw every derived card.
+ *
+ * Called whenever ANY answer on the document changes, because any of them can
+ * change what these three say. One entry point rather than three call sites
+ * per change: a card that is only repainted by the fields somebody remembered
+ * to wire is a card that is wrong for whichever field they forgot.
+ */
+const DERIVED_TYPES = new Set(['scope-record', 'timings', 'narrative']);
+
+function repaintDerived(id, values) {
+  const spec = ENCOUNTER_DOCS[id];
+  if (!spec) return;
+  spec.sections.forEach((section) =>
+    (section.fields ?? [])
+      .filter((entry) => DERIVED_TYPES.has(entry.type))
+      .forEach((entry) => MOUNTS_DERIVED[entry.type](id, entry, values))
+  );
+}
+
+const MOUNTS_DERIVED = {
+  'scope-record': mountScopeField,
+  timings: mountTimingsField,
+  narrative: mountNarrativeField,
+};
+
 function paintDocument(id) {
   const spec = ENCOUNTER_DOCS[id];
   const values = valuesFor(id);
 
-  paintDocActions();
+  /* the document's own control in front of the print trio — the live feed
+     on the procedure report, and nothing on the other thirteen. See
+     feedToolbarMarkup. */
+  paintDocActions(feedToolbarMarkup(id));
+  wireFeedToolbar(id);
+  /* And the window itself, which is not a section of this document and so is
+     not reached by any of the section loops below. Painted here, beside the
+     control that opens it, because the two are one feature: the toolbar says
+     whether a feed is running and this is the feed. It takes itself down when
+     one is not. */
+  paintFeedWindow(id, values);
   /* A lead is markup that belongs to the document but is not a section of its
      spec — see DOC_LEADS. The discharge record's is the handout, and on that
      one document it is the whole page: the spec has no sections at all, so the
@@ -2539,7 +4450,12 @@ function paintDocument(id) {
       customElements.whenDefined('ui-select').then(() => {
         const node = el(`docf-${field.key}`);
         if (!node) return;
-        node.options = ['', ...field.options];
+        /* one select takes its options from the unit's asset register
+           rather than from the spec, because the spec is a declaration of what
+           is asked and the answer here is a list of real objects that changes
+           when a scope is bought or sent for repair. */
+        const options = field.key === 'scopeId' ? scopeOptions() : field.options;
+        node.options = ['', ...options];
         node.value = values[field.key] ?? '';
       });
     })
@@ -2561,7 +4477,16 @@ function paintDocument(id) {
   /* The three field types that are a panel rather than a control. None of them
      carries `data-doc-field`, so none of the delegated listeners below reach
      them — each maintains its own answer through its own commit. */
-  const MOUNTS = { diagram: mountDiagram, icd: mountIcdField, photos: mountPhotoField };
+  const MOUNTS = {
+    diagram: mountDiagram,
+    icd: mountIcdField,
+    photos: mountPhotoField,
+    specimens: mountSpecimenField,
+    /* the three derived cards — see repaintDerived. */
+    'scope-record': mountScopeField,
+    timings: mountTimingsField,
+    narrative: mountNarrativeField,
+  };
   spec.sections.forEach((section) =>
     (section.fields ?? [])
       .filter((field) => MOUNTS[field.type])
@@ -2583,6 +4508,9 @@ function paintDocument(id) {
     if (!field) return;
     values[field.dataset.docField] = event.detail.value;
     repaintProse(spec, values);
+    /* and the cards that are a reading of the whole report — the note in
+       particular, whose first paragraph is the scope that was just named. */
+    repaintDerived(id, values);
     /* An answer can open or close a field below it, and opening a REQUIRED one
        changes what the document is still waiting on — so the foot is re-read
        with it rather than left saying the form is complete. */
@@ -2594,6 +4522,7 @@ function paintDocument(id) {
     if (!field) return;
     values[field.dataset.docField] = event.detail.value;
     repaintProse(spec, values);
+    repaintDerived(id, values);
     paintDocFoot(id);
   });
 
@@ -2708,6 +4637,12 @@ function paintDocument(id) {
       paintDocLog(section.log);
       wireDocLog(id, section.log);
     });
+
+  /* Cards that have taken text from the scribe wear a badge saying so, and
+     the document is repainted for a dozen reasons that have nothing to do with
+     the scribe — so it is re-applied on every paint rather than only when a
+     section is inserted. See markAiFilled. */
+  markAiFilled(id, values);
 
   /* After the spec's own wiring, so a lead may reach anything on the page —
      and last, so nothing below re-renders the nodes it has just bound to. */
@@ -5671,6 +7606,10 @@ function paintChecklist() {
     onChange: (missing) => {
       state.preCheckOutstanding = missing;
       state.preCheckValues = preCheckSheet?.values() ?? state.preCheckValues;
+      /* The foot under the sheet is the only place the count is read now. It
+         used to be read twice — here and on an Intake button in a strip across
+         the top of the screen — and two readings of one list is two numbers to
+         keep agreeing for a button that jumped to the sheet already on screen. */
       paintChecklistFoot();
     },
   });
@@ -5883,6 +7822,8 @@ paintHeader();
 paintPatient();
 paintAlerts();
 paintStepper();
+/* paintWork paints the booking card as well — it is the step that decides
+   whether there is one. */
 paintWork();
 mountClinicalRail({
   rail: el('railRight'),
@@ -5913,3 +7854,142 @@ mountClinicalRail({
 wireDocTabs();
 railToggle('left');
 railToggle('right');
+
+
+/* ===========================================================================
+   THE SCRIBE ON THIS REPORT
+
+   The component listens, drafts and hands sections over; it knows nothing
+   about this screen. What lives here is the one thing only the screen can do —
+   put a section's words into a field of the document that is open — and the
+   two ways that can fail.
+   ======================================================================== */
+
+/** The procedure room's material, as the scribe takes it. */
+const PROCEDURE_SCRIBE = {
+  /* What the pill offers to write here. This document is a report. */
+  noun: 'Report',
+  speakers: PROCEDURE_SPEAKERS,
+  transcript: PROCEDURE_TRANSCRIPT,
+  duration: PROCEDURE_DURATION,
+  draft: PROCEDURE_DRAFT,
+  stages: PROCEDURE_STAGES,
+};
+
+/**
+ * Copy one drafted section into the document that is open.
+ *
+ * Returns false when it cannot be placed, which is not an error to shout
+ * about: the scribe drafts for the procedure report, and the run has thirteen
+ * other documents. Pressing Copy to note while the discharge sheet is open
+ * should say so and leave the section offered, not write an impression into a
+ * consent form.
+ *
+ * APPENDED, NEVER OVERWRITTEN, for the reason the visit note does the same: an
+ * endoscopist who has already typed a line has written it about this patient,
+ * and no draft is worth losing it.
+ */
+function copyScribeSection(section) {
+  const docId = state.substep && ENCOUNTER_DOCS[state.substep] ? state.substep : state.step;
+  const spec = ENCOUNTER_DOCS[docId];
+  const field = spec?.sections
+    .flatMap((entry) => entry.fields ?? [])
+    .find((entry) => entry.key === section.field);
+
+  if (!field) {
+    say(
+      `Open the procedure report to take the draft — this document has no ` +
+        `${section.title.toLowerCase()} field.`
+    );
+    return false;
+  }
+
+  const values = valuesFor(docId);
+  const existing = String(values[section.field] ?? '').trim();
+  values[section.field] = existing ? `${existing}\n\n${section.text}` : section.text;
+
+  /*
+   * AND THE CARD IS MARKED AS HAVING TAKEN MACHINE TEXT.
+   *
+   * A signature at the foot of this report covers every word above it,
+   * including the words a model wrote. The clinician read them in the draft
+   * panel and pressed a button, which is consent — but consent given in a
+   * dialog that is now closed, to a paragraph that from this moment looks
+   * exactly like one they typed.
+   *
+   * So the card says so, on the document, for as long as the document is open.
+   * It is not a warning and it does not stop anything: it is provenance, which
+   * is the thing a reader six months later has no other way of recovering, and
+   * the thing the endoscopist wants to see before they sign.
+   *
+   * Kept on the answers rather than in the DOM so that it survives the repaint
+   * a dozen other things trigger — see aiFilledFor.
+   */
+  aiFilledFor(values).add(section.field);
+
+  /* Written onto the live control rather than through a repaint, which would
+     rebuild every field on the report and take the caret with it. The badge
+     goes on the same way, for the same reason. */
+  const node = el('docBody')?.querySelector(`[data-doc-field="${section.field}"]`);
+  if (node) {
+    node.value = values[section.field];
+    node.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }
+  markAiFilled(docId, values);
+
+  paintDocFoot(docId);
+  return true;
+}
+
+/** The fields on one document that took text from the scribe. */
+function aiFilledFor(values) {
+  values.aiFilled ??= new Set();
+  return values.aiFilled;
+}
+
+/**
+ * Put the badge on every card holding a field the scribe filled.
+ *
+ * Applied to the painted document rather than built into docSectionMarkup, for
+ * the reason the specimen chips are: a section is marked because of something
+ * that happened to it, and the renderer that draws sections has no business
+ * knowing where their text came from. Idempotent, so it can be called after
+ * any paint and after each individual insert.
+ */
+function markAiFilled(id, values) {
+  const body = el('docBody');
+  if (!body) return;
+
+  const filled = aiFilledFor(values);
+  const spec = ENCOUNTER_DOCS[id];
+  if (!spec) return;
+
+  spec.sections.forEach((section) => {
+    const host = body.querySelector(`[data-section="${section.id}"]`);
+    if (!host) return;
+
+    const took = (section.fields ?? []).some((field) => field.key && filled.has(field.key));
+    const badge = host.querySelector('.encv__ai-badge');
+    if (!took) {
+      badge?.remove();
+      return;
+    }
+    if (badge) return;
+
+    host
+      .querySelector('.encv__doc-legend')
+      ?.insertAdjacentHTML(
+        'beforeend',
+        `<span class="encv__ai-badge" data-testid="encv--ai-filled-${esc(section.id)}">
+          ${iconMarkup('sparkle')}AI filled
+        </span>`
+      );
+  });
+}
+
+mountAiScribe({
+  host: el('aiScribe'),
+  source: PROCEDURE_SCRIBE,
+  onCopy: copyScribeSection,
+  announce: say,
+});

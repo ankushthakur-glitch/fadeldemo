@@ -15,7 +15,12 @@
  */
 import { findAppointment, updateAppointment } from '../../data/appointment-store.js';
 import { DIRECTORY } from '../../data/directory.js';
-import { providerById, typeById, procedureById, coverageFor } from '../../data/schedule.js';
+/* The patient card, drawn by the component the three note screens draw. This
+   screen's own version was the one that already linked the name to the chart
+   and already read the plan from the coverage record — both of those went into
+   the component and out to the other three. */
+import { paintPatientCard } from '../lib/patient-card.js';
+import { providerById, typeById, procedureById } from '../../data/schedule.js';
 import { CLINICAL_SECTIONS } from '../../data/encounter.js';
 import { NOTE_STATES, noteTypeFor, noteFor } from '../../data/visit-notes.js';
 import { notify as toast } from '../lib/toast.js';
@@ -143,8 +148,6 @@ function notify(message, severity = 'success') {
 
 /* ===================== The patient card ===================== */
 
-/** 'M' as it is stored, 'Male' as it is read. */
-const SEX_WORDS = { M: 'Male', F: 'Female' };
 
 /*
  * The same card the encounter rail carries.
@@ -163,53 +166,12 @@ const SEX_WORDS = { M: 'Male', F: 'Female' };
  * check the plan before a corrected claim, name the provider on a call.
  */
 function paintPatient() {
-  if (!patient) return;
-
-  const initials = patient.name
-    .split(' ')
-    .map((part) => part[0])
-    .join('')
-    .slice(0, 2);
-
-  const sex = SEX_WORDS[patient.sex] ?? patient.sex ?? '';
-  const allergies = CLINICAL_SECTIONS.find((s) => s.id === 'allergies').items;
-  const coverage = coverageFor(patient.mrn);
-
-  const facts = [
-    ['Mobile', patient.phone],
-    /* Read from the coverage record, the same source the encounter card reads,
-       rather than the carrier written on the directory row. Two spellings of
-       one plan on two screens is the drift this avoids. */
-    ['Insurance', coverage?.insurance ?? patient.carrier ?? 'Self pay'],
-    ['Provider', providerName],
-  ];
-
-  el('patientCard').innerHTML = `
-    <div class="es__pc-top">
-      <span class="es__avatar" aria-hidden="true">${esc(initials)}</span>
-      <div class="es__pc-heading">
-        <a class="es__pc-name" href="patient-chart.html?mrn=${encodeURIComponent(patient.mrn)}"
-          data-testid="es--patient-name">${esc(patient.name)}</a>
-        <div class="es__pc-idline">
-          <span>MRN ${esc(patient.mrn)}</span>
-          <span>DOB: ${esc(patient.dob)}${
-            patient.age != null ? ` (${patient.age} yrs)` : ''
-          }${sex ? ` (${esc(sex)})` : ''}</span>
-        </div>
-      </div>
-      <ui-badge status="critical" size="sm" title="${esc(
-        allergies.map((a) => a.text).join(', ')
-      )}">${allergies.length} allergies</ui-badge>
-    </div>
-
-    <dl class="es__pc-facts" data-testid="es--patient-facts">
-      ${facts
-        .map(
-          ([term, value]) =>
-            `<div class="es__pc-fact"><dt>${esc(term)}</dt><dd>${esc(value)}</dd></div>`
-        )
-        .join('')}
-    </dl>`;
+  paintPatientCard({
+    host: el('patientCard'),
+    patient,
+    provider: providerName,
+    testid: 'es--patient',
+  });
 }
 
 /* ===================== The note ===================== */

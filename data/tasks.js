@@ -1280,6 +1280,13 @@ export const RECALL_STATUSES = {
 
 export const RECALL_SOURCES = {
   pathology: { label: 'Pathology' },
+  /* Written by the clinic visit note when it is signed, from the follow-up
+     interval on its Plan. It is a source of its own rather than another
+     "Manual" because the desk reads this column to know how much to trust the
+     row: a pathology recall is a result speaking, a manual one is somebody at
+     a counter, and this one is the clinician's own plan, filed under their
+     signature. See js/screens/clinic-visit.js. */
+  'note-plan': { label: 'Visit note — plan' },
   'manual-checkout': { label: 'Manual — check-out' },
   'manual-form': { label: 'Manual — recall form' },
 };
@@ -1295,6 +1302,12 @@ export const RECALL_TYPES = [
 ];
 
 export const RECALL_INTERVALS = [
+  /* Four weeks is here because the visit note's Plan offers it and a recall
+     vocabulary that starts at three months cannot carry a note that says
+     "back in a month" — the interval would have to be rounded on the way in,
+     which is the recall quietly disagreeing with the note that produced it.
+     See FOLLOW_UP_INTERVAL in data/visit-note-templates.js. */
+  '4 weeks',
   '3 months',
   '6 months',
   '1 year',

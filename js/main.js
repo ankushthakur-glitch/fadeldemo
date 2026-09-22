@@ -27,6 +27,14 @@ import './components/ui-badge.js';
 import './components/ui-indicators.js';
 import './components/ui-input.js';
 import './components/ui-select.js';
+/* The prose field with a formatting bar, for the one or two sections of a
+   document that are long enough to want marking up. Registered here with the
+   rest of the library rather than by the screen that uses it: a tag that
+   exists on one page and silently does nothing on another is the hardest kind
+   of component to debug. The styles are NOT global — a page links
+   css/components/richtext.css when it has a field of this kind, the same way
+   it links the sheet for every other component it uses. */
+import './components/ui-richtext.js';
 import './components/ui-icd10.js';
 /* The short-list sibling of <ui-icd10>: type it or pick it, where the list is
    a handful already in memory rather than a catalogue that has to be searched.

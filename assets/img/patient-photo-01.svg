@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  A STAND-IN PATIENT PHOTOGRAPH.
+
+  The patient card in the encounter's left rail has a photo slot, because a
+  clinician who has three people in three bays identifies the chart in front of
+  them by the face on it before they read the MRN. The prototype has no real
+  photographs and is never going to have any — this is invented demo data and a
+  stock face of a person who did not consent to being a patient is worse than no
+  face at all — so the slot is filled with a drawn portrait: same circular
+  footprint, same crop, enough of a figure that the card reads as a card with a
+  photo on it rather than one waiting for an image to load.
+
+  A patient with no photo on file falls back to their initials in the same
+  disc — see paintPatient in js/screens/encounter.js. That is the real empty
+  state; this is the real filled one.
+
+  Flat, two-tone and drawn on the 96 grid the card renders it at, so it stays
+  crisp at the 48px the rail actually uses and at twice that on a retina panel.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96"
+     role="img" aria-label="Patient photograph">
+  <defs>
+    <clipPath id="photo-disc"><circle cx="48" cy="48" r="48"/></clipPath>
+  </defs>
+  <g clip-path="url(#photo-disc)">
+    <rect width="96" height="96" fill="#d6dee9"/>
+    <!-- Shoulders: one rounded slab, cropped by the disc into a collar line. -->
+    <path d="M48 58c18 0 32 11 34 28v10H14V86c2-17 16-28 34-28Z" fill="#4c6182"/>
+    <path d="M40 50h16v14a8 8 0 0 1-16 0V50Z" fill="#e8b394"/>
+    <!-- Head, then the hair over it, then a jaw shadow so the two read as
+         separate shapes rather than one silhouette. -->
+    <ellipse cx="48" cy="38" rx="17" ry="19" fill="#f0c1a1"/>
+    <path d="M48 17c11 0 18 7 18 17 0 4-1 8-2 10-1-9-3-12-6-13-4 3-11 4-17 3-4-1-6 3-7 10-1-2-2-6-2-10 0-10 5-17 16-17Z" fill="#3f4a5c"/>
+    <circle cx="41" cy="38" r="2" fill="#3f4a5c"/>
+    <circle cx="55" cy="38" r="2" fill="#3f4a5c"/>
+    <path d="M43 47c3 2 7 2 10 0" fill="none" stroke="#c98f6d" stroke-width="2"
+          stroke-linecap="round"/>
+  </g>
+</svg>

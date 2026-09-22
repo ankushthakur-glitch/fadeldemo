@@ -1,8 +1,16 @@
 /**
  * ORDERS — everything ordered against this chart that is not a prescription:
- * Lab Orders, Imaging/X-Ray and Non-Visit Orders. Prescriptions
+ * Lab Orders, Imaging/X-Ray, Procedures and Non-Visit Orders. Prescriptions
  * moved to its own module (chart-prescriptions.js) at the 2026-08 design
  * review — see that file's header for why.
+ *
+ * PROCEDURES IS THE NEWEST OF THE FOUR, and it is here because an EGD or a
+ * colonoscopy decided in clinic had nowhere to be filed: the Plan of a visit
+ * note could say "for colonoscopy" in prose and nothing anywhere became a
+ * record of it. It wears the imaging section's shape exactly — a worklist, an
+ * Add/Edit modal, the same four statuses — because it is the same kind of
+ * thing: ordered here, done elsewhere, later. Why it is not FILED under
+ * Imaging is argued over PROCEDURE_TYPES in data/chart-orders.js.
  *
  * ALL FOUR SECTIONS ARE WORKLISTS — <ui-data-table>, the same component the
  * directory and the scheduler use. Lab used to be the exception: a column of
@@ -39,8 +47,6 @@
 import { registerModule } from './chart-workspace.js';
 import { openRowMenu, closeRowMenu } from '../lib/row-menu.js';
 import {
-  CHART_ORDERS,
-  EMPTY_CHART_ORDERS,
   PRESCRIBING_PROVIDERS,
   LAB_VENDORS,
   LAB_TEST_CATALOG,
@@ -50,9 +56,18 @@ import {
   IMAGING_FACILITIES,
   IMAGING_PRIORITIES,
   IMAGING_STATUS,
+  PROCEDURE_TYPES,
+  PROCEDURE_FACILITIES,
+  PROCEDURE_PRIORITIES,
+  PROCEDURE_STATUS,
   NON_VISIT_TYPES,
   NON_VISIT_STATUS,
 } from '../../data/chart-orders.js';
+/* The chart's own seed plus anything raised against this patient from outside
+   it — today, that means the Plan of a signed visit note. See the note at the
+   head of the store for why it is an overlay and not a second copy of the
+   record. */
+import { ordersFor } from '../../data/order-store.js';
 import { admits } from '../lib/filter-set.js';
 
 /* ============================================================================
@@ -368,6 +383,98 @@ function addImagingModal(draft) {
   </ui-modal>`;
 }
 
+/* ============================================================================
+   PROCEDURES
+
+   An endoscopy ordered against the chart. Same worklist shape as Imaging, and
+   deliberately so — see the module header.
+   ========================================================================= */
+
+/**
+ * The procedure and what it is being done for, in one cell.
+ *
+ * The indication is under the name rather than in a column of its own because
+ * it is the longest string on the row and the thing the reader wants WITH the
+ * procedure, not six columns away from it — the same two-line treatment
+ * Imaging gives a study and its body part.
+ */
+function procedureCell(row) {
+  return `<span class="ord__med">
+    <strong class="ord__med-name">${esc(row.procedure)}</strong>
+    <span class="ord__med-meta">${esc(row.indication || 'No indication recorded')}</span>
+  </span>`;
+}
+
+/**
+ * Where the order came from, when it came from a note.
+ *
+ * Blank for anything typed on this screen, which is most of them. A row that
+ * says nothing here was raised here; a row that names a note was raised on the
+ * Plan of that note and filed when it was signed, and that is worth being able
+ * to see from the worklist — it is the difference between an order somebody
+ * entered and an order a signed clinical document is standing behind.
+ */
+function procedureSourceCell(row) {
+  return row.raisedFrom
+    ? `<span class="ord__med-meta">${esc(row.raisedFrom)}</span>`
+    : '<span class="ord__med-meta">—</span>';
+}
+
+const PROCEDURE_COLUMNS = [
+  { key: 'procedure', label: 'Procedure', wrap: true, render: procedureCell },
+  {
+    key: 'priority',
+    label: 'Priority',
+    render: (row) =>
+      `<ui-badge status="${row.priority === 'Routine' ? 'neutral' : row.priority === 'STAT' ? 'critical' : 'warning'}" size="sm"
+        >${esc(row.priority)}</ui-badge
+      >`,
+  },
+  { key: 'facility', label: 'Facility', wrap: true },
+  { key: 'orderedOn', label: 'Ordered On' },
+  { key: 'orderedBy', label: 'Ordered By' },
+  { key: 'raisedFrom', label: 'Raised From', wrap: true, render: procedureSourceCell },
+  { key: 'status', label: 'Status', render: (row) => badgeFor(PROCEDURE_STATUS, row.status) },
+  {
+    key: 'menu',
+    label: '<span class="u-sr-only">Actions</span>',
+    actions: true,
+    render: (row) => rowActionButton('prc-menu', row.id, 'Procedure order actions'),
+  },
+];
+
+function addProcedureModal(draft) {
+  return `<ui-modal id="ordAddProcedureModal" heading="${draft ? 'Edit Procedure Order' : 'Add Procedure Order'}" size="md">
+    <div class="ord__field-grid">
+      <ui-select label="Procedure" placeholder="Select" id="ordPrcType" required
+        options="${PROCEDURE_TYPES.join(',')}" value="${esc(draft?.procedure ?? '')}"
+        data-testid="chart--prc-type"></ui-select>
+      <ui-select label="Indication" placeholder="Select ICD code" id="ordPrcIndication"
+        options="${ICD_CODES.join(',')}" value="${esc(draft?.indication ?? '')}"
+        data-testid="chart--prc-indication"></ui-select>
+
+      <ui-radio-group label="Priority" inline id="ordPrcPriority" options="${PROCEDURE_PRIORITIES.join(',')}"
+        value="${esc(draft?.priority ?? 'Routine')}" data-testid="chart--prc-priority"></ui-radio-group>
+      <ui-select label="Facility" placeholder="Select" id="ordPrcFacility"
+        options="${PROCEDURE_FACILITIES.join(',')}" value="${esc(draft?.facility ?? '')}"
+        data-testid="chart--prc-facility"></ui-select>
+
+      <ui-select class="ord__field-wide" label="Ordering Provider" placeholder="Select" id="ordPrcProvider"
+        options="${PRESCRIBING_PROVIDERS.join(',')}" value="${esc(draft?.orderedBy ?? '')}"
+        data-testid="chart--prc-provider"></ui-select>
+
+      <ui-textarea class="ord__field-wide" label="Notes" rows="3"
+        placeholder="Prep, sedation plan, anything the endoscopist should know…"
+        value="${esc(draft?.notes ?? '')}" data-testid="chart--prc-notes"></ui-textarea>
+    </div>
+
+    <div class="ord__modal-actions">
+      <ui-button variant="outline" data-modal-dismiss data-testid="chart--prc-cancel">Cancel</ui-button>
+      <ui-button variant="primary" data-testid="chart--prc-save">${draft ? 'Save Changes' : 'Order'}</ui-button>
+    </div>
+  </ui-modal>`;
+}
+
 /* NO REFERRALS SECTION IN THE CHART.
    A Referrals tab stood here with its own table, its own Add Referral form and
    its own status vocabulary — a second, thinner referral record living beside
@@ -469,6 +576,10 @@ function sectionActions(section, { labSearch = '', labStatusFilter = '', labView
     return `<ui-button variant="primary" size="sm" icon="plus" data-testid="chart--add-imaging"
       >Add Imaging Order</ui-button>`;
   }
+  if (section === 'procedures') {
+    return `<ui-button variant="primary" size="sm" icon="plus" data-testid="chart--add-procedure"
+      >Add Procedure Order</ui-button>`;
+  }
   return `<ui-button variant="primary" size="sm" icon="plus" data-testid="chart--add-nonvisit"
     >Add Non-Visit Order</ui-button>`;
 }
@@ -485,6 +596,7 @@ registerModule('orders', {
   tabs: () => `<ui-tabs primary selected="lab" data-testid="chart--orders-tabs">
       <ui-tab value="lab" label="Lab Orders"></ui-tab>
       <ui-tab value="imaging" label="Imaging/X-Ray"></ui-tab>
+      <ui-tab value="procedures" label="Procedures"></ui-tab>
       <ui-tab value="nonVisit" label="Non-Visit Orders"></ui-tab>
     </ui-tabs>`,
 
@@ -496,17 +608,14 @@ registerModule('orders', {
   actions: () => sectionActions('lab'),
 
   render(host, ctx) {
-    const record = CHART_ORDERS[ctx.patient.mrn] || EMPTY_CHART_ORDERS;
-    // Copied rather than mutated in place — same reasoning as chart-notes.js:
-    // re-rendering the module must not carry state from a previous visit.
-    const data = {
-      labs: [...record.labs],
-      imaging: [...record.imaging],
-      nonVisit: [...record.nonVisit],
-    };
+    // Already a fresh copy per call, seed behind anything raised from outside
+    // the chart — see data/order-store.js. Held in a `data` of its own for the
+    // same reason as chart-notes.js: re-rendering the module must not carry
+    // state from a previous visit.
+    const data = ordersFor(ctx.patient.mrn);
 
     const state = {
-      section: 'lab', // 'lab' | 'imaging' | 'nonVisit'
+      section: 'lab', // 'lab' | 'imaging' | 'procedures' | 'nonVisit'
       labSearch: '',
       labStatusFilter: '', // a set, empty; see js/lib/filter-set.js
       selectedLabId: data.labs[0]?.id ?? null,
@@ -519,6 +628,7 @@ registerModule('orders', {
       // when the modal is in "Add" mode. Cleared explicitly by the toolbar's
       // Add trigger so a stale edit never leaks into the next Add.
       editImaging: null,
+      editProcedure: null,
       editNonVisit: null,
     };
 
@@ -687,6 +797,11 @@ registerModule('orders', {
         data-testid="chart--imaging-table"></ui-data-table>`;
     }
 
+    function proceduresMarkup() {
+      return `<ui-data-table empty-text="No procedures ordered on this record."
+        data-testid="chart--procedures-table"></ui-data-table>`;
+    }
+
     function nonVisitMarkup() {
       return `<ui-data-table empty-text="No non-visit orders on this record."
         data-testid="chart--nonvisit-table"></ui-data-table>`;
@@ -697,11 +812,13 @@ registerModule('orders', {
 
       host.innerHTML = `<div id="panel-lab" class="ord__section">${state.section === 'lab' ? labMarkup() : ''}</div>
         <div id="panel-imaging" class="ord__section">${state.section === 'imaging' ? imagingMarkup() : ''}</div>
+        <div id="panel-procedures" class="ord__section">${state.section === 'procedures' ? proceduresMarkup() : ''}</div>
         <div id="panel-nonVisit" class="ord__section">${state.section === 'nonVisit' ? nonVisitMarkup() : ''}</div>
 
         ${addLabTestModal(state.testRows)}
         ${uploadLabResultsModal(data.labs.filter((l) => l.status === 'ordered'))}
         ${addImagingModal(state.editImaging)}
+        ${addProcedureModal(state.editProcedure)}
         ${addNonVisitModal(state.editNonVisit)}`;
 
       if (state.section === 'lab') {
@@ -724,6 +841,13 @@ registerModule('orders', {
         table.columns = IMAGING_COLUMNS;
         table.rows = data.imaging;
         table.setAttribute('state', data.imaging.length ? 'ready' : 'empty');
+      }
+
+      if (state.section === 'procedures') {
+        const table = host.querySelector('[data-testid="chart--procedures-table"]');
+        table.columns = PROCEDURE_COLUMNS;
+        table.rows = data.procedures;
+        table.setAttribute('state', data.procedures.length ? 'ready' : 'empty');
       }
 
       if (state.section === 'nonVisit') {
@@ -871,6 +995,104 @@ registerModule('orders', {
 
       state.editImaging = null;
       state.section = 'imaging';
+      modal.close();
+      paint();
+    }
+
+    /* --- Procedures: CRUD --------------------------------------------------------- */
+
+    function openProcedureModal(trigger, editRow) {
+      state.editProcedure = editRow ?? null;
+      paint();
+      host.querySelector('#ordAddProcedureModal')?.open(trigger);
+    }
+
+    function procedureMenu(id) {
+      const order = data.procedures.find((o) => o.id === id);
+      if (!order) return;
+
+      /* The same ladder Imaging offers, because a scope moves through the same
+         four states. "Mark Scheduled" is the one that carries real weight
+         here: it is what says a slot exists, and until it is pressed the order
+         is a decision nobody has acted on. */
+      const items = [];
+      if (order.status === 'ordered') {
+        items.push({ label: 'Mark Scheduled', icon: 'calendar', action: 'schedule' });
+      }
+      if (order.status === 'ordered' || order.status === 'scheduled') {
+        items.push({ label: 'Mark Completed', icon: 'check', action: 'complete' });
+      }
+      items.push({ label: 'Edit', icon: 'pencil', action: 'edit' });
+      if (order.status !== 'completed' && order.status !== 'cancelled') {
+        items.push({ label: 'Cancel Order', icon: 'close', action: 'cancel', danger: true });
+      }
+      items.push({ label: 'Delete', icon: 'trash', action: 'delete', danger: true });
+
+      const anchorEl = host.querySelector(`[data-prc-menu="${id}"]`);
+
+      function apply(action) {
+        if (action === 'edit') return openProcedureModal(anchorEl, order);
+        if (action === 'delete') {
+          data.procedures = data.procedures.filter((o) => o.id !== id);
+          return paint();
+        }
+        if (action === 'schedule') order.status = 'scheduled';
+        else if (action === 'complete') order.status = 'completed';
+        else if (action === 'cancel') order.status = 'cancelled';
+        else return;
+
+        ctx.flash(`${order.procedure} order updated.`, 'success');
+        paint();
+      }
+
+      openRowMenu(anchorEl, items.map((item) => ({ ...item, run: () => apply(item.action) })));
+    }
+
+    function saveProcedure() {
+      const modal = host.querySelector('#ordAddProcedureModal');
+      const procedure = modal.querySelector('#ordPrcType')?.value;
+
+      if (!procedure) {
+        modal.querySelector('#ordPrcType')?.setAttribute('error', 'Select a procedure.');
+        return;
+      }
+
+      const priority = modal.querySelector('#ordPrcPriority')?.value || 'Routine';
+      const facility = modal.querySelector('#ordPrcFacility')?.value || PROCEDURE_FACILITIES[0];
+      const indication = modal.querySelector('#ordPrcIndication')?.value || '';
+      const provider = modal.querySelector('#ordPrcProvider')?.value || PRESCRIBING_PROVIDERS[0];
+      const notes = modal.querySelector('[data-testid="chart--prc-notes"]')?.value.trim() || '';
+
+      if (state.editProcedure) {
+        Object.assign(state.editProcedure, {
+          procedure,
+          priority,
+          facility,
+          indication,
+          orderedBy: provider,
+          notes,
+        });
+        ctx.flash(`${procedure} order updated.`, 'success');
+      } else {
+        data.procedures.unshift({
+          id: nextId('prc'),
+          procedure,
+          priority,
+          facility,
+          indication,
+          notes,
+          status: 'ordered',
+          orderedOn: todayDdMmYyyy(),
+          orderedBy: provider,
+          scheduledOn: null,
+          /* Blank: this one was typed here. Only the note fills it. */
+          raisedFrom: '',
+        });
+        ctx.flash(`${procedure} ordered.`, 'success');
+      }
+
+      state.editProcedure = null;
+      state.section = 'procedures';
       modal.close();
       paint();
     }
@@ -1194,6 +1416,10 @@ registerModule('orders', {
         openImagingModal(event.target.closest('ui-button'), null);
         return;
       }
+      if (event.target.closest('[data-testid="chart--add-procedure"]')) {
+        openProcedureModal(event.target.closest('ui-button'), null);
+        return;
+      }
       if (event.target.closest('[data-testid="chart--add-nonvisit"]')) {
         openNonVisitModal(event.target.closest('ui-button'), null);
         return;
@@ -1219,6 +1445,11 @@ registerModule('orders', {
       const imgMenuBtn = event.target.closest('[data-img-menu]');
       if (imgMenuBtn) {
         imagingMenu(imgMenuBtn.dataset.imgMenu);
+        return;
+      }
+      const prcMenuBtn = event.target.closest('[data-prc-menu]');
+      if (prcMenuBtn) {
+        procedureMenu(prcMenuBtn.dataset.prcMenu);
         return;
       }
       const nvMenuBtn = event.target.closest('[data-nv-menu]');
@@ -1250,6 +1481,10 @@ registerModule('orders', {
       if (event.target.closest('[data-testid="chart--upload-print-close"]')) {
         ctx.flash('Would print a copy for the file.');
         host.querySelector('#ordUploadModal')?.close();
+        return;
+      }
+      if (event.target.closest('[data-testid="chart--prc-save"]')) {
+        saveProcedure();
         return;
       }
       if (event.target.closest('[data-testid="chart--img-save"]')) {

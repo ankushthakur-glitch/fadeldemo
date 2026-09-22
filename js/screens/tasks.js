@@ -37,7 +37,6 @@ import {
   TASK_TYPES,
   STAFF,
   PATIENTS,
-  RECALLS,
   RECALL_STATUSES,
   RECALL_SOURCES,
   RECALL_TYPES,
@@ -55,6 +54,11 @@ import {
   EPRESCRIPTIONS,
   EPRESCRIPTION_STATUSES,
 } from '../../data/tasks.js';
+/* Recalls come through the store rather than straight off the seed, because
+   they are no longer only written here: signing a clinic visit note turns the
+   follow-up interval on its Plan into a recall, and that happens on a
+   different page load. See data/recall-store.js. */
+import { loadRecalls } from '../../data/recall-store.js';
 import { admits, chosen } from '../lib/filter-set.js';
 import { createPager } from '../lib/pagination.js';
 import { notify } from '../lib/toast.js';
@@ -228,7 +232,9 @@ const MENU_COLUMN = {
 const state = {
   tab: 'all',
   tasks: TASKS.map((t) => ({ ...t })),
-  recalls: RECALLS.map((r) => ({ ...r })),
+  /* loadRecalls() already hands back a fresh array of fresh objects — the
+     seed is never the thing being edited — so this one is not copied again. */
+  recalls: loadRecalls(),
   refills: REFILLS.map((r) => ({ ...r })),
   labOrders: LAB_ORDERS.map((o) => ({ ...o })),
   prescriptions: EPRESCRIPTIONS.map((p) => ({ ...p })),

@@ -15,6 +15,11 @@
  *   imaging     X-Ray, CT, MRI, ultrasound and mammography orders — a
  *               worklist grid with Add / Edit / Mark Completed / Cancel /
  *               Delete, same CRUD shape as Prescriptions.
+ *   procedures  endoscopy ordered against the chart — an EGD or a colonoscopy
+ *               decided in clinic and carried out on another day, in another
+ *               room, by somebody who was not in the consultation. Same
+ *               worklist shape as imaging, for the same reason: it is a thing
+ *               ordered, then scheduled, then done.
  *   nonVisit    telephone orders, verbal orders, standing orders and
  *               portal/remote orders — anything ordered outside a booked
  *               visit. Simplest of the four: a description and an
@@ -74,6 +79,59 @@ export const IMAGING_FACILITIES = [
 export const IMAGING_PRIORITIES = ['Routine', 'STAT'];
 
 export const IMAGING_STATUS = {
+  ordered: { label: 'Ordered', tone: 'warning' },
+  scheduled: { label: 'Scheduled', tone: 'info' },
+  completed: { label: 'Completed', tone: 'success' },
+  cancelled: { label: 'Cancelled', tone: 'critical' },
+};
+
+/* --- Procedures -----------------------------------------------------------
+   AN ORDERED SCOPE IS NOT AN IMAGING STUDY, AND IT IS NOT A REFERRAL.
+
+   It very nearly went into `imaging`, on the grounds that both are "a thing
+   done to the patient in another room on another day". The vocabularies are
+   what stopped it. An imaging order names a modality and a body part; an
+   endoscopy order names an indication and a sedation plan, and the question
+   the desk asks about it — has this been booked into a procedure slot — is
+   not a question anybody asks about a chest film. Filing a colonoscopy under
+   Imaging/X-Ray would have meant a Modality select with "Colonoscopy" in it
+   and a Body Part field nobody could answer honestly.
+
+   It is not a referral either: the scope is done by this practice, in this
+   practice's ASC, by one of the three physicians already named above. Nothing
+   is being sent anywhere, so none of the Referrals screen's packet, fax and
+   chase machinery applies.
+
+   The type list is deliberately the INDICATION-bearing form — "Colonoscopy —
+   surveillance" rather than "Colonoscopy" — because the indication is what
+   decides the interval, the prep and, on a screening code, who pays. The same
+   distinction is drawn in RECALL_TYPES in data/tasks.js, and the two lists are
+   worded to match so a scope ordered today and the recall it eventually
+   becomes read as the same thing. ------------------------------------------ */
+
+export const PROCEDURE_TYPES = [
+  'Colonoscopy — screening',
+  'Colonoscopy — surveillance',
+  'Colonoscopy — diagnostic',
+  'EGD — diagnostic',
+  "EGD — Barrett's surveillance",
+  'EGD with dilation',
+  'Flexible sigmoidoscopy',
+  'Capsule endoscopy',
+];
+
+export const PROCEDURE_FACILITIES = [
+  'MediNova GI — ASC',
+  'MediNova GI — Clinic procedure room',
+  'Sanford Medical Center — Endoscopy',
+];
+
+/* Three rather than imaging's two. An endoscopy is rarely a STAT order and
+   often an "before this gets worse" one, and a practice that can only say
+   Routine or STAT ends up marking urgent scopes STAT to get them seen. */
+export const PROCEDURE_PRIORITIES = ['Routine', 'Urgent — within 2 weeks', 'STAT'];
+
+export const PROCEDURE_STATUS = {
   ordered: { label: 'Ordered', tone: 'warning' },
   scheduled: { label: 'Scheduled', tone: 'info' },
   completed: { label: 'Completed', tone: 'success' },
@@ -225,6 +283,22 @@ export const CHART_ORDERS = {
       },
     ],
 
+    procedures: [
+      {
+        id: 'prc-1',
+        procedure: 'Colonoscopy — surveillance',
+        priority: 'Routine',
+        status: 'scheduled',
+        orderedOn: '20-10-2025',
+        orderedBy: 'Dr. A. Mensah',
+        facility: 'MediNova GI — ASC',
+        scheduledOn: '18-11-2025',
+        indication: 'Z12.11 — Screening for colon cancer',
+        notes: 'Three adenomas at the 2022 exam. Split-dose prep.',
+        raisedFrom: '',
+      },
+    ],
+
     nonVisit: [
       {
         id: 'nv-1',
@@ -246,4 +320,4 @@ export const CHART_ORDERS = {
   },
 };
 
-export const EMPTY_CHART_ORDERS = { labs: [], imaging: [], nonVisit: [] };
+export const EMPTY_CHART_ORDERS = { labs: [], imaging: [], procedures: [], nonVisit: [] };

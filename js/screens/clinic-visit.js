@@ -119,6 +119,12 @@ import {
    copy controls on them. Shared with the procedure's step run, which mounts the
    same rail in the same place — see the note at the head of that module. */
 import { mountClinicalRail, wireRailCollapse } from '../lib/clinical-rail.js';
+/* The patient card at the top of the left rail — the same component the
+   procedure encounter and the encounter summary draw, so one patient's
+   identity is one thing however the note was opened. This screen used to hold
+   its own copy, complete with a hard-coded insurance plan; see the head of
+   js/lib/patient-card.js for what that cost. */
+import { paintPatientCard } from '../lib/patient-card.js';
 import { providerById, typeById, procedureById, coverageFor } from '../../data/schedule.js';
 import { findAppointment, updateAppointment } from '../../data/appointment-store.js';
 import { DIRECTORY } from '../../data/directory.js';
@@ -141,7 +147,56 @@ import {
   templateByTitle,
 } from '../../data/visit-note-templates.js';
 import { noteTypeFor } from '../../data/visit-notes.js';
+/* The chart's own order vocabularies. A lab raised from the Plan has to be
+   the same kind of thing as a lab raised on the chart's Orders tab — same
+   test catalogue, same vendors, same ICD list — or the note quietly invents a
+   second way of ordering the same test. */
+import {
+  LAB_TEST_CATALOG,
+  LAB_VENDORS,
+  ICD_CODES,
+  PROCEDURE_TYPES,
+  PROCEDURE_FACILITIES,
+  PROCEDURE_PRIORITIES,
+} from '../../data/chart-orders.js';
+import { raiseOrders } from '../../data/order-store.js';
+import {
+  RECALL_TYPES,
+  RECALL_INTERVALS,
+  RECALL_LOCATIONS,
+} from '../../data/tasks.js';
+import { addRecall, recallIntervalFor, dueFromInterval } from '../../data/recall-store.js';
 import { notify as toast } from '../lib/toast.js';
+/*
+ * THE AI SCRIBE, WHICH IS WHAT V2 OF THIS SCREEN IS FOR.
+ *
+ * The purple button on the document bar, the transcript it fills while the
+ * consultation happens, and the draft it hands back. Everything about why the
+ * draft does NOT go into the note by itself is over js/lib/ai-scribe.js.
+ */
+import { mountAiScribe } from '../lib/ai-scribe.js';
+/*
+ * V2: THE TWO BLOCKS A CLINICIAN CAN ADD TO ANY NOTE.
+ *
+ * A review of systems and a marked-up body map are not sections of a template
+ * — every template could carry either, and most consultations want neither —
+ * so they are added at the desk from the tool row under the Plan, and they
+ * render as note sections once they exist. See insertPointForExtra() for where
+ * each one lands and why it is not simply appended at the bottom.
+ */
+import {
+  ROS_SYSTEMS,
+  ROS_ANSWERS,
+  ROS_NEGATIVE,
+  ROS_SECTION_ID,
+  ROS_SECTION_TITLE,
+} from '../../data/ros.js';
+import {
+  openBodyDiagram,
+  bodyDiagramBlock,
+  bodyDiagramPresetOptions,
+} from '../lib/body-diagram.js';
+import { bodyMapById } from '../../data/body-maps.js';
 
 /* ===================== Helpers ===================== */
 
@@ -229,6 +284,17 @@ const examRowKeys = () =>
   EXAM_SYSTEMS.flatMap((group) => group.rows.map((row) => `${group.system}|${row.label}`));
 
 const state = {
+  /*
+   * V2: WHICH FIELDS HOLD WORDS THE SCRIBE DRAFTED.
+   *
+   * Field keys, not section ids, because that is the grain at which text was
+   * accepted: a clinician who copied the Plan and typed the Assessment
+   * themselves should see the mark on one and not the other. Read by
+   * visitNoteSectionHtml on every repaint — see the note there for why the
+   * record has to carry this at all.
+   */
+  scribeFilled: new Set(),
+
   /* --- Stage --- */
   stage: isProcedure ? 'pre' : 'intra',
   preDoc: landOn,
@@ -265,6 +331,93 @@ const state = {
     signedBy: appointment?.noteSignedBy ?? '',
     signedDate: appointment?.noteSignedOn ?? '',
     signedTime: appointment?.noteSignedAt ?? '',
+  },
+
+  /*
+   * --- V2: THE BLOCKS THIS NOTE HAS HAD ADDED TO IT ---
+   *
+   * Neither of these is part of any template, and that is the point of them.
+   * A review of systems and a body map are things a clinician reaches for
+   * DURING a consultation, when the history turns out to need them — which is
+   * exactly the moment a template cannot have predicted. So the note carries
+   * an empty slot for each, and the tool row under the Plan fills it.
+   *
+   * `added` is separate from whether there is anything in the block, because
+   * the two mean different things. A ROS with every system still unanswered is
+   * a ROS the clinician has begun and not finished, and a note that silently
+   * dropped it on the next repaint because it held no answers yet would be
+   * throwing away the decision to ask.
+   */
+  extras: {
+    ros: {
+      added: false,
+      /* Keyed by system id, holding one of ROS_ANSWERS. Absent means the
+         question has not been answered — which is NOT the same as "Not
+         examined", and is why that third answer has to be sayable. */
+      answers: {},
+      detail: '',
+    },
+    bodyMap: {
+      added: false,
+      mapId: 'abdomen',
+      /* Each mark is { x, y, label }, x and y being fractions of the diagram's
+         viewBox — see js/lib/body-diagram.js for why fractions. */
+      marks: [],
+    },
+  },
+
+  /*
+   * --- What the Plan commits to, beside the prose that describes it ---
+   *
+   * The Plan of a visit note has always been the section somebody ACTS on
+   * afterwards, and until now acting on it meant reading the paragraph and
+   * going somewhere else to do the thing: the chart's Orders tab for a lab,
+   * the Recalls worklist for a follow-up. Both of those are a different
+   * screen, which means both of them happen later or not at all — and a plan
+   * whose orders live only in prose is a plan that produces nothing a system
+   * can chase.
+   *
+   * So the Plan carries the two commitments as records rather than sentences.
+   * They are STAGED here and filed on signature, never before: a draft note is
+   * a clinician thinking, and a half-written plan that has already sent a
+   * colonoscopy order to the ASC is worse than one that sent nothing. The
+   * signature is what turns the document into the record, and it is what turns
+   * these into orders too. See filePlanCommitments().
+   */
+  plan: {
+    /* Staged orders, in the order they were raised. Each carries its own
+       `kind` — 'lab', 'egd' or 'colonoscopy' — because the two scopes are one
+       record shape but two different things to ask about. */
+    orders: [],
+
+    /*
+     * The recall this note will write.
+     *
+     * `dueFor` empty means no recall, and that is the only way to say so —
+     * there is no separate "no recall" tick, because a tick and an empty
+     * picker would be two ways of saying one thing that can disagree.
+     *
+     * `intervalTouched` is what stops the note overwriting a deliberate
+     * choice. The interval is normally derived from the Plan's own follow-up
+     * field, and re-derived whenever that changes; once somebody has set it by
+     * hand — a three-year surveillance recall off a note whose clinic
+     * follow-up is six months — the derivation stops, or the next keystroke in
+     * the Plan would throw their answer away.
+     */
+    recall: { dueFor: '', interval: '', intervalTouched: false },
+
+    /*
+     * Whether this visit's plan has already been filed.
+     *
+     * Carried on the booking rather than in memory because the booking
+     * outlives the page: the note is reopened from the worklist as a fresh
+     * load, with the Plan's orders read back out of the store. Without it, a
+     * signed note that somehow reached a second signature — a reload, a route
+     * a later change adds back — would raise every order on its Plan again,
+     * and the clinician correcting a typo in the Assessment would book two
+     * colonoscopies.
+     */
+    filed: Boolean(appointment?.planFiled),
   },
 
   /* --- In-procedure: the colonoscopy report --- */
@@ -711,36 +864,12 @@ const findingImpression = (f) =>
 /* ===================== Left: the patient ===================== */
 
 function paintPatient() {
-  const allergies = CLINICAL_SECTIONS.find((s) => s.id === 'allergies').items;
-
-  el('patientCard').innerHTML = `
-    <div class="enc__patient-top">
-      <span class="enc__avatar" aria-hidden="true">${esc(initials(patient.name))}</span>
-      <div class="enc__patient-heading">
-        <div class="enc__patient-name">${esc(patient.name)}</div>
-      </div>
-      <ui-badge status="critical" title="${esc(
-        allergies.map((a) => a.text).join(', ')
-      )}">${allergies.length} allergies</ui-badge>
-    </div>
-
-    <!-- MRN, DOB, age and sex are all "who is this" facts and belong on one
-         line. Under the top row rather than inside it: squeezed between a
-         44px avatar and the allergy badge the line had about 200px to work in
-         and broke into three, so the card spent three rows saying what fits
-         comfortably in one across its full width. -->
-    <div class="enc__patient-idline">
-      <span>MRN ${esc(patient.mrn)} · DOB ${esc(patient.dob)}</span>
-      <span>${patient.age} yrs · ${patient.sex === 'M' ? 'Male' : 'Female'}</span>
-    </div>
-
-    <dl class="enc__patient-facts">
-      <div class="enc__fact"><dt>Mobile</dt><dd>${esc(patient.phone)}</dd></div>
-      <div class="enc__fact"><dt>Insurance</dt><dd>Blue Cross Blue Shield ND — PPO</dd></div>
-      <div class="enc__fact"><dt>Provider</dt><dd>${esc(
-        providerById(appointment?.providerId)?.name ?? REPORT_STAFF.endoscopist
-      )}</dd></div>
-    </dl>`;
+  paintPatientCard({
+    host: el('patientCard'),
+    patient,
+    provider: providerById(appointment?.providerId)?.name ?? REPORT_STAFF.endoscopist,
+    testid: 'enc--patient',
+  });
 }
 
 /* ===================== Right rail: the clinical picture ===================== */
@@ -1800,6 +1929,9 @@ function wireSignDialog() {
  * so the button labelled "Sign" signed nothing and the clinician discovered
  * on the next screen that they still had to. It asks here instead: the name
  * going on the note, and the mark it produces shown before it is committed.
+ * Confirming it files the note and returns to the schedule — the encounter is
+ * over at that point, and what comes next is the next patient (see
+ * signVisitNote).
  *
  * There is no completeness gate, deliberately — the footer hint names the
  * sections still empty, and a consultation with nothing under family history
@@ -1810,9 +1942,12 @@ function openVisitSignDialog(trigger) {
   const nameField = el('signName');
   nameField.removeAttribute('error');
   setValue(nameField, name);
+  /* The lead says what signing costs, and it no longer promises a way back:
+     a clinic visit's note is final once it is signed, and a dialog that says
+     otherwise is a dialog people press through. */
   setSignLead(
     `Signing files the ${state.visitNote.template} for ${patient?.name ?? 'this patient'} to the ` +
-      'chart and locks it. It can be amended afterwards only by withdrawing this signature.'
+      'chart, locks it, and completes the encounter. Nothing in it can be changed afterwards.'
   );
   paintSignPreview(name);
 
@@ -1820,7 +1955,7 @@ function openVisitSignDialog(trigger) {
 }
 
 /**
- * Sign the visit note, then hand it to the summary to be read as a record.
+ * Sign the visit note. The signature is what completes the encounter.
  *
  * The signature is written in two places on purpose. `state.visitNote` is what
  * this screen paints — the signature block at the foot of the note, the badge
@@ -1837,6 +1972,15 @@ function signVisitNote({ name } = {}) {
   state.visitNote.signedBy = signedBy;
   state.visitNote.signedDate = date;
   state.visitNote.signedTime = time;
+
+  /*
+   * The Plan's orders and its recall become records HERE, with the signature
+   * and under the name on it, because that is when the document becomes the
+   * record. Before the booking is written rather than after: filing is what
+   * the clinician pressed the button for, and a navigation that beat it would
+   * lose the orders and leave a signed note claiming to have raised them.
+   */
+  filePlanCommitments(signedBy);
 
   if (appointment) {
     /*
@@ -1861,6 +2005,11 @@ function signVisitNote({ name } = {}) {
          procedure run's — three documents and a superbill — and claiming it
          here would put a procedure's banner over a consultation. */
       noteSigned: true,
+      /* And the visit is over. A clinic visit is one document, so the
+         signature on it is the end of the encounter, not a step in it — the
+         booking moves to the terminal status the procedure run also finishes
+         on, rather than sitting in Scheduled behind a note nobody can edit. */
+      status: 'Check Out',
       noteSignedBy: signedBy,
       noteSignedOn: new Date().toLocaleDateString('en-GB', {
         day: 'numeric',
@@ -1871,13 +2020,28 @@ function signVisitNote({ name } = {}) {
     });
   }
 
+  /* Painted before the trip so the signed state is what any code reading the
+     screen after this — and the note, if the navigation is ever dropped —
+     sees. It costs one repaint and saves a signed note rendering as a draft. */
   paintDoc();
 
-  /* Read the note whole, on the screen built for reading it. The editor has
-     done its job the moment the signature is on the document. */
-  window.location.href = `encounter-summary.html?appt=${encodeURIComponent(
-    appointment?.id ?? ''
-  )}`;
+  /*
+   * Signed means finished, so the clinician goes back to the schedule.
+   *
+   * It used to be the Encounter Summary, which is a reading screen for a past
+   * encounter — it renders two of the note's sections and carries a Save
+   * button of its own — so landing there off a signature read as a second
+   * document to deal with at the moment the work was already done. The
+   * encounter is locked at this point and there is nothing left to do on it:
+   * what comes next is the next patient. That is the schedule, the same place
+   * the back arrow on this screen goes (screens/clinic-visit.html), and
+   * the row for this visit is the receipt — it reads Check Out with the note
+   * filed as signed, written by the updateAppointment above.
+   *
+   * No toast before it: a toast lives in the DOM of the page that raised it,
+   * so one fired here would be thrown away by the navigation a frame later.
+   */
+  window.location.href = 'scheduler.html';
 }
 
 function paintPre() {
@@ -5449,6 +5613,22 @@ function visitNoteFieldHtml(field) {
       data-vn-field="${esc(field.key)}" data-testid="${testid}"></ui-select></div>`;
   }
   if (field.type === 'textarea') {
+    /*
+     * V2: THE LONG PROSE FIELD GETS A FORMATTING BAR.
+     *
+     * `rich` is set on exactly the histories of present illness — see the note
+     * about the flag at the head of data/visit-note-templates.js. The tag is
+     * different and nothing else is: same id, same data-vn-field, same
+     * data-testid, and the same ui-input/ui-change pair on the way out, so the
+     * note's delegated commit handler, syncVisitNoteFromDom, the rail's Import
+     * and the scribe's Copy to note all go on treating it as the prose field
+     * it has always been.
+     */
+    if (field.rich) {
+      return `<div class="${classes}"><ui-richtext id="${id}" label="${label}"${hidden}
+        rows="${field.rows ?? 5}" placeholder="${esc(field.placeholder ?? '')}"
+        data-vn-field="${esc(field.key)}" data-testid="${testid}"></ui-richtext></div>`;
+    }
     return `<div class="${classes}"><ui-textarea id="${id}" label="${label}"${hidden}
       rows="${field.rows ?? 3}" placeholder="${esc(field.placeholder ?? '')}"
       data-vn-field="${esc(field.key)}" data-testid="${testid}"></ui-textarea></div>`;
@@ -5492,9 +5672,27 @@ function visitNoteFieldHtml(field) {
  * note at the head of data/visit-note-templates.js.
  */
 function visitNoteSectionHtml(section) {
+  /*
+   * V2: A SECTION SAYS WHEN A MACHINE DRAFTED IT.
+   *
+   * The note is signed by a clinician and they are accountable for every word
+   * in it, including the words they accepted from the scribe. The record
+   * should say which those were — so a section that was copied out of the
+   * draft carries the mark, in the scribe's own purple, and one the clinician
+   * typed carries nothing.
+   *
+   * It survives a repaint because it is read off `state.scribeFilled` rather
+   * than stuck onto the DOM at the moment of copying.
+   */
+  const filled = section.fields?.some((field) => state.scribeFilled.has(field.key));
+
   return `<section class="enc__doc-section enc__vn-section"
     data-testid="enc--vn-section-${section.id}">
-    <h3>${esc(section.title)}</h3>
+    <h3>${esc(section.title)}${
+      filled
+        ? `<span class="scribe-filled" data-testid="enc--vn-ai-${section.id}">AI drafted</span>`
+        : ''
+    }</h3>
     <div class="enc__vn-section-body">
       ${
         section.note
@@ -5508,20 +5706,259 @@ function visitNoteSectionHtml(section) {
               .join('')}</div>`
           : ''
       }
+      ${
+        /* The Plan, and only the Plan, carries what it commits to. Keyed off
+           the section id rather than the template, because every template that
+           HAS a plan shares this one section object — see PLAN_SECTION in
+           data/visit-note-templates.js — and a template that does not have one
+           (the infusion note ends in a next dose, not a plan) is a note with
+           nothing to raise orders from. */
+        section.id === 'plan' ? planCommitmentsHtml() : ''
+      }
+      ${
+        /* And the tool row sits under all of it, at the foot of the last card
+           on the note — which is where a clinician is when they discover the
+           note needs something the template did not give them. */
+        isToolRowSection(section) ? noteToolsHtml() : ''
+      }
     </div>
   </section>`;
 }
 
-/** Which sections nobody has written anything into yet. */
-function visitNoteOutstanding() {
-  const values = state.visitNote.values;
-  return visitNoteSpec()
-    .sections.filter((section) => section.fields?.length)
-    .filter((section) =>
-      section.fields.every((field) => !String(values[field.key] ?? '').trim())
-    )
-    .map((section) => section.title);
+/* ===========================================================================
+   V2: THE TOOL ROW UNDER THE PLAN
+
+   Three things a note can be given that no template offers: a review of
+   systems, a marked-up diagram, and an order raised against the plan.
+
+   WHY THEY ARE AT THE BOTTOM AND NOT IN A TOOLBAR AT THE TOP.
+
+   Because they are not things you decide before writing. A clinician reaches
+   the foot of the Plan having just written what happens next, and that is the
+   moment the gaps show — the history needed a systems review, the examination
+   needed a picture, the plan needs a lab behind it. A toolbar above the note
+   asks for those decisions before any of them can be made.
+
+   WHY "ADD ORDERS" IS HERE WHEN THE PLAN CARD ALREADY HAS THREE RAISE BUTTONS.
+
+   It is the same action and it is deliberately not a fourth way to do it: the
+   button takes the clinician to the Orders group inside the Plan and puts the
+   focus on it. The raise buttons stay where the orders they produce are
+   listed, because a control that files something belongs beside the thing it
+   files into — and the tool row stays a complete answer to "what else can this
+   note have", which it would not be if orders were missing from it.
+   ======================================================================== */
+
+/**
+ * Which section carries the tool row: the Plan, or the last section on a note
+ * that has no plan.
+ *
+ * Every template but one ends in a plan, and that is where a clinician is when
+ * they find the note needs something the template did not give them. The
+ * Infusion Visit is the exception — it ends in a next dose, not a plan, because
+ * nothing is decided at an infusion visit that was not decided before it — and
+ * keying the row to `plan` alone left that one template with no way to add a
+ * review of systems or a body map at all. Which is the wrong answer twice
+ * over: an infusion is exactly the visit where somebody wants to mark where
+ * the site reacted.
+ *
+ * The plan commitments stay keyed to the Plan itself. Those really are about
+ * orders raised from a plan, and a note with no plan has nothing to raise.
+ */
+function isToolRowSection(section) {
+  if (section.id === 'plan') return true;
+  const sections = visitNoteSpec().sections;
+  return !sections.some((entry) => entry.id === 'plan') &&
+    sections[sections.length - 1]?.id === section.id;
 }
+
+function noteToolsHtml() {
+  const signed = state.visitNote.signed;
+  /* A signed note is the record. Nothing may be added to it, and the row goes
+     rather than greying out: six disabled controls under a signature is a
+     paragraph of chrome explaining that the document is finished, which the
+     signature above it has already said. */
+  if (signed) return '';
+
+  const ros = state.extras.ros.added;
+  const map = state.extras.bodyMap.added;
+
+  return `<div class="enc__vn-tools" data-testid="enc--vn-tools">
+    <span class="enc__vn-tools-label">Add to this note</span>
+    <div class="enc__vn-tools-row">
+      <ui-button variant="outline" size="sm" icon="${ros ? 'check' : 'plus'}"
+        data-note-tool="ros" data-testid="enc--tool-ros"
+        ${ros ? 'disabled' : ''}>${ros ? 'ROS added' : 'ROS'}</ui-button>
+      <ui-button variant="outline" size="sm" icon="image"
+        data-note-tool="bodymap" data-testid="enc--tool-bodymap">
+        ${map ? 'Edit annotated image' : 'Annotable Image'}</ui-button>
+      <ui-button variant="outline" size="sm" icon="flask"
+        data-note-tool="orders" data-testid="enc--tool-orders">Add Orders</ui-button>
+    </div>
+  </div>`;
+}
+
+/* ===========================================================================
+   V2: THE TWO ADDED BLOCKS, AS SECTIONS OF THE NOTE
+
+   Both render as .enc__vn-section cards — the same band, the same title, the
+   same inset as every section the template declared. That is not laziness. A
+   block that is going to be signed is part of the document, and a body map
+   drawn as an attachment clipped to the side of a note is a body map the next
+   clinician reads as an attachment: optional, supplementary, skippable. It is
+   none of those things. It is where the finding is.
+   ======================================================================== */
+
+/*
+ * Where an added block goes in a note that did not come with one.
+ *
+ * IMMEDIATELY BEFORE THE EXAMINATION. That is not a layout preference, it is
+ * the definition of the thing: a review of systems is what is ASKED after the
+ * history is taken and before a hand is laid on the patient, and a body map is
+ * read against the examination it illustrates. Anchoring on the exam puts both
+ * blocks at that seam in every template the practice writes, whatever its
+ * history is called — Subjective, Interval history, Presenting complaint — and
+ * without this file having to know any of those names.
+ *
+ * THE FIRST RULE WAS "AFTER THE FIRST SECTION THAT HOLDS PROSE", and it is
+ * worth recording why it came out, because it reads perfectly well until you
+ * run it against the seven templates. It was right for a SOAP note and for a
+ * follow-up, and wrong for the two longest documents: a GI Consultation opens
+ * with Reason for consultation, whose referral question is a textarea, so the
+ * systems review landed above the history of present illness; and a New
+ * Patient note put it above the past medical history, medications and family
+ * history, which are exactly the things a clinician asks BEFORE running the
+ * systems. A rule that is correct on the short notes and wrong on the long
+ * ones is worse than no rule, because the long notes are the ones anybody
+ * would add a review of systems to.
+ *
+ * The fallbacks walk the same clinical order outwards — assessment, then plan
+ * — so a template with no examination still puts the block before the
+ * reasoning rather than after it. A template with none of the three is not one
+ * that exists today, and appending is the only honest answer if one is added.
+ */
+const EXTRA_ANCHORS = [
+  ['exam', 'objective', 'examination'],
+  ['assessment', 'impression'],
+  ['plan'],
+];
+
+function insertPointForExtra(sections) {
+  for (const anchor of EXTRA_ANCHORS) {
+    const index = sections.findIndex((section) => anchor.includes(section.id));
+    if (index !== -1) return index;
+  }
+  return sections.length;
+}
+
+/** One ROS row: the system, its prompt, and the three-way answer. */
+function rosRowHtml(system) {
+  const value = state.extras.ros.answers[system.id] ?? '';
+  return `<div class="enc__ros-row" data-testid="enc--ros-${system.id}">
+    <ui-radio-group inline label="${esc(system.label)}"
+      options="${esc(ROS_ANSWERS.join(','))}" value="${esc(value)}"
+      data-ros="${esc(system.id)}"></ui-radio-group>
+    <p class="enc__ros-prompt">${esc(system.prompt)}</p>
+  </div>`;
+}
+
+function rosSectionHtml() {
+  const ros = state.extras.ros;
+  const signed = state.visitNote.signed;
+  const answered = ROS_SYSTEMS.filter((system) => ros.answers[system.id]).length;
+
+  /*
+   * A SIGNED ROS IS PROSE, NOT FOURTEEN DEAD RADIO GROUPS.
+   *
+   * Under a signature the answers stop being a form and become a sentence in
+   * the record, so they are printed as one — the abnormal systems named first
+   * because they are the reason anybody reads a review of systems, then the
+   * normal ones collapsed into the phrase every clinician already writes.
+   */
+  if (signed) {
+    const grouped = ROS_ANSWERS.map((answer) => ({
+      answer,
+      systems: ROS_SYSTEMS.filter((system) => ros.answers[system.id] === answer),
+    })).filter((group) => group.systems.length);
+
+    return `<section class="enc__doc-section enc__vn-section"
+      data-testid="enc--vn-section-ros">
+      <h3>${esc(ROS_SECTION_TITLE)}</h3>
+      <div class="enc__vn-section-body">
+        ${
+          grouped.length
+            ? `<dl class="enc__ros-signed">${grouped
+                .map(
+                  (group) => `<dt>${esc(group.answer)}</dt>
+                    <dd>${group.systems.map((s) => esc(s.label)).join(', ')}</dd>`
+                )
+                .join('')}</dl>`
+            : '<p class="enc__doc-caption">No systems were reviewed.</p>'
+        }
+        ${ros.detail.trim() ? `<p class="enc__ros-detail">${esc(ros.detail)}</p>` : ''}
+      </div>
+    </section>`;
+  }
+
+  return `<section class="enc__doc-section enc__vn-section"
+    data-testid="enc--vn-section-ros">
+    <h3>${esc(ROS_SECTION_TITLE)}
+      <span class="enc__ros-count" data-testid="enc--ros-count">${answered} of ${
+        ROS_SYSTEMS.length
+      }</span>
+    </h3>
+    <div class="enc__vn-section-body">
+      <div class="enc__ros-bar">
+        <ui-button variant="outline" size="sm" data-ros-all
+          data-testid="enc--ros-all">All systems negative</ui-button>
+        <ui-button variant="tertiary" size="sm" data-ros-remove
+          data-testid="enc--ros-remove">Remove this section</ui-button>
+      </div>
+      <div class="enc__ros-grid">${ROS_SYSTEMS.map(rosRowHtml).join('')}</div>
+      <div class="enc__ros-detail-field">
+        <ui-textarea id="vn-rosDetail" label="Detail on anything abnormal" rows="2"
+          placeholder="What was abnormal, and how…"
+          data-testid="enc--ros-detail"></ui-textarea>
+      </div>
+    </div>
+  </section>`;
+}
+
+function bodyMapSectionHtml() {
+  const { mapId, marks } = state.extras.bodyMap;
+  const signed = state.visitNote.signed;
+
+  return `<section class="enc__doc-section enc__vn-section"
+    data-testid="enc--vn-section-bodymap">
+    <h3>Annotated image
+      <span class="enc__ros-count">${esc(bodyMapById(mapId).label)}</span>
+    </h3>
+    <div class="enc__vn-section-body">
+      ${bodyDiagramBlock({ mapId, marks })}
+      ${
+        signed
+          ? ''
+          : `<div class="enc__ros-bar">
+              <ui-button variant="outline" size="sm" data-note-tool="bodymap"
+                data-testid="enc--bodymap-edit">Edit marks</ui-button>
+              <ui-button variant="tertiary" size="sm" data-bodymap-remove
+                data-testid="enc--bodymap-remove">Remove this section</ui-button>
+            </div>`
+      }
+    </div>
+  </section>`;
+}
+
+/*
+ * visitNoteOutstanding() USED TO BE HERE.
+ *
+ * It returned the titles of the sections nobody had written into, and the one
+ * thing that called it was the footer hint that counted them — see updateHint()
+ * for why that line came off. Deleted rather than kept for a caller that might
+ * want it one day: a function with no callers is a function that quietly stops
+ * agreeing with the document it describes, and this one already had no opinion
+ * about the two blocks a clinician can now ADD to a note.
+ */
 
 /**
  * Pull the note out of the DOM and into state.
@@ -5537,6 +5974,59 @@ function syncVisitNoteFromDom() {
     const node = el(`vn-${field.key}`);
     if (node) values[field.key] = node.value ?? values[field.key] ?? '';
   });
+}
+
+/* ===================== The encounter clock =====================
+
+   HOW LONG THIS ENCOUNTER HAS BEEN OPEN, on the note's own document bar beside
+   the template picker. The two of them are what a clinician working a clinic
+   visit needs above the note and all that is left of a wider strip that used to
+   run across the top of the procedure screen: what kind of note this is, and
+   how long it has been open.
+
+   Counted from the moment the screen opened, and the title on the pill says so.
+   It is tempting to count from check-in instead — that is the number a clinic
+   actually manages — but the booking carries no arrival stamp, so a clock
+   claiming to measure the wait would be measuring the page load and calling it
+   something else.
+   -------------------------------------------------------------------------- */
+
+/* Module scope rather than state: it is set once, by the act of loading the
+   screen, and nothing that repaints may move it. */
+const encounterOpenedAt = Date.now();
+
+/** hh:mm:ss since the screen opened. */
+function elapsedLabel() {
+  const seconds = Math.floor((Date.now() - encounterOpenedAt) / 1000);
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${pad(Math.floor(seconds / 3600))}:${pad(Math.floor(seconds / 60) % 60)}:${pad(
+    seconds % 60
+  )}`;
+}
+
+/*
+ * Show the pill and start it.
+ *
+ * Only the DIGITS are rewritten once a second — the pill, its icon and its
+ * title are painted once and left alone, because repainting the whole bar every
+ * second would take the focus ring off the template picker beside it once a
+ * second for as long as the note is open.
+ *
+ * aria-live is off on the value for the same reason: a screen reader announcing
+ * the time every second would make the page unusable. The pill is still a
+ * role="timer" a reader can go and read on purpose.
+ */
+function startEncounterClock() {
+  const pill = el('encTimer');
+  if (!pill) return;
+  pill.hidden = false;
+
+  const tick = () => {
+    const value = el('encTimerValue');
+    if (value) value.textContent = elapsedLabel();
+  };
+  tick();
+  window.setInterval(tick, 1000);
 }
 
 /* ===================== Importing from an earlier encounter =================
@@ -5711,6 +6201,507 @@ function importIntoNote(section, encounter) {
   };
 }
 
+/* ===================== What the Plan commits to =====================
+   ORDERS AND A RECALL, RAISED WHERE THE DECISION IS MADE.
+
+   Two things follow from the Plan of a clinic visit and neither of them used
+   to leave it. The clinician wrote "check LFTs, book a surveillance scope, see
+   me in six months" and then — if the afternoon allowed — went to the chart's
+   Orders tab, typed the lab, went to the Recalls worklist, typed the recall.
+   Two more screens, both of them after the patient has gone, and the record of
+   what was decided living in a paragraph that nothing can query.
+
+   What that cost is visible in the demo data: TK-4394 in data/tasks.js is a
+   task chasing a surveillance interval because "the check-out sheet guessed
+   five years and nobody has confirmed it". The desk was guessing because the
+   note it should have been reading did not say, in any form a desk can read.
+
+   So the Plan raises them itself, in place:
+
+     ORDERS      a lab, an EGD or a colonoscopy, each asked for in the
+                 practice's own vocabulary — the same catalogue, vendors and
+                 ICD list the chart's Orders tab uses, so an order raised here
+                 IS an order and not a note about one.
+     A RECALL    read off the Plan's own follow-up interval, which has been a
+                 field rather than prose since the note was built, and which
+                 until now nothing consumed.
+
+   NOTHING IS FILED UNTIL THE NOTE IS SIGNED. A draft is a clinician thinking
+   and can be abandoned, re-templated or half-written for an hour; raising a
+   colonoscopy order the moment a button is pressed would mean the ASC hears
+   about decisions that were never made. The signature is what turns the
+   document into the record, and it is what turns these into orders — which is
+   also why the block says so, in the line under each list, rather than leaving
+   people to find out by signing.
+
+   WHY THE RECALL IS TWO CONTROLS AND NOT FOUR. A recall row needs a type, an
+   interval, a provider and a location. Only the first two are decisions: the
+   provider is whoever is signing the note, and whether the patient comes back
+   to the clinic or to the ASC follows from what they are coming back FOR. Both
+   are derived and shown in the summary line, where they can be read and
+   disagreed with, rather than being two more pickers on a document that is
+   already a column of them. The desk can change either on the Recalls screen,
+   which is where a booking is actually made.
+   -------------------------------------------------------------------------- */
+
+/**
+ * The three things a Plan can raise, and what each one is asked about.
+ *
+ * A lab and a scope are different questions — a vendor and a patient
+ * instruction against a facility and a priority — so they are two dialogs
+ * wearing one modal rather than one dialog with half its fields hidden.
+ *
+ * EGD and colonoscopy are separate entries rather than one "procedure" with a
+ * picker, because they are separate DECISIONS: a clinician orders a
+ * colonoscopy, not a procedure they then have to specify. The picker inside
+ * each is the indication-bearing form of the one they chose.
+ */
+const PLAN_ORDER_KINDS = {
+  lab: { label: 'Lab', heading: 'Raise a lab order', group: 'labs' },
+  egd: { label: 'EGD', heading: 'Raise an EGD order', group: 'procedures' },
+  colonoscopy: {
+    label: 'Colonoscopy',
+    heading: 'Raise a colonoscopy order',
+    group: 'procedures',
+  },
+};
+
+/** The procedure types one of the two scope buttons may raise. */
+const planScopeTypes = (kind) =>
+  PROCEDURE_TYPES.filter((type) =>
+    kind === 'egd' ? type.startsWith('EGD') : /Colonoscopy|sigmoidoscopy/i.test(type)
+  );
+
+/** The staged order in one line, which is all a list of them needs to be. */
+function planOrderSummary(order) {
+  return order.kind === 'lab'
+    ? [order.test, order.vendor, order.indication].filter(Boolean).join(' · ')
+    : [order.procedure, order.priority, order.facility].filter(Boolean).join(' · ');
+}
+
+/**
+ * Where a recall of this kind is kept.
+ *
+ * A scope is done in the ASC and a clinic follow-up in the clinic, and that is
+ * the whole of the rule. Anything the list does not name falls to the clinic,
+ * which is where a patient with no stated reason to be anywhere else goes.
+ */
+const planRecallLocation = (dueFor) =>
+  /colonoscopy|egd|endoscopy|capsule/i.test(dueFor) ? RECALL_LOCATIONS[0] : RECALL_LOCATIONS[1];
+
+/**
+ * Re-derive the recall from the Plan, without overwriting a deliberate answer.
+ *
+ * Called whenever the follow-up field changes. Three cases:
+ *   nothing chosen          the recall is left exactly as it is — an empty
+ *                           follow-up is a question not yet answered, not an
+ *                           instruction to cancel a recall somebody has set.
+ *   "no routine follow-up"  that IS an answer, and it says no recall. The type
+ *                           is cleared, which is how this module says "none".
+ *   an interval             a recall is proposed: a general clinic follow-up
+ *                           unless a scope has already been raised on this
+ *                           plan, in which case the patient is plainly coming
+ *                           back for that.
+ */
+function syncPlanRecall() {
+  const recall = state.plan.recall;
+  const followUp = String(state.visitNote.values.followUp ?? '').trim();
+  if (!followUp) return;
+
+  if (/^no routine follow/i.test(followUp)) {
+    recall.dueFor = '';
+    recall.interval = '';
+    recall.intervalTouched = false;
+    return;
+  }
+
+  if (!recall.dueFor) {
+    const scope = state.plan.orders.find((order) => order.kind !== 'lab');
+    /* The scope's own type is used verbatim when the recall vocabulary has it,
+       because the two lists are worded to match on purpose — see
+       PROCEDURE_TYPES in data/chart-orders.js. A scope whose wording has no
+       recall equivalent falls back rather than inventing a type the Recalls
+       screen's own filters would not recognise. */
+    recall.dueFor =
+      (scope && RECALL_TYPES.find((type) => type === scope.procedure)) ??
+      'Clinic follow-up — general';
+  }
+
+  if (!recall.intervalTouched) {
+    recall.interval = recallIntervalFor(followUp) || recall.interval;
+  }
+}
+
+/** The sentence under the recall controls: what will be written, in full. */
+function planRecallSummary() {
+  const { dueFor, interval } = state.plan.recall;
+  const followUp = String(state.visitNote.values.followUp ?? '').trim();
+
+  if (/^no routine follow/i.test(followUp) && !dueFor) {
+    return 'This plan sets no routine follow-up, so no recall will be written.';
+  }
+  if (!dueFor) {
+    return 'Choose what the patient is coming back for, and a recall is written when this note is signed.';
+  }
+  if (!interval) return 'Choose an interval, and the due date is worked out from today.';
+
+  const { dueLabel } = dueFromInterval(interval);
+  return `Due ${dueLabel} · ${actingProvider()} · ${planRecallLocation(dueFor)} — written to Recalls when this note is signed.`;
+}
+
+/**
+ * The block, appended inside the Plan section.
+ *
+ * Signed, it is a record of what was filed rather than a set of controls: the
+ * orders went to the chart and the recall to the worklist, and both are now
+ * somebody else's to change. Re-offering a "+ Lab" button under a signature
+ * would be offering to raise an order this note cannot account for.
+ */
+function planCommitmentsHtml() {
+  const { orders, recall, filed } = state.plan;
+  const signed = state.visitNote.signed;
+
+  const orderRows = orders.length
+    ? orders
+        .map(
+          (order, i) => `<li class="enc__commit-item" data-testid="enc--plan-order-${i}">
+            <span class="enc__commit-kind">${esc(PLAN_ORDER_KINDS[order.kind].label)}</span>
+            <span class="enc__commit-text">${esc(planOrderSummary(order))}</span>
+            ${
+              signed
+                ? ''
+                : `<button type="button" class="enc__commit-drop" data-plan-drop="${i}"
+                     aria-label="Remove this order from the plan"
+                     data-testid="enc--plan-order-drop-${i}">&times;</button>`
+            }
+          </li>`
+        )
+        .join('')
+    : `<li class="enc__commit-empty">No orders raised from this plan.</li>`;
+
+  return `<div class="enc__commit" id="planCommit" data-testid="enc--plan-commit">
+    <div class="enc__commit-group">
+      <h4 class="enc__commit-title">Orders</h4>
+      ${
+        signed
+          ? ''
+          : `<div class="enc__commit-raise">${Object.entries(PLAN_ORDER_KINDS)
+              .map(
+                ([kind, spec]) =>
+                  `<ui-button variant="outline" size="sm" icon="plus" data-plan-raise="${kind}"
+                     data-testid="enc--plan-raise-${kind}">${esc(spec.label)}</ui-button>`
+              )
+              .join('')}</div>`
+      }
+      <ul class="enc__commit-list">${orderRows}</ul>
+      <p class="enc__commit-foot">${
+        signed
+          ? filed
+            ? 'Raised to the chart with this signature.'
+            : 'Nothing was raised from this plan.'
+          : 'Raised to the chart’s Orders tab when this note is signed.'
+      }</p>
+    </div>
+
+    <div class="enc__commit-group">
+      <h4 class="enc__commit-title">Follow-up and recall</h4>
+      ${
+        signed
+          ? ''
+          : `<div class="enc__grid-2 enc__commit-fields">
+              <div class="enc__vn-field">
+                <ui-select id="planRecallFor" label="Recall for" placeholder="No recall"
+                  data-testid="enc--plan-recall-for"></ui-select>
+              </div>
+              <div class="enc__vn-field">
+                <ui-select id="planRecallInterval" label="Interval" placeholder="Select"
+                  data-testid="enc--plan-recall-interval"></ui-select>
+              </div>
+            </div>`
+      }
+      <p class="enc__commit-foot" data-testid="enc--plan-recall-summary">${
+        signed
+          ? recall.dueFor && filed
+            ? `${esc(recall.dueFor)} · ${esc(recall.interval)} — written to Recalls with this signature.`
+            : 'No recall was written from this plan.'
+          : esc(planRecallSummary())
+      }</p>
+    </div>
+  </div>`;
+}
+
+/**
+ * Wire the block. Called from wireVisitNote, so it is re-run on every repaint.
+ *
+ * The two selects are filled here rather than in the markup for the same
+ * reason every other picker on this screen is: <ui-select> takes its options
+ * as a property, and an attribute list would have to be escaped into a
+ * comma-separated string that breaks on the first option containing a comma.
+ */
+function wirePlanCommitments() {
+  const host = el('planCommit');
+  if (!host || state.visitNote.signed) return;
+
+  options('planRecallFor', ['', ...RECALL_TYPES], state.plan.recall.dueFor);
+  options('planRecallInterval', ['', ...RECALL_INTERVALS], state.plan.recall.interval);
+
+  host.addEventListener('ui-change', (event) => {
+    const field = event.target.closest('#planRecallFor, #planRecallInterval');
+    if (!field) return;
+    if (field.id === 'planRecallFor') state.plan.recall.dueFor = event.detail.value;
+    else {
+      state.plan.recall.interval = event.detail.value;
+      /* A hand-set interval stops being re-derived — see the note on
+         `intervalTouched` in state.plan. Clearing it back to blank is a
+         retraction, so the derivation resumes. */
+      state.plan.recall.intervalTouched = Boolean(event.detail.value);
+    }
+    paintDoc();
+  });
+
+  host.addEventListener('ui-click', (event) => {
+    const raise = event.target.closest('[data-plan-raise]');
+    if (!raise) return;
+    openPlanOrderDialog(raise.dataset.planRaise, raise);
+  });
+
+  host.addEventListener('click', (event) => {
+    const drop = event.target.closest('[data-plan-drop]');
+    if (!drop) return;
+    const order = state.plan.orders[Number(drop.dataset.planDrop)];
+    state.plan.orders.splice(Number(drop.dataset.planDrop), 1);
+    notify(`${PLAN_ORDER_KINDS[order.kind].label} order removed from the plan.`, 'info');
+    paintDoc();
+  });
+}
+
+/* --- Raising one order ------------------------------------------------------
+   A dialog rather than a row of fields in the note, and for the same reason
+   the procedure report opens a dialog to fill a specimen jar: an order is a
+   commitment with a handful of parts, and a half-filled row that can reach a
+   requisition is worse than no row at all. The dialog hands back a complete
+   order or nothing.
+   -------------------------------------------------------------------------- */
+
+/** The fields for one kind, built fresh each time the dialog opens. */
+function planOrderFieldsHtml(kind) {
+  if (kind === 'lab') {
+    return `<div class="enc__grid-2">
+      <div class="enc__vn-field enc__span-2">
+        <ui-select id="planOrdTest" label="Test" placeholder="Select a test" required
+          data-testid="enc--plan-ord-test"></ui-select>
+      </div>
+      <div class="enc__vn-field">
+        <ui-select id="planOrdVendor" label="Performing lab" placeholder="Select"
+          data-testid="enc--plan-ord-vendor"></ui-select>
+      </div>
+      <div class="enc__vn-field">
+        <ui-select id="planOrdIndication" label="Indication" placeholder="Select ICD code"
+          data-testid="enc--plan-ord-indication"></ui-select>
+      </div>
+      <div class="enc__vn-field enc__span-2">
+        <ui-input id="planOrdInstruction" label="Patient instruction"
+          placeholder="Fasting, timing, anything the patient has to do…"
+          data-testid="enc--plan-ord-instruction"></ui-input>
+      </div>
+    </div>`;
+  }
+
+  return `<div class="enc__grid-2">
+    <div class="enc__vn-field enc__span-2">
+      <ui-select id="planOrdProcedure" label="Procedure" placeholder="Select" required
+        data-testid="enc--plan-ord-procedure"></ui-select>
+    </div>
+    <div class="enc__vn-field">
+      <ui-select id="planOrdIndication" label="Indication" placeholder="Select ICD code"
+        data-testid="enc--plan-ord-indication"></ui-select>
+    </div>
+    <div class="enc__vn-field">
+      <ui-select id="planOrdPriority" label="Priority" placeholder="Select"
+        data-testid="enc--plan-ord-priority"></ui-select>
+    </div>
+    <div class="enc__vn-field enc__span-2">
+      <ui-select id="planOrdFacility" label="Facility" placeholder="Select"
+        data-testid="enc--plan-ord-facility"></ui-select>
+    </div>
+    <div class="enc__vn-field enc__span-2">
+      <ui-textarea id="planOrdNotes" label="Notes" rows="2"
+        placeholder="Prep, sedation plan, anything the endoscopist should know…"
+        data-testid="enc--plan-ord-notes"></ui-textarea>
+    </div>
+  </div>`;
+}
+
+/** Which kind the open dialog is raising. Read back by savePlanOrder(). */
+let planOrderKind = 'lab';
+
+function openPlanOrderDialog(kind, trigger) {
+  if (state.visitNote.signed) return;
+  planOrderKind = kind;
+
+  const modal = el('planOrderModal');
+  modal.setAttribute('heading', PLAN_ORDER_KINDS[kind].heading);
+  el('planOrderBody').innerHTML = planOrderFieldsHtml(kind);
+
+  if (kind === 'lab') {
+    options('planOrdTest', ['', ...LAB_TEST_CATALOG], '');
+    options('planOrdVendor', LAB_VENDORS, LAB_VENDORS[0]);
+    options('planOrdIndication', ['', ...ICD_CODES], '');
+  } else {
+    const types = planScopeTypes(kind);
+    options('planOrdProcedure', ['', ...types], types[0] ?? '');
+    options('planOrdIndication', ['', ...ICD_CODES], '');
+    options('planOrdPriority', PROCEDURE_PRIORITIES, PROCEDURE_PRIORITIES[0]);
+    options('planOrdFacility', PROCEDURE_FACILITIES, PROCEDURE_FACILITIES[0]);
+  }
+
+  modal.open(trigger);
+}
+
+/**
+ * Read the dialog back and stage the order.
+ *
+ * The one required answer is what is being ordered. Everything else has a
+ * defensible default — the in-house lab, a routine priority, the practice's
+ * own ASC — and a dialog that refuses to close over an unset facility is a
+ * dialog that gets abandoned mid-consultation.
+ */
+function savePlanOrder() {
+  const kind = planOrderKind;
+
+  if (kind === 'lab') {
+    const test = el('planOrdTest')?.value ?? '';
+    if (!test) {
+      el('planOrdTest')?.setAttribute('error', 'Choose a test.');
+      return;
+    }
+    state.plan.orders.push({
+      kind,
+      test,
+      vendor: el('planOrdVendor')?.value || LAB_VENDORS[0],
+      indication: el('planOrdIndication')?.value || '',
+      instruction: el('planOrdInstruction')?.value.trim() || '',
+    });
+    notify(`${test} staged on the plan.`);
+  } else {
+    const procedure = el('planOrdProcedure')?.value ?? '';
+    if (!procedure) {
+      el('planOrdProcedure')?.setAttribute('error', 'Choose a procedure.');
+      return;
+    }
+    state.plan.orders.push({
+      kind,
+      procedure,
+      indication: el('planOrdIndication')?.value || '',
+      priority: el('planOrdPriority')?.value || PROCEDURE_PRIORITIES[0],
+      facility: el('planOrdFacility')?.value || PROCEDURE_FACILITIES[0],
+      notes: el('planOrdNotes')?.value.trim() || '',
+    });
+    notify(`${procedure} staged on the plan.`);
+  }
+
+  /* A scope raised before the follow-up was answered should still be able to
+     become the recall, so the derivation is re-run rather than left to the
+     next change of the follow-up field. */
+  syncPlanRecall();
+  el('planOrderModal').close();
+  paintDoc();
+}
+
+/* --- Filing, on signature ---------------------------------------------------- */
+
+/** dd-mm-yyyy, the shape every order in data/chart-orders.js is stamped with. */
+function orderStamp(date = new Date()) {
+  return [
+    String(date.getDate()).padStart(2, '0'),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    date.getFullYear(),
+  ].join('-');
+}
+
+/** A counter, so two orders raised in one signature cannot share an id. */
+let planOrderSeq = 0;
+const nextPlanOrderId = (prefix) => `${prefix}-note-${++planOrderSeq}`;
+
+/**
+ * Turn the staged plan into records, once.
+ *
+ * Called from signVisitNote and nowhere else. It is deliberately silent about
+ * a plan with nothing on it: a consultation that needs no labs and no recall
+ * is an ordinary consultation, and a toast saying "0 orders raised" is the
+ * screen congratulating itself for doing nothing.
+ *
+ * `filed` is set before the writes rather than after, and carried on the
+ * booking, because the failure this guards against is a SECOND signature —
+ * see the note on state.plan.filed.
+ */
+function filePlanCommitments(signedBy) {
+  if (state.plan.filed) return;
+
+  const stamp = orderStamp();
+  const raisedFrom = `${state.visitNote.template} · ${stamp}`;
+
+  const labs = state.plan.orders
+    .filter((order) => order.kind === 'lab')
+    .map((order) => ({
+      id: nextPlanOrderId('lab'),
+      name: order.test,
+      status: 'ordered',
+      orderedOn: stamp,
+      orderedBy: signedBy,
+      receivedOn: null,
+      icdCode: order.indication,
+      vendor: order.vendor,
+      patientInstruction: order.instruction,
+      report: null,
+    }));
+
+  const procedures = state.plan.orders
+    .filter((order) => order.kind !== 'lab')
+    .map((order) => ({
+      id: nextPlanOrderId('prc'),
+      procedure: order.procedure,
+      priority: order.priority,
+      facility: order.facility,
+      indication: order.indication,
+      notes: order.notes,
+      status: 'ordered',
+      orderedOn: stamp,
+      orderedBy: signedBy,
+      scheduledOn: null,
+      /* The one field a chart-raised order leaves blank. It is what lets the
+         Orders worklist say that a signed note is standing behind this row. */
+      raisedFrom,
+    }));
+
+  const filed = raiseOrders(patient?.mrn, { labs, procedures });
+
+  const { dueFor, interval } = state.plan.recall;
+  let recall = null;
+  if (dueFor && interval) {
+    recall = addRecall({
+      patient: patient?.name ?? '',
+      mrn: patient?.mrn ?? '',
+      dueFor,
+      interval,
+      provider: signedBy,
+      location: planRecallLocation(dueFor),
+      source: 'note-plan',
+    });
+  }
+
+  state.plan.filed = true;
+  if (appointment) updateAppointment(appointment.id, { planFiled: true });
+
+  /* One sentence naming both halves, because they were one decision. Said
+     only when there was something to say — see the note above. */
+  const said = [
+    filed ? `${filed} order${filed === 1 ? '' : 's'} raised to the chart` : '',
+    recall ? `recall ${recall.id} due ${recall.dueLabel}` : '',
+  ].filter(Boolean);
+  if (said.length) notify(`${said.join(' · ')}.`);
+}
+
 function visitNoteSignatureHtml() {
   const n = state.visitNote;
   if (!n.signed) return `<strong>${esc(actingProvider())}</strong>`;
@@ -5727,8 +6718,26 @@ function paintVisitNote() {
 
   const spec = visitNoteSpec();
 
+  /*
+   * The template's own sections, with whatever has been added to this note
+   * spliced into them.
+   *
+   * Built as a list of already-rendered strings rather than as a list of
+   * section objects, because the two added blocks are not sections in the
+   * spec's sense — they have no `fields`, and pretending they did would mean
+   * teaching visitNoteFieldHtml about fourteen-row matrices and SVG figures to
+   * save one splice here. See insertPointForExtra() for where the splice goes.
+   */
+  const blocks = spec.sections.map(visitNoteSectionHtml);
+  const at = insertPointForExtra(spec.sections);
+  const extras = [
+    state.extras.ros.added ? rosSectionHtml() : '',
+    state.extras.bodyMap.added ? bodyMapSectionHtml() : '',
+  ].filter(Boolean);
+  blocks.splice(at, 0, ...extras);
+
   el('reportDoc').innerHTML = `
-    ${spec.sections.map(visitNoteSectionHtml).join('')}
+    ${blocks.join('')}
 
     <footer class="enc__doc-sign">
       ${visitNoteSignatureHtml()}
@@ -5760,7 +6769,9 @@ function paintVisitNote() {
 function applyVisitNoteLock() {
   const locked = state.visitNote.signed;
   el('reportDoc')
-    ?.querySelectorAll('ui-input, ui-select, ui-textarea, ui-checkbox, ui-radio-group')
+    ?.querySelectorAll(
+      'ui-input, ui-select, ui-textarea, ui-richtext, ui-checkbox, ui-radio-group'
+    )
     .forEach((control) => control.toggleAttribute('disabled', locked));
 }
 
@@ -5788,7 +6799,19 @@ function paintVisitNoteBar() {
         )}, ${esc(state.visitNote.signedTime)}</ui-badge>`
       : '';
   }
-  if (unlock) unlock.hidden = !state.visitNote.signed;
+  /*
+   * NO UNLOCK ON A CLINIC VISIT.
+   *
+   * The bar is shared with the procedure report, which keeps its own Unlock
+   * for Amendment because a report genuinely is amended — pathology comes
+   * back days later and the findings have to be corrected. A consultation
+   * note is not that document: it is signed once, at the end of the visit,
+   * and the signature completes the encounter. Offering to withdraw it put a
+   * button on the toolbar whose whole purpose was to undo the thing the
+   * clinician had just deliberately done, so the button stays hidden here and
+   * the signed note is simply the record.
+   */
+  if (unlock) unlock.hidden = true;
 }
 
 function wireVisitNote() {
@@ -5809,10 +6832,189 @@ function wireVisitNote() {
     const host = event.target.closest('[data-vn-field]');
     if (!host) return;
     values[host.dataset.vnField] = event.detail.value;
+
+    /* The follow-up interval is the one field on the note that something else
+       reads, so changing it re-derives the recall and redraws the block that
+       states it. Everything else only updates the hint. A full repaint is safe
+       here and nowhere else in this handler: follow-up is a select, so there is
+       no half-typed paragraph for the rebuild to throw away — and
+       syncVisitNoteFromDom would capture it anyway. */
+    if (host.dataset.vnField === 'followUp') {
+      syncPlanRecall();
+      paintDoc();
+      return;
+    }
+
     updateHint();
   };
   el('reportDoc').addEventListener('ui-change', commit);
   el('reportDoc').addEventListener('ui-input', commit);
+
+  wirePlanCommitments();
+  wireNoteTools();
+  wireRosSection();
+}
+
+/* ===========================================================================
+   V2: WIRING THE TOOL ROW AND THE TWO BLOCKS IT ADDS
+
+   Attached fresh on every repaint, like wirePlanCommitments() beside it: the
+   note's innerHTML is rebuilt wholesale, so nothing survives to be
+   double-bound. See the note on `commit` above for why the FIELDS are
+   delegated and these are not — the fields number forty and change with the
+   template, these are six and do not.
+   ======================================================================== */
+
+function wireNoteTools() {
+  el('reportDoc')
+    ?.querySelectorAll('[data-note-tool]')
+    .forEach((button) =>
+      button.addEventListener('ui-click', () => {
+        const tool = button.dataset.noteTool;
+        if (tool === 'ros') addRosSection();
+        else if (tool === 'bodymap') openNoteBodyMap(button);
+        else if (tool === 'orders') focusPlanOrders();
+      })
+    );
+
+  el('reportDoc')
+    ?.querySelector('[data-bodymap-remove]')
+    ?.addEventListener('ui-click', () => {
+      /* The marks go with the section. Keeping them against the day it is
+         added back would mean a clinician who removed a wrong diagram and
+         added a fresh one getting the wrong diagram's pins on it. */
+      state.extras.bodyMap.added = false;
+      state.extras.bodyMap.marks = [];
+      paintDoc();
+      toast('Annotated image removed from the note.', 'info');
+    });
+}
+
+/**
+ * Add Orders takes the clinician to the orders, rather than being a fourth
+ * way of raising one.
+ *
+ * See the note at the head of noteToolsHtml() for why that is the right shape.
+ * The focus move is the whole of the behaviour and it is not a consolation
+ * prize: the raise buttons are inside the Plan card, below its prose and its
+ * follow-up, and on a long note they are genuinely off screen from where the
+ * tool row sits.
+ */
+function focusPlanOrders() {
+  const first = el('reportDoc')?.querySelector('[data-plan-raise]');
+  if (!first) {
+    toast('This note has no plan to raise orders from.', 'warning');
+    return;
+  }
+  first.closest('.enc__commit-group')?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  first.focus?.();
+}
+
+function addRosSection() {
+  state.extras.ros.added = true;
+  paintDoc();
+  const section = el('reportDoc')?.querySelector('[data-testid="enc--vn-section-ros"]');
+  section?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  /* It is inserted into the history rather than where the button was pressed,
+     so the toast says so. A section that appears somewhere the clinician was
+     not looking is a section they go hunting for. */
+  toast('Review of systems added to the history.', 'info');
+}
+
+function wireRosSection() {
+  const host = el('reportDoc');
+  if (!host || !state.extras.ros.added || state.visitNote.signed) return;
+
+  const ros = state.extras.ros;
+
+  host.querySelectorAll('[data-ros]').forEach((group) =>
+    group.addEventListener('ui-change', (event) => {
+      ros.answers[group.dataset.ros] = event.detail.value;
+      /* The count in the heading is the only thing that moves, so it is
+         written by hand rather than repainted. A repaint here would rebuild
+         fourteen radio groups and the HPI above them on every answer. */
+      const count = host.querySelector('[data-testid="enc--ros-count"]');
+      if (count) {
+        const answered = ROS_SYSTEMS.filter((system) => ros.answers[system.id]).length;
+        count.textContent = `${answered} of ${ROS_SYSTEMS.length}`;
+      }
+    })
+  );
+
+  const detail = el('vn-rosDetail');
+  if (detail) {
+    setValue(detail, ros.detail);
+    detail.addEventListener('ui-change', (event) => {
+      ros.detail = event.detail.value;
+    });
+  }
+
+  host.querySelector('[data-ros-all]')?.addEventListener('ui-click', () => {
+    /*
+     * IT FILLS THE GAPS AND OVERWRITES NOTHING.
+     *
+     * "All systems negative" is a statement about the systems nobody has said
+     * anything about yet. A clinician who has already marked the GI system
+     * abnormal and then presses it has not changed their mind about the GI
+     * system — and a button that quietly did would make the phrase unsafe to
+     * offer at all, which is the reason most notes are written without it.
+     */
+    let filled = 0;
+    ROS_SYSTEMS.forEach((system) => {
+      if (!ros.answers[system.id]) {
+        ros.answers[system.id] = ROS_NEGATIVE;
+        filled += 1;
+      }
+    });
+    paintDoc();
+    toast(
+      filled
+        ? `${filled} unanswered system${filled === 1 ? '' : 's'} marked normal. ` +
+            'Anything already answered was left alone.'
+        : 'Every system already has an answer.',
+      'info'
+    );
+  });
+
+  host.querySelector('[data-ros-remove]')?.addEventListener('ui-click', () => {
+    state.extras.ros = { added: false, answers: {}, detail: '' };
+    paintDoc();
+    toast('Review of systems removed from the note.', 'info');
+  });
+}
+
+/** Open the marking dialog on whatever this note already has. */
+function openNoteBodyMap(trigger) {
+  const map = state.extras.bodyMap;
+  openBodyDiagram({
+    modal: el('bodyMapModal'),
+    trigger,
+    mapId: map.mapId,
+    marks: map.marks,
+    readOnly: state.visitNote.signed,
+    onCommit: ({ mapId, marks }) => {
+      map.mapId = mapId;
+      map.marks = marks;
+      /*
+       * A diagram with nothing on it is not a finding, so committing an empty
+       * one takes the section off the note rather than leaving an unmarked
+       * figure in the signed record for a reader to wonder about.
+       */
+      map.added = marks.length > 0;
+      paintDoc();
+      if (!marks.length) {
+        toast('No marks placed, so no image was added to the note.', 'info');
+        return;
+      }
+      el('reportDoc')
+        ?.querySelector('[data-testid="enc--vn-section-bodymap"]')
+        ?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+      toast(
+        `${marks.length} mark${marks.length === 1 ? '' : 's'} added to the note.`,
+        'success'
+      );
+    },
+  });
 }
 
 /* ===================== The report document ===================== */
@@ -6136,9 +7338,9 @@ function updateHint() {
   // started there is nothing left to move.
   el('reschedule').hidden = !isPre;
   // A clinic visit commits with Save & Sign, which signs the note through the
-  // Sign and Lock dialog and then opens the summary on it. "Sign report" is the
-  // procedure report's own commit, so it stays hidden on a clinic visit at
-  // every repaint — not only the first one.
+  // Sign and Lock dialog, completes the encounter and goes back to the
+  // schedule. "Sign report" is the procedure report's own commit, so it stays
+  // hidden on a clinic visit at every repaint — not only the first one.
   el('sign').hidden = isPre || !isProcedure;
   el('saveAndSign').hidden = isProcedure;
   /*
@@ -6236,45 +7438,35 @@ function updateHint() {
   /*
    * A clinic visit has one document and it is not a report.
    *
-   * The hint names the sections nobody has written into yet, rather than
-   * gating on them: a note is finished when the clinician says it is, and a
-   * consultation that legitimately has nothing under Family and social history
-   * is not an error. Naming them is enough — it is the difference between
-   * "you have missed something" and "you cannot sign".
+   * V2: THE FOOTER NO LONGER COUNTS THE EMPTY SECTIONS.
+   *
+   * It used to. The hint read "New Patient · 5 sections still empty —
+   * Presenting complaint, Past medical and surgical history and 3 more", and
+   * it was never a gate: a note is finished when the clinician says it is, and
+   * a consultation with nothing under family history is not an error. That was
+   * the defence of it, and it is also the case against it. A line that names
+   * five things and asks for none of them is read once, ignored afterwards,
+   * and in the meantime it is the widest thing in the footer — it changed
+   * length on every keystroke and shoved the two commit buttons sideways while
+   * the clinician was reaching for them.
+   *
+   * What is left is what the footer is actually for: saying, once the note is
+   * signed, that it is. Everything else the clinician can see by looking up.
    */
   if (!isProcedure) {
     const n = state.visitNote;
     /* A filed note offers no way to change it. The three commits go dead
        together rather than leaving Save & Sign live over a document that is
        already signed — pressing it would ask for a second signature on a
-       record that has one. Unlock to amend, in the toolbar, is the way back. */
+       record that has one. There is no way back: a signed clinic note is the
+       record, and an amendment is a new document. */
     ['saveAndSign', 'saveDraft', 'save'].forEach((id) => {
       const button = el(id);
       if (button) button.disabled = n.signed;
     });
-    if (n.signed) {
-      hint.textContent = `Signed by ${n.signedBy} · ${n.signedDate}. The note is part of the chart.`;
-      return;
-    }
-    const empty = visitNoteOutstanding();
-    if (!empty.length) {
-      hint.textContent = `${n.template} · every section written. Save & Sign asks for your signature, then files it.`;
-      return;
-    }
-    /*
-     * Two names and a count, not the whole list.
-     *
-     * On a fresh New Patient note every section is empty, and spelling all
-     * seven out wrapped the hint onto three lines and shoved the commit
-     * buttons around. A hint that changes the shape of the footer is a hint
-     * that gets read once. Two names are enough to say what KIND of thing is
-     * outstanding; the count says how much is left.
-     */
-    const named = empty.slice(0, 2).join(', ');
-    const rest = empty.length - 2;
-    hint.textContent = `${n.template} · ${empty.length} section${
-      empty.length === 1 ? '' : 's'
-    } still empty — ${named}${rest > 0 ? ` and ${rest} more` : ''}.`;
+    hint.textContent = n.signed
+      ? `Completed · signed by ${n.signedBy} · ${n.signedDate}. The note is part of the chart.`
+      : '';
     return;
   }
 
@@ -6491,6 +7683,7 @@ customElements.whenDefined('ui-select').then(() => {
     showStage('pre');
   } else {
     el('stageTabs').hidden = true;
+    startEncounterClock();
     el('encounterFacts').hidden = true;
     el('save').hidden = false;
 
@@ -6502,6 +7695,12 @@ customElements.whenDefined('ui-select').then(() => {
        and logs need every pixel — which is why this is a class rather than a
        change to .enc__note. */
     document.body.classList.add('enc--visit');
+
+    /* The annotatable image's preset labels, filled once. The <datalist> is in
+       the page rather than inside the dialog — see bodyDiagramPresetOptions()
+       for why it has to be. */
+    const presets = el('bodymap-presets');
+    if (presets) presets.innerHTML = bodyDiagramPresetOptions();
 
     /*
      * A clinic visit commits with Save & Sign, which asks for the signature
@@ -6585,33 +7784,18 @@ customElements.whenDefined('ui-select').then(() => {
     notify(`Template switched to ${picked.title}.`);
   });
 
+  /*
+   * The toolbar's unlock belongs to the procedure report alone.
+   *
+   * It used to answer for both documents, branching on which one the bar was
+   * sitting over, and the clinic visit's branch withdrew the signature on a
+   * consultation note. That note is now final once signed — the button is
+   * hidden on a clinic visit (paintVisitNoteBar) and the branch that served
+   * it has gone with it, so there is no route left to an unsigned clinic note
+   * and no half-state for the worklist to disagree with.
+   */
   el('unlockReport').addEventListener('ui-click', () => {
-    /* Same button, whichever document the toolbar is sitting over. */
-    if (!isProcedure) {
-      state.visitNote.signed = false;
-      state.visitNote.signedBy = '';
-      state.visitNote.signedDate = '';
-      state.visitNote.signedTime = '';
-      /* And the booking is told, because it is what every other screen reads.
-         A note the editor has reopened for amendment while the worklist still
-         files it under Signed is the same note in two states. */
-      if (appointment) {
-        updateAppointment(appointment.id, {
-          noteSigned: false,
-          /* Cleared as well, though signing here never sets it: a note signed
-             on the summary — which does — must not stay filed behind an
-             editor that has just reopened it. This branch is the clinic
-             visit's, so there is no procedure lock to trample. */
-          encounterLocked: false,
-          noteSignedBy: '',
-          noteSignedOn: '',
-          noteSignedAt: '',
-        });
-      }
-      paintDoc();
-      notify('Signature cleared. The visit note is open for amendment.', 'info');
-      return;
-    }
+    if (!isProcedure) return;
     state.signed = false;
     state.signedBy = '';
     state.signedDate = '';
@@ -6733,6 +7917,12 @@ customElements.whenDefined('ui-select').then(() => {
 
   wireSignDialog();
 
+  /* The Plan's order dialog. Wired once at boot rather than on every repaint,
+     because the modal lives in the page rather than inside the note the
+     repaint rebuilds — the same arrangement as the signing dialog above. */
+  el('planOrderCancel')?.addEventListener('ui-click', () => el('planOrderModal').close());
+  el('planOrderSave')?.addEventListener('ui-click', savePlanOrder);
+
   el('rescheduleConfirm').addEventListener('ui-click', () => {
     const reason = el('rescheduleReason').value.trim();
     if (!reason) {
@@ -6823,4 +8013,80 @@ customElements.whenDefined('ui-select').then(() => {
       body.hidden = open;
     })
   );
+});
+
+
+/* ===========================================================================
+   V2: THE SCRIBE ON THIS NOTE
+
+   The component knows how to listen, draft and hand sections over; it knows
+   nothing about this screen. What lives here is the one thing only the screen
+   can do — put a section's words into a field of the note that is open — and
+   the two ways that can fail.
+   ======================================================================== */
+
+/**
+ * Copy one drafted section into the note.
+ *
+ * Returns false when it could not be placed, which is not a failure to report
+ * as an error: the note templates differ (data/visit-note-templates.js), and a
+ * GI Consultation has a family-history field where a SOAP note does not. The
+ * scribe leaves such a section offered rather than marking it copied, so
+ * switching template and pressing again does the right thing.
+ *
+ * APPENDED, NEVER OVERWRITTEN. A clinician who typed two lines before pressing
+ * Copy to note has written those two lines about this patient, and no draft is
+ * worth losing them. The draft goes under what is there, with a blank line
+ * between, the way the rail's own Import has always done it.
+ */
+function copyScribeSection(section) {
+  const field = visitNoteSpec()
+    .sections.flatMap((entry) => entry.fields ?? [])
+    .find((entry) => entry.key === section.field);
+
+  if (!field) {
+    toast(
+      `This ${state.visitNote.template} has no ${section.title.toLowerCase()} field. ` +
+        'Switch template, or copy it into the section it belongs in.',
+      'warning'
+    );
+    return false;
+  }
+
+  /* Read the controls back before writing, or a paragraph typed since the last
+     repaint is about to be overwritten by stale state. Same reason
+     paintVisitNote does it. */
+  syncVisitNoteFromDom();
+
+  const existing = String(state.visitNote.values[field.key] ?? '').trim();
+  state.visitNote.values[field.key] = existing ? `${existing}\n\n${section.text}` : section.text;
+  state.scribeFilled.add(field.key);
+
+  /* Written onto the live control rather than through a repaint, which would
+     throw away the caret and the scroll position of a note somebody is working
+     in. The heading's mark is the one thing that does need the repaint, so it
+     is drawn by hand here too. */
+  const node = el(`vn-${field.key}`);
+  if (node) {
+    node.value = state.visitNote.values[field.key];
+    node.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    node.classList.add('enc__vn-field--landed');
+    setTimeout(() => node.classList.remove('enc__vn-field--landed'), 1200);
+  }
+
+  const heading = node?.closest('.enc__vn-section')?.querySelector('h3');
+  if (heading && !heading.querySelector('.scribe-filled')) {
+    heading.insertAdjacentHTML(
+      'beforeend',
+      '<span class="scribe-filled">AI drafted</span>'
+    );
+  }
+
+  return true;
+}
+
+mountAiScribe({
+  host: el('aiScribe'),
+  onCopy: copyScribeSection,
+  announce: (message) => toast(message, 'info'),
 });

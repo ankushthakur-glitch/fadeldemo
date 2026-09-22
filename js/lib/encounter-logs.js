@@ -88,6 +88,7 @@ import {
   ALDRETE_THRESHOLD,
 } from '../../data/procedure-encounter.js';
 import { REPORT_STAFF, TIME_MARKERS } from '../../data/procedure-report.js';
+import { PROCEDURE_TIME_MARKERS } from '../../data/procedure-timings.js';
 /* The practice's stock catalogue, so the encounter's own cart list can be
    filled from what is actually on the shelf rather than from memory — and the
    reasons a lot is written off, so the wastage log offers the same eight the
@@ -604,10 +605,11 @@ export const ENCOUNTER_LOGS = {
         type: 'select',
         label: 'Marker',
         required: true,
-        options: [
-          'Anaesthesia start', 'Scope in', 'Caecum reached', 'Scope out',
-          'Anaesthesia stop', 'Out of room',
-        ],
+        /* The six marks, from the module that also does the arithmetic on
+           them — see data/procedure-timings.js. One list, because a report
+           looking for "Caecum reached" and a log free to offer "Cecum
+           reached" is a withdrawal time that silently never computes. */
+        options: PROCEDURE_TIME_MARKERS,
       },
       { key: 'time', type: 'time', label: 'Time', required: true, default: nowTime },
       { key: 'phase', type: 'select', label: 'Phase', options: PROCEDURE_PHASES, required: true },

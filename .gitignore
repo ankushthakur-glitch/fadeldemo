@@ -34,3 +34,6 @@ Thumbs.db
 
 .vercel
 .env*
+
+# Rune agent tooling scratch — local metrics, not part of the prototype.
+.rune/

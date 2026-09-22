@@ -58,6 +58,22 @@
          office visit. Loaded before this screen's own sheet, which still owns
          the columns the rail sits in. -->
     <link rel="stylesheet" href="../css/components/clinical-rail.css" />
+    <!-- The scribe's own sheet, including the purple it is drawn in and why
+         that colour exists on a product with no purple in it. -->
+    <link rel="stylesheet" href="../css/components/ai-scribe.css" />
+    <!-- The patient card at the top of the left rail. A component sheet
+         because four note screens draw the same card — see the head of
+         js/lib/patient-card.js. Loaded before the screen's own sheet so the
+         screen can still say how the card sits in its rail. -->
+    <link rel="stylesheet" href="../css/components/patient-card.css" />
+    <!-- The prose field with a formatting bar, which V2 gives the history of
+         present illness and nothing else. <ui-richtext> is registered globally
+         in js/main.js with the rest of the library; its styles are linked per
+         page, the way every other component's are. -->
+    <link rel="stylesheet" href="../css/components/richtext.css" />
+    <!-- The annotatable image: the diagram in the dialog and the figure it
+         leaves in the note are the same drawing under one sheet. -->
+    <link rel="stylesheet" href="../css/components/body-diagram.css" />
     <link rel="stylesheet" href="../css/screen-clinic-visit.css" />
 
     <script type="module" src="../js/main.js"></script>
@@ -170,6 +186,37 @@
                    Screen readers still get the name off-screen. -->
               <ui-select id="reportTemplate" label="Template" label-hidden size="sm"
                 data-testid="enc--template"></ui-select>
+
+              <!-- HOW LONG THE PATIENT HAS BEEN IN THIS ENCOUNTER.
+
+                   On the DOCUMENT bar, in the note's own column, rather than in
+                   a strip across the top of the page. A strip is where this
+                   started — a band above the columns carrying the note type, a
+                   Templates picker and an Intake jump as well — and three of
+                   those four controls had no business being there: the type is
+                   already the picker beside this clock, the templates are the
+                   same list the picker offers, and Intake jumped to a step that
+                   was on screen. What is left is the kind of note and how long
+                   it has been open, and both of them belong next to the note.
+
+                   Not a <ui-badge>: this counts up every second, and the badge
+                   renders its label once on connect. A span the screen writes
+                   into is the only thing that can carry a running clock without
+                   being rebuilt 3,600 times an hour. -->
+              <span class="enc__timer" id="encTimer" data-testid="enc--timer" hidden
+                title="Time since this encounter was opened">
+                <svg class="ui-icon" aria-hidden="true"><use href="#i-clock"></use></svg>
+                <span class="enc__timer-value" id="encTimerValue" role="timer"
+                  aria-live="off">00:00:00</span>
+              </span>
+
+              <!-- THE AI SCRIBE. On the document's own bar rather than floating
+                   over the note, because it belongs to THIS document: it
+                   listens to the consultation being written up here and drafts
+                   into these fields. Its panel opens underneath it and over the
+                   note — see css/components/ai-scribe.css for why it must not
+                   push the note down. -->
+              <div class="scribe" id="aiScribe" data-testid="enc--scribe"></div>
               <ui-button variant="outline" size="sm" icon="lock" id="unlockReport"
                 data-testid="enc--unlock-report" hidden>Unlock for Amendment</ui-button>
             </div>
@@ -262,6 +309,23 @@
          button change under the pointer. One region per screen: a second would
          announce into a place nothing else on this page uses. -->
     <p class="u-sr-only" id="copyLive" role="status" aria-live="polite"></p>
+
+    <!-- THE ANNOTATABLE IMAGE, opened from the tool row under the Plan.
+         Empty on purpose: js/lib/body-diagram.js draws the diagram, the pins
+         and the marks list into the two slots below, because the note and this
+         dialog share one renderer and a figure authored twice is a figure that
+         disagrees with itself about where mark 3 was. -->
+    <ui-modal id="bodyMapModal" heading="Mark on a diagram" size="lg">
+      <div data-bodymap-body data-testid="enc--bodymap-body"></div>
+      <div class="ui-modal__actions" data-bodymap-footer></div>
+    </ui-modal>
+
+    <!-- The preset mark labels, as a datalist the dialog's inputs point at. A
+         <datalist> has to be in the document rather than inside the dialog's
+         own content, because <ui-modal> moves its children into a fragment on
+         connect and a list the inputs cannot reach by id is a list that
+         silently offers nothing. -->
+    <datalist id="bodymap-presets"></datalist>
 
     <!-- One drawer for every intra-operative entry — an observation, a drug,
          a solution, oxygen. They are the same shape: a handful of fields and
@@ -474,6 +538,34 @@
          recorded under, and what will go on the record is rendered beside it
          as it is typed — the signature is shown before it is committed, not
          discovered afterwards on a locked document. -->
+    <!-- Raising one order from the Plan of the visit note.
+
+         A dialog rather than a row of fields in the note itself, for the same
+         reason the procedure report opens one to fill a specimen jar: an order
+         is a commitment made of several parts, and a half-filled row that can
+         still reach a requisition is worse than no row at all. This hands back
+         a complete order or nothing.
+
+         One modal for all three buttons — Lab, EGD, Colonoscopy. The body is
+         built per kind by planOrderFieldsHtml() in the screen module, because
+         a lab and a scope ask genuinely different questions (a vendor and a
+         patient instruction against a facility and a priority) and one dialog
+         with half its fields hidden is two dialogs pretending to be one. -->
+    <ui-modal id="planOrderModal" heading="Raise an order" size="md">
+      <div id="planOrderBody" data-testid="enc--plan-order-body"></div>
+
+      <div class="ui-modal__actions">
+        <ui-button variant="tertiary" id="planOrderCancel"
+          data-testid="enc--plan-order-cancel">Cancel</ui-button>
+        <span class="ui-modal__actions-spacer"></span>
+        <!-- "Add to plan", not "Order". Nothing is raised until the note is
+             signed, and a button that says Order would be the one place on
+             this screen that says otherwise. -->
+        <ui-button variant="primary" id="planOrderSave"
+          data-testid="enc--plan-order-save">Add to plan</ui-button>
+      </div>
+    </ui-modal>
+
     <ui-modal id="signModal" heading="Sign and Lock" size="md">
       <!-- What is about to be signed, named. One dialog serves the nurse's
            stage sign-off and the clinician's visit note, and "Sign and Lock"

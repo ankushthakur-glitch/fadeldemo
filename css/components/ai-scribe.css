@@ -1,0 +1,1110 @@
+/* ===========================================================================
+   THE AI SCRIBE
+
+   The purple tile, the recording bar beside it, the transcript card under it,
+   and the dialog that appears while it drafts. Why the draft does not fill the
+   note is over js/lib/ai-scribe.js.
+
+   THE CHROME IS THE REFERENCE'S, AND THE VALUES ARE MEASURED FROM IT.
+
+   Every colour below was sampled out of the recording this was built to match
+   rather than guessed at, which is why they are written as hex and marked
+   [DERIVED] rather than reaching for MediNova's palette: they are not MediNova's
+   colours. They are the scribe's, they came from a design that has already been
+   agreed, and a token layer that quietly "corrected" them to the nearest brand
+   blue would have lost the one thing this file was asked for.
+
+   WHY PURPLE AT ALL, ON A PRODUCT WITH NO PURPLE IN IT. Every other colour on
+   these screens means something clinical: red is an alert, amber is
+   outstanding, green is signed, navy is the product. Machine-written text is
+   none of those. It gets a hue of its own, used for nothing else, and dropped
+   the moment a clinician accepts the words as their own.
+   ======================================================================== */
+
+/*
+ * THE ONE PAIR THAT IS NOT SCOPED TO THE COMPONENT.
+ *
+ * The AI Filled chip is worn by the DOCUMENT, on the cards that took drafted
+ * text — see .encv__ai-badge in css/screen-encounter.css. It is the scribe's
+ * colour because it means "this came from the scribe", but it appears
+ * nowhere near the scribe's own markup, so it cannot be a variable on .scribe.
+ */
+:root {
+  --scribe-chip: #f7e7ff; /* [DERIVED] sampled: the AI Filled chip */
+  --scribe-chip-ink: #7a3ca8; /* [DERIVED] sampled: its text */
+}
+
+.scribe {
+  --scribe-purple: #4022dc; /* [DERIVED] sampled: the tile */
+  --scribe-purple-lift: #5a3aef; /* [DERIVED] sampled: the tile's top edge */
+  --scribe-bar: #eef7ff; /* [DERIVED] sampled: the recording bar */
+  --scribe-card: #f5f6f5; /* [DERIVED] sampled: the transcript card */
+  --scribe-ink: #142755; /* [DERIVED] sampled: waveform and bar text */
+  --scribe-red: #d32f2f; /* [DERIVED] sampled: the live dot and pause glyph */
+  --scribe-blue: #2f6fe0; /* [DERIVED] sampled: CC, and the clinician's name */
+  --scribe-magenta: #b32a76; /* [DERIVED] sampled: the patient's name */
+
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-4);
+}
+
+/* The tile and the bar sit on one line, tile FIRST, exactly as the reference
+   has them: the purple square is the thing the clinician presses and looks for
+   again, so it holds the left end and the bar grows away from it. */
+.scribe__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+/* ===================== The tile ===================== */
+
+.scribe__tile {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 2.75rem;
+  height: 2.75rem;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(160deg, var(--scribe-purple-lift), var(--scribe-purple));
+  color: var(--color-base-white);
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgb(20 39 85 / 0.24);
+}
+
+.scribe__tile--wide {
+  padding-right: var(--space-2);
+}
+
+/*
+ * THE TRIGGER, FLOATING, AND THE SAME SIZE AS EVERY OTHER ICON BUTTON.
+ *
+ * Same tile, taken out of the flow. In the document it sat at whatever point
+ * of a long report happened to be scrolled past; a scribe is reached for in
+ * the middle of doing something else, which is the definition of the control
+ * that floats.
+ *
+ * It was briefly a 3.5rem circle, which is what a floating action button looks
+ * like in a phone's design language and wrong here: this sits among a row of
+ * 2.75rem controls in a dense clinical screen, and a circle half again their
+ * size reads as a different KIND of thing — an app's primary action rather
+ * than one of this screen's buttons. It is the tile, at the tile's own size
+ * and its own rounded-square shape. Only its position changed.
+ *
+ * What the float buys is that a control which starts listening to the room is
+ * reachable from anywhere in a report somebody is halfway down.
+ *
+ * TOP RIGHT, NOT BOTTOM RIGHT.
+ *
+ * The bottom-right corner is where this product already puts things that are
+ * happening — the live scope feed opens there, toasts land there. The scribe's
+ * button is not a thing happening; it is a thing to reach for, and it belongs
+ * with the other things to reach for, which on every screen in this product
+ * are along the top. Vacating that corner also gives the feed window its
+ * natural position back.
+ *
+ * IT IS STUCK TO THE EDGE, AND ONLY HALF OF IT IS ROUNDED.
+ *
+ * Not a button floating near the corner — a TAB, flush against the right
+ * border with its right-hand corners square, so it reads as something coming
+ * in from off-screen rather than as a control somebody left lying on the page.
+ * That is also what makes the opening animation legible: a tab at the edge can
+ * expand inwards into a panel, and the panel is visibly the same object.
+ *
+ * The vertical offset is still a variable, because "top" is a different pixel
+ * on every screen that mounts this — the encounter stacks two header bands,
+ * the clinic note has one — and a hard-coded offset lands on somebody's
+ * toolbar the first time it is mounted anywhere else. See .encv in
+ * css/screen-encounter.css.
+ */
+.scribe__fab {
+  position: fixed;
+  inset-block-start: var(--scribe-fab-top, 4.75rem);
+  inset-inline-end: 0;
+  /* Left corners only. The right-hand pair are square because there is no
+     right-hand edge to round — it is the edge of the window. */
+  border-start-end-radius: 0;
+  border-end-end-radius: 0;
+  z-index: calc(var(--z-floating-panel) + 1);
+  /* Lifted properly. The inline tile's 1px shadow says "button"; a thing
+     hovering over a whole page has to say "above everything", and that is the
+     one job a long soft shadow does. */
+  box-shadow: var(--shadow-lg);
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
+/* It comes further IN on hover rather than moving up or down: the axis it
+   lives on is the one it will travel along when it opens. */
+.scribe__fab:hover {
+  transform: translateX(-3px);
+}
+
+@media print {
+  .scribe__fab {
+    display: none;
+  }
+}
+
+.scribe__spark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin: 0 auto;
+}
+
+.scribe__spark .ui-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+/* The white capsule inset into the purple once there is a recording to work
+   with. Blue text on white inside a purple tile is the reference's own
+   arrangement, and it is what makes the control read as a button within a
+   button rather than as a label. */
+.scribe__tile-pill {
+  display: inline-flex;
+  align-items: center;
+  height: 2rem;
+  padding: 0 var(--space-6);
+  border-radius: var(--radius-md);
+  background: var(--color-base-white);
+  color: var(--scribe-blue);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  white-space: nowrap;
+}
+
+.scribe__tile:focus-visible {
+  outline: 2px solid var(--scribe-purple);
+  outline-offset: 2px;
+}
+
+/* ===================== The recording bar ===================== */
+
+.scribe__bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  height: 2.75rem;
+  padding: 0 var(--space-4) 0 var(--space-6);
+  border-radius: var(--radius-lg);
+  background: var(--scribe-bar);
+  white-space: nowrap;
+}
+
+.scribe__mic {
+  display: inline-flex;
+  color: var(--scribe-ink);
+}
+
+.scribe__mic .ui-icon {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+.scribe__wave {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 1.125rem;
+}
+
+.scribe__wave i {
+  width: 3px;
+  height: var(--h);
+  border-radius: 2px;
+  background: var(--scribe-ink);
+}
+
+/* Moving while the room is listened to, still when it is not. The only thing
+   about these bars that carries meaning — there is no audio behind them and
+   they are not pretending to measure one. */
+.scribe__wave--on i {
+  animation: scribe-wave 1s ease-in-out infinite;
+  animation-delay: calc(var(--i) * 80ms);
+}
+
+@keyframes scribe-wave {
+  0%,
+  100% {
+    transform: scaleY(0.55);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scribe__wave--on i {
+    animation: none;
+  }
+}
+
+.scribe__status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--scribe-ink);
+  font-size: var(--font-size-sm);
+}
+
+.scribe__dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: var(--radius-full);
+  background: var(--color-text-disabled);
+}
+
+.scribe__dot--live {
+  background: var(--scribe-red);
+}
+
+.scribe__status-time {
+  font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Pause and CC are the reference's two controls, drawn as it draws them: white
+   capsules on the tinted bar, one with a red glyph, one lettered in blue. */
+.scribe__pause,
+.scribe__cc {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 1.875rem;
+  padding: 0 var(--space-4);
+  border: 1px solid #dfe6f2; /* [DERIVED] */
+  border-radius: var(--radius-md);
+  background: var(--color-base-white);
+  color: var(--scribe-ink);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+.scribe__pause-glyph {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.scribe__pause-glyph i {
+  width: 3px;
+  height: 0.75rem;
+  border-radius: 1px;
+  background: var(--scribe-red);
+}
+
+/* Resume wears the same glyph box with a triangle in it, so the control does
+   not change width when it changes meaning. */
+.scribe__pause-glyph b {
+  width: 0;
+  height: 0;
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+  border-left: 9px solid var(--scribe-red);
+}
+
+/* Stop is the one irreversible control on the bar, so it is drawn as one:
+   a filled red square, the shape every recorder has used for fifty years. It
+   only exists once the recording is paused — see barHtml. */
+.scribe__stop {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 1.875rem;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--scribe-red);
+  border-radius: var(--radius-md);
+  background: var(--color-base-white);
+  color: var(--scribe-red);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+.scribe__stop:hover {
+  background: var(--scribe-red);
+  color: var(--color-base-white);
+}
+
+.scribe__stop-glyph {
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 1px;
+  background: currentColor;
+}
+
+.scribe__stop:focus-visible {
+  outline: 2px solid var(--scribe-red);
+  outline-offset: 1px;
+}
+
+/* CC is an OUTLINED control, on and off — the reference draws it that way, and
+   it is right: a filled blue capsule beside a red Pause reads as the primary
+   action on the bar, which captions are not. Off is the state that differs,
+   and it differs by going quiet. */
+.scribe__cc {
+  padding: 0 var(--space-3);
+  border-color: var(--scribe-blue);
+  color: var(--scribe-blue);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.02em;
+}
+
+.scribe__cc:not(.scribe__cc--on) {
+  border-color: var(--color-border-default);
+  color: var(--color-text-tertiary);
+  text-decoration: line-through;
+}
+
+.scribe__pause:focus-visible,
+.scribe__cc:focus-visible {
+  outline: 2px solid var(--scribe-blue);
+  outline-offset: 1px;
+}
+
+/* ===================== The card ===================== */
+
+/* The tile and bar live inside a white card, with the transcript under them —
+   the component sheet's own arrangement. Anchored under the note's toolbar and
+   over the note rather than pushing it down: the clinician is comparing the
+   draft with what is already written, and a panel that moved the note every
+   time it opened would take the thing being compared out from under them. */
+.scribe__card {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 40;
+  width: max-content;
+  max-width: min(34rem, calc(100vw - var(--space-10)));
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-lg);
+}
+
+.scribe__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+/* ===================== Stop, and the rule before it ===================== */
+
+/* Stop is the one irreversible control on the bar, so it is drawn as one: a
+   filled red square, the shape every recorder has used for fifty years. It
+   only exists once paused — see barHtml. */
+.scribe__stop {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  height: 1.875rem;
+  padding: 0 var(--space-4);
+  border: 1px solid #f0c9c9; /* [DERIVED] */
+  border-radius: var(--radius-md);
+  background: var(--color-base-white);
+  color: var(--scribe-red);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+.scribe__stop:hover {
+  background: var(--scribe-red);
+  border-color: var(--scribe-red);
+  color: var(--color-base-white);
+}
+
+.scribe__stop-glyph {
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 1px;
+  background: currentColor;
+}
+
+.scribe__rule {
+  width: 1px;
+  height: 1.25rem;
+  background: var(--color-border-subtle);
+}
+
+/* Paused: the bar loses its live tint and the meter goes quiet, so the row
+   reads as stopped without changing width. */
+.scribe__bar--paused {
+  background: var(--color-bg-surface);
+  border: 1px solid var(--color-border-subtle);
+}
+
+.scribe__mic--off {
+  color: var(--color-text-disabled);
+}
+
+.scribe__wave--flat i {
+  height: 15% !important;
+  background: var(--color-text-disabled);
+}
+
+.scribe__pause-glyph--ink i {
+  background: var(--scribe-ink);
+}
+
+/* Resume reads as the positive of the pair. */
+.scribe__pause-glyph b {
+  border-left-color: #1f8a4c; /* [DERIVED] resume */
+}
+
+/*
+ * THE PANEL, FLOATING AND DRAGGED.
+ *
+ * It was a card in the flow at the top of the note. That put the transcript —
+ * the thing you look at WHILE charting — above whatever you were charting, and
+ * scrolled it away the moment you got to work. Fixed, it stays; dragged, it
+ * goes wherever the work is not.
+ *
+ * It opens above the trigger it was started from, so it appears under the hand
+ * that pressed it rather than somewhere that has to be found. Its position is
+ * written by the component after each paint (see placePanel) rather than in
+ * the markup, because the panel repaints once a second while recording.
+ */
+/*
+ * THE CARD IS AS WIDE AS ITS BAR, AND NOT A PIXEL WIDER.
+ *
+ * It was a fixed 34rem, which is a number somebody picked. The bar inside it
+ * is not: mic, waveform, "Recording — 00:04", Pause and CC are a fixed run of
+ * controls with a natural width, and the card drawn wider than them left the
+ * transcript hanging past its own header with a ragged right edge that read as
+ * a layout bug rather than as a panel.
+ *
+ * So the ROW decides. `max-content` sizes the card to its widest child, and
+ * the trick below is what stops that child being a long sentence of
+ * transcript: `width: 0` takes the transcript out of the intrinsic-width
+ * calculation altogether, and `min-width: 100%` then stretches it back across
+ * whatever the bar settled on. Without it a single long line would widen the
+ * whole panel, and the panel would change width as the room talked.
+ */
+.scribe__card--float {
+  position: fixed;
+  z-index: var(--z-floating-panel);
+  width: max-content;
+  max-width: calc(100vw - 3rem);
+  box-shadow: var(--shadow-lg);
+}
+
+.scribe__card--float .scribe__transcript {
+  width: 0;
+  min-width: 100%;
+}
+
+/*
+ * IT OPENS OUT OF THE TAB.
+ *
+ * The panel appears exactly where the button was and grows from that corner,
+ * so what the clinician sees is the thing they pressed unfolding rather than a
+ * second, unrelated window arriving somewhere else. `transform-origin` at the
+ * top right is the whole trick: that is the corner the tab is pinned to, so
+ * every pixel of the growth moves away from it and none of it moves the anchor.
+ *
+ * Run ONCE, on the paint that creates the panel — see openedOnce in
+ * js/lib/ai-scribe.js. The panel is re-rendered every second while recording,
+ * and an animation left on the class would replay on each of those, which is
+ * the difference between a panel that opened and a panel that is flashing.
+ */
+@keyframes scribe-unfold {
+  from {
+    transform: scale(0.16);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.scribe__card--opening {
+  transform-origin: top right;
+  animation: scribe-unfold var(--duration-base) var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scribe__card--opening {
+    animation: none;
+  }
+}
+
+/* The bar doubles as the title bar. It carries the cursor that says so, and
+   `user-select` off so a drag never leaves a smear of selected clock behind
+   it; `touch-action` off so a finger moves the panel instead of scrolling the
+   report underneath it. */
+.scribe__card--float .scribe__row {
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+
+.scribe__card--float[data-dragging] .scribe__row {
+  cursor: grabbing;
+}
+
+/* The tile inside the bar is the panel's badge, not a second trigger — it is
+   the thing that was pressed to start this. It must not look draggable-only,
+   and it must not swallow the drag either; the handler lets a press on any
+   button through as a press. */
+.scribe__card--float .scribe__tile {
+  cursor: pointer;
+}
+
+@media print {
+  .scribe__card--float {
+    display: none;
+  }
+}
+
+/* ===================== The transcript ===================== */
+
+/*
+ * THE TRANSCRIPT: A FIXED FRAME WITH A SCROLLING INSIDE.
+ *
+ * It used to be one scrolling box with the T control inside it, which meant
+ * the control scrolled away the moment there were more than a few lines —
+ * and the control that makes the words bigger is wanted exactly when there
+ * are a lot of them.
+ *
+ * So the frame holds the tools still and only the LINES move. The frame's own
+ * height is the thing Expand changes; the lines scroll at either height,
+ * because a room being listened to produces more of them than any box.
+ */
+.scribe__transcript {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  margin-top: var(--space-4);
+  padding: var(--space-5);
+  border-radius: var(--radius-md);
+  background: var(--scribe-card);
+  /* Every size the T control offers is this one number — see TEXT_SIZES. */
+  font-size: calc(var(--font-size-sm) * var(--scribe-scale, 1));
+}
+
+.scribe__transcript-tools {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-4);
+  margin-bottom: var(--space-3);
+}
+
+/*
+ * One height, and a generous one.
+ *
+ * 22rem was the old ceiling for the whole box, tools included, which left
+ * about four lines of a conversation visible. This is half again as tall and
+ * set in `rem` rather than `vh`, because what it is measuring is a number of
+ * LINES — a typographic quantity — and not a share of the window.
+ *
+ * There was an Expand control that took it to 60vh. It is gone: the panel
+ * floats and is dragged now, so where it sits and how much of the screen it
+ * takes is one question with one answer, rather than a position and a size
+ * that could disagree.
+ */
+.scribe__transcript-scroll {
+  max-height: 32rem;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+  /* Room for the last line to clear the bottom edge rather than sitting in
+     it, which is what makes a scrolling box look like it has an end. */
+  padding-bottom: var(--space-2);
+}
+
+
+
+.scribe__waiting {
+  margin: 0;
+  padding: var(--space-8) 0;
+  color: var(--color-text-tertiary);
+  text-align: center;
+}
+
+.scribe__line {
+  margin: 0 0 var(--space-5);
+  line-height: var(--line-height-normal);
+}
+
+.scribe__at {
+  margin-right: var(--space-3);
+  color: var(--color-text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+
+.scribe__who {
+  font-weight: var(--font-weight-semibold);
+}
+
+.scribe__who--brand {
+  color: var(--scribe-blue);
+}
+
+.scribe__who--neutral {
+  color: var(--scribe-magenta);
+}
+
+.scribe__colon {
+  margin: 0 var(--space-2) 0 var(--space-3);
+  color: var(--color-text-tertiary);
+}
+
+.scribe__said {
+  display: block;
+  margin-top: var(--space-2);
+  color: var(--color-text-primary);
+}
+
+/* ===================== The T control ===================== */
+
+.scribe__size {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+}
+
+.scribe__size-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: var(--space-1) var(--space-2);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font: inherit;
+  font-size: var(--font-size-md);
+  font-family: Georgia, 'Times New Roman', serif;
+  cursor: pointer;
+}
+
+.scribe__caret {
+  width: 0;
+  height: 0;
+  border-left: 3px solid transparent;
+  border-right: 3px solid transparent;
+  border-top: 4px solid currentColor;
+}
+
+.scribe__size-menu {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  right: 0;
+  z-index: 2;
+  min-width: 9rem;
+  padding: var(--space-2);
+  margin: 0;
+  list-style: none;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-lg);
+}
+
+.scribe__size-item {
+  display: block;
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  text-align: left;
+  cursor: pointer;
+}
+
+.scribe__size-item:hover {
+  background: var(--color-bg-surface-hover);
+}
+
+.scribe__size-item--on {
+  color: var(--scribe-blue);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* ===================== Generate ===================== */
+
+.scribe__generate {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4);
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(160deg, var(--scribe-purple-lift), var(--scribe-purple));
+  color: var(--color-base-white);
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgb(20 39 85 / 0.24);
+}
+
+.scribe__pill {
+  display: inline-flex;
+  align-items: center;
+  height: 2rem;
+  padding: 0 var(--space-6);
+  border-radius: var(--radius-md);
+  background: var(--color-base-white);
+  color: var(--scribe-blue);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  white-space: nowrap;
+}
+
+/* ===================== Drafting, and the generated note ===================== */
+
+.scribe__scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: var(--space-8);
+  background: rgb(20 39 85 / 0.32);
+}
+
+.scribe__dialog {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  width: min(26rem, 100%);
+  padding: var(--space-10) var(--space-9) var(--space-8);
+  border-radius: var(--radius-lg);
+  background: var(--color-base-white);
+  text-align: center;
+  box-shadow: var(--shadow-lg);
+}
+
+.scribe__ring {
+  width: 3.5rem;
+  height: 3.5rem;
+  border: 5px solid #dbe6ff; /* [DERIVED] */
+  border-top-color: var(--scribe-blue);
+  border-radius: var(--radius-full);
+  animation: scribe-spin 900ms linear infinite;
+}
+
+@keyframes scribe-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scribe__ring {
+    animation-duration: 3s;
+  }
+}
+
+.scribe__dialog-title {
+  margin: 0;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-semibold);
+}
+
+.scribe__dialog-body,
+.scribe__dialog-stage {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+}
+
+.scribe__dialog-stage {
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-xs);
+}
+
+/* The generated note itself: tabs, the sections, and the two buttons that put
+   any of it in the document. */
+.scribe__modal {
+  display: flex;
+  flex-direction: column;
+  width: min(46rem, 100%);
+  max-height: min(44rem, 88vh);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-surface);
+  box-shadow: var(--shadow-lg);
+}
+
+.scribe__modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-6);
+  padding: var(--space-5) var(--space-6);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.scribe__tabs {
+  display: inline-flex;
+  padding: var(--space-1);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+}
+
+.scribe__tab {
+  padding: var(--space-2) var(--space-5);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+}
+
+.scribe__tab--on {
+  background: #eaf1fe; /* [DERIVED] */
+  color: var(--scribe-blue);
+  font-weight: var(--font-weight-semibold);
+}
+
+.scribe__close {
+  display: inline-flex;
+  padding: var(--space-2);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+}
+
+.scribe__close:hover {
+  background: var(--color-bg-surface-hover);
+  color: var(--color-text-primary);
+}
+
+/* When it was written, how long it took, and — the part the sheet does not
+   have and this product needs — that none of it is in the document yet. */
+.scribe__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0;
+  padding: var(--space-4) var(--space-6);
+  background: var(--color-bg-surface-sunken);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-xs);
+}
+
+.scribe__meta-rule {
+  width: 1px;
+  height: 0.75rem;
+  background: var(--color-border-default);
+}
+
+.scribe__modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-6);
+}
+
+/* In the modal the transcript is READ rather than watched, so it is set the
+   way the sheet sets it: time, speaker, colon and words on one line, with
+   continuation lines hanging under the words instead of under the clock. The
+   live panel keeps the stacked form, where lines arrive one at a time and the
+   speaker needs to be findable at a glance. */
+.scribe__modal-body--transcript {
+  font-size: calc(var(--font-size-sm) * var(--scribe-scale, 1));
+}
+
+.scribe__modal-body--transcript .scribe__line {
+  display: grid;
+  grid-template-columns: 3.5rem auto auto 1fr;
+  gap: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-4);
+  align-items: baseline;
+}
+
+.scribe__modal-body--transcript .scribe__said {
+  display: block;
+  margin-top: 0;
+}
+
+.scribe__modal-body--transcript .scribe__at,
+.scribe__modal-body--transcript .scribe__colon {
+  margin: 0;
+}
+
+.scribe__section {
+  margin-bottom: var(--space-5);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.scribe__section--done {
+  border-color: #cfe8d8; /* [DERIVED] */
+}
+
+.scribe__section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  background: var(--color-bg-surface-sunken);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.scribe__section-title {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+}
+
+.scribe__section-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.scribe__insert,
+.scribe__edit,
+.scribe__ghost,
+.scribe__download {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background: var(--color-base-white);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.scribe__edit,
+.scribe__download {
+  border-color: #bcd3f7; /* [DERIVED] */
+  color: var(--scribe-blue);
+}
+
+.scribe__edit--on {
+  background: #eaf1fe; /* [DERIVED] */
+}
+
+.scribe__insert:hover,
+.scribe__edit:hover,
+.scribe__ghost:hover,
+.scribe__download:hover {
+  background: var(--color-bg-surface-hover);
+}
+
+.scribe__edit .ui-icon,
+.scribe__download .ui-icon {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.scribe__section-text {
+  margin: 0;
+  padding: var(--space-5);
+  color: var(--color-text-primary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+  white-space: pre-line;
+}
+
+.scribe__section-edit {
+  display: block;
+  width: 100%;
+  min-height: 7rem;
+  padding: var(--space-5);
+  border: 0;
+  border-top: 2px solid var(--scribe-blue);
+  background: var(--color-bg-surface);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+  resize: vertical;
+}
+
+.scribe__section-edit:focus-visible {
+  outline: 0;
+}
+
+.scribe__done {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  background: var(--color-status-success-surface);
+  color: var(--color-status-success-text);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+}
+
+.scribe__modal-foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-6);
+  border-top: 1px solid var(--color-border-subtle);
+}
+
+.scribe__ghost,
+.scribe__download,
+.scribe__primary {
+  font-size: var(--font-size-sm);
+  padding: var(--space-3) var(--space-6);
+}
+
+.scribe__primary {
+  display: inline-flex;
+  align-items: center;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: var(--scribe-blue);
+  color: var(--color-base-white);
+  font: inherit;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+.scribe__primary[disabled] {
+  background: var(--color-border-default);
+  cursor: default;
+}
+
+/* ===================== In the note ===================== */
+
+/* The chip the reference puts on a section a machine wrote, in its own pale
+   purple. Ours says "AI drafted" rather than "AI Filled" because that is what
+   happened: the draft was written by a machine and put there by a clinician who
+   read it. */
+.scribe-filled {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: var(--space-3);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  background: #f7e7ff; /* [DERIVED] sampled from the reference chip */
+  color: #7a3ca8; /* [DERIVED] */
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  vertical-align: middle;
+}
