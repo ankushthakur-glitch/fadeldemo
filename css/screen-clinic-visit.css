@@ -798,6 +798,24 @@ body.is-locked .enc__note {
   .enc__timer { display: none !important; }
 }
 
+/* The app bar is chrome, and chrome does not go in the folder. Hidden here
+   rather than in css/components/app-bar.css, because the bar is not one object
+   with one print behaviour: a screen that prints a LIST prints it under the
+   bar's title band quite happily, and only the screens that print a DOCUMENT
+   want the navigation gone. Every one of those says so in its own sheet — see
+   the same line in the print block of css/screen-encounter.css. */
+@media print {
+  .pt__bar { display: none !important; }
+}
+
+/* The scribe tab is pinned to the right-hand edge of the window at a fixed
+   offset from the top (--scribe-fab-top, css/components/ai-scribe.css). Its
+   4.75rem default was measured against a window that began with this screen's
+   own header; the app bar now stands above it, so the offset carries the
+   bar's height or the tab sits 52px too high against the document it belongs
+   to — over the encounter header rather than beside the note. */
+.enc { --scribe-fab-top: calc(4.75rem + 3.25rem); }
+
 /* --- The document itself --------------------------------------------------------- */
 
 .enc__doc {

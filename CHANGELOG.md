@@ -2,6 +2,59 @@
 
 ## Unreleased
 
+### The nav bar reaches the three documents
+
+The app bar — logo, the twelve sections, clock, notifications, avatar — now
+runs across the top of the clinic visit note (`screens/clinic-visit.html`),
+the procedure run (`screens/encounter.html`) and the encounter summary
+(`screens/encounter-summary.html`). It was the only place in the clinician
+product that did not have it.
+
+- **Why it was missing, and why that was wrong.** The three documents were
+  built as rooms you step into: the back arrow is the way out, and the bar
+  came off so nothing above the note competed with it. The focus was real and
+  the cost was larger. A clinician who finishes a note and wants the Schedule,
+  their Tasks or another patient had to press back, land on wherever they had
+  come from, and find the section from there — an extra press and a screenful
+  of re-orientation, every time. And a document is where most of the day is
+  spent, so the one screen without the nav was the screen it was wanted from
+  most.
+
+- **The document keeps its own head.** The bar sits above `.ui-page-head`, the
+  same stacking every other screen in the product uses — the back arrow and
+  the encounter's name are still there, and still go back to the list this
+  note came from. The bar is the way out to everything else.
+
+- **`active="schedule"` on all three**, because that is the list all three are
+  opened from and the list the back arrow returns to. A bar whose lit section
+  is not the one you arrived from reads as having navigated somewhere.
+
+- **Nothing about the layouts moved.** All three bodies were already column
+  flexes at `height: 100vh` with `overflow: hidden`, and `.pt__bar` is
+  `flex: none` — so the band takes its 52px out of the column and the
+  independently scrolling rails, the document and the pinned footer divide
+  what is left, exactly as before.
+
+- **The scribe tab carries the bar's height.** `--scribe-fab-top` is a fixed
+  offset from the top of the WINDOW, measured on windows that began with the
+  screen's own header. Both screens that set it now add `3.25rem` rather than
+  re-typing a number, so the tab keeps its position against the document
+  instead of riding 52px up into the encounter header.
+
+- **It does not print.** Each of the three sheets hides `.pt__bar` in its own
+  `@media print`, beside whatever else it already took out. The bar is how you
+  leave the document, which is not a fact about the document. It is hidden per
+  screen rather than in `css/components/app-bar.css` because the bar has no one
+  print behaviour: a screen that prints a LIST prints it under the bar quite
+  happily, and only the screens that print a DOCUMENT want the navigation gone.
+
+- **`clinic-visit.html` had to name two stylesheets.** It enumerates its
+  components instead of loading `ui-kit.css`, so `app-bar.css` and
+  `time-clock.css` are linked by hand — the same trap `toast.css` and
+  `print-letterhead.css` above them were already in. The other two screens load
+  `ui-kit.css` and got both for nothing.
+
+
 ### Every booking starts unsigned
 
 The demo data arrived half worked through: seven notes filed as `signed` and

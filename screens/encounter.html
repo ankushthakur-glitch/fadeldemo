@@ -76,6 +76,24 @@
     what will go there.
   -->
   <body class="encv">
+    <!-- THE APP BAR. Same band, same reason as on the clinic visit note — see
+         the comment at the top of screens/clinic-visit.html: the documents are
+         where the day is spent, so they are the screens the nav is needed from
+         most. The document's own head, with the way back to the list it came
+         from, is underneath. -->
+    <header class="pt__bar">
+      <img class="pt__logo" src="../assets/img/medinova-logo.svg" width="158" height="32"
+        alt="MediNova Gastroenterology Clinic" />
+      <ui-main-nav active="schedule"></ui-main-nav>
+      <div class="pt__bar-actions">
+        <ui-time-clock></ui-time-clock>
+        <button type="button" class="pt__icon-action" aria-label="Notifications">
+          <svg class="ui-icon" aria-hidden="true"><use href="#i-bell"></use></svg>
+        </button>
+        <ui-avatar name="Amara Mensah" size="sm"></ui-avatar>
+      </div>
+    </header>
+
     <header class="ui-page-head encv__head">
       <div class="ui-page-head__lead">
         <a class="ui-page-head__back" href="scheduler.html" data-testid="encv--back"

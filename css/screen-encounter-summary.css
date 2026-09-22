@@ -313,6 +313,7 @@
   /* The header band goes with the footer: on paper the note needs its own
      title, not the screen's chrome and a way back to a list. */
   .es__foot,
+  .pt__bar,
   .ui-page-head,
   .ui-modal { display: none !important; }
 

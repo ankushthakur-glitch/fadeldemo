@@ -18,6 +18,16 @@
     <link rel="stylesheet" href="../css/base.css" />
     <link rel="stylesheet" href="../css/components/button.css" />
     <link rel="stylesheet" href="../css/components/indicators.css" />
+    <!-- The app bar across the top, and the clock that sits in its right-hand
+         slot. Every other screen picks both up through ui-kit.css; this one
+         enumerates its components, so it has to name them — exactly as with
+         toast.css and print-letterhead.css below. Without app-bar.css the bar
+         is an unstyled row of links on a white ground above the note, and
+         <ui-main-nav>'s `display: contents` never applies, so the nav is a
+         block rather than a member of the bar's flex row. The avatar in the
+         same slot comes from indicators.css, one line up. -->
+    <link rel="stylesheet" href="../css/components/app-bar.css" />
+    <link rel="stylesheet" href="../css/components/time-clock.css" />
     <link rel="stylesheet" href="../css/components/forms.css" />
     <!-- The two panels js/main.js opens on any page that has a field to open
          them from: the dropdown list (every <select> here) and the calendar
@@ -82,6 +92,38 @@
   </head>
 
   <body class="enc">
+    <!-- THE APP BAR — the same band every other clinician screen wears.
+
+         The note screens used to go without it. The argument was focus: a
+         document open on screen is a room you step into, the back arrow is the
+         way out, and nothing above the note should compete with it. It cost
+         far more than it bought. A clinician who finishes a note and wants the
+         Schedule, their Tasks or another patient had to press back, land on
+         whatever they came from, and find the section from there — one extra
+         press and one screen of re-orientation, every time, all day. And the
+         three documents are where a clinician spends most of the day, so the
+         one place the nav was missing was the place it was needed from most.
+
+         The document keeps its own head underneath, with the back arrow and
+         the encounter's name: that is still the way back to THIS note's list.
+         The bar above it is the way out to anywhere else. -->
+    <header class="pt__bar">
+      <img class="pt__logo" src="../assets/img/medinova-logo.svg" width="158" height="32"
+        alt="MediNova Gastroenterology Clinic" />
+      <!-- active="schedule" because that is where all three documents are
+           opened from — the day's list — and it is where the back arrow
+           returns to. A bar whose highlighted section is not the one you came
+           from reads as having navigated somewhere. -->
+      <ui-main-nav active="schedule"></ui-main-nav>
+      <div class="pt__bar-actions">
+        <ui-time-clock></ui-time-clock>
+        <button type="button" class="pt__icon-action" aria-label="Notifications">
+          <svg class="ui-icon" aria-hidden="true"><use href="#i-bell"></use></svg>
+        </button>
+        <ui-avatar name="Amara Mensah" size="sm"></ui-avatar>
+      </div>
+    </header>
+
     <!-- Standard screen header: back and title at the top left, everything
          else underneath it. -->
     <header class="ui-page-head enc__head">

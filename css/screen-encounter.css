@@ -59,7 +59,13 @@
    * own edge, which is the one horizontal position that needs no arithmetic
    * and cannot be wrong.
    */
-  --scribe-fab-top: 12rem;
+  /* 12rem was measured from the top of the window when the window began with
+     this screen's own header. The app bar now stands above it, so the same
+     measurement lands 52px higher against the document than it was drawn for
+     — and the tab is placed against the document, not the glass. The bar's
+     own height is added rather than the number being re-typed, so the two
+     cannot come apart if the band is ever re-measured. */
+  --scribe-fab-top: calc(12rem + 3.25rem);
 
   display: flex;
   flex-direction: column;
@@ -3393,6 +3399,9 @@ p.encv__alert-by {
 @media print {
   @page { margin: 14mm; }
 
+  /* The app bar goes on paper, with the rest of the navigation. It is how you
+     leave this document, which is not a fact about the document. */
+  .pt__bar,
   .ui-page-head,
   .encv__rail,
   .encv__doc-actions,
