@@ -2934,7 +2934,7 @@ customElements.whenDefined('ui-data-table').then(() => {
     TASK_PRIORITIES.low.label
   );
   fillSelect('#denyReason', DENIAL_REASONS);
-  fillSelect('#lettersHeader', ['MediNova Practice Header', 'Centered Referral Header'], 'MediNova Practice Header');
+  fillSelect('#lettersHeader', ['GastroEMR Practice Header', 'Centered Referral Header'], 'GastroEMR Practice Header');
 
   fillSelect('#refillPatient', PATIENTS.map((p) => p.name));
   fillSelect('#refillPharmacy', PHARMACIES);

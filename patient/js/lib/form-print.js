@@ -29,7 +29,7 @@ import { signatureMethodLabel } from './signature-pad.js';
 import { schemaFor } from '../../data/forms.js';
 import { PATIENT } from '../../data/patient.js';
 
-const CLINIC = 'MediNova Clinic';
+const CLINIC = 'GastroEMR Clinic';
 
 /**
  * Build the document into `host` and open the print dialog.
@@ -46,7 +46,7 @@ export function printFormVersion(host, form, entry) {
   host.innerHTML = `
     <header class="pp-print__head">
       <div class="pp-print__brand">
-        <img class="pp-print__logo" src="assets/medinova-logo.svg" alt="" width="335" height="68" />
+        <img class="pp-print__logo" src="assets/gastroemr-logo.svg" alt="" width="335" height="68" />
         <p class="pp-print__clinic">${esc(CLINIC)}</p>
       </div>
 

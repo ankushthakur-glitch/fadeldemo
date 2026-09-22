@@ -70,7 +70,7 @@ patient/
   health-reports.html                        ⚠ not in the design, off the nav
                                                ?report=<id> deep link + filter bar
   placeholder.html                           ⚠ the honest dead end
-  assets/  medinova-logo.svg
+  assets/  gastroemr-logo.svg
   css/     reset, tokens, base, components, shell, print, screen-*
   js/
     guard.js            classic, runs in <head>, blocks paint when signed out

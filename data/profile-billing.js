@@ -24,7 +24,7 @@
 
 export const PROFILE_BILLING = {
   326486: {
-    billingGroup: 'MediNova GI — Professional',
+    billingGroup: 'GastroEMR GI — Professional',
     payers: [
       {
         name: 'Medicare Part B',
@@ -50,7 +50,7 @@ export const PROFILE_BILLING = {
   // Two policies on file — the demo case for Make Primary: Summit Bridge is
   // Primary today, but Anthem is a real Secondary a front desk could promote.
   326477: {
-    billingGroup: 'MediNova GI — Professional',
+    billingGroup: 'GastroEMR GI — Professional',
     payers: [
       {
         name: 'Summit Bridge PPO',
@@ -97,7 +97,7 @@ export const PROFILE_BILLING = {
   },
 
   326495: {
-    billingGroup: 'MediNova GI — Facility / ASC',
+    billingGroup: 'GastroEMR GI — Facility / ASC',
     payers: [
       {
         name: 'ND Medicaid Expansion',

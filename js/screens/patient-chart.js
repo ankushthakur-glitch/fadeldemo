@@ -1223,7 +1223,7 @@ function go(id, intent = null) {
 
 function show(id) {
   state.module = id;
-  document.title = `MediNova EHR — ${patient.name} · ${moduleTitle(id)}`;
+  document.title = `GastroEMR — ${patient.name} · ${moduleTitle(id)}`;
   renderSidebar();
   renderWorkspace(id, els.workspace, ctx);
   // Spent. A module reads the intent while it renders; anything that repaints

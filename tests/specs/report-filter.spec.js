@@ -85,7 +85,7 @@ test.describe('the sheet is the report’s own', () => {
   test('switching report replaces the sheet and drops the old answers', async ({ page }) => {
     await page.goto(at('eoy-ar'));
     await openFilter(page, 'report--filter');
-    await pickFilter(page, 'location', 'MediNova Gastroenterology ASC');
+    await pickFilter(page, 'location', 'GastroEMR Gastroenterology ASC');
     await doneFilter(page);
     await expect(rows(page)).toHaveCount(1);
 
@@ -125,11 +125,11 @@ test.describe('an answer that narrows', () => {
     const whole = await totals(page).textContent();
 
     await openFilter(page, 'report--filter');
-    await pickFilter(page, 'location', 'MediNova Gastroenterology ASC');
+    await pickFilter(page, 'location', 'GastroEMR Gastroenterology ASC');
     await doneFilter(page);
 
     await expect(rows(page)).toHaveCount(1);
-    await expect(rows(page).first()).toContainText('MediNova Gastroenterology ASC');
+    await expect(rows(page).first()).toContainText('GastroEMR Gastroenterology ASC');
 
     /* THE TOTALS LINE IS THE ANSWER TO THE SHEET. It is not the whole
        practice's figure any more, because the report was not run for the whole
@@ -184,7 +184,7 @@ test.describe('an answer that narrows', () => {
     const before = await rows(page).count();
 
     await openFilter(page, 'report--filter');
-    await pickFilter(page, 'location', 'MediNova Gastroenterology ASC');
+    await pickFilter(page, 'location', 'GastroEMR Gastroenterology ASC');
     await doneFilter(page);
     await expect(rows(page)).toHaveCount(1);
 
@@ -321,10 +321,10 @@ test.describe('the two questions that are not on any sheet', () => {
     expect(await rows(page).count()).toBeGreaterThan(1);
 
     await page.getByTestId('report--business').locator('select')
-      .selectOption('MediNova Gastroenterology ASC');
+      .selectOption('GastroEMR Gastroenterology ASC');
 
     await expect(rows(page)).toHaveCount(1);
-    await expect(rows(page).first()).toContainText('MediNova Gastroenterology ASC');
+    await expect(rows(page).first()).toContainText('GastroEMR Gastroenterology ASC');
 
     assertClean();
   });
@@ -333,12 +333,12 @@ test.describe('the two questions that are not on any sheet', () => {
   test('the business stays answered as the reader moves down the rail', async ({ page }) => {
     await page.goto(at('eoy-ar'));
     await page.getByTestId('report--business').locator('select')
-      .selectOption('MediNova Gastroenterology ASC');
+      .selectOption('GastroEMR Gastroenterology ASC');
 
     await page.getByTestId('report--rail-dpgi-tb').click();
 
     await expect(page.getByTestId('report--business').locator('select'))
-      .toHaveValue('MediNova Gastroenterology ASC');
+      .toHaveValue('GastroEMR Gastroenterology ASC');
   });
 });
 

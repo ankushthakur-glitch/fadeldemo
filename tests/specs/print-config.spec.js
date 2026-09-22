@@ -85,14 +85,14 @@ test.describe('print configuration — the list', () => {
    */
   test('Preview renders the header it would print', async ({ page }) => {
     await page.goto(PRINT);
-    await page.getByTestId('prn--search').locator('input').fill('MediNova Practice Header');
+    await page.getByTestId('prn--search').locator('input').fill('GastroEMR Practice Header');
     await rows(page).first().getByRole('button', { name: 'Preview' }).click();
 
     const dialog = page.locator('#prnPreviewModal');
     await expect(dialog).toBeVisible();
     await expect(dialog.locator('.prn__header-logo img').first()).toBeVisible();
     await expect(dialog.locator('.prn__header-text').first()).toContainText(
-      'MediNova Gastroenterology Clinic'
+      'GastroEMR Gastroenterology Clinic'
     );
     // Practice facts are pulled from the profile, not retyped.
     await expect(dialog.locator('.prn__header-facts').first()).toContainText('NPI: 1962748503');
@@ -118,9 +118,9 @@ test.describe('print configuration — the list', () => {
       rows(page).filter({ hasText: 'Centered Referral Header' }).getByTestId('prn--default-badge')
     ).toBeVisible();
 
-    await page.getByTestId('prn--search').locator('input').fill('MediNova Practice Header');
+    await page.getByTestId('prn--search').locator('input').fill('GastroEMR Practice Header');
     await expect(
-      rows(page).filter({ hasText: 'MediNova Practice Header' }).getByTestId('prn--default-badge')
+      rows(page).filter({ hasText: 'GastroEMR Practice Header' }).getByTestId('prn--default-badge')
     ).toHaveCount(0);
 
     // And still only one of them anywhere.
@@ -131,7 +131,7 @@ test.describe('print configuration — the list', () => {
 
   test('the default cannot be deleted', async ({ page }) => {
     await page.goto(PRINT);
-    const menu = await openRowMenu(page, 'MediNova Practice Header');
+    const menu = await openRowMenu(page, 'GastroEMR Practice Header');
     await menu.getByTestId('prn--delete').click();
 
     await expect(page.locator('#rolesFlash')).toContainText('default header');
@@ -218,7 +218,7 @@ test.describe('print configuration — the editor', () => {
     await page.getByTestId('prn--save').click();
     await expect(page.getByTestId('prn--name')).toContainText('Enter a header name');
 
-    await page.getByTestId('prn--name').locator('input').fill('MediNova Practice Header');
+    await page.getByTestId('prn--name').locator('input').fill('GastroEMR Practice Header');
     await page.getByTestId('prn--save').click();
     await expect(page.getByTestId('prn--name')).toContainText('already exists');
   });
@@ -229,9 +229,9 @@ test.describe('print configuration — the editor', () => {
     await page.getByTestId('prc--add-print-config').click();
 
     await page.getByTestId('prn--rte').click();
-    await page.keyboard.type('MediNova GI — Endoscopy Unit');
+    await page.keyboard.type('GastroEMR GI — Endoscopy Unit');
 
-    await expect(page.locator('#prnLivePreview')).toContainText('MediNova GI — Endoscopy Unit');
+    await expect(page.locator('#prnLivePreview')).toContainText('GastroEMR GI — Endoscopy Unit');
   });
 
   test('ticking a practice field adds that line to the preview', async ({ page }) => {
@@ -326,7 +326,7 @@ test.describe('print configuration — the editor', () => {
     await page.getByTestId('prn--name').locator('input').fill('Endoscopy Unit Header');
     await page.getByTestId('prn--layout').locator('input[value="text-only"]').check();
     await page.getByTestId('prn--rte').click();
-    await page.keyboard.type('MediNova GI — Endoscopy Unit');
+    await page.keyboard.type('GastroEMR GI — Endoscopy Unit');
     await page.getByTestId('prn--save').click();
 
     await expect(page.getByRole('dialog')).toBeHidden();
@@ -340,34 +340,34 @@ test.describe('print configuration — the editor', () => {
 
   test('Edit loads the saved values', async ({ page }) => {
     await page.goto(PRINT);
-    await page.getByTestId('prn--search').locator('input').fill('MediNova Practice Header');
+    await page.getByTestId('prn--search').locator('input').fill('GastroEMR Practice Header');
     await rows(page)
-      .filter({ hasText: 'MediNova Practice Header' })
+      .filter({ hasText: 'GastroEMR Practice Header' })
       .getByRole('button', { name: 'Edit' })
       .click();
 
     await expect(page.getByTestId('prn--name').locator('input')).toHaveValue(
-      'MediNova Practice Header'
+      'GastroEMR Practice Header'
     );
-    await expect(page.getByTestId('prn--rte')).toContainText('MediNova Gastroenterology Clinic');
+    await expect(page.getByTestId('prn--rte')).toContainText('GastroEMR Gastroenterology Clinic');
     await expect(page.getByTestId('prn--fields').locator('input[value="npi"]')).toBeChecked();
     await expect(page.getByTestId('prn--paper').locator('select')).toHaveValue(/Letter/);
   });
 
   test('Save As New branches instead of overwriting', async ({ page }) => {
     await page.goto(PRINT);
-    await page.getByTestId('prn--search').locator('input').fill('MediNova Practice Header');
+    await page.getByTestId('prn--search').locator('input').fill('GastroEMR Practice Header');
     await rows(page)
-      .filter({ hasText: 'MediNova Practice Header' })
+      .filter({ hasText: 'GastroEMR Practice Header' })
       .getByRole('button', { name: 'Edit' })
       .click();
 
-    await page.getByTestId('prn--name').locator('input').fill('MediNova Header — Procedures');
+    await page.getByTestId('prn--name').locator('input').fill('GastroEMR Header — Procedures');
     await page.getByTestId('prn--save-as-new').click();
 
-    await page.getByTestId('prn--search').locator('input').fill('MediNova');
-    await expect(rows(page).filter({ hasText: 'MediNova Header — Procedures' })).toHaveCount(1);
-    await expect(rows(page).filter({ hasText: 'MediNova Practice Header' })).toHaveCount(1);
+    await page.getByTestId('prn--search').locator('input').fill('GastroEMR');
+    await expect(rows(page).filter({ hasText: 'GastroEMR Header — Procedures' })).toHaveCount(1);
+    await expect(rows(page).filter({ hasText: 'GastroEMR Practice Header' })).toHaveCount(1);
 
     await page.getByTestId('prn--search').locator('input').fill('');
     await expect(total(page)).toContainText(`of ${SEEDED + 1} configurations`);
@@ -383,9 +383,9 @@ test.describe('print configuration — the editor', () => {
 test.describe('print configuration — preview dialog', () => {
   test('shows every sample document with the chosen header', async ({ page }) => {
     await page.goto(PRINT);
-    await page.getByTestId('prn--search').locator('input').fill('MediNova Practice Header');
+    await page.getByTestId('prn--search').locator('input').fill('GastroEMR Practice Header');
     await rows(page)
-      .filter({ hasText: 'MediNova Practice Header' })
+      .filter({ hasText: 'GastroEMR Practice Header' })
       .getByRole('button', { name: 'Preview' })
       .click();
 

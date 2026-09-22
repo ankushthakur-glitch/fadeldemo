@@ -30,24 +30,6 @@
    ========================================================================= */
 
 .encv {
-  /*
-   * WHERE THE SCRIBE'S PANEL OPENS IF IT CANNOT SEE ITS OWN BUTTON.
-   *
-   * The button is no longer a tab on the window's edge — it stands on the
-   * document's toolbar, and the panel opens on the line of the button that
-   * opened it, measured off the button itself (placePanel in
-   * js/lib/ai-scribe.js). This number is only the fallback for a paint with
-   * nothing laid out to measure yet, and it names the same row it always did:
-   * clear of the page head, level with the booking card, which is the one
-   * full-width row up here whose right-hand end holds nothing to press.
-   *
-   * 12rem was measured from the top of the window when the window began with
-   * this screen's own header. The app bar now stands above it, so the bar's
-   * own height is added rather than the number being re-typed, and the two
-   * cannot come apart if the band is ever re-measured.
-   */
-  --scribe-panel-top: calc(12rem + 3.25rem);
-
   display: flex;
   flex-direction: column;
   height: 100vh;
@@ -4376,49 +4358,6 @@ p.encv__alert-by {
 .narrative__actions {
   display: flex;
   margin-top: var(--space-7);
-}
-
-/* ===================== Provenance on a card ===================== */
-
-/*
- * "AI FILLED" — WHAT THE SIGNATURE AT THE FOOT IS COVERING.
- *
- * A paragraph the scribe wrote and the clinician accepted looks, from the
- * moment the dialog closes, exactly like one they typed. The signature at the
- * foot of the report covers both. This badge is the only thing on the page
- * that can still tell them apart, and it is the thing a reader six months
- * later has no other way of recovering.
- *
- * It is NOT a warning, and it is drawn accordingly: the scribe's own purple
- * rather than an alert colour, quiet, at the end of the card's own title.
- * Nothing is wrong with a card wearing it — the clinician read the paragraph
- * and pressed a button — and a badge that looked like a problem would train
- * people to clear it rather than to notice it.
- */
-.encv__ai-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  flex: none;
-  /* Pushed to the end of the heading, past the title and any controls, so a
-     column of cards reads as a column of titles with the marked ones flagged
-     at the same x — rather than as titles of varying length. */
-  margin-left: auto;
-  padding: var(--space-1) var(--space-4);
-  border-radius: var(--radius-full);
-  background-color: var(--scribe-chip);
-  color: var(--scribe-chip-ink);
-  font-size: var(--font-size-2xs);
-  font-weight: var(--font-weight-semibold);
-  /* The heading is bold and 14px; this is neither, and inherits both unless
-     told otherwise. */
-  letter-spacing: 0;
-  white-space: nowrap;
-}
-
-.encv__ai-badge .ui-icon {
-  width: 0.875rem;
-  height: 0.875rem;
 }
 
 /* ===========================================================================

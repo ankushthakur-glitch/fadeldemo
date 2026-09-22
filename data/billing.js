@@ -968,7 +968,7 @@ export const ERA_SUMMARY = {
     email: 'edi.remittance@payer-demo.net',
   },
   payee: {
-    name: 'MediNova Gastroenterology Clinic',
+    name: 'GastroEMR Gastroenterology Clinic',
     address: '5331 Rexford Court, Fargo ND 58104',
     taxId: '123456789',
   },
@@ -1226,7 +1226,7 @@ export const CLAIM_DETAIL_TEMPLATE = {
     resubmissionReason: '-',
   },
   service: {
-    location: 'MediNova Gastroenterology — Fargo',
+    location: 'GastroEMR Gastroenterology — Fargo',
     placeOfService: '11 - Office',
     dateOfService: '10/24/2025',
     priorAuthorization: '-',
@@ -1295,7 +1295,7 @@ export const CLAIM_RAIL_TEMPLATE = {
     type: 'Follow up (30 min)',
     service: 'Gastroenterology consultation',
     dateTime: '08/24/2025, 10:00 AM',
-    location: 'MediNova Gastroenterology — Fargo',
+    location: 'GastroEMR Gastroenterology — Fargo',
     reason: 'GORD, poor PPI response',
   },
 };
@@ -1319,7 +1319,7 @@ export const EOB_REMITTANCE_TEXT = `Aetna Health Insurance                      
 Panama City FL 32405
 (888) 888-8888
 
-MediNova Gastroenterology Clinic          NPI #:        1801559968
+GastroEMR Gastroenterology Clinic          NPI #:        1801559968
 5331 Rexford Court                      PAGE #:       1 of 1
 Fargo ND 58104                          DATE:         2026-03-17
                                         EFT #:        782325984-1773735012
@@ -1439,7 +1439,7 @@ export const CMS1500_TEMPLATE = [
   { num: '24', label: 'PROCEDURES, SERVICES OR SUPPLIES', value: '45378 · 43235 · 99214 · 99213' },
   { num: '25', label: 'FEDERAL TAX I.D. NUMBER', value: '872280761' },
   { num: '28', label: 'TOTAL CHARGE', value: '$3,600.00' },
-  { num: '33', label: 'BILLING PROVIDER INFO & PH #', value: 'MediNova Gastroenterology Clinic · (701) 555-0100' },
+  { num: '33', label: 'BILLING PROVIDER INFO & PH #', value: 'GastroEMR Gastroenterology Clinic · (701) 555-0100' },
 ];
 
 /* ============================================================================

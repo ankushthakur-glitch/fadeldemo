@@ -1049,7 +1049,7 @@ test.describe('master — data import and export', () => {
       'payer.csv',
       'Payer Name,Payer ID,Payer Type\n' +
         'Prairie Health Plan,PRHP01,commercial\n' +
-        'MediNova Mutual,DKMU01,Barter\n'
+        'GastroEMR Mutual,DKMU01,Barter\n'
     );
 
     await expect(page.getByTestId('mst--upload-summary')).toHaveText(

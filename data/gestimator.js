@@ -358,7 +358,7 @@ const SEEDED = {
       },
       encounter: {
         scheduledDos: '12-08-2026',
-        practice: 'MediNova Gastroenterology ASC',
+        practice: 'GastroEMR Gastroenterology ASC',
         provider: 'Olivia Rhye',
         diagnosis: '—',
       },
@@ -415,7 +415,7 @@ const SEEDED = {
       },
       encounter: {
         scheduledDos: '21-08-2026',
-        practice: 'MediNova Gastroenterology Clinic',
+        practice: 'GastroEMR Gastroenterology Clinic',
         provider: 'Dr. Amara Mensah',
         diagnosis: 'K21.9',
       },

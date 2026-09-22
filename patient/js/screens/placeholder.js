@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
       `${section} is named in the navigation but no screen for it was supplied ` +
       'in the design reference this portal was built from. Everything else in ' +
       'the menu is built and working.';
-    document.title = `${section} — MediNova Clinic Patient Portal`;
+    document.title = `${section} — GastroEMR Clinic Patient Portal`;
   } else {
     body.textContent =
       'This address does not name a section. Use the navigation on the left.';

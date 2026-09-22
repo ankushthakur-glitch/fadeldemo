@@ -449,7 +449,7 @@ function recordExport(count) {
     ip: '10.4.1.9',
     session: 'ses-current',
     device: 'This session',
-    source: 'MediNova Web',
+    source: 'GastroEMR Web',
   });
   pager.reset();
   paint();

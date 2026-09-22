@@ -10,15 +10,15 @@
  */
 
 export const BILLING_GROUPS = [
-  'MediNova GI — Professional',
-  'MediNova GI — Facility / ASC',
-  'MediNova GI — Pathology',
-  'MediNova GI — Anesthesia',
+  'GastroEMR GI — Professional',
+  'GastroEMR GI — Facility / ASC',
+  'GastroEMR GI — Pathology',
+  'GastroEMR GI — Anesthesia',
   'Self-pay / Time of service',
 ];
 
 export const PREFERRED_LABS = [
-  'MediNova GI in-house lab',
+  'GastroEMR GI in-house lab',
   'LabCorp — Fargo',
   'Quest Diagnostics — Moorhead',
   'Sanford Reference Lab',

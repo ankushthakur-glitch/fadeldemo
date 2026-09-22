@@ -100,7 +100,7 @@ const typeLabel = (appt) =>
 
 const providerLabel = (appt) => {
   const provider = providerById(appt.providerId)?.name;
-  return provider ? `${provider}, MD` : 'MediNova Gastroenterology';
+  return provider ? `${provider}, MD` : 'GastroEMR Gastroenterology';
 };
 
 /**

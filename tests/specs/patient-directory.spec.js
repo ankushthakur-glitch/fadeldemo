@@ -290,7 +290,7 @@ test.describe('patient directory', () => {
     await expect(table.locator('tbody tr').first()).toContainText('245638');
   });
 
-  test('matches MediNova geometry — 34px controls, 44px rows', async ({ page }) => {
+  test('matches GastroEMR geometry — 34px controls, 44px rows', async ({ page }) => {
     await page.goto(SCREEN);
 
     const addButton = page.getByTestId('directory--add').locator('button');

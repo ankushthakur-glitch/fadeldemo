@@ -4217,7 +4217,7 @@ function arTotalsRow(rows) {
 /* --- The chart --------------------------------------------------------------
    Hand-drawn SVG rather than a library: it is one grouped bar chart on one
    screen, and a charting dependency would arrive with its own colour scale,
-   its own fonts and its own idea of a tooltip, none of which are MediNova's. */
+   its own fonts and its own idea of a tooltip, none of which are GastroEMR's. */
 
 /* The plot draws at its own size rather than at whatever size the panel has
    spare. It used to take the full height of the card, which on a desktop meant

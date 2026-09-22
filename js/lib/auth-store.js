@@ -50,7 +50,7 @@ export const POLICY = {
 const ACCOUNTS = [
   {
     email: 'amara.mensah@medinovagi.example',
-    password: 'MediNova!2026',
+    password: 'GastroEMR!2026',
     name: 'Amara Mensah',
     role: 'Physician',
     status: 'active',
@@ -58,7 +58,7 @@ const ACCOUNTS = [
   },
   {
     email: 'inactive@medinovagi.example',
-    password: 'MediNova!2026',
+    password: 'GastroEMR!2026',
     name: 'Jordan Vale',
     role: 'Scheduler',
     status: 'inactive', // deactivated by an administrator
@@ -66,7 +66,7 @@ const ACCOUNTS = [
   },
   {
     email: 'expired@medinovagi.example',
-    password: 'MediNova!2026',
+    password: 'GastroEMR!2026',
     name: 'Priya Raman',
     role: 'Nurse',
     status: 'active',

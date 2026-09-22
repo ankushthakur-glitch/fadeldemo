@@ -40,7 +40,7 @@ customElements.whenDefined('ui-data-table').then(() => {
 
   if (user) {
     title.textContent = `Edit ${user.name}`;
-    document.title = `MediNova EHR — ${user.name}`;
+    document.title = `GastroEMR — ${user.name}`;
   }
 
   form.innerHTML = `

@@ -79,7 +79,7 @@ test.describe('the document', () => {
     // The three parties, as the reference screen carries them.
     await expect(doc).toContainText('HENNA WEST');
     await expect(doc).toContainText('MB48120556A');
-    await expect(doc).toContainText('MediNova Gastroenterology ASC');
+    await expect(doc).toContainText('GastroEMR Gastroenterology ASC');
     await expect(doc).toContainText('MEDICAREB');
 
     // The priced line, whole.

@@ -76,15 +76,6 @@ import './components/ui-section-label.js';
 import './components/ui-flag.js';
 import './components/ui-filter.js';
 
-/* THE REVIEW COMMENT LAYER. Last, and imported for its effect only: it mounts
-   a floating button, a sidebar and the pins that stick a comment to a place on
-   a screen. Nothing on any screen refers to it, so this line and the matching
-   one in patient/js/comments.js are the whole of the wiring — and removing the
-   feature when the review closes is deleting them. It does not mount under
-   Playwright, so the visual baselines are unaffected; see
-   js/lib/comments/index.js for that and for the ?comments=off escape hatch. */
-import './lib/comments/index.js';
-
 installIconSprite();
 installPrintLetterhead();
 

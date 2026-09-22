@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MediNova EHR — Encounter</title>
+    <title>GastroEMR — Encounter</title>
     <link rel="icon" type="image/svg+xml" href="../assets/img/favicon.svg" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -40,9 +40,6 @@
          moving image, and therefore the only one that reaches for the media
          roles in tokens.css. See js/lib/scope-feed.js. -->
     <link rel="stylesheet" href="../css/components/scope-feed.css" />
-    <!-- The scribe's own sheet — the purple tile, the recording bar, the
-         transcript card and the dialog it drafts behind. -->
-    <link rel="stylesheet" href="../css/components/ai-scribe.css" />
     <!-- The patient card at the top of the left rail. A component sheet
          because four note screens draw the same card — see the head of
          js/lib/patient-card.js. Loaded before the screen's own sheet so the
@@ -82,8 +79,8 @@
          most. The document's own head, with the way back to the list it came
          from, is underneath. -->
     <header class="pt__bar">
-      <img class="pt__logo" src="../assets/img/medinova-logo.svg" width="158" height="32"
-        alt="MediNova Gastroenterology Clinic" />
+      <img class="pt__logo" src="../assets/img/gastroemr-logo.svg" width="158" height="32"
+        alt="GastroEMR Gastroenterology Clinic" />
       <ui-main-nav active="schedule"></ui-main-nav>
       <div class="pt__bar-actions">
         <ui-time-clock></ui-time-clock>
@@ -181,13 +178,13 @@
                role forever. -->
           <div id="docRole" data-testid="encv--doc-role"></div>
 
-          <!-- THE AI SCRIBE, on the procedure report as on the visit note. The
-               room is different — an endoscopist calls findings over a scope
-               rather than holding a consultation — so the screen hands the
-               component its own material. See PROCEDURE_TRANSCRIPT in
-               data/scribe-transcript.js and mountAiScribe in
-               js/lib/ai-scribe.js. -->
-          <div class="scribe" id="aiScribe" data-testid="encv--scribe"></div>
+          <!-- NO AI SCRIBE ON THIS SCREEN. A procedure is dictated to the
+               report as it happens — the endoscopist calls findings over the
+               scope and they are typed or spoken into the structured fields
+               there and then — so a second machine drafting the same document
+               afterwards had nothing left to add. The scribe stays on the
+               clinic visit note, where a consultation is held and written up
+               after it: see screens/clinic-visit.html. -->
         </div>
 
         <!-- THE SEGMENT STRIP, FOR THE ONE STEP THAT IS EIGHT DOCUMENTS DEEP.

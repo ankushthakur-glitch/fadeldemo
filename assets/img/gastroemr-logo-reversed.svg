@@ -1,10 +1,10 @@
-<svg width="335" height="68" viewBox="0 0 335 68" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="MediNova Gastroenterology Clinic">
-  <!-- Placeholder white-label logo for MediNova. Swap this file (and its
+<svg width="335" height="68" viewBox="0 0 335 68" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="GastroEMR Gastroenterology Clinic">
+  <!-- Placeholder white-label logo for GastroEMR. Swap this file (and its
        -reversed / favicon siblings) for the client's real artwork. -->
   <circle cx="34" cy="34" r="32" fill="#3461ad"/>
   <path d="M34 10 C36.5 26 42 31.5 58 34 C42 36.5 36.5 42 34 58 C31.5 42 26 36.5 10 34 C26 31.5 31.5 26 34 10 Z" fill="#ffffff"/>
   <rect x="45" y="12" width="4" height="12" rx="1" fill="#ffffff"/>
   <rect x="41" y="16" width="12" height="4" rx="1" fill="#ffffff"/>
-  <text x="80" y="40" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="32" font-weight="700" letter-spacing="-0.5" fill="#ffffff">Medi<tspan fill="#9fbdf0">Nova</tspan></text>
+  <text x="80" y="40" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="32" font-weight="700" letter-spacing="-0.5" fill="#ffffff">Gastro<tspan fill="#9fbdf0">EMR</tspan></text>
   <text x="81" y="58" font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="10.5" font-weight="600" letter-spacing="2.4" fill="#b9c6dc">GASTROENTEROLOGY CLINIC</text>
 </svg>

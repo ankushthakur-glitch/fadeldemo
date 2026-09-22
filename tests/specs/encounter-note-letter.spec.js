@@ -82,7 +82,7 @@ test.describe('the note that goes out is a letter', () => {
        encounter is about. The MRN is the load-bearing one: it is the field a
        letter assembled by hand eventually gets wrong. */
     const body = await page.getByTestId('encv--f-body').locator('textarea').inputValue();
-    expect(body).toContain('MediNova Gastroenterology Clinic');
+    expect(body).toContain('GastroEMR Gastroenterology Clinic');
     expect(body).toContain('MRN');
     expect(body).toContain('Sincerely,');
   });

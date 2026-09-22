@@ -85,8 +85,8 @@ export const PROVIDER = {
     // Values match LOCATIONS[].name in practice.js — the Practice tab looks
     // the full location record up by this name.
     locations: [
-      { type: '', value: 'MediNova Gastroenterology ASC' },
-      { type: '', value: 'MediNova Gastroenterology LTD — Fargo' },
+      { type: '', value: 'GastroEMR Gastroenterology ASC' },
+      { type: '', value: 'GastroEMR Gastroenterology LTD — Fargo' },
     ],
     // EVERY number this clinician is known by, NPI and DEA included. They
     // used to be two single-value fields on the record above; they came off it

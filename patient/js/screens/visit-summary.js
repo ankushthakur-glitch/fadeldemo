@@ -381,9 +381,9 @@ function printHead() {
         <img> rather than a background because browsers suppress background
         images when printing by default and print <img> regardless.
       -->
-      <img class="pp-visit__print-logo" src="assets/medinova-logo.svg" alt=""
+      <img class="pp-visit__print-logo" src="assets/gastroemr-logo.svg" alt=""
         width="335" height="68" />
-      <p class="pp-visit__print-clinic">MediNova Clinic — Visit Summary</p>
+      <p class="pp-visit__print-clinic">GastroEMR Clinic — Visit Summary</p>
       <dl class="pp-visit__print-facts">
         <div><dt>Name</dt><dd>${esc(PATIENT.name)}</dd></div>
         <div><dt>Date of birth</dt><dd>${esc(PATIENT.dob)}</dd></div>

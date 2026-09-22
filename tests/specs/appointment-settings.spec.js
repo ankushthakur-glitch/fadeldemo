@@ -245,7 +245,7 @@ test.describe('appointment settings', () => {
     await page.getByRole('tab', { name: 'Appointment Types' }).click();
 
     await expect(page.getByTestId('apt--type-scope')).toContainText(
-      'MediNova Gastroenterology Clinic'
+      'GastroEMR Gastroenterology Clinic'
     );
     await expect(page.getByTestId('apt--type-scope')).toContainText('13 appointment types');
   });
@@ -265,7 +265,7 @@ test.describe('appointment settings', () => {
     await expect(rail).toContainText('Minor Surgical Procedure');
     // A consulting-room visit is not offered in an endoscopy suite.
     await expect(rail).not.toContainText('Annual Wellness Visit');
-    await expect(page.getByTestId('apt--type-scope')).toContainText('MediNova Gastroenterology ASC');
+    await expect(page.getByTestId('apt--type-scope')).toContainText('GastroEMR Gastroenterology ASC');
   });
 
   test('a form can be attached and removed', async ({ page }) => {

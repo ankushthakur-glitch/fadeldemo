@@ -137,21 +137,16 @@ import { ENCOUNTER_DOCS as BASE_ENCOUNTER_DOCS } from '../lib/encounter-docs.js'
  * This screen only hosts it.
  */
 /*
- * THE AI SCRIBE, ON THE PROCEDURE REPORT.
+ * NO AI SCRIBE ON THIS SCREEN.
  *
- * The same component the visit note mounts, handed the procedure room's own
- * material: an endoscopist calling findings over a scope, and a draft aimed at
- * this document's fields rather than a consultation's. Why the draft does not
- * fill the report by itself is over js/lib/ai-scribe.js.
+ * The visit note mounts one; this report does not. A procedure is dictated
+ * into the report as it happens rather than written up after it, so a model
+ * drafting the same document from a recording of the room had nothing left to
+ * add — and the report it would have drafted into is the one document on this
+ * screen that is already structured field by field. The component and its
+ * procedure-room material (PROCEDURE_TRANSCRIPT in data/scribe-transcript.js)
+ * are still there for whatever asks for them next.
  */
-import { mountAiScribe } from '../lib/ai-scribe.js';
-import {
-  PROCEDURE_SPEAKERS,
-  PROCEDURE_TRANSCRIPT,
-  PROCEDURE_DURATION,
-  PROCEDURE_DRAFT,
-  PROCEDURE_STAGES,
-} from '../../data/scribe-transcript.js';
 import {
   specimenStoreFor,
   specimensHtml,
@@ -647,9 +642,9 @@ function paintHeader() {
      appointment behind it. */
   el('encounterMeta').textContent = appointment
     ? `${label} · ${providerById(appointment.providerId)?.name} · ${
-        appointment.location || appointment.area || 'MediNova Gastroenterology'
+        appointment.location || appointment.area || 'GastroEMR Gastroenterology'
       } · ${shortDate(appointment.date)}`
-    : `${label} · ${REPORT_STAFF.endoscopist} · MediNova Gastroenterology`;
+    : `${label} · ${REPORT_STAFF.endoscopist} · GastroEMR Gastroenterology`;
 
   /* Procedure and endoscopist only. Payer and prior auth used to sit here too,
      and they were the wrong two facts for a header that is read mid-procedure:
@@ -749,7 +744,7 @@ function paintApptDetails() {
 
   const facts = [
     ['Service Type', procedureLabel()],
-    ['Location', appointment.location || appointment.area || 'MediNova Gastroenterology'],
+    ['Location', appointment.location || appointment.area || 'GastroEMR Gastroenterology'],
     ['Note Type', state.noteType],
     ['Age of Encounter', ageOfEncounter()],
     [
@@ -4638,12 +4633,6 @@ function paintDocument(id) {
       wireDocLog(id, section.log);
     });
 
-  /* Cards that have taken text from the scribe wear a badge saying so, and
-     the document is repainted for a dozen reasons that have nothing to do with
-     the scribe — so it is re-applied on every paint rather than only when a
-     section is inserted. See markAiFilled. */
-  markAiFilled(id, values);
-
   /* After the spec's own wiring, so a lead may reach anything on the page —
      and last, so nothing below re-renders the nodes it has just bound to. */
   lead?.wire?.();
@@ -7856,140 +7845,4 @@ railToggle('left');
 railToggle('right');
 
 
-/* ===========================================================================
-   THE SCRIBE ON THIS REPORT
 
-   The component listens, drafts and hands sections over; it knows nothing
-   about this screen. What lives here is the one thing only the screen can do —
-   put a section's words into a field of the document that is open — and the
-   two ways that can fail.
-   ======================================================================== */
-
-/** The procedure room's material, as the scribe takes it. */
-const PROCEDURE_SCRIBE = {
-  /* What the pill offers to write here. This document is a report. */
-  noun: 'Report',
-  speakers: PROCEDURE_SPEAKERS,
-  transcript: PROCEDURE_TRANSCRIPT,
-  duration: PROCEDURE_DURATION,
-  draft: PROCEDURE_DRAFT,
-  stages: PROCEDURE_STAGES,
-};
-
-/**
- * Copy one drafted section into the document that is open.
- *
- * Returns false when it cannot be placed, which is not an error to shout
- * about: the scribe drafts for the procedure report, and the run has thirteen
- * other documents. Pressing Copy to note while the discharge sheet is open
- * should say so and leave the section offered, not write an impression into a
- * consent form.
- *
- * APPENDED, NEVER OVERWRITTEN, for the reason the visit note does the same: an
- * endoscopist who has already typed a line has written it about this patient,
- * and no draft is worth losing it.
- */
-function copyScribeSection(section) {
-  const docId = state.substep && ENCOUNTER_DOCS[state.substep] ? state.substep : state.step;
-  const spec = ENCOUNTER_DOCS[docId];
-  const field = spec?.sections
-    .flatMap((entry) => entry.fields ?? [])
-    .find((entry) => entry.key === section.field);
-
-  if (!field) {
-    say(
-      `Open the procedure report to take the draft — this document has no ` +
-        `${section.title.toLowerCase()} field.`
-    );
-    return false;
-  }
-
-  const values = valuesFor(docId);
-  const existing = String(values[section.field] ?? '').trim();
-  values[section.field] = existing ? `${existing}\n\n${section.text}` : section.text;
-
-  /*
-   * AND THE CARD IS MARKED AS HAVING TAKEN MACHINE TEXT.
-   *
-   * A signature at the foot of this report covers every word above it,
-   * including the words a model wrote. The clinician read them in the draft
-   * panel and pressed a button, which is consent — but consent given in a
-   * dialog that is now closed, to a paragraph that from this moment looks
-   * exactly like one they typed.
-   *
-   * So the card says so, on the document, for as long as the document is open.
-   * It is not a warning and it does not stop anything: it is provenance, which
-   * is the thing a reader six months later has no other way of recovering, and
-   * the thing the endoscopist wants to see before they sign.
-   *
-   * Kept on the answers rather than in the DOM so that it survives the repaint
-   * a dozen other things trigger — see aiFilledFor.
-   */
-  aiFilledFor(values).add(section.field);
-
-  /* Written onto the live control rather than through a repaint, which would
-     rebuild every field on the report and take the caret with it. The badge
-     goes on the same way, for the same reason. */
-  const node = el('docBody')?.querySelector(`[data-doc-field="${section.field}"]`);
-  if (node) {
-    node.value = values[section.field];
-    node.scrollIntoView({ block: 'center', behavior: 'smooth' });
-  }
-  markAiFilled(docId, values);
-
-  paintDocFoot(docId);
-  return true;
-}
-
-/** The fields on one document that took text from the scribe. */
-function aiFilledFor(values) {
-  values.aiFilled ??= new Set();
-  return values.aiFilled;
-}
-
-/**
- * Put the badge on every card holding a field the scribe filled.
- *
- * Applied to the painted document rather than built into docSectionMarkup, for
- * the reason the specimen chips are: a section is marked because of something
- * that happened to it, and the renderer that draws sections has no business
- * knowing where their text came from. Idempotent, so it can be called after
- * any paint and after each individual insert.
- */
-function markAiFilled(id, values) {
-  const body = el('docBody');
-  if (!body) return;
-
-  const filled = aiFilledFor(values);
-  const spec = ENCOUNTER_DOCS[id];
-  if (!spec) return;
-
-  spec.sections.forEach((section) => {
-    const host = body.querySelector(`[data-section="${section.id}"]`);
-    if (!host) return;
-
-    const took = (section.fields ?? []).some((field) => field.key && filled.has(field.key));
-    const badge = host.querySelector('.encv__ai-badge');
-    if (!took) {
-      badge?.remove();
-      return;
-    }
-    if (badge) return;
-
-    host
-      .querySelector('.encv__doc-legend')
-      ?.insertAdjacentHTML(
-        'beforeend',
-        `<span class="encv__ai-badge" data-testid="encv--ai-filled-${esc(section.id)}">
-          ${iconMarkup('sparkle')}AI filled
-        </span>`
-      );
-  });
-}
-
-mountAiScribe({
-  host: el('aiScribe'),
-  source: PROCEDURE_SCRIBE,
-  onCopy: copyScribeSection,
-  announce: say,
-});

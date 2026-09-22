@@ -38,7 +38,7 @@ test.describe('chart prescriptions — the vendor frame', () => {
        a window with nothing in it to title. */
     const frame = page.getByTestId('chart--rx-scriptsure');
     await expect(frame).not.toContainText('ScriptSure Cloud ePrescribing');
-    await expect(frame).not.toContainText('MediNova Gastroenterology');
+    await expect(frame).not.toContainText('GastroEMR Gastroenterology');
     await expect(page.getByTestId('chart--rx-connection')).toHaveCount(0);
 
     assertClean();

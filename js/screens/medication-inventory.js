@@ -372,7 +372,7 @@ function paintDetail() {
      when the lot expires is one nobody can act on. */
   el('factWastedWrap').hidden = summary.wasted === 0;
   el('factWasted').textContent = String(summary.wasted);
-  document.title = `MediNova EHR — ${medication.name}`;
+  document.title = `GastroEMR — ${medication.name}`;
 
   /* Why the total can be lower than the numbers below it. Without this the
      screen looks like it cannot add up. */
@@ -463,7 +463,7 @@ function showCount() {
   el('detailView').hidden = true;
   el('medHead').hidden = false;
   showActions('count');
-  document.title = 'MediNova EHR — Daily Medication Count';
+  document.title = 'GastroEMR — Daily Medication Count';
   window.history.replaceState({}, '', window.location.pathname);
   paintCount();
 }
@@ -488,7 +488,7 @@ function showList() {
   el('detailView').hidden = true;
   el('medHead').hidden = false;
   showActions('stock');
-  document.title = 'MediNova EHR — Medication Inventory';
+  document.title = 'GastroEMR — Medication Inventory';
   /* ?view=stock rather than the bare path, which now means the count sheet.
      Backing out of one medication's lots has to leave the address bar saying
      "the register" — otherwise a reload, a bookmark or a shared link drops the

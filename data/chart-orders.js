@@ -35,7 +35,7 @@ export const PRESCRIBING_PROVIDERS = ['Dr. A. Mensah', 'Dr. L. Bianchi', 'Dr. S.
 /* --- Labs -------------------------------------------------------------- */
 
 export const LAB_VENDORS = [
-  'MediNova GI in-house lab',
+  'GastroEMR GI in-house lab',
   'LabCorp — Fargo',
   'Quest Diagnostics — Moorhead',
   'Sanford Reference Lab',
@@ -71,7 +71,7 @@ export const LAB_STATUS = {
 export const IMAGING_MODALITIES = ['X-Ray', 'CT Scan', 'MRI', 'Ultrasound', 'Mammography'];
 
 export const IMAGING_FACILITIES = [
-  'MediNova Imaging Center',
+  'GastroEMR Imaging Center',
   'Sanford Radiology — Fargo',
   'Essentia Health Imaging',
 ];
@@ -121,8 +121,8 @@ export const PROCEDURE_TYPES = [
 ];
 
 export const PROCEDURE_FACILITIES = [
-  'MediNova GI — ASC',
-  'MediNova GI — Clinic procedure room',
+  'GastroEMR GI — ASC',
+  'GastroEMR GI — Clinic procedure room',
   'Sanford Medical Center — Endoscopy',
 ];
 
@@ -181,11 +181,11 @@ export const CHART_ORDERS = {
         orderedBy: 'Dr. A. Mensah',
         receivedOn: '27-10-2025',
         icdCode: 'K21.9 — GERD, without esophagitis',
-        vendor: 'MediNova GI in-house lab',
+        vendor: 'GastroEMR GI in-house lab',
         patientInstruction: 'Fast for 8 hours before the draw. Water is fine.',
         report: {
           number: 'VS789012',
-          clinic: 'MediNova Gastroenterology Clinic',
+          clinic: 'GastroEMR Gastroenterology Clinic',
           age: 65,
           gender: 'Female',
           existingConditions: 'Hypertension, Type 2 diabetes',
@@ -224,11 +224,11 @@ export const CHART_ORDERS = {
         orderedBy: 'Dr. L. Bianchi',
         receivedOn: '26-10-2025',
         icdCode: 'Z12.11 — Screening for colon cancer',
-        vendor: 'MediNova GI in-house lab',
+        vendor: 'GastroEMR GI in-house lab',
         patientInstruction: 'No special preparation needed.',
         report: {
           number: 'VS789015',
-          clinic: 'MediNova Gastroenterology Clinic',
+          clinic: 'GastroEMR Gastroenterology Clinic',
           age: 65,
           gender: 'Female',
           existingConditions: 'Hypertension, Type 2 diabetes',
@@ -248,7 +248,7 @@ export const CHART_ORDERS = {
         orderedBy: 'Dr. A. Mensah',
         receivedOn: null,
         icdCode: 'E66.9 — Obesity, unspecified',
-        vendor: 'MediNova GI in-house lab',
+        vendor: 'GastroEMR GI in-house lab',
         patientInstruction: 'Fast for 8 hours before the draw. Water is fine.',
         report: null,
       },
@@ -263,7 +263,7 @@ export const CHART_ORDERS = {
         status: 'scheduled',
         orderedOn: '20-10-2025',
         orderedBy: 'Dr. A. Mensah',
-        facility: 'MediNova Imaging Center',
+        facility: 'GastroEMR Imaging Center',
         scheduledOn: '11-11-2025',
         indication: 'K21.9 — GERD, without esophagitis',
         findings: '',
@@ -291,7 +291,7 @@ export const CHART_ORDERS = {
         status: 'scheduled',
         orderedOn: '20-10-2025',
         orderedBy: 'Dr. A. Mensah',
-        facility: 'MediNova GI — ASC',
+        facility: 'GastroEMR GI — ASC',
         scheduledOn: '18-11-2025',
         indication: 'Z12.11 — Screening for colon cancer',
         notes: 'Three adenomas at the 2022 exam. Split-dose prep.',

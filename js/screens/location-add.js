@@ -32,7 +32,7 @@ customElements.whenDefined('ui-input').then(() => {
 
   if (existing) {
     title.textContent = `Edit ${existing.name}`;
-    document.title = `MediNova EHR — ${existing.name}`;
+    document.title = `GastroEMR — ${existing.name}`;
   }
 
   form.innerHTML = locationFormMarkup(existing || blankLocation());

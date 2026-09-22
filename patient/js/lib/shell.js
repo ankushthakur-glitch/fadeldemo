@@ -253,12 +253,12 @@ function renderTopbar(session) {
       before the SVG arrives — without them the whole tool cluster shifts
       sideways on first paint.
 
-      The alt text IS the link's accessible name: "MediNova Clinic" reads
+      The alt text IS the link's accessible name: "GastroEMR Clinic" reads
       better than "Home" for a logo that returns you to it, and a screen
       reader announces it as a link either way.
     -->
     <a class="pp-topbar__logo" href="home.html">
-      <img src="assets/medinova-logo.svg" alt="MediNova Clinic" width="335" height="68" />
+      <img src="assets/gastroemr-logo.svg" alt="GastroEMR Clinic" width="335" height="68" />
     </a>
 
     <div class="pp-topbar__tools">

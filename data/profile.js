@@ -51,7 +51,7 @@ export const PROFILE = {
     },
     registration: {
       notes: 'Prefers text reminders over calls — see quick note.',
-      preferredLab: 'MediNova GI in-house lab',
+      preferredLab: 'GastroEMR GI in-house lab',
       optOutTextToPay: false,
       optOutPortalReminders: false,
     },
@@ -204,7 +204,7 @@ export const PROFILE = {
     },
     registration: {
       notes: 'Guardian: Mai Tran, 208-555-0172.',
-      preferredLab: 'MediNova GI in-house lab',
+      preferredLab: 'GastroEMR GI in-house lab',
       optOutTextToPay: false,
       optOutPortalReminders: false,
     },

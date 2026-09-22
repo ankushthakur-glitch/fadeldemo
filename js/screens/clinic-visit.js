@@ -911,9 +911,9 @@ function paintHeader() {
 
   el('encounterMeta').textContent = appointment
     ? `${label} · ${providerById(appointment.providerId)?.name} · ${
-        appointment.location || appointment.area || 'MediNova Gastroenterology'
+        appointment.location || appointment.area || 'GastroEMR Gastroenterology'
       } · ${shortDate(appointment.date)}`
-    : `Colonoscopy · ${REPORT_STAFF.endoscopist} · MediNova Gastroenterology`;
+    : `Colonoscopy · ${REPORT_STAFF.endoscopist} · GastroEMR Gastroenterology`;
 
   /*
    * The picker offers the templates of whichever document is open.
@@ -7539,7 +7539,7 @@ function buildAscSuperbill() {
     dob: patient.dob,
     sex: patient.sex,
     provider: providerById(appointment.providerId)?.name ?? REPORT_STAFF.endoscopist,
-    facility: appointment.location || appointment.area || 'MediNova Gastroenterology ASC',
+    facility: appointment.location || appointment.area || 'GastroEMR Gastroenterology ASC',
     procedureCode: code,
     procedureTitle: label ?? 'Procedure',
     admissionDate: shortDate(appointment.date),
@@ -8085,8 +8085,31 @@ function copyScribeSection(section) {
   return true;
 }
 
-mountAiScribe({
-  host: el('aiScribe'),
-  onCopy: copyScribeSection,
-  announce: (message) => toast(message, 'info'),
-});
+/*
+ * AND IT IS MOUNTED FOR A CONSULTATION ONLY.
+ *
+ * This file serves two documents through one toolbar — the visit note and, on
+ * a procedure booking, the colonoscopy or EGD report. The scribe belongs to
+ * the first and not to the second: a consultation is held and then written up,
+ * which is the gap a draft from the room fills, while a procedure is dictated
+ * into a structured report as it happens and has nothing left for a model to
+ * draft afterwards. The same reasoning took it off the procedure run — see the
+ * head of js/screens/encounter.js.
+ *
+ * Not mounted rather than hidden, so a procedure booking carries no listening
+ * control at all, and copyScribeSection — which writes into visit-note fields
+ * — can never be reached from a document that has none.
+ */
+if (!isProcedure) {
+  mountAiScribe({
+    host: el('aiScribe'),
+    onCopy: copyScribeSection,
+    announce: (message) => toast(message, 'info'),
+  });
+} else {
+  /* And the empty host goes with it. It holds the trigger's footprint on the
+     bar so the row does not shuffle when the panel opens (see .scribe in
+     css/components/ai-scribe.css), which on a report that never mounts one is
+     34px of nothing between the clock and Unlock for Amendment. */
+  el('aiScribe')?.remove();
+}

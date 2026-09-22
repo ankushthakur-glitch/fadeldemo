@@ -112,7 +112,7 @@ customElements.whenDefined('ui-data-table').then(() => {
 
 /* ===================== PROFILE =====================
 
-   MediNova is two billing entities, not one: the clinic and the ASC. They have
+   GastroEMR is two billing entities, not one: the clinic and the ASC. They have
    different group NPIs, different opening hours, different claim forms and
    different appointment types, so the Profile tab shows ONE at a time and the
    switcher above it decides which — see PRACTICE_PROFILES in

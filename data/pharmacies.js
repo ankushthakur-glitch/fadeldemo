@@ -19,7 +19,7 @@ export const PHARMACIES = [
   { id: 'ph4', flags: ['R'], name: 'Northgate Pharmacy, Inc.', address: '2228 US Hwy 19', city: 'West Fargo, ND 58078', phone: '(701) 555-0106', fax: '(701) 555-0107', rcopia: '87245400', type: 'Retail' },
   { id: 'ph5', flags: ['R', 'CS'], name: 'Three Rivers Pharmacy', address: '117 Fox Plan Rd, Ste 301', city: 'Grand Forks, ND 58201', phone: '(701) 555-0123', fax: '(701) 555-0124', rcopia: '14100338300', type: 'Retail' },
   { id: 'ph6', flags: ['R', 'L'], name: 'Clinic Pharmacy 406 — LTC', address: '1315 Wyoming St, Ste 1A', city: 'Bismarck, ND 58501', phone: '(701) 555-0160', fax: '(701) 555-0161', rcopia: '11615147800', type: 'Long term care' },
-  { id: 'ph7', flags: ['M'], name: 'MediNova Mail Order Rx', address: '14332 Ramona Blvd', city: 'Minot, ND 58701', phone: '(701) 555-0199', fax: '(701) 555-0198', rcopia: '10982331200', type: 'Mail order' },
+  { id: 'ph7', flags: ['M'], name: 'GastroEMR Mail Order Rx', address: '14332 Ramona Blvd', city: 'Minot, ND 58701', phone: '(701) 555-0199', fax: '(701) 555-0198', rcopia: '10982331200', type: 'Mail order' },
   { id: 'ph8', flags: ['R', 'S', 'CS'], name: 'Sanford Plaza Pharmacy', address: '88 Broadway N', city: 'Fargo, ND 58102', phone: '(701) 555-0111', fax: '(701) 555-0112', rcopia: '13398210050', type: 'Retail' },
 ];
 
@@ -99,9 +99,9 @@ export const PROVIDER_DIRECTORY = [
   { id: 'pd5', name: 'Dr. Neil Ashworth', specialty: 'General Surgery', institution: 'Fargo Surgical Associates', phone: '(701) 555-0148', email: 'n.ashworth@example.com' },
   { id: 'pd6', name: 'Dr. Grace Ibarra', specialty: 'Family Medicine', institution: 'Northside Community Health', phone: '(701) 555-0152', email: 'g.ibarra@example.com' },
   { id: 'pd7', name: 'Dr. Peter Lindgren', specialty: 'Family Medicine', institution: 'Moorhead Family Practice', phone: '(218) 555-0159', email: 'p.lindgren@example.com' },
-  { id: 'pd8', name: 'Olivia Rhye, MD', specialty: 'Gastroenterology', institution: 'MediNova Gastroenterology — Fargo', phone: '(701) 555-0100', email: 'o.rhye@medinovagastro.example' },
-  { id: 'pd9', name: 'Michael Johnson, MD', specialty: 'Gastroenterology', institution: 'MediNova Gastroenterology — Fargo', phone: '(701) 555-0101', email: 'm.johnson@medinovagastro.example' },
-  { id: 'pd10', name: 'Emily Chen, DO', specialty: 'Gastroenterology', institution: 'MediNova Gastroenterology — Fargo', phone: '(701) 555-0102', email: 'e.chen@medinovagastro.example' },
+  { id: 'pd8', name: 'Olivia Rhye, MD', specialty: 'Gastroenterology', institution: 'GastroEMR Gastroenterology — Fargo', phone: '(701) 555-0100', email: 'o.rhye@medinovagastro.example' },
+  { id: 'pd9', name: 'Michael Johnson, MD', specialty: 'Gastroenterology', institution: 'GastroEMR Gastroenterology — Fargo', phone: '(701) 555-0101', email: 'm.johnson@medinovagastro.example' },
+  { id: 'pd10', name: 'Emily Chen, DO', specialty: 'Gastroenterology', institution: 'GastroEMR Gastroenterology — Fargo', phone: '(701) 555-0102', email: 'e.chen@medinovagastro.example' },
 ];
 
 export const providerFromDirectory = (id) => PROVIDER_DIRECTORY.find((p) => p.id === id);

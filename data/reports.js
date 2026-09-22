@@ -365,8 +365,8 @@ function facetsFor(report, row, date) {
    ========================================================================= */
 
 const LOCATIONS = [
-  'MediNova Gastroenterology ASC',
-  'MediNova Gastroenterology Clinic',
+  'GastroEMR Gastroenterology ASC',
+  'GastroEMR Gastroenterology Clinic',
   'DGI Infusion Center',
   'North Valley Hospital OP',
   'Prairie Health OP North',
@@ -536,15 +536,15 @@ const GENDERS = ['Male', 'Female'];
    ------------------------------------------------------------------------- */
 
 const BUSINESS_OF = {
-  'MediNova Gastroenterology ASC': 'MediNova Gastroenterology ASC',
-  'MediNova Gastroenterology Clinic': 'MediNova Gastroenterology LTD',
-  'DGI Infusion Center': 'MediNova Gastroenterology LTD',
+  'GastroEMR Gastroenterology ASC': 'GastroEMR Gastroenterology ASC',
+  'GastroEMR Gastroenterology Clinic': 'GastroEMR Gastroenterology LTD',
+  'DGI Infusion Center': 'GastroEMR Gastroenterology LTD',
   /* The two outreach hospitals and the second Prairie site are places the
      practice's clinicians work rather than places it owns, so the professional
      fee is billed by the LTD. */
-  'North Valley Hospital OP': 'MediNova Gastroenterology LTD',
-  'Prairie Health OP North': 'MediNova Gastroenterology LTD',
-  'Prairie Health OP West': 'MediNova Gastroenterology LTD',
+  'North Valley Hospital OP': 'GastroEMR Gastroenterology LTD',
+  'Prairie Health OP North': 'GastroEMR Gastroenterology LTD',
+  'Prairie Health OP West': 'GastroEMR Gastroenterology LTD',
 };
 
 export const BUSINESSES = [...new Set(Object.values(BUSINESS_OF))];
@@ -866,7 +866,7 @@ function procedureLine(codes) {
          the suite's. Everything else follows the site it was done at. */
       costCentre: cpt.code.startsWith('88')
         ? 'Pathology'
-        : location === 'MediNova Gastroenterology ASC'
+        : location === 'GastroEMR Gastroenterology ASC'
           ? 'Endoscopy'
           : location === 'DGI Infusion Center'
             ? 'Infusion'
@@ -874,7 +874,7 @@ function procedureLine(codes) {
       billingGroup: r.pick('grp', BILLING_GROUPS),
       /* The ASC bills the facility half of a case; a professional fee is
          billed wherever the clinician was standing. */
-      billType: location === 'MediNova Gastroenterology ASC' ? 'Facility' : 'Professional',
+      billType: location === 'GastroEMR Gastroenterology ASC' ? 'Facility' : 'Professional',
     };
   };
 }
@@ -1089,7 +1089,7 @@ export const REPORTS = [
     rows: [
       {
         id: 'asc',
-        label: 'MediNova Gastroenterology ASC',
+        label: 'GastroEMR Gastroenterology ASC',
         tune: {
           serv: { range: [4, 12] },
           charges: { share: [900, 1900] },
@@ -1099,7 +1099,7 @@ export const REPORTS = [
       },
       {
         id: 'clinic',
-        label: 'MediNova Gastroenterology Clinic',
+        label: 'GastroEMR Gastroenterology Clinic',
         tune: {
           serv: { range: [14, 32] },
           charges: { share: [420, 980] },
@@ -1537,8 +1537,8 @@ export const REPORTS = [
         carrier,
         payerGroup: PAYER_GROUP_OF[carrier] ?? 'Commercial',
         location,
-        costCentre: location === 'MediNova Gastroenterology ASC' ? 'Endoscopy' : 'Clinic',
-        billType: location === 'MediNova Gastroenterology ASC' ? 'Facility' : 'Professional',
+        costCentre: location === 'GastroEMR Gastroenterology ASC' ? 'Endoscopy' : 'Clinic',
+        billType: location === 'GastroEMR Gastroenterology ASC' ? 'Facility' : 'Professional',
         /* The file it was posted in. An electronic remittance arrives as one
            of two daily files; a card taken at the desk is in whichever half of
            the day it was taken. */

@@ -88,7 +88,7 @@ export const CHART_PRIOR_AUTHS = {
       id: 'MPA-256',
       category: 'medication-pa',
       drug: 'Adalimumab 40mg',
-      pharmacy: 'MediNova GI in-house pharmacy',
+      pharmacy: 'GastroEMR GI in-house pharmacy',
       sentTo: 'Medicare Part B',
       provider: 'Dr. Amara Mensah',
       submitted: '20-05-2026',
@@ -102,7 +102,7 @@ export const EMPTY_CHART_PRIOR_AUTHS = [];
 export const PBM_PLANS = ['Medicare Part B', 'Summit Bridge PPO', 'ND Medicaid Expansion', 'Self-pay'];
 export const DISPENSING_PHARMACIES = [
   'CVS #118 – Arvada',
-  'MediNova GI in-house pharmacy',
+  'GastroEMR GI in-house pharmacy',
   'Walgreens #4421 – Fargo',
   'OptumRx Mail Order',
 ];

@@ -34,7 +34,7 @@ test.describe('practice settings', () => {
     await page.goto(PRC);
 
     await expect(page.locator('#panel-profile .prc__name')).toHaveText(
-      'MediNova Gastroenterology Clinic'
+      'GastroEMR Gastroenterology Clinic'
     );
     const info = page.getByTestId('prc--basic-info');
     await expect(info).toContainText('Practice Fax Number');
@@ -70,7 +70,7 @@ test.describe('practice settings', () => {
 
     await page.getByTestId('prc--profile-asc').click();
 
-    await expect(page.getByTestId('prc--profile-name')).toHaveText('MediNova Gastroenterology ASC');
+    await expect(page.getByTestId('prc--profile-name')).toHaveText('GastroEMR Gastroenterology ASC');
     // A group NPI belongs to the billing entity, and the ASC's is not the
     // clinic's — this is the fact the whole split exists for.
     await expect(page.getByTestId('prc--profile-npi')).toHaveText('1215455217');
@@ -127,7 +127,7 @@ test.describe('practice settings', () => {
     await page.getByTestId('prc--edit-profile').locator('button').click();
 
     await expect(page.getByTestId('prc--practice-name').locator('input')).toHaveValue(
-      'MediNova Gastroenterology ASC'
+      'GastroEMR Gastroenterology ASC'
     );
   });
 
@@ -153,7 +153,7 @@ test.describe('practice settings', () => {
     await expect(dialog).toBeVisible();
     await expect(dialog).toContainText('Edit Practice Profile');
     await expect(page.getByTestId('prc--practice-name').locator('input')).toHaveValue(
-      'MediNova Gastroenterology Clinic'
+      'GastroEMR Gastroenterology Clinic'
     );
     // The whole shape is there: addresses and office hours.
     await expect(dialog).toContainText('Physical Address');
@@ -346,7 +346,7 @@ test.describe('practice settings', () => {
 
     const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible();
-    await expect(dialog).toContainText('MediNova Gastroenterology ASC');
+    await expect(dialog).toContainText('GastroEMR Gastroenterology ASC');
 
     // Everything the table no longer shows is here.
     const detail = page.getByTestId('prc--location-detail');
@@ -378,7 +378,7 @@ test.describe('practice settings', () => {
 
     await expect(page.getByTestId('loc--title')).toContainText('Edit');
     await expect(page.getByTestId('loc--name').locator('input')).toHaveValue(
-      'MediNova Gastroenterology ASC'
+      'GastroEMR Gastroenterology ASC'
     );
     // Identifiers come through too.
     await expect(page.locator('[data-id-field="locationNpi"]').locator('input')).toHaveValue(

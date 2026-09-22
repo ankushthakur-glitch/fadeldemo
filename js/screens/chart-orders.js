@@ -1296,7 +1296,7 @@ registerModule('orders', {
       const receivedOn = recordedDate ? isoToDdMmYyyy(recordedDate) : todayDdMmYyyy();
       const minimalReport = {
         number: `MAN-${Date.now().toString().slice(-6)}`,
-        clinic: 'MediNova Gastroenterology Clinic',
+        clinic: 'GastroEMR Gastroenterology Clinic',
         age: ctx.age ?? '—',
         gender: ctx.patient.gender || '—',
         existingConditions: '—',

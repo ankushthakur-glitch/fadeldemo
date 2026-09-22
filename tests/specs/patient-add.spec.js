@@ -60,7 +60,7 @@ test.describe('add patient', () => {
     expect(background).toBe('rgb(255, 255, 255)');
   });
 
-  test('patient names use MediNova Primary/500, not brand red', async ({ page }) => {
+  test('patient names use GastroEMR Primary/500, not brand red', async ({ page }) => {
     await page.goto(LIST);
     const colour = await page
       .locator('.pt__name-link')
@@ -69,7 +69,7 @@ test.describe('add patient', () => {
     expect(colour).toBe('rgb(103, 130, 234)'); // #6782EA — Primary/500
   });
 
-  test('file upload uses the MediNova dropzone, not a plain button', async ({ page }) => {
+  test('file upload uses the GastroEMR dropzone, not a plain button', async ({ page }) => {
     await page.goto(ADD);
     const upload = page.getByTestId('add--card-front');
 

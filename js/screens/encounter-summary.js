@@ -66,7 +66,7 @@ const apptTypeLabel = appointment?.procedureId
 
 const providerName = providerById(appointment?.providerId)?.name
   ? `${providerById(appointment.providerId).name}, MD`
-  : 'MediNova Gastroenterology';
+  : 'GastroEMR Gastroenterology';
 
 const reason = appointment?.reason?.trim() || DEFAULT_REASON;
 

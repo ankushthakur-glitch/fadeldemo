@@ -206,15 +206,15 @@ export const SURGICAL_PROCEDURES = [
    recorded under a name the practice does not use for itself — then the
    hospitals the area's patients actually come from. */
 export const SURGICAL_FACILITIES = [
-  'MediNova Gastroenterology ASC',
-  'MediNova Gastroenterology LTD — Fargo',
+  'GastroEMR Gastroenterology ASC',
+  'GastroEMR Gastroenterology LTD — Fargo',
   'Red River Infusion Centre',
   'Moorhead Annexe',
   'Sanford Medical Center Fargo',
   'Essentia Health — Fargo',
   'Altru Hospital, Grand Forks',
   'CHI St Alexius Health, Bismarck',
-  'MediNova Orthopaedic Centre',
+  'GastroEMR Orthopaedic Centre',
   'St Luke’s General',
   SURGICAL_OTHER,
 ];
@@ -289,7 +289,7 @@ export const CHART_HISTORY = {
         procedure: 'Total knee replacement, right',
         date: '28-02-2021',
         surgeon: 'Ms P Okonjo',
-        facility: 'MediNova Orthopaedic Centre',
+        facility: 'GastroEMR Orthopaedic Centre',
         recordedDate: '04-10-2024',
         recordedBy: 'Amara Mensah',
         note: '',

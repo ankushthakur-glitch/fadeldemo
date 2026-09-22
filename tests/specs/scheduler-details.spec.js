@@ -56,7 +56,7 @@ test.describe('appointment details — Mode against Location', () => {
     await openDetails(page, 'ap1');
 
     await expect(rowValue(page, 'Mode')).toContainText('In person');
-    await expect(rowValue(page, 'Mode')).toContainText('MediNova Gastroenterology');
+    await expect(rowValue(page, 'Mode')).toContainText('GastroEMR Gastroenterology');
   });
 });
 

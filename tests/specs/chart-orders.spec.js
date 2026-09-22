@@ -283,7 +283,7 @@ test.describe('chart orders module', () => {
 
       await page.getByTestId('chart--img-modality').locator('select').selectOption('MRI');
       await page.getByTestId('chart--img-bodypart').locator('input').fill('Lumbar Spine');
-      await page.getByTestId('chart--img-facility').locator('select').selectOption('MediNova Imaging Center');
+      await page.getByTestId('chart--img-facility').locator('select').selectOption('GastroEMR Imaging Center');
       await page.getByTestId('chart--img-provider').locator('select').selectOption('Dr. A. Mensah');
       await page.getByTestId('chart--img-save').locator('button').click();
 

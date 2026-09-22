@@ -16,7 +16,7 @@
 
 /** Pulled from Practice Profile — the letterhead never stores its own copy. */
 export const PRACTICE_FIELDS = [
-  { id: 'name', label: 'Practice Name', value: 'MediNova Gastroenterology Clinic' },
+  { id: 'name', label: 'Practice Name', value: 'GastroEMR Gastroenterology Clinic' },
   { id: 'address', label: 'Address', value: '8642 Yule Street, Arvada, CO 80007' },
   { id: 'phone', label: 'Phone', value: '303-555-0110' },
   { id: 'fax', label: 'Fax', value: '303-555-0111' },
@@ -72,7 +72,7 @@ export const FOOTER_OPTIONS = [
   { id: 'billing-line', label: 'Billing enquiries', text: 'Billing enquiries: 303-555-0112 · accounts@medinovagi.example.com' },
   { id: 'portal', label: 'Patient portal', text: 'View this document in the patient portal at medinovagi.example.com/portal' },
   { id: 'interpreter', label: 'Interpreter notice', text: 'Interpreter services are available free of charge.' },
-  { id: 'nondiscrimination', label: 'Non-discrimination notice', text: 'MediNova Gastroenterology complies with applicable federal civil rights laws.' },
+  { id: 'nondiscrimination', label: 'Non-discrimination notice', text: 'GastroEMR Gastroenterology complies with applicable federal civil rights laws.' },
 ];
 
 export const PAPER_SIZES = ['Letter (8.5 × 11 in)', 'A4 (210 × 297 mm)'];
@@ -137,7 +137,7 @@ export const LOGO_FORMATS = '.png,.svg,.jpg,.jpeg';
 export const LOGO_MAX_BYTES = 3 * 1024 * 1024;
 
 /** The practice logo already in the prototype — used by the seeded headers. */
-const MEDINOVA_LOGO = '../assets/img/medinova-logo.svg';
+const MEDINOVA_LOGO = '../assets/img/gastroemr-logo.svg';
 
 /* ============================================================================
    THE REST OF THE LETTERHEADS.
@@ -231,11 +231,11 @@ function seededHeaders() {
       logoAlign,
       textAlign,
       logo: layout === 'text-only' ? null : MEDINOVA_LOGO,
-      logoName: layout === 'text-only' ? null : 'medinova-logo.svg',
+      logoName: layout === 'text-only' ? null : 'gastroemr-logo.svg',
       headerHtml:
         layout === 'logo-only'
           ? ''
-          : `<div><strong>MediNova Gastroenterology Clinic</strong></div><div>${name}</div>`,
+          : `<div><strong>GastroEMR Gastroenterology Clinic</strong></div><div>${name}</div>`,
       fields,
       footer,
       paper: PAPER_SIZES[index % 7 === 6 ? 1 : 0],
@@ -257,16 +257,16 @@ function seededHeaders() {
 export const PRINT_CONFIGS = [
   {
     id: 'cfg-1',
-    name: 'MediNova Practice Header',
+    name: 'GastroEMR Practice Header',
     description: 'Standard letterhead for clinical documents.',
     isDefault: true,
     layout: 'logo-text',
     logoAlign: 'left',
     textAlign: 'left',
     logo: MEDINOVA_LOGO,
-    logoName: 'medinova-logo.svg',
+    logoName: 'gastroemr-logo.svg',
     headerHtml:
-      '<div><strong>MediNova Gastroenterology Clinic</strong></div><div>8642 Yule Street, Arvada, CO 80007</div>',
+      '<div><strong>GastroEMR Gastroenterology Clinic</strong></div><div>8642 Yule Street, Arvada, CO 80007</div>',
     fields: ['phone', 'fax', 'npi'],
     footer: ['hipaa', 'page-number'],
     paper: PAPER_SIZES[0],
@@ -291,9 +291,9 @@ export const PRINT_CONFIGS = [
     logoAlign: 'center',
     textAlign: 'center',
     logo: MEDINOVA_LOGO,
-    logoName: 'medinova-logo.svg',
+    logoName: 'gastroemr-logo.svg',
     headerHtml:
-      '<div><strong>MediNova Gastroenterology Clinic</strong></div><div><em>Referral and Consultation Services</em></div>',
+      '<div><strong>GastroEMR Gastroenterology Clinic</strong></div><div><em>Referral and Consultation Services</em></div>',
     fields: ['address', 'phone', 'website'],
     footer: ['disclaimer', 'website'],
     paper: PAPER_SIZES[0],
@@ -317,7 +317,7 @@ export const PRINT_CONFIGS = [
     logo: null,
     logoName: null,
     headerHtml:
-      '<div><strong>MediNova Gastroenterology Clinic — Patient Accounts</strong></div><div>Questions about this statement? Call 303-555-0112.</div>',
+      '<div><strong>GastroEMR Gastroenterology Clinic — Patient Accounts</strong></div><div>Questions about this statement? Call 303-555-0112.</div>',
     fields: ['address', 'taxId'],
     footer: ['confidential', 'page-number'],
     paper: PAPER_SIZES[0],

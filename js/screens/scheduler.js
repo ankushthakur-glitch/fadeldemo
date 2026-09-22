@@ -333,7 +333,7 @@ function kindOf(appt) {
  * older bookings carry them.
  */
 const KIND_LOCATIONS = {
-  clinical: LOCATIONS[0], // MediNova Gastroenterology — Fargo, the clinic
+  clinical: LOCATIONS[0], // GastroEMR Gastroenterology — Fargo, the clinic
   infusion: LOCATIONS[0], // Infusions run in the clinic, not at a site of their own
   procedure: LOCATIONS[2], // Red River ASC
 };
@@ -2722,7 +2722,7 @@ function openDetails(appt, trigger) {
 /*
  * The pager, shared with every other table in the product.
  *
- * A week at MediNova is sixty bookings and a month is two hundred and fifty; the
+ * A week at GastroEMR is sixty bookings and a month is two hundred and fifty; the
  * list drew all of them and let the browser find the row. It pages the
  * APPOINTMENTS, not the rendered rows — the date headings are inserted after
  * the slice is taken, so a page always carries the heading for the day it

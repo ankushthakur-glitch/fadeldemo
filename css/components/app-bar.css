@@ -47,7 +47,7 @@
      Swapped here rather than in the thirty screens that carry the bar, so the
      markup keeps pointing at the one logo and this rule stays the only place
      that knows the dark band wants a different copy of it. */
-  content: url("../../assets/img/medinova-logo-reversed.svg");
+  content: url("../../assets/img/gastroemr-logo-reversed.svg");
 }
 
 /* --- Primary nav tabs ------------------------------------------------------ */

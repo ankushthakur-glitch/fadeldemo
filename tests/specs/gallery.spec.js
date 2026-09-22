@@ -21,7 +21,7 @@ test.describe('component gallery', () => {
 
   // md is 34px, not the 32px approved at Phase 0 — MediNova draws its Input and
   // Button at 34 on node 40003459:32485, and "match Figma exactly" wins.
-  test('control heights match MediNova — 24/28/34/40', async ({ page }) => {
+  test('control heights match GastroEMR — 24/28/34/40', async ({ page }) => {
     await page.goto('/gallery.html');
     const expected = { xs: 24, sm: 28, md: 34, lg: 40 };
 

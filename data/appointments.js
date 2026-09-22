@@ -85,8 +85,8 @@ export const WEEK_DAYS = [
 ];
 
 export const LOCATIONS = [
-  'MediNova Gastroenterology — Fargo',
-  'MediNova Gastroenterology — West Fargo',
+  'GastroEMR Gastroenterology — Fargo',
+  'GastroEMR Gastroenterology — West Fargo',
   'Red River ASC',
   'Prairie Infusion Centre',
 ];

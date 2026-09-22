@@ -2,6 +2,70 @@
 
 ## Unreleased
 
+### The product is GastroEMR
+
+Every user-visible "MediNova" now reads GastroEMR — the app bar wordmark and
+its reversed and favicon siblings (`assets/img/gastroemr-logo*.svg`,
+`patient/assets/`), page titles, the login screen, print letterheads, and the
+practice name through the mock data: the clinic is GastroEMR Gastroenterology
+Clinic, its sites, lab, pharmacy and ASC with it, and the portal is the
+GastroEMR Clinic Patient Portal.
+
+- **The logo is the same mark with a new wordmark.** The navy disc, the
+  four-point star and the cross are untouched — they are the white-label
+  placeholder the file has always been. The text is now Gastro in the ink
+  colour with EMR in the brand blue, over the same GASTROENTEROLOGY CLINIC
+  strapline. The three artwork files are renamed to match the brand, and the
+  43 pages that point at them follow.
+
+- **"GastroEMR EHR" was collapsed to "GastroEMR".** The old titles read
+  "MediNova EHR — Billing"; keeping the suffix under the new name would have
+  said EMR twice. The login screen's "MediNova Gastroenterology EHR" goes the
+  same way.
+
+- **Code comments still say MediNova, deliberately.** The prose in this
+  codebase explains where values came from, and where they came from is the
+  MediNova Figma file and the MediNova React package — `css/tokens.css` marks
+  tokens `[FIGMA]` against that source. Rewriting those sentences would have
+  made the record of the design's origin wrong. The same goes for the
+  `medinova.*` localStorage keys, which are invisible and whose renaming would
+  have silently discarded anyone's saved demo state.
+
+### No AI scribe on a procedure report
+
+The scribe is a consultation tool and now only the clinic visit note mounts
+it. A procedure is dictated into a structured report as it happens — findings
+called over the scope, into the fields, there and then — so a model drafting
+the same document from a recording of the room afterwards had nothing left to
+add.
+
+- **The procedure run (`screens/encounter.html`) loses it outright**: the
+  host, the stylesheet link, the mount, `copyScribeSection`, and the AI-filled
+  provenance badge that only the scribe ever put on a card
+  (`.encv__ai-badge`, and the `--scribe-panel-top` offset with them). The
+  component and `PROCEDURE_TRANSCRIPT` are still in the tree for whatever asks
+  for them next.
+
+- **The clinic visit screen mounts it only for a consultation.** That file
+  also draws the legacy colonoscopy and EGD reports, so the mount is gated on
+  `!isProcedure` and the empty host is removed on a procedure booking rather
+  than left holding 34px of bar. Such a booking is forwarded to the run
+  anyway; the gate means the listening control cannot appear on a report even
+  if it is reached directly.
+
+### The review comment layer is gone
+
+The floating comment button, its unread count, the sidebar and the pins that
+stuck a comment to a place on a screen have been removed — the review they
+were built for is over, and a prototype being shown to a client should not
+carry the reviewing furniture.
+
+- **Both wirings and the layer itself.** The import in `js/main.js`, the
+  `js/comments.js` script tag on all 17 patient-portal pages, that file, the
+  seven modules under `js/lib/comments/` and `css/components/comments.css`.
+  The layer added nothing to any screen's markup, which is exactly what its
+  own header promised, so no screen needed touching.
+
 ### The AI scribe comes in off the edge and stands on the document's bar
 
 The scribe's trigger was a tab fixed to the right-hand border of the window,

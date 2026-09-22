@@ -186,7 +186,7 @@ const DEVICES = [
  * and "everything that came in through the portal last week" is a question
  * somebody asks after a breach notice.
  */
-export const AUDIT_SOURCES = ['MediNova Web', 'Front desk kiosk', 'Patient portal'];
+export const AUDIT_SOURCES = ['GastroEMR Web', 'Front desk kiosk', 'Patient portal'];
 
 /* How often each event turns up, roughly. Reading a chart is the commonest
    thing anybody does in an EHR; a break-the-glass access is the rarest and the

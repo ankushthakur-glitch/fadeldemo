@@ -484,7 +484,7 @@ export const FORM_SCHEMAS = {
           key: 'statementBilling',
           type: 'statement',
           label:
-            'You are authorising MediNova Clinic to send claims to your insurer on your behalf, and to release the clinical information a claim needs — diagnoses, procedure codes and the notes supporting them. You are also confirming that anything your plan does not cover remains your responsibility.',
+            'You are authorising GastroEMR Clinic to send claims to your insurer on your behalf, and to release the clinical information a claim needs — diagnoses, procedure codes and the notes supporting them. You are also confirming that anything your plan does not cover remains your responsibility.',
         },
       ],
     },

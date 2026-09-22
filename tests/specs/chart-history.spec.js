@@ -152,7 +152,7 @@ test.describe('history module', () => {
     );
     // A facility that IS on the list comes back as the list, selected.
     await expect(page.getByTestId('chart--history-field-facility').locator('select')).toHaveValue(
-      'MediNova Orthopaedic Centre'
+      'GastroEMR Orthopaedic Centre'
     );
   });
 

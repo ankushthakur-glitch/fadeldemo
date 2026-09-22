@@ -48,7 +48,7 @@ import { medicationsBy } from '../../data/health.js';
 import { ALLERGIES, typeLabel } from '../../data/allergies.js';
 
 /** The practice, as it should read on a document leaving the building. */
-const CLINIC = 'MediNova Clinic';
+const CLINIC = 'GastroEMR Clinic';
 
 /**
  * What each section is called — on the sheet, and on the button that makes it.
@@ -192,7 +192,7 @@ function header(title) {
   return `
     <header class="pp-print__head">
       <div class="pp-print__brand">
-        <img class="pp-print__logo" src="assets/medinova-logo.svg" alt="" width="335" height="68" />
+        <img class="pp-print__logo" src="assets/gastroemr-logo.svg" alt="" width="335" height="68" />
         <p class="pp-print__clinic">${esc(CLINIC)}</p>
       </div>
 

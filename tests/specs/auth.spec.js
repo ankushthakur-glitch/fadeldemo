@@ -13,7 +13,7 @@ const FORGOT = '/screens/forgot-password.html';
 const RESET = '/screens/reset-password.html';
 const KEY = 'medinova.auth.v1';
 
-const GOOD = { email: 'amara.mensah@medinovagi.example', password: 'MediNova!2026' };
+const GOOD = { email: 'amara.mensah@medinovagi.example', password: 'GastroEMR!2026' };
 
 /** Lockouts and attempt counts persist, so each test starts from nothing. */
 async function fresh(page, url = LOGIN) {
@@ -141,7 +141,7 @@ test.describe('login — layout', () => {
 
   test('carries the product name and blurb', async ({ page }) => {
     await still(page);
-    await expect(page.locator('#promoTitle')).toHaveText('MediNova Gastroenterology EHR');
+    await expect(page.locator('#promoTitle')).toHaveText('GastroEMR');
     await expect(page.locator('#promoBody')).toContainText('Secure Electronic Health Record');
   });
 
@@ -563,19 +563,19 @@ test.describe('login — password field', () => {
   test('the reveal toggle shows and hides without losing what was typed', async ({ page }) => {
     await fresh(page);
     const input = page.getByTestId('login--password').locator('input');
-    await input.fill('MediNova!2026');
+    await input.fill('GastroEMR!2026');
 
     const toggle = page.getByTestId('login--password').locator('[data-reveal]');
     await expect(input).toHaveAttribute('type', 'password');
 
     await toggle.click();
     await expect(input).toHaveAttribute('type', 'text');
-    await expect(input).toHaveValue('MediNova!2026');
+    await expect(input).toHaveValue('GastroEMR!2026');
     await expect(toggle).toHaveAttribute('aria-pressed', 'true');
 
     await toggle.click();
     await expect(input).toHaveAttribute('type', 'password');
-    await expect(input).toHaveValue('MediNova!2026');
+    await expect(input).toHaveValue('GastroEMR!2026');
   });
 
   /*

@@ -50,22 +50,22 @@ export const WAITLIST_PRIORITIES = {
  *   days         weekday indexes the patient can attend; empty means any
  */
 const SEED = [
-  { id: 'WL-1041', mrn: '326491', activity: 'at2', providerId: 'pr1', location: 'MediNova Gastroenterology — Fargo', from: '2026-07-16', to: '2026-08-26', start: '', end: '', days: [], priority: 'routine', addedOn: '2026-07-14', note: 'Prefers mornings' },
-  { id: 'WL-1042', mrn: '326492', activity: 'at3', providerId: 'pr1', location: 'MediNova Gastroenterology — Fargo', from: '2026-07-27', to: '2026-09-02', start: '', end: '', days: [], priority: 'routine', addedOn: '2026-07-20', note: '' },
-  { id: 'WL-1043', mrn: '326493', activity: 'at1', providerId: 'pr2', location: 'MediNova Gastroenterology — Fargo', from: '2026-07-27', to: '2026-09-01', start: '', end: '', days: [], priority: 'soon', addedOn: '2026-07-21', note: 'Symptoms worsening' },
-  { id: 'WL-1044', mrn: '326494', activity: 'at3', providerId: 'pr2', location: 'MediNova Gastroenterology — Fargo', from: '2026-07-17', to: '2026-08-24', start: '', end: '', days: [], priority: 'routine', addedOn: '2026-07-15', note: '' },
-  { id: 'WL-1045', mrn: '326486', activity: 'at3', providerId: 'pr1', location: 'MediNova Gastroenterology — Fargo', from: '2026-07-30', to: '2026-09-02', start: '', end: '', days: [], priority: 'routine', addedOn: '2026-07-28', note: '' },
-  { id: 'WL-1046', mrn: '326477', activity: 'at4', providerId: 'pr2', location: 'MediNova Gastroenterology — Fargo', from: '2026-07-22', to: '2026-08-27', start: '', end: '', days: [], priority: 'routine', addedOn: '2026-07-20', note: '' },
-  { id: 'WL-1047', mrn: '326490', activity: 'at3', providerId: 'pr2', location: 'MediNova Gastroenterology — Fargo', from: '2026-07-13', to: '2026-08-18', start: '', end: '', days: [], priority: 'routine', addedOn: '2026-07-10', note: '' },
+  { id: 'WL-1041', mrn: '326491', activity: 'at2', providerId: 'pr1', location: 'GastroEMR Gastroenterology — Fargo', from: '2026-07-16', to: '2026-08-26', start: '', end: '', days: [], priority: 'routine', addedOn: '2026-07-14', note: 'Prefers mornings' },
+  { id: 'WL-1042', mrn: '326492', activity: 'at3', providerId: 'pr1', location: 'GastroEMR Gastroenterology — Fargo', from: '2026-07-27', to: '2026-09-02', start: '', end: '', days: [], priority: 'routine', addedOn: '2026-07-20', note: '' },
+  { id: 'WL-1043', mrn: '326493', activity: 'at1', providerId: 'pr2', location: 'GastroEMR Gastroenterology — Fargo', from: '2026-07-27', to: '2026-09-01', start: '', end: '', days: [], priority: 'soon', addedOn: '2026-07-21', note: 'Symptoms worsening' },
+  { id: 'WL-1044', mrn: '326494', activity: 'at3', providerId: 'pr2', location: 'GastroEMR Gastroenterology — Fargo', from: '2026-07-17', to: '2026-08-24', start: '', end: '', days: [], priority: 'routine', addedOn: '2026-07-15', note: '' },
+  { id: 'WL-1045', mrn: '326486', activity: 'at3', providerId: 'pr1', location: 'GastroEMR Gastroenterology — Fargo', from: '2026-07-30', to: '2026-09-02', start: '', end: '', days: [], priority: 'routine', addedOn: '2026-07-28', note: '' },
+  { id: 'WL-1046', mrn: '326477', activity: 'at4', providerId: 'pr2', location: 'GastroEMR Gastroenterology — Fargo', from: '2026-07-22', to: '2026-08-27', start: '', end: '', days: [], priority: 'routine', addedOn: '2026-07-20', note: '' },
+  { id: 'WL-1047', mrn: '326490', activity: 'at3', providerId: 'pr2', location: 'GastroEMR Gastroenterology — Fargo', from: '2026-07-13', to: '2026-08-18', start: '', end: '', days: [], priority: 'routine', addedOn: '2026-07-10', note: '' },
   // A patient who can only come on weekdays — the case the Days column exists
   // for. It used to be an EGD at the ASC, which was the wrong example twice
   // over: a scope is not waitlisted at all (see WHAT IS NOT ON THIS LIST
   // above), and the request it modelled would never have been made.
-  { id: 'WL-1048', mrn: '326476', activity: 'at36', providerId: 'pr3', location: 'MediNova Gastroenterology — Fargo', from: '2026-07-30', to: '2026-08-27', start: '', end: '', days: [1, 2, 3, 4, 5], priority: 'soon', addedOn: '2026-07-25', note: 'Weekends unavailable — works alternate shifts' },
-  { id: 'WL-1049', mrn: '326475', activity: 'at3', providerId: 'pr2', location: 'MediNova Gastroenterology — Fargo', from: '2026-08-03', to: '2026-09-08', start: '', end: '', days: [], priority: 'routine', addedOn: '2026-08-01', note: '' },
-  { id: 'WL-1050', mrn: '326474', activity: 'at1', providerId: 'pr1', location: 'MediNova Gastroenterology — Fargo', from: '2026-08-10', to: '2026-09-10', start: '09:00', end: '12:00', days: [], priority: 'urgent', addedOn: '2026-08-05', note: 'Mornings only — carer availability' },
-  { id: 'WL-1051', mrn: '326473', activity: 'at4', providerId: 'pr2', location: 'MediNova Gastroenterology — Fargo', from: '2026-08-05', to: '2026-09-10', start: '', end: '', days: [], priority: 'routine', addedOn: '2026-08-03', note: '' },
-  { id: 'WL-1052', mrn: '326482', activity: 'at1', providerId: 'pr1', location: 'MediNova Gastroenterology — Fargo', from: '2026-07-27', to: '2026-09-01', start: '', end: '', days: [], priority: 'routine', addedOn: '2026-07-24', note: '' },
+  { id: 'WL-1048', mrn: '326476', activity: 'at36', providerId: 'pr3', location: 'GastroEMR Gastroenterology — Fargo', from: '2026-07-30', to: '2026-08-27', start: '', end: '', days: [1, 2, 3, 4, 5], priority: 'soon', addedOn: '2026-07-25', note: 'Weekends unavailable — works alternate shifts' },
+  { id: 'WL-1049', mrn: '326475', activity: 'at3', providerId: 'pr2', location: 'GastroEMR Gastroenterology — Fargo', from: '2026-08-03', to: '2026-09-08', start: '', end: '', days: [], priority: 'routine', addedOn: '2026-08-01', note: '' },
+  { id: 'WL-1050', mrn: '326474', activity: 'at1', providerId: 'pr1', location: 'GastroEMR Gastroenterology — Fargo', from: '2026-08-10', to: '2026-09-10', start: '09:00', end: '12:00', days: [], priority: 'urgent', addedOn: '2026-08-05', note: 'Mornings only — carer availability' },
+  { id: 'WL-1051', mrn: '326473', activity: 'at4', providerId: 'pr2', location: 'GastroEMR Gastroenterology — Fargo', from: '2026-08-05', to: '2026-09-10', start: '', end: '', days: [], priority: 'routine', addedOn: '2026-08-03', note: '' },
+  { id: 'WL-1052', mrn: '326482', activity: 'at1', providerId: 'pr1', location: 'GastroEMR Gastroenterology — Fargo', from: '2026-07-27', to: '2026-09-01', start: '', end: '', days: [], priority: 'routine', addedOn: '2026-07-24', note: '' },
 ];
 
 /* ===================== The store ===================== */

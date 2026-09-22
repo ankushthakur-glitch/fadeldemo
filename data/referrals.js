@@ -151,7 +151,7 @@ export const CONTACT_DIRECTORY = [
   {
     id: 'c5',
     provider: 'Bethany Ross, RD',
-    facility: 'MediNova Nutrition Services',
+    facility: 'GastroEMR Nutrition Services',
     specialty: 'Clinical dietetics',
     phone: '(701) 555-0266',
     fax: '(701) 555-0267',
@@ -190,7 +190,7 @@ export const REFERRING_PROVIDERS = [
 const COVER_SHEET = `REFERRAL COVER SHEET
 
 Date:  18 March 2026
-To:    MediNova Gastroenterology Clinic — Intake Department
+To:    GastroEMR Gastroenterology Clinic — Intake Department
 Fax:   (701) 639-4550
 From:  Dr. Julianne Conley, MD — Rochester Psychiatric Associates
 Phone: (585) 393-0485
@@ -314,7 +314,7 @@ Director: N. Vadalia, MD`;
 
 const OUTBOUND_PAGE = `REFERRAL — OUTBOUND
 
-From:  MediNova Gastroenterology Clinic
+From:  GastroEMR Gastroenterology Clinic
        5049 33rd Ave S, Fargo, ND 58104
        Phone (701) 356-1001   Fax (701) 639-4550
 
@@ -782,7 +782,7 @@ export const REFERRALS_OUT = [
     },
     referredTo: {
       provider: 'Bethany Ross, RD',
-      facility: 'MediNova Nutrition Services',
+      facility: 'GastroEMR Nutrition Services',
       specialty: 'Clinical dietetics',
       phone: '(701) 555-0266',
       fax: '(701) 555-0267',

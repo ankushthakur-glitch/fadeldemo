@@ -31,14 +31,14 @@ const clinicProfile = {
   id: 'clinic',
   label: 'Clinic',
   kind: 'Professional practice',
-  name: 'MediNova Gastroenterology Clinic',
+  name: 'GastroEMR Gastroenterology Clinic',
   type: 'Gastroenterology',
   npi: '2365987458',
   website: 'www.medinovagastro.example',
   phone: '(701) 555-0144',
   email: 'reception@medinovagastro.example',
   fax: '(701) 555-0145',
-  ehrSystem: 'MediNova EHR',
+  ehrSystem: 'GastroEMR',
   contactPerson: 'Amara Mensah',
   placeOfService: 'Office (11)',
   timeZone: 'America/Chicago (CST)',
@@ -59,7 +59,7 @@ const clinicProfile = {
     zip: '61348',
   },
   information:
-    'MediNova Gastroenterology is a specialist digestive health practice serving the Red River Valley. The team covers diagnostic endoscopy, IBD management, hepatology and an on-site infusion suite, supported by an ambulatory surgery centre.',
+    'GastroEMR Gastroenterology is a specialist digestive health practice serving the Red River Valley. The team covers diagnostic endoscopy, IBD management, hepatology and an on-site infusion suite, supported by an ambulatory surgery centre.',
   officeHours: WEEK_DAYS.map((day) => ({
     day,
     open: day !== 'Sunday',
@@ -89,14 +89,14 @@ const ascProfile = {
   id: 'asc',
   label: 'ASC',
   kind: 'Ambulatory surgery centre',
-  name: 'MediNova Gastroenterology ASC',
+  name: 'GastroEMR Gastroenterology ASC',
   type: 'Ambulatory Surgical Center',
   npi: '1215455217',
   website: 'www.medinovagastro.example/asc',
   phone: '(701) 356-1001',
   email: 'asc@medinovagastro.example',
   fax: '(701) 639-4550',
-  ehrSystem: 'MediNova EHR',
+  ehrSystem: 'GastroEMR',
   contactPerson: 'Amara Mensah',
   placeOfService: 'Ambulatory Surgical Center (24)',
   timeZone: 'America/Chicago (CST)',
@@ -117,7 +117,7 @@ const ascProfile = {
     zip: '61348',
   },
   information:
-    'MediNova Gastroenterology ASC is a Medicare-certified ambulatory surgery centre with four endoscopy suites. It bills as a facility, separately from the professional fee raised by the clinic for the same case.',
+    'GastroEMR Gastroenterology ASC is a Medicare-certified ambulatory surgery centre with four endoscopy suites. It bills as a facility, separately from the professional fee raised by the clinic for the same case.',
   officeHours: WEEK_DAYS.map((day) => ({
     day,
     open: !['Saturday', 'Sunday'].includes(day),
@@ -189,8 +189,8 @@ export function setActivePracticeProfile(id) {
    -------------------------------------------------------------------------- */
 
 export const BUSINESS_UNITS = [
-  'MediNova Gastroenterology ASC',
-  'MediNova Gastroenterology LTD',
+  'GastroEMR Gastroenterology ASC',
+  'GastroEMR Gastroenterology LTD',
 ];
 
 export const CONTACT_TYPES = ['Work', 'Fax', 'Mobile', 'After Hours'];
@@ -230,12 +230,12 @@ export const LOCATION_COLOURS = [
 
 /** [id, name, city, state, zip, line1, placeOfService, unit, colour, description, active] */
 const NETWORK_SITES = [
-  ['ND41180', 'MediNova Gastroenterology LTD — West Fargo', 'West Fargo', '58078', '1201 Sheyenne St', 0, 1, 1, 'Satellite clinic — four consulting rooms.', true],
-  ['ND41181', 'MediNova Gastroenterology LTD — South University', 'Fargo', '58103', '3232 University Dr S', 0, 1, 2, 'Clinic annexe shared with the dietetics team.', true],
+  ['ND41180', 'GastroEMR Gastroenterology LTD — West Fargo', 'West Fargo', '58078', '1201 Sheyenne St', 0, 1, 1, 'Satellite clinic — four consulting rooms.', true],
+  ['ND41181', 'GastroEMR Gastroenterology LTD — South University', 'Fargo', '58103', '3232 University Dr S', 0, 1, 2, 'Clinic annexe shared with the dietetics team.', true],
   ['ND41182', 'Prairie Endoscopy Suite', 'Fargo', '58104', '4820 40th Ave S', 2, 0, 4, 'Two-room endoscopy suite, weekday lists only.', true],
   ['ND41183', 'Red River Infusion Centre — North', 'Fargo', '58102', '910 Broadway N', 1, 1, 3, 'Infusion suite, four chairs.', true],
-  ['ND41184', 'MediNova Motility Laboratory', 'Fargo', '58103', '1717 University Dr S', 0, 1, 5, 'Manometry and pH studies.', true],
-  ['ND41185', 'MediNova Capsule Reading Room', 'Fargo', '58103', '1717 University Dr S', 0, 1, 6, 'Reading room — no patient-facing sessions.', true],
+  ['ND41184', 'GastroEMR Motility Laboratory', 'Fargo', '58103', '1717 University Dr S', 0, 1, 5, 'Manometry and pH studies.', true],
+  ['ND41185', 'GastroEMR Capsule Reading Room', 'Fargo', '58103', '1717 University Dr S', 0, 1, 6, 'Reading room — no patient-facing sessions.', true],
   ['ND41186', 'Grand Forks Outreach Clinic', 'Grand Forks', '58201', '1450 S Columbia Rd', 0, 1, 2, 'Consultant outreach — alternate Tuesdays.', true],
   ['ND41187', 'Grand Forks Endoscopy Partnership', 'Grand Forks', '58201', '1200 S Columbia Rd', 2, 0, 4, 'Sessions bought at the host hospital.', true],
   ['ND41188', 'Devils Lake Outreach Clinic', 'Devils Lake', '58301', '1031 7th St NE', 0, 1, 2, 'Monthly hepatology outreach.', true],
@@ -251,10 +251,10 @@ const NETWORK_SITES = [
   ['ND41198', 'Dickinson Outreach Clinic', 'Dickinson', '58601', '2500 Fairway St', 0, 1, 2, 'Quarterly outreach clinic.', true],
   ['ND41199', 'Fargo Telehealth Studio A', 'Fargo', '58102', '25 Federal Plaza', 3, 1, 0, 'Telehealth room — clinic entity.', true],
   ['ND41200', 'Fargo Telehealth Studio B', 'Fargo', '58102', '25 Federal Plaza', 3, 1, 0, 'Telehealth room — overflow.', true],
-  ['ND41201', 'MediNova Nurse Clinic — Fargo', 'Fargo', '58103', '1717 University Dr S', 0, 1, 5, 'Nurse-led follow-up and injections.', true],
-  ['ND41202', 'MediNova Research Unit', 'Fargo', '58104', '5049 33rd Ave S', 0, 1, 6, 'Study visits and screening.', true],
-  ['ND41203', 'MediNova Records Office', 'Fargo', '58102', '25 Federal Plaza', 0, 1, 6, 'Release of information — no clinical sessions.', true],
-  ['ND41204', 'MediNova Billing Office', 'Oglesby', '61348', '2678 East 875th Road', 0, 1, 6, 'Back office — billing entity address.', true],
+  ['ND41201', 'GastroEMR Nurse Clinic — Fargo', 'Fargo', '58103', '1717 University Dr S', 0, 1, 5, 'Nurse-led follow-up and injections.', true],
+  ['ND41202', 'GastroEMR Research Unit', 'Fargo', '58104', '5049 33rd Ave S', 0, 1, 6, 'Study visits and screening.', true],
+  ['ND41203', 'GastroEMR Records Office', 'Fargo', '58102', '25 Federal Plaza', 0, 1, 6, 'Release of information — no clinical sessions.', true],
+  ['ND41204', 'GastroEMR Billing Office', 'Oglesby', '61348', '2678 East 875th Road', 0, 1, 6, 'Back office — billing entity address.', true],
   ['MN51100', 'Moorhead Clinic — Main', 'Moorhead', '56560', '2810 Main Ave', 0, 1, 1, 'Full clinic, five rooms.', true],
   ['MN51101', 'Moorhead Infusion Suite', 'Moorhead', '56560', '2810 Main Ave', 1, 1, 3, 'Three chairs.', true],
   ['MN51102', 'Detroit Lakes Outreach Clinic', 'Detroit Lakes', '56501', '1027 Washington Ave', 0, 1, 2, 'Monthly outreach.', true],
@@ -275,9 +275,9 @@ const NETWORK_SITES = [
   ['MT71100', 'Billings Outreach Clinic', 'Billings', '59101', '2825 8th Ave N', 0, 1, 2, 'Twice yearly outreach.', false],
   ['MT71101', 'Miles City Outreach Clinic', 'Miles City', '59301', '2600 Wilson St', 0, 1, 2, 'Twice yearly outreach.', false],
   ['ND41205', 'Fargo Mobile Screening Unit', 'Fargo', '58102', '25 Federal Plaza', 0, 1, 4, 'Mobile unit — screening events.', true],
-  ['ND41206', 'MediNova Sedation Recovery Bay', 'Fargo', '58104', '5049 33rd Ave S', 2, 0, 3, 'Recovery bays attached to the ASC.', true],
-  ['ND41207', 'MediNova Pre-Assessment Clinic', 'Fargo', '58104', '5049 33rd Ave S', 0, 0, 5, 'Pre-procedure assessment, ASC entity.', true],
-  ['ND41208', 'MediNova Weekend Endoscopy List', 'Fargo', '58104', '5049 33rd Ave S', 2, 0, 4, 'Saturday lists, seasonal.', false],
+  ['ND41206', 'GastroEMR Sedation Recovery Bay', 'Fargo', '58104', '5049 33rd Ave S', 2, 0, 3, 'Recovery bays attached to the ASC.', true],
+  ['ND41207', 'GastroEMR Pre-Assessment Clinic', 'Fargo', '58104', '5049 33rd Ave S', 0, 0, 5, 'Pre-procedure assessment, ASC entity.', true],
+  ['ND41208', 'GastroEMR Weekend Endoscopy List', 'Fargo', '58104', '5049 33rd Ave S', 2, 0, 4, 'Saturday lists, seasonal.', false],
 ];
 
 const STATE_NAMES = { ND: 'North Dakota', MN: 'Minnesota', SD: 'South Dakota', MT: 'Montana' };
@@ -318,8 +318,8 @@ function networkSites() {
 export const LOCATIONS = [
   {
     id: 'ND34792',
-    name: 'MediNova Gastroenterology ASC',
-    businessUnit: 'MediNova Gastroenterology ASC',
+    name: 'GastroEMR Gastroenterology ASC',
+    businessUnit: 'GastroEMR Gastroenterology ASC',
     colour: '#339900',
     description: 'Ambulatory surgery centre — endoscopy suites 1 to 4.',
     active: true,
@@ -329,14 +329,14 @@ export const LOCATIONS = [
     taxRate: '0.00',
     contactPerson: { first: 'Amara', middle: 'K', last: 'Mensah' },
     address: { line1: '5049 33rd Ave S', line2: '', city: 'Fargo', state: 'North Dakota', zip: '58104-7080' },
-    facilityName: 'MediNova Gastroenterology ASC',
+    facilityName: 'GastroEMR Gastroenterology ASC',
     contactNumbers: [
       { type: 'Fax', number: '(701) 639-4550' },
       { type: 'Work', number: '(701) 356-1001' },
     ],
     billingTypes: [
-      { unit: 'MediNova Gastroenterology ASC', type: 'Facility' },
-      { unit: 'MediNova Gastroenterology LTD', type: 'Professional' },
+      { unit: 'GastroEMR Gastroenterology ASC', type: 'Facility' },
+      { unit: 'GastroEMR Gastroenterology LTD', type: 'Professional' },
     ],
     costCentres: [{ name: 'Endoscopy', effective: '01-01-2026', expiration: '' }],
     ids: {
@@ -350,13 +350,13 @@ export const LOCATIONS = [
       id340b: '',
       cahpsId: '',
       ccn: '351302',
-      ccnName: 'MediNova Gastroenterology ASC',
+      ccnName: 'GastroEMR Gastroenterology ASC',
     },
   },
   {
     id: 'ND65258',
-    name: 'MediNova Gastroenterology LTD — Fargo',
-    businessUnit: 'MediNova Gastroenterology LTD',
+    name: 'GastroEMR Gastroenterology LTD — Fargo',
+    businessUnit: 'GastroEMR Gastroenterology LTD',
     colour: '#0b6cb5',
     description: 'Main outpatient clinic.',
     active: true,
@@ -366,9 +366,9 @@ export const LOCATIONS = [
     taxRate: '0.00',
     contactPerson: { first: 'Lucas', middle: '', last: 'Thomas' },
     address: { line1: '25 Federal Plaza', line2: 'Suite 400', city: 'Fargo', state: 'North Dakota', zip: '58102' },
-    facilityName: 'MediNova Gastroenterology LTD',
+    facilityName: 'GastroEMR Gastroenterology LTD',
     contactNumbers: [{ type: 'Work', number: '(701) 555-0113' }],
-    billingTypes: [{ unit: 'MediNova Gastroenterology LTD', type: 'Professional' }],
+    billingTypes: [{ unit: 'GastroEMR Gastroenterology LTD', type: 'Professional' }],
     costCentres: [],
     ids: {
       locationNpi: '1477889201',
@@ -387,7 +387,7 @@ export const LOCATIONS = [
   {
     id: 'ND62423',
     name: 'Red River Infusion Centre',
-    businessUnit: 'MediNova Gastroenterology LTD',
+    businessUnit: 'GastroEMR Gastroenterology LTD',
     colour: '#00838f',
     description: 'Infusion suite, eight chairs.',
     active: true,
@@ -399,7 +399,7 @@ export const LOCATIONS = [
     address: { line1: '4140 Parker Rd', line2: 'Building C', city: 'Fargo', state: 'North Dakota', zip: '58104' },
     facilityName: 'Red River Infusion Centre',
     contactNumbers: [{ type: 'Work', number: '(701) 555-0124' }],
-    billingTypes: [{ unit: 'MediNova Gastroenterology LTD', type: 'Facility' }],
+    billingTypes: [{ unit: 'GastroEMR Gastroenterology LTD', type: 'Facility' }],
     costCentres: [],
     ids: {
       locationNpi: '1093822417',
@@ -411,7 +411,7 @@ export const LOCATIONS = [
   {
     id: 'MN35355',
     name: 'Moorhead Annexe',
-    businessUnit: 'MediNova Gastroenterology LTD',
+    businessUnit: 'GastroEMR Gastroenterology LTD',
     colour: '#6e655e',
     description: 'Hepatology outreach clinic — Thursdays only.',
     active: false,

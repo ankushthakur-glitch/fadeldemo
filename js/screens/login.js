@@ -86,7 +86,7 @@ const MESSAGES = {
 
 const SLIDES = [
   {
-    title: 'MediNova Gastroenterology EHR',
+    title: 'GastroEMR',
     body:
       'Secure Electronic Health Record platform designed to streamline ' +
       'scheduling, clinical documentation, referrals, billing, and patient care.',

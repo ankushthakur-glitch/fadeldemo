@@ -179,7 +179,7 @@ export const PATIENTS = {
       name: 'Dr. Amara Mensah',
       credentials: 'MD, FACG',
       specialty: 'Gastroenterology',
-      clinic: 'MediNova GI — Arvada',
+      clinic: 'GastroEMR GI — Arvada',
       phone: '303-555-0110',
     },
 
@@ -240,7 +240,7 @@ export const PATIENTS = {
       name: 'Dr. Luca Bianchi',
       credentials: 'MD',
       specialty: 'Hepatology',
-      clinic: 'MediNova GI — Fargo',
+      clinic: 'GastroEMR GI — Fargo',
       phone: '701-555-0164',
     },
 
@@ -286,7 +286,7 @@ export const PATIENTS = {
       name: 'Dr. Sana Nakamura',
       credentials: 'MD, MPH',
       specialty: 'Gastroenterology',
-      clinic: 'MediNova GI — Bismarck',
+      clinic: 'GastroEMR GI — Bismarck',
       phone: '701-555-0132',
     },
 
@@ -342,7 +342,7 @@ export const PATIENTS = {
       name: 'Dr. Sana Nakamura',
       credentials: 'MD, MPH',
       specialty: 'Pediatric Gastroenterology',
-      clinic: 'MediNova GI — Bismarck',
+      clinic: 'GastroEMR GI — Bismarck',
       phone: '701-555-0132',
     },
 

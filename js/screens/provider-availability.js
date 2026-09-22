@@ -46,7 +46,7 @@ customElements.whenDefined('ui-data-table').then(() => {
     new URLSearchParams(window.location.search).get('provider') || 'Provider';
   document.querySelector('[data-testid="pa--title"]').textContent =
     `${provider} Availability Preferences`;
-  document.title = `MediNova EHR — ${provider} Availability`;
+  document.title = `GastroEMR — ${provider} Availability`;
 
   initSlots();
   initBlockDays();

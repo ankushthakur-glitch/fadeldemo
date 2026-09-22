@@ -89,14 +89,14 @@ export const FIGMA_CONTRAST_DEBT = [
     pair: '#c8641b on #fef4e5',
     ratio: 3.64,
     token: 'Warning/07 on Warning/01',
-    note: 'Inactive status badge, soft variant — the one MediNova actually draws.',
+    note: 'Inactive status badge, soft variant — the one GastroEMR actually draws.',
   },
   {
     pair: '#6782ea on #ffffff',
     ratio: 3.52,
     token: 'Primary/500 as link text',
     note:
-      'MediNova\'s blue from the input-fields component. Patient-name links use ' +
+      'GastroEMR\'s blue from the input-fields component. Patient-name links use ' +
       'it as designed. A darker step (--color-info-08, #3a55b8, 5.6:1) exists ' +
       'and should replace it if Figma adds a Primary/700.',
   },
@@ -151,7 +151,7 @@ export async function expectNoA11yViolations(page, selector) {
     .join('\n');
   expect(
     unexpected,
-    `New contrast failures not attributable to the MediNova palette:\n${unexpectedSummary}\n` +
+    `New contrast failures not attributable to the GastroEMR palette:\n${unexpectedSummary}\n` +
       `If one of these really does come from Figma, add it to FIGMA_CONTRAST_DEBT ` +
       `with its ratio so it stays visible in the handover.`
   ).toEqual([]);
