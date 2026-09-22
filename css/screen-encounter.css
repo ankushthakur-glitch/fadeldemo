@@ -31,41 +31,22 @@
 
 .encv {
   /*
-   * WHERE THE SCRIBE'S FLOATING BUTTON GOES ON THIS SCREEN.
+   * WHERE THE SCRIBE'S PANEL OPENS IF IT CANNOT SEE ITS OWN BUTTON.
    *
-   * "Top right" is a different pixel here than on any other page. There is one
-   * header band — the page head — and then the collapsed Clinical data spine
-   * runs down the whole right edge. The component's own default lands on the
-   * head's Procedure / Endoscopist facts.
+   * The button is no longer a tab on the window's edge — it stands on the
+   * document's toolbar, and the panel opens on the line of the button that
+   * opened it, measured off the button itself (placePanel in
+   * js/lib/ai-scribe.js). This number is only the fallback for a paint with
+   * nothing laid out to measure yet, and it names the same row it always did:
+   * clear of the page head, level with the booking card, which is the one
+   * full-width row up here whose right-hand end holds nothing to press.
    *
-   * So the top clears the head, and then goes one band further down, to rest
-   * level with the BOOKING CARD. It used to sit lower still, clearing a second
-   * band of note-type and template controls that this screen no longer has.
-   *
-   * It is not enough to clear the head. The button has two widths: a 2.75rem
-   * square while the scribe is idle, which does ride the collapsed Clinical
-   * data spine and touches nothing — and an 8.5rem pill reading "View Notes"
-   * once there is a draft, which reaches about 4.5rem back over the work
-   * column. Level with the document's toolbar that pill lands on Download PDF.
-   * Level with the alerts band it lands on the band's expand chevron. The
-   * booking card is the one full-width row up here whose right-hand end holds
-   * nothing to press, so that is the row it is parked on.
-   *
-   * Set here, where the chrome being cleared is actually declared, rather than
-   * as a number inside a component that cannot see any of it — see .scribe__fab
-   * in css/components/ai-scribe.css.
-   *
-   * There is no right inset to set. The button is a tab pinned to the window's
-   * own edge, which is the one horizontal position that needs no arithmetic
-   * and cannot be wrong.
+   * 12rem was measured from the top of the window when the window began with
+   * this screen's own header. The app bar now stands above it, so the bar's
+   * own height is added rather than the number being re-typed, and the two
+   * cannot come apart if the band is ever re-measured.
    */
-  /* 12rem was measured from the top of the window when the window began with
-     this screen's own header. The app bar now stands above it, so the same
-     measurement lands 52px higher against the document than it was drawn for
-     — and the tab is placed against the document, not the glass. The bar's
-     own height is added rather than the number being re-typed, so the two
-     cannot come apart if the band is ever re-measured. */
-  --scribe-fab-top: calc(12rem + 3.25rem);
+  --scribe-panel-top: calc(12rem + 3.25rem);
 
   display: flex;
   flex-direction: column;

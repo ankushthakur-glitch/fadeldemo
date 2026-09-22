@@ -255,21 +255,30 @@ function barHtml(state) {
 
 /** The tile: the sparkle, and nothing else. */
 /*
- * THE TRIGGER IS A FLOATING ACTION BUTTON.
+ * THE TRIGGER SITS ON THE DOCUMENT'S OWN BAR, BESIDE THE CLOCK.
  *
- * It sat at the top of the note, in the flow, which put the one control that
- * starts listening at whatever point of the document happened to be scrolled
- * to — and on the procedure report that is a long way from anywhere by the
- * time a case is being charted. A scribe is reached for in the middle of doing
- * something else, which is the definition of the control that floats.
+ * It was a tab welded to the right-hand edge of the window, floating over
+ * whatever was scrolled past, and the float was buying less than it cost. The
+ * scribe belongs to ONE document — it listens to the consultation being
+ * written up here and drafts into these fields — and a control stuck to the
+ * glass says the opposite: that it belongs to the window, to the application,
+ * to no document in particular. Worse, it stood clear of the card it acts on,
+ * so the first thing a clinician saw on the note was a purple square hanging
+ * off the frame with nothing under it.
+ *
+ * On the bar it reads as what it is: one of this document's controls, in the
+ * row that already carries the document's name, its template and its clock.
+ * It is drawn at the bar's own control height so it lines up with the clock
+ * beside it rather than standing a head above it — see .scribe__tile--bar in
+ * css/components/ai-scribe.css.
  *
  * The SAME tile, with a modifier: it is still the purple sparkle, and the
  * moment recording starts it goes back into the card's own row as the badge
  * at the left of the bar. One element, two placements, so the thing the
  * clinician pressed is visibly the thing now listening.
  */
-const tileHtml = ({ fab = false } = {}) =>
-  `<button type="button" class="scribe__tile${fab ? ' scribe__fab' : ''}"
+const tileHtml = ({ bar = false } = {}) =>
+  `<button type="button" class="scribe__tile${bar ? ' scribe__tile--bar' : ''}"
     data-scribe-toggle
     aria-label="Start the AI scribe" title="Start the AI scribe"
     data-testid="scribe--button">
@@ -288,12 +297,14 @@ const tileHtml = ({ fab = false } = {}) =>
  * "Generate Report" and getting the report you generated four minutes ago is
  * the kind of small lie that teaches people not to read buttons.
  *
- * It floats for the same reason the trigger does — the recording outlives
- * whatever card is scrolled to, so the way back into it has to as well.
+ * It stands where the trigger stood — on the document's bar, at the bar's own
+ * control height — because it is the same control in a later phase, and a
+ * button that answers a press by reappearing somewhere else has to be hunted
+ * for rather than returned to.
  */
 const generateHtml = (source, state) => {
   const drafted = Boolean(state.generatedAt);
-  return `<button type="button" class="scribe__generate scribe__fab"
+  return `<button type="button" class="scribe__generate scribe__generate--bar"
     data-scribe-generate data-testid="scribe--generate">
       <span class="scribe__spark" aria-hidden="true">${iconMarkup('sparkle')}</span>
       <span class="scribe__pill">${
@@ -478,7 +489,7 @@ function modalHtml(source, state) {
 }
 
 function render(host, source, state) {
-  host.innerHTML = `${state.phase === 'idle' ? tileHtml({ fab: true }) : ''}
+  host.innerHTML = `${state.phase === 'idle' ? tileHtml({ bar: true }) : ''}
     ${cardHtml(source, state)}
     ${state.phase === 'ready' ? generateHtml(source, state) : ''}
     ${state.phase === 'drafting' ? draftingHtml(source, state) : ''}
@@ -515,18 +526,26 @@ export function mountAiScribe({ host, onCopy, announce = () => {}, source: given
    * panel is re-rendered once a second while recording and an inline style in
    * the template would be re-read — and re-clamped — on every one of those.
    *
-   * IT OPENS WHERE THE TAB IS, AND NOWHERE ELSE.
+   * IT OPENS ON THE LINE OF THE BUTTON THAT OPENED IT.
    *
-   * Flush to the right border at the tab's own vertical offset, so the first
-   * frame of the panel is the button's corner and the growth is visibly the
-   * button unfolding — see .scribe__card--opening. A panel that appeared in a
+   * Over towards the right border, on the line of the trigger standing on the
+   * document's toolbar, so the first frame of the panel is that button's
+   * corner and the growth is visibly the button unfolding; see
+   * .scribe__card--opening. A panel that appeared in a
    * different corner would be a second object arriving, and the press that
    * produced it would have to be remembered rather than watched.
    *
-   * It opens a small step IN from that edge rather than against it. The tab is
-   * flush because a tab is part of the frame; the panel is a thing standing on
-   * the page, and a shadowed card with its edge welded to the window's has
-   * nothing to cast a shadow onto. The gap is what says it is on top.
+   * The button is measured rather than assumed, because the bar it stands on
+   * is at a different height on every screen that mounts this — the encounter
+   * stacks two header bands, the clinic note has one. --scribe-panel-top is the
+   * offset used when there is nothing to measure — a first paint with no
+   * button laid out yet — and the screens still set it: see .enc in
+   * css/screen-clinic-visit.css.
+   *
+   * It stops a small step short of the right border rather than against it.
+   * The panel is a thing standing on the page, and a shadowed card with its
+   * edge welded to the window's has nothing to cast a shadow onto. The gap is
+   * what says it is on top.
    *
    * Clamped into the viewport on every paint, because a panel dragged to the
    * edge of a wide screen and met on a narrow one would otherwise open off it
@@ -534,8 +553,8 @@ export function mountAiScribe({ host, onCopy, announce = () => {}, source: given
    * somebody has dragged there is where they put it.
    */
   const PANEL_EDGE_GAP = 16;
-  const fabTop = () => {
-    const raw = getComputedStyle(host).getPropertyValue('--scribe-fab-top').trim();
+  const fallbackTop = () => {
+    const raw = getComputedStyle(host).getPropertyValue('--scribe-panel-top').trim();
     if (!raw) return 76;
     /* Resolved against the page's own font size rather than parsed by hand:
        the variable is authored in rem by whichever screen set it, and this is
@@ -548,6 +567,28 @@ export function mountAiScribe({ host, onCopy, announce = () => {}, source: given
     return px || 76;
   };
 
+  /*
+   * WHERE THE TRIGGER WAS STANDING WHEN IT WAS PRESSED.
+   *
+   * Read off the button itself, on the paint BEFORE the one that opens the
+   * panel, because by the time there is a panel to place the button it grew
+   * out of has been replaced by it. The host's own box is no use once that
+   * has happened — an empty flex item on a centred bar collapses to a
+   * hairline, and the panel would open on the bar's midline rather than on
+   * the button's top edge.
+   */
+  let triggerTop = null;
+
+  const rememberTrigger = () => {
+    /* The bar's copy specifically. The recording panel carries a tile of its
+       own, at the left of its title row, and that one is part of the panel
+       being placed rather than the thing it was opened from. */
+    const trigger = host.querySelector('.scribe__tile--bar, .scribe__generate--bar');
+    if (!trigger) return;
+    const box = trigger.getBoundingClientRect();
+    if (box.height) triggerTop = box.top;
+  };
+
   const placePanel = () => {
     const panel = host.querySelector('[data-scribe-panel]');
     if (!panel) return;
@@ -557,7 +598,7 @@ export function mountAiScribe({ host, onCopy, announce = () => {}, source: given
     const maxTop = Math.max(0, window.innerHeight - box.height);
 
     const left = state.pos ? state.pos.left : Math.max(0, maxLeft - PANEL_EDGE_GAP);
-    const top = state.pos ? state.pos.top : Math.min(fabTop(), maxTop);
+    const top = state.pos ? state.pos.top : Math.min(triggerTop ?? fallbackTop(), maxTop);
 
     state.pos = {
       left: Math.min(Math.max(left, 0), maxLeft),
@@ -580,6 +621,7 @@ export function mountAiScribe({ host, onCopy, announce = () => {}, source: given
 
   const paint = () => {
     notePinned();
+    rememberTrigger();
     render(host, source, state);
     restorePinned();
     /* A phase with no panel is a panel that has closed: the next one to open
@@ -590,8 +632,8 @@ export function mountAiScribe({ host, onCopy, announce = () => {}, source: given
       openedOnce = false;
       /* And where it sits is forgotten with it. A panel dragged out of the way
          during one recording should not make the next one open in the corner
-         somebody put the last one — the tab is where it comes from, every
-         time. */
+         somebody put the last one — the button on the bar is where it comes
+         from, every time. */
       state.pos = null;
     }
     placePanel();

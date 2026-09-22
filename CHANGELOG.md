@@ -2,6 +2,50 @@
 
 ## Unreleased
 
+### The AI scribe comes in off the edge and stands on the document's bar
+
+The scribe's trigger was a tab fixed to the right-hand border of the window,
+floating over whatever happened to be scrolled past. It now sits in the
+document's own toolbar — on the clinic visit note (`screens/clinic-visit.html`)
+beside the encounter clock, on the procedure run (`screens/encounter.html`)
+after the document's actions — drawn at the same height as the controls it
+stands among.
+
+- **Why the float was the wrong trade.** What it bought was reach: a control
+  that starts listening to the room, available from anywhere in a long report.
+  What it cost was ownership. The scribe belongs to ONE document — it listens
+  to this consultation and drafts into these fields — and a button welded to
+  the glass says the opposite, that it is the application's rather than the
+  note's. It also stood clear of the card it acts on, so a fresh note opened
+  with a purple square hanging off the frame with nothing underneath it.
+
+- **Same height as the clock beside it.** `.scribe__tile--bar` and
+  `.scribe__generate--bar` are drawn at `--control-height-md`, the product's
+  own [FIGMA] measurement for an input or a button, and `.enc__timer` now
+  states that height instead of letting its padding arrive at 35px. A 44px
+  square next to a 34px clock read as a different KIND of thing — an app-level
+  action parked on a document toolbar, which is exactly the impression the tab
+  gave. The sparkle comes down to `--icon-size-md` with it, so the glyph sits
+  in the button rather than being crammed into it.
+
+- **Generate Note / View Notes holds the same place.** Between recordings the
+  trigger becomes the labelled button, which used to float for the same reason
+  the tile did. It now keeps the tile's spot on the bar at the tile's height,
+  because a control that answers a press by reappearing somewhere else has to
+  be hunted for rather than returned to.
+
+- **The panel opens on the line of the button that opened it.** `placePanel`
+  measures the trigger on the paint before the one that replaces it with the
+  panel, so the unfold still starts at the button's corner. `--scribe-fab-top`
+  is renamed `--scribe-panel-top`: it is no longer where a tab is pinned, only
+  the fallback offset for a paint with nothing laid out yet, and both screens
+  still set it.
+
+- **The bar does not shuffle when recording starts.** `.scribe` keeps the
+  trigger's footprint while the trigger is away inside the open panel —
+  without it the host collapsed and slid the clock 34px sideways as the answer
+  to pressing the button next to it.
+
 ### The nav bar reaches the three documents
 
 The app bar — logo, the twelve sections, clock, notifications, avatar — now

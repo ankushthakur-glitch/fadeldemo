@@ -49,6 +49,13 @@
   flex-direction: column;
   align-items: flex-end;
   gap: var(--space-4);
+  /* The host keeps the trigger's footprint even while the trigger is away
+     inside the open panel. It stands on a document toolbar between the clock
+     and whatever follows it, and a host that collapsed to nothing the moment
+     recording started would slide that whole end of the bar 34px sideways —
+     a row rearranging itself as the answer to pressing a button on it. */
+  min-width: var(--control-height-md);
+  min-height: var(--control-height-md);
 }
 
 /* The tile and the bar sit on one line, tile FIRST, exactly as the reference
@@ -82,70 +89,84 @@
 }
 
 /*
- * THE TRIGGER, FLOATING, AND THE SAME SIZE AS EVERY OTHER ICON BUTTON.
+ * THE TRIGGER, ON THE DOCUMENT BAR, AT THE BAR'S OWN CONTROL HEIGHT.
  *
- * Same tile, taken out of the flow. In the document it sat at whatever point
- * of a long report happened to be scrolled past; a scribe is reached for in
- * the middle of doing something else, which is the definition of the control
- * that floats.
+ * It was a tab: fixed to the right-hand edge of the window at an offset each
+ * screen supplied, floating over whatever was scrolled past. The float was
+ * bought with the one thing the scribe cannot afford to lose — that it belongs
+ * to THIS document. It listens to this consultation and drafts into these
+ * fields, and a control welded to the glass says the opposite: that it is the
+ * application's, not the note's. It also stood clear of the card it acts on,
+ * so the first thing on a fresh note was a purple square hanging off the frame
+ * with nothing underneath it.
  *
- * It was briefly a 3.5rem circle, which is what a floating action button looks
- * like in a phone's design language and wrong here: this sits among a row of
- * 2.75rem controls in a dense clinical screen, and a circle half again their
- * size reads as a different KIND of thing — an app's primary action rather
- * than one of this screen's buttons. It is the tile, at the tile's own size
- * and its own rounded-square shape. Only its position changed.
+ * So it comes in and stands in the row that already carries the document's
+ * name, its template and its clock — the row of controls that are about this
+ * document — and it is drawn at that row's height rather than the tile's own
+ * 2.75rem. That is the whole point of the modifier: a 44px square beside a
+ * 34px clock reads as a different KIND of thing, an app-level action parked on
+ * a document toolbar, which is exactly the impression the tab gave. At the
+ * shared control height it reads as one of the bar's buttons, because it is.
  *
- * What the float buys is that a control which starts listening to the room is
- * reachable from anywhere in a report somebody is halfway down.
+ * --control-height-md is the product's own measurement for an input or a
+ * button ([FIGMA], css/tokens.css). The scribe's COLOURS are its own and are
+ * sampled rather than tokenised — see the head of this file — but its box on a
+ * MediNova toolbar is MediNova's business, and lining up with the clock beside
+ * it is only reliable if both take the number from the same place.
  *
- * TOP RIGHT, NOT BOTTOM RIGHT.
- *
- * The bottom-right corner is where this product already puts things that are
- * happening — the live scope feed opens there, toasts land there. The scribe's
- * button is not a thing happening; it is a thing to reach for, and it belongs
- * with the other things to reach for, which on every screen in this product
- * are along the top. Vacating that corner also gives the feed window its
- * natural position back.
- *
- * IT IS STUCK TO THE EDGE, AND ONLY HALF OF IT IS ROUNDED.
- *
- * Not a button floating near the corner — a TAB, flush against the right
- * border with its right-hand corners square, so it reads as something coming
- * in from off-screen rather than as a control somebody left lying on the page.
- * That is also what makes the opening animation legible: a tab at the edge can
- * expand inwards into a panel, and the panel is visibly the same object.
- *
- * The vertical offset is still a variable, because "top" is a different pixel
- * on every screen that mounts this — the encounter stacks two header bands,
- * the clinic note has one — and a hard-coded offset lands on somebody's
- * toolbar the first time it is mounted anywhere else. See .encv in
- * css/screen-encounter.css.
+ * The sparkle comes down with the tile. At 1.5rem inside a 2.125rem box there
+ * is 5px of purple left around it, which reads as an icon crammed into a
+ * button rather than sitting in one.
  */
-.scribe__fab {
-  position: fixed;
-  inset-block-start: var(--scribe-fab-top, 4.75rem);
-  inset-inline-end: 0;
-  /* Left corners only. The right-hand pair are square because there is no
-     right-hand edge to round — it is the edge of the window. */
-  border-start-end-radius: 0;
-  border-end-end-radius: 0;
-  z-index: calc(var(--z-floating-panel) + 1);
-  /* Lifted properly. The inline tile's 1px shadow says "button"; a thing
-     hovering over a whole page has to say "above everything", and that is the
-     one job a long soft shadow does. */
-  box-shadow: var(--shadow-lg);
-  transition: transform var(--duration-fast) var(--ease-out);
+.scribe__tile--bar {
+  min-width: var(--control-height-md);
+  height: var(--control-height-md);
+  padding: 0 var(--space-3);
 }
 
-/* It comes further IN on hover rather than moving up or down: the axis it
-   lives on is the one it will travel along when it opens. */
-.scribe__fab:hover {
-  transform: translateX(-3px);
+.scribe__tile--bar .scribe__spark {
+  width: var(--icon-size-md);
+  height: var(--icon-size-md);
 }
 
+.scribe__tile--bar .scribe__spark .ui-icon {
+  width: var(--icon-size-md);
+  height: var(--icon-size-md);
+}
+
+/*
+ * THE SAME BOX FOR THE PHASE THAT CARRIES A WORD.
+ *
+ * Between recordings the trigger becomes Generate Note / View Notes, which is
+ * the same control and has to hold the same place on the bar at the same
+ * height — a button that answers a press by reappearing somewhere else, or at
+ * another size, has to be hunted for rather than returned to. The white pill
+ * inside it shrinks with the button so the inset stays even.
+ */
+.scribe__generate--bar {
+  height: var(--control-height-md);
+  gap: var(--space-2);
+  padding: 0 var(--space-2) 0 var(--space-3);
+}
+
+.scribe__generate--bar .scribe__spark,
+.scribe__generate--bar .scribe__spark .ui-icon {
+  width: var(--icon-size-md);
+  height: var(--icon-size-md);
+}
+
+.scribe__generate--bar .scribe__pill {
+  height: calc(var(--control-height-md) - (2 * var(--space-2)));
+  padding: 0 var(--space-4);
+}
+
+/* Neither of them is part of the record. The bar prints — it carries the
+   document's name and whether it is signed — so the control that would have
+   drafted it has to be taken out of that row rather than left as a purple
+   square in the middle of a printed note. */
 @media print {
-  .scribe__fab {
+  .scribe__tile--bar,
+  .scribe__generate--bar {
     display: none;
   }
 }
@@ -507,13 +528,14 @@
 }
 
 /*
- * IT OPENS OUT OF THE TAB.
+ * IT OPENS OUT OF THE BUTTON.
  *
- * The panel appears exactly where the button was and grows from that corner,
- * so what the clinician sees is the thing they pressed unfolding rather than a
- * second, unrelated window arriving somewhere else. `transform-origin` at the
- * top right is the whole trick: that is the corner the tab is pinned to, so
- * every pixel of the growth moves away from it and none of it moves the anchor.
+ * The panel appears on the line of the button that opened it and grows from
+ * that corner, so what the clinician sees is the thing they pressed unfolding
+ * rather than a second, unrelated window arriving somewhere else.
+ * `transform-origin` at the top right is the whole trick: the button stands at
+ * the right-hand end of the document's bar, so every pixel of the growth moves
+ * away from that corner and none of it moves the anchor.
  *
  * Run ONCE, on the paint that creates the panel — see openedOnce in
  * js/lib/ai-scribe.js. The panel is re-rendered every second while recording,

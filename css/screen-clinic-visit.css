@@ -771,12 +771,19 @@ body.is-locked .enc__note {
    long as the note is open.
    -------------------------------------------------------------------------- */
 
+/* The height is stated rather than left to the padding to arrive at. The
+   scribe's button stands directly beside this pill on the same bar and is
+   drawn at the same --control-height-md (see .scribe__tile--bar in
+   css/components/ai-scribe.css); left to add up on its own, the clock came out
+   a pixel taller than the button, which on two boxes sharing an edge is
+   visible as a wobble in the row rather than read as a size. */
 .enc__timer {
   flex: none;
   display: inline-flex;
   align-items: center;
   gap: var(--space-4);
-  padding: var(--space-4) var(--space-6);
+  height: var(--control-height-md);
+  padding: 0 var(--space-6);
   border: var(--border-width-thin) solid var(--color-border-brand-subtle);
   border-radius: var(--radius-md);
   background-color: var(--color-brand-surface-subtle);
@@ -808,13 +815,15 @@ body.is-locked .enc__note {
   .pt__bar { display: none !important; }
 }
 
-/* The scribe tab is pinned to the right-hand edge of the window at a fixed
-   offset from the top (--scribe-fab-top, css/components/ai-scribe.css). Its
-   4.75rem default was measured against a window that began with this screen's
-   own header; the app bar now stands above it, so the offset carries the
-   bar's height or the tab sits 52px too high against the document it belongs
-   to — over the encounter header rather than beside the note. */
-.enc { --scribe-fab-top: calc(4.75rem + 3.25rem); }
+/* The scribe's draft panel opens on the line of the button that opened it,
+   measured off that button — see placePanel in js/lib/ai-scribe.js. This is
+   the fallback for a paint with nothing laid out to measure yet
+   (--scribe-panel-top, css/components/ai-scribe.css), and it names the row the
+   note's own toolbar sits on. The 4.75rem was measured against a window that
+   began with this screen's own header; the app bar now stands above it, so the
+   offset carries the bar's height or the panel opens 52px too high against the
+   document it belongs to. */
+.enc { --scribe-panel-top: calc(4.75rem + 3.25rem); }
 
 /* --- The document itself --------------------------------------------------------- */
 
