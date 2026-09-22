@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+### The section bands take a tint
+
+Every banded heading on a note — the visit note's sections, the pre-procedure
+checklist's, every section of every document the procedure run writes, and the
+booking card above them — is filled with the brand's lightest wash
+(`--color-brand-surface-subtle`, #eff3fa) instead of the neutral sunken grey.
+
+- **Nothing about the band's weight changes.** #eff3fa and #f3f2f1 are the same
+  lightness, so the strip divides the card exactly as hard as it did; what
+  changes is that it now carries a trace of the product's own colour rather
+  than a warm grey borrowed from the page beneath.
+
+- **It is the fill the encounter clock already wears** on the toolbar above
+  these cards, which is the second reason for choosing it over a new token: a
+  document whose bands and whose clock are tinted the same is a document drawn
+  in one palette.
+
+- **The two exceptions stand.** The discharge sheet's warning-signs band is
+  still critical ink on the critical surface — the one band that is not the
+  brand wash — and printing still drops every fill and keeps the hairline.
+
 ### The product is GastroEMR
 
 Every user-visible "MediNova" now reads GastroEMR — the app bar wordmark and

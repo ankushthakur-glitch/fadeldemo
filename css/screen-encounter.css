@@ -4372,8 +4372,8 @@ p.encv__alert-by {
 
    The clinic visit note was drawn from those measurements and has since moved
    past them — see "V2: THE SECTION BAND" in css/screen-clinic-visit.css. Its
-   heading is now a grey strip across the top of the card, closed by a hairline,
-   with the title in the brand navy and no bar. This block takes the same shape
+   heading is now a strip across the top of the card in the brand's lightest
+   wash, closed by a hairline, with the title in the brand navy and no bar. This block takes the same shape
    for the procedure workspace, on the same argument and one more.
 
    THE ARGUMENT THE NOTE MADE. A title floating on white reads as the top of a
@@ -4385,7 +4385,7 @@ p.encv__alert-by {
    nine-column intra-procedure log, a findings picker. A filled band is the
    oldest answer and still the right one — it is a horizontal rule with a
    height, so it divides and labels in the same stroke. The navy is what keeps
-   grey-on-grey from reading as a disabled row.
+   a filled strip from reading as a disabled row.
 
    THE ARGUMENT THIS SCREEN ADDS. A nurse works step 1 and a physician works
    step 3, and between them somebody works the check-out sheet — three
@@ -4404,7 +4404,15 @@ p.encv__alert-by {
 .encv .pck__legend,
 .encv__doc-legend {
   padding: var(--space-6) var(--encv-section-inset);
-  background-color: var(--color-bg-surface-sunken);
+  /* The fill is the brand's lightest wash rather than the neutral sunken grey.
+     It is the same lightness — #eff3fa against #f3f2f1 — so nothing about the
+     band's weight changes; what changes is that the strip now carries a trace
+     of the product's own colour instead of reading as a warm grey borrowed
+     from the page beneath. It is the fill the encounter clock already wears on
+     the toolbar above these cards, which is the second reason for it: a
+     document whose bands and whose clock are tinted the same is a document
+     drawn in one palette. */
+  background-color: var(--color-brand-surface-subtle);
   border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
   /* The card's own radius, less its border, so the fill stops inside the
      corner instead of squaring it off. */
