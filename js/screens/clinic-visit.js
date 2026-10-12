@@ -16,6 +16,9 @@
  *
  * Opened with ?appt=<id>, so the header and patient come from the booking.
  */
+/* Where the back arrow and the post-signature navigation go — the screen that
+   opened this visit, when it said (js/lib/return-to.js). */
+import { returnTo, applyReturnLink } from '../lib/return-to.js';
 import { CLINICAL_SECTIONS, ICD10 } from '../../data/encounter.js';
 import { CPT_CODES } from '../../data/master.js';
 import {
@@ -2040,8 +2043,11 @@ function signVisitNote({ name } = {}) {
    *
    * No toast before it: a toast lives in the DOM of the page that raised it,
    * so one fired here would be thrown away by the navigation a frame later.
+   *
+   * Opened from a patient chart, it goes back to that chart instead: the
+   * clinician came from the patient, not from the day's list.
    */
-  window.location.href = 'scheduler.html';
+  window.location.href = returnTo('scheduler.html');
 }
 
 function paintPre() {
@@ -8113,3 +8119,5 @@ if (!isProcedure) {
      34px of nothing between the clock and Unlock for Amendment. */
   el('aiScribe')?.remove();
 }
+
+applyReturnLink(document.querySelector('[data-testid="enc--back"]'));

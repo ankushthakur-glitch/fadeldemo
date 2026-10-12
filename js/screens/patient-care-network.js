@@ -26,6 +26,7 @@ import {
   providerFromDirectory,
   SPECIALTIES,
 } from '../../data/pharmacies.js';
+import { DEMO_PHARMACY_IDS } from '../../data/registration.js';
 
 /** The value the Provider picker uses for "not on this list" — see the
  *  `free-text` attribute on #providerName in patient-add.html. */
@@ -36,7 +37,7 @@ const removeButton = (id) =>
      <svg class="ui-icon" aria-hidden="true"><use href="#i-trash"></use></svg>
    </button>`;
 
-export function initCareNetwork() {
+export function initCareNetwork({ demo = false } = {}) {
   /* ===================== PHARMACIES ===================== */
 
   const pharmacyTable = document.getElementById('pharmacies');
@@ -47,8 +48,11 @@ export function initCareNetwork() {
   const typeSelect = document.getElementById('pharmacyType');
   const addPharmacy = document.querySelector('[data-testid="add--new-pharmacy"]');
 
-  // Selected pharmacies for THIS patient — starts empty.
-  let selected = [];
+  // Selected pharmacies for THIS patient — empty on a real registration, the
+  // demo record's pharmacy otherwise (see DEMO_PHARMACY_IDS).
+  let selected = demo
+    ? PHARMACIES.filter((pharmacy) => DEMO_PHARMACY_IDS.includes(pharmacy.id))
+    : [];
 
   typeSelect.setAttribute('options', PHARMACY_TYPES.join(','));
   typeSelect.setAttribute('value', 'All types');

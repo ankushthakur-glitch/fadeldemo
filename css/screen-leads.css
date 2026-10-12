@@ -297,11 +297,9 @@ a.lead__d-contact:focus-visible { outline: none; box-shadow: var(--focus-ring); 
   font-size: var(--font-size-body);
 }
 
-/* --- Reject, and the already-a-patient match ------------------------------- */
+/* --- The already-a-patient match ------------------------------------------ */
 
-.lead__reject,
 .lead__existing { display: flex; flex-direction: column; gap: var(--space-7); }
-.lead__reject-lead,
 .lead__existing-lead { font-size: var(--font-size-caption); }
 
 .lead__match {

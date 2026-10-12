@@ -14,7 +14,15 @@
  */
 import { APPOINTMENTS } from './schedule.js';
 
-const KEY = 'medinova.appointments';
+/* Versioned. The seed moved under it once already — the four charted patients
+   were evened out to five or six future bookings each, the surplus handed to
+   other people on the list, rather than one chart carrying fourteen and
+   another three — and a tab that
+   had loaded the old seed would otherwise go on serving it from storage, which
+   is the stale schedule nobody can explain. v3 for the charted patients'
+   visit history appended to the end of ROWS. Bump the suffix whenever the
+   seed changes shape like that. */
+const KEY = 'medinova.appointments.v3';
 
 /** A fresh copy of the seed data, so the module-level array is never mutated. */
 const seed = () => APPOINTMENTS.map((a) => ({ ...a }));

@@ -346,10 +346,15 @@ function flagChips() {
   const chips = flags.length
     ? flags
         .map(
+          /* Coloured by the flag's own tone (FLAG_TYPES), the same tone the
+             flag manager's badge uses. Seven grey pills read as seven equal
+             facts; they are not — Allergy and DNR stop a procedure, VIP
+             changes who gets the message — and the colour is what lets the
+             eye find the one that stops something before reading any of
+             them. */
           (flag) =>
-            `<ui-chip removable data-flag="${flag.key}" data-testid="chart--flag">${esc(
-              flag.label
-            )}</ui-chip>`
+            `<ui-chip removable status="${esc(flag.tone || 'neutral')}" data-flag="${flag.key}"
+              data-testid="chart--flag">${esc(flag.label)}</ui-chip>`
         )
         .join('')
     : `<span class="ch__flags-empty">None</span>`;
@@ -378,7 +383,10 @@ function factsMarkup() {
     ['globe', 'Language', patient.language],
     ['phone', patient.phoneType || 'Phone', patient.phone],
     patient.email ? ['mail', 'Email', patient.email] : null,
-    ['map-pin', 'Address', patient.address],
+    // Optional for the same reason email is: the records built from the
+    // directory (see data/patient-chart.js) carry no address, and a pin with
+    // nothing beside it reads as a rendering fault rather than a blank field.
+    patient.address ? ['map-pin', 'Address', patient.address] : null,
   ].filter(Boolean);
 
   return facts

@@ -54,12 +54,16 @@ export const NOTE_STATES = {
 /**
  * The seeded state of the notes for the demo bookings.
  *
- * EMPTY ON PURPOSE. Every booking now opens Unsigned — the state a booking made
- * in the prototype starts in anyway — so the encounters worklist is one queue
- * with everything in it rather than a demo that arrives half worked through.
- * A reviewer who wants to see the Signed half puts something there by signing
- * it, which is the route a clinician has and the only one that proves the
- * screens behind it work.
+ * SEEDED HALF WORKED THROUGH. This register used to be empty, so every
+ * booking opened Unsigned and the Signed half of the Encounters worklist read
+ * "No signed notes yet" — a demo of a queue with no history behind it. A clinic
+ * on a Tuesday morning has both: yesterday's notes mostly filed, a handful
+ * still owed, and a few written by a nurse practitioner or physician assistant
+ * waiting on a countersignature. So roughly half the visits that owe a note
+ * are seeded Signed, three are seeded Co-Sign, and the rest — including the
+ * four charted patients' most recent visits, which their charts' Visit Notes
+ * also show as Unsigned — stay Unsigned. Signing one in the session still
+ * moves it across, exactly as before.
  *
  * It stays as a register rather than being deleted, because `noteFor` below is
  * written against it and because the shape is the documentation for seeding a
@@ -84,7 +88,45 @@ export const NOTE_STATES = {
  * a session is 'signed' at runtime, and the worklist has to have a badge and a
  * row action for it.
  */
-export const NOTE_REGISTER = {};
+export const NOTE_REGISTER = {
+  ap1: { state: 'signed', signedOn: '2026-08-03' }, // 326491 · Coeliac — first assessment
+  ap2: { state: 'signed', signedOn: '2026-08-03' }, // 326492 · GORD, poor PPI response
+  ap3: { state: 'co-sign', draftedBy: 'u4' }, // 326494 · IBS — dietitian referral discussion
+  ap4: { state: 'signed', signedOn: '2026-08-03' }, // 326496 · Post-op review, ileocaecal resection
+  ap6: { state: 'signed', signedOn: '2026-08-03' }, // 326502 · Fatty liver — results review
+  ap9: { state: 'signed', signedOn: '2026-08-03' }, // 326493 · Ulcerative colitis — flare review
+  ap12: { state: 'signed', signedOn: '2026-08-03' }, // 326490 · Infliximab infusion, cycle 6
+  ap74: { state: 'signed', signedOn: '2026-07-31' }, // 326502 · Follow-up — gastroparesis
+  ap75: { state: 'signed', signedOn: '2026-08-01' }, // 326505 · Anaemia — IBD screen
+  ap77: { state: 'signed', signedOn: '2026-08-03' }, // 326500 · Banding follow-up
+  ap78: { state: 'co-sign', draftedBy: 'u5' }, // 326504 · Diverticular disease review
+  ap81: { state: 'signed', signedOn: '2026-08-03' }, // 326474 · Post-op review, hernia repair
+  ap82: { state: 'signed', signedOn: '2026-08-03' }, // 326479 · Cirrhosis surveillance
+  ap84: { state: 'co-sign', draftedBy: 'u5' }, // 326475 · LFT recheck
+  ap86: { state: 'signed', signedOn: '2026-08-03' }, // 326478 · Coeliac — dietitian handover
+  ap197: { state: 'signed', signedOn: '2026-08-03' }, // 326481 Liam Rodriguez · Gastroscopy — gastritis
+  ap199: { state: 'signed', signedOn: '2026-08-03' }, // 326495 Zoe Tran · Surveillance colonoscopy
+  ap223: { state: 'signed', signedOn: '2026-08-03' }, // 326483 · Post-op review, ileocaecal resection
+  ap224: { state: 'signed', signedOn: '2026-08-03' }, // 326485 · Records request — disability claim
+  // The charted patients' visit history (the rows appended at the end of
+  // ROWS in data/schedule.js) — all filed long ago. ap281 is a no-show and
+  // owes no note, so it is not here.
+  ap280: { state: 'signed', signedOn: '2025-09-05' }, // 326486 Henna West · GERD and T2DM review
+  ap282: { state: 'signed', signedOn: '2025-10-23' }, // 326486 Henna West · Surveillance colonoscopy review
+  ap283: { state: 'signed', signedOn: '2025-10-20' }, // 326477 Natali Craig · Hepatology consult
+  ap284: { state: 'signed', signedOn: '2026-01-02' }, // 326495 Zoe Tran · Celiac EGD follow-up
+  // The rest of that history (ap285 onwards). Those not listed are unsigned.
+  ap287: { state: 'signed', signedOn: '2026-05-13' }, // Henna fatty liver
+  ap288: { state: 'signed', signedOn: '2026-03-17' }, // Henna dysphagia
+  ap289: { state: 'signed', signedOn: '2026-02-11' }, // Henna DM/GERD
+  ap291: { state: 'co-sign', draftedBy: 'u5' }, // Natali constipation
+  ap292: { state: 'signed', signedOn: '2026-05-27' }, // Natali steatosis
+  ap293: { state: 'signed', signedOn: '2026-03-04' }, // Natali IBD steroid
+  ap296: { state: 'signed', signedOn: '2026-06-03' }, // Liam iron studies
+  ap297: { state: 'signed', signedOn: '2026-04-22' }, // Liam dyspepsia
+  ap300: { state: 'signed', signedOn: '2026-04-14' }, // Zoe growth
+  ap301: { state: 'signed', signedOn: '2026-02-25' }, // Zoe celiac serology
+};
 
 /** Bookings that never became a visit, so never a note. */
 const NO_VISIT = ['Cancelled', 'Rescheduled', 'No Show', 'Pending Confirmation'];

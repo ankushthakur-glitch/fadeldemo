@@ -17,12 +17,14 @@
  * LIFECYCLE
  *
  *   website submission → New → Converted   (a patient, new or already on file)
- *                          └──→ Rejected   (with a recorded reason)
  *
- * Rejected is not a dead end and it is not a delete: a rejected lead moves to
- * its own list, where it can be reopened and sent back to New. Converted is
- * the only terminal state, because a patient exists by then and unlinking it
- * here would not un-create them.
+ * Two states, not three. There used to be a Rejected state, with its own tab,
+ * a reason picker and a Reopen to undo it — and the practice does not work
+ * that way: an enquiry it is not going to take is simply never converted, and
+ * a second list of turned-away strangers was a pile nobody looked at. So the
+ * lifecycle is the one the desk actually runs. Converted is the only terminal
+ * state, because a patient exists by then and unlinking it here would not
+ * un-create them.
  *
  * All names, dates and contact details below are invented. No real people.
  */
@@ -33,19 +35,7 @@ export const WEBSITE_FIELDS = ['firstName', 'lastName', 'dob', 'phone', 'email']
 export const LEAD_STATUSES = {
   new: { label: 'New', tone: 'info', open: true },
   converted: { label: 'Converted', tone: 'success', open: false },
-  rejected: { label: 'Rejected', tone: 'critical', open: false },
 };
-
-/** Why a lead was rejected. A chosen reason rather than free text: "why" has
- *  to be answerable from a report later, and free text never is. */
-export const REJECTION_REASONS = [
-  'Duplicate submission',
-  'Test or spam submission',
-  'Outside our catchment area',
-  'Service not offered by this practice',
-  'Could not contact the patient',
-  'Patient no longer wants an appointment',
-];
 
 export const LEAD_SOURCES = ['Website'];
 
@@ -89,8 +79,6 @@ const SEED = [
     submittedAt: '2026-07-24T13:11:00', status: 'converted',
     conversion: { mrn: '326477', patientName: 'Natali Craig', by: 'Amara Mensah', at: '2026-07-24T15:03:00' },
   },
-
-  { id: 'LD-10228', firstName: 'Test', lastName: 'Submission', dob: '2000-01-01', phone: '(000) 000-0000', email: 'test@test.com', submittedAt: '2026-07-22T02:14:00', status: 'rejected', rejection: { reason: 'Test or spam submission', by: 'Amara Mensah', at: '2026-07-22T08:10:00' } },
 ];
 
 /* ===================== The store =====================
@@ -99,14 +87,16 @@ const SEED = [
    onboarding form and back without inventing a backend.
    ================================================== */
 
-const KEY = 'medinova.leads.v1';
-const AUDIT_KEY = 'medinova.leads.audit.v1';
+/* v2 since the Rejected state went: a tab still holding a v1 inbox would
+   carry a lead whose status no longer exists, and the table has no badge for
+   it. */
+const KEY = 'medinova.leads.v2';
+const AUDIT_KEY = 'medinova.leads.audit.v2';
 
 const clone = (rows) =>
   rows.map((r) => ({
     ...r,
     conversion: r.conversion ? { ...r.conversion } : null,
-    rejection: r.rejection ? { ...r.rejection } : null,
   }));
 
 function read(key, fallback) {
@@ -207,54 +197,6 @@ export function convertLead(id, { mrn, patientName, existing = false }) {
  */
 export function linkExistingPatient(id, { mrn, patientName }) {
   return convertLead(id, { mrn, patientName, existing: true });
-}
-
-/**
- * Reject a lead, with a reason.
- *
- * Not a delete. A rejected enquiry is still evidence that somebody asked and
- * that the practice decided not to take them — which is the record anybody
- * asks for when the patient rings back.
- */
-export function rejectLead(id, reason) {
-  const lead = leadById(id);
-  if (!lead || lead.status === 'converted') return null;
-
-  logAudit(id, 'Lead Rejected', reason);
-  return mutate(id, {
-    status: 'rejected',
-    rejection: { reason, by: ACTING_USER, at: new Date().toISOString() },
-  });
-}
-
-/**
- * Reopen a rejected lead.
- *
- * Rejecting is a judgement, and judgements are made from incomplete
- * information: the number that would not answer rings back, the address that
- * looked out of area turns out to be the summer one, the "spam" was a real
- * person with an unfortunate email address. Without this the only way back was
- * to ask the patient to fill the website form in again — which loses the
- * original submission, its timestamp and the audit trail attached to it.
- *
- * The lead returns to New, because that is the truth of it: an enquiry nobody
- * has decided on yet. That also takes it out of the rejected list and back
- * into the inbox, which is where an enquiry somebody still has to answer
- * belongs. The rejection is cleared from the record but stays in the audit
- * trail, so the round trip is still answerable later.
- */
-export function reopenLead(id) {
-  const lead = leads.find((l) => l.id === id);
-  if (!lead || lead.status !== 'rejected') return null;
-
-  logAudit(id, 'Lead Reopened', lead.rejection?.reason
-    ? `Was rejected — ${lead.rejection.reason}`
-    : 'Was rejected');
-
-  delete lead.rejection;
-  lead.status = 'new';
-  persist();
-  return { ...lead };
 }
 
 /** A lead the website let through with a gap in it. */

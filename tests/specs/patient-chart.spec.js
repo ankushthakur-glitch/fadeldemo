@@ -41,7 +41,7 @@ test.describe('patient chart shell', () => {
   });
 
   /**
-   * The header carries a computed age, never a stored one. 20-02-1961 is a
+   * The header carries a computed age, never a stored one. 20-02-1992 is a
    * birthday that has passed this year or not depending on the day the suite
    * runs, so the assertion allows both rather than pinning a number that
    * would fail every February.
@@ -50,8 +50,8 @@ test.describe('patient chart shell', () => {
     await openChart(page, HENNA);
 
     const facts = page.getByTestId('chart--header');
-    await expect(facts).toContainText('20 Feb 1961');
-    await expect(facts).toContainText(/\(6[45] yrs\)/);
+    await expect(facts).toContainText('20 Feb 1992');
+    await expect(facts).toContainText(/\(3[34] yrs\)/);
   });
 
   /* --- The frame stays put -------------------------------------------------- */
@@ -908,7 +908,7 @@ test.describe('forms module', () => {
       const modal = page.locator('#frmFillModal .ui-modal__dialog');
       await expect(modal).toBeVisible();
       await expect(modal).toContainText('Henna West');
-      await expect(modal).toContainText('20 Feb 1961'); // dob, formatted from the raw chart value
+      await expect(modal).toContainText('20 Feb 1992'); // dob, formatted from the raw chart value
       await expect(modal).toContainText('Penicillin');
       await expect(modal).toContainText('Gastroesophageal Reflux Disease (GERD)');
       // View mode has no Save — there is nothing to submit for an already-

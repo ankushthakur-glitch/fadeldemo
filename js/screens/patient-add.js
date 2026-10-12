@@ -35,7 +35,12 @@
 
 import { initCareNetwork } from './patient-care-network.js';
 import { initSupportPersons } from './patient-support-persons.js';
-import { PREFERRED_LABS, ACCEPTED_PLANS } from '../../data/registration.js';
+import {
+  PREFERRED_LABS,
+  ACCEPTED_PLANS,
+  DEMO_REGISTRATION,
+  DEMO_REGISTRATION_CHECKS,
+} from '../../data/registration.js';
 import {
   PREFIXES, SUFFIXES, TITLES, BIRTH_SEXES, GENDER_IDENTITIES,
   SEXUAL_ORIENTATIONS, PRONOUNS, PATIENT_TYPES, RACES, RACE_DETAILS,
@@ -48,6 +53,13 @@ import {
 
 /** Fixed so screenshots and tests stay stable. */
 const TODAY = new Date('2026-08-04');
+
+/**
+ * Whether the form opens on the demo record (DEMO_REGISTRATION). Everywhere
+ * except a lead conversion: there, the five fields the website collected are
+ * the record, and patient-add-lead.js fills those instead.
+ */
+const DEMO_FILL = !new URLSearchParams(window.location.search).get('lead');
 
 /**
  * Every field carrying an asterisk. This list and the `required` attributes
@@ -229,9 +241,40 @@ function initAccordions() {
 
 customElements.whenDefined('ui-data-table').then(() => {
   initAccordions();
-  initCareNetwork();
-  initSupportPersons();
+  initCareNetwork({ demo: DEMO_FILL });
+  initSupportPersons({ demo: DEMO_FILL });
 });
+
+/**
+ * Put the demo record into the form, field by field.
+ *
+ * Written the way a person typing would leave it: the attribute and the live
+ * control both, then ui-input and ui-change, because the form's own rules hang
+ * off those events — the date of birth works out the age and decides whether a
+ * guarantor is asked for, a race unlocks its detail list, and a policy on file
+ * is what opens Check eligibility. Setting the boxes silently would leave all
+ * of that showing the empty form's answers next to a filled form's values.
+ */
+function fillDemoRecord() {
+  for (const [testid, value] of DEMO_REGISTRATION) {
+    const node = document.querySelector(`[data-testid="${testid}"]`);
+    if (!node) continue;
+    node.setAttribute('value', value);
+    const control = node.querySelector('input, select, textarea');
+    if (control) {
+      control.value = value;
+      /* The SSN field formats on the native input event; give it one so the
+         dashes are its own, not the seed's. */
+      if (node.hasAttribute('data-ssn')) control.dispatchEvent(new Event('input'));
+    }
+    for (const type of ['ui-input', 'ui-change']) {
+      node.dispatchEvent(new CustomEvent(type, { detail: { value }, bubbles: true }));
+    }
+  }
+  for (const testid of DEMO_REGISTRATION_CHECKS) {
+    document.querySelector(`[data-testid="${testid}"]`)?.setAttribute('checked', '');
+  }
+}
 
 customElements.whenDefined('ui-input').then(() => {
   /* ===== Option lists =====================================================
@@ -544,6 +587,10 @@ customElements.whenDefined('ui-input').then(() => {
   });
 
   refreshEligibility();
+
+  /* Every listener above is attached by now, so the demo record can be typed
+     in and the form will react to it the way it reacts to a person. */
+  if (DEMO_FILL) fillDemoRecord();
 
   /* ===== Validation ======================================================= */
 

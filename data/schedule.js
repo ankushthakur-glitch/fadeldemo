@@ -466,7 +466,7 @@ const ROWS = [
   ['2026-08-06', '10:00', '326490', 'pr1', 'at8', 0, 'Scheduled', "Crohn's — surgical opinion"],
   ['2026-08-06', '09:00', '326505', 'pr2', 'at3', 1, 'Confirmed', 'Anaemia — hepatology input'],
   ['2026-08-06', '10:30', '326482', 'pr2', 'at4', 1, 'Scheduled', 'Virtual follow-up'],
-  ['2026-08-06', '08:30', '326486', 'pr3', 'at1', 0, 'Confirmed', 'Diarrhoea — new patient'],
+  ['2026-08-06', '08:30', '326490', 'pr3', 'at1', 0, 'Confirmed', 'Diarrhoea — new patient'],
   ['2026-08-06', '10:00', '326473', 'pr3', 'at2', 0, 'Scheduled', 'IBD annual review'],
   ['2026-08-06', '09:00', '326474', 'pr6', 'at7', 0, 'Confirmed', 'Gut-directed therapy, session 3'],
   ['2026-08-06', '11:00', '326477', 'pr6', 'at8', 0, 'Rescheduled', 'Chronic constipation'],
@@ -625,7 +625,7 @@ const ROWS = [
 
   /* --- Monday 17 to Friday 21 August 2026 --- */
   ['2026-08-17', '08:30', '326473', 'pr1', 'at1', 0, 'Scheduled', 'Referral — altered bowel habit'],
-  ['2026-08-17', '13:00', '326486', 'pr1', 'at5', 0, 'Scheduled', 'Annual wellness visit'],
+  ['2026-08-17', '13:00', '326495', 'pr1', 'at5', 0, 'Scheduled', 'Annual wellness visit'],
   ['2026-08-17', '10:00', '326478', 'pr2', 'at3', 1, 'Scheduled', 'Liver clinic — new patient'],
   ['2026-08-17', '11:00', '326493', 'pr3', 'at2', 0, 'Scheduled', 'UC — flare review'],
   ['2026-08-18', '09:00', '326505', 'pr6', 'at8', 0, 'Scheduled', 'Functional bloating'],
@@ -648,7 +648,7 @@ const ROWS = [
   ['2026-08-03', '16:30', '326493', 'pr1', 'at14', 0, 'Confirmed', 'Records request'],
   ['2026-08-04', '15:30', '326479', 'pr1', 'at13', 0, 'Scheduled', 'Post-op review, banding'],
   ['2026-08-05', '16:30', '326510', 'pr1', 'at2', 0, 'Scheduled', 'Reflux — follow-up'],
-  ['2026-08-05', '15:30', '326486', 'pr5', 'at10', 3, 'Scheduled', 'Pre-infusion bloods'],
+  ['2026-08-05', '15:30', '326491', 'pr5', 'at10', 3, 'Scheduled', 'Pre-infusion bloods'],
   ['2026-08-06', '15:30', '326500', 'pr6', 'at13', 0, 'Scheduled', 'Post-op review'],
   ['2026-08-06', '16:30', '326493', 'pr6', 'at4', 0, 'Pending Confirmation', 'Virtual — results'],
   ['2026-08-07', '15:00', '326474', 'pr3', 'at2', 2, 'Scheduled', 'Post-scope follow-up'],
@@ -711,7 +711,7 @@ const ROWS = [
   ['2026-08-12', '08:00', '326491', 'pr3', 'at6', 2, 'Confirmed', 'K51.90 - Ulcerative colitis, unspecified, without complications'],
   ['2026-08-12', '10:00', '326503', 'pr3', 'at6', 2, 'Scheduled', 'K50.90 - Crohn’s disease, unspecified, without complications'],
   ['2026-08-13', '08:00', '326508', 'pr3', 'at6', 2, 'Confirmed', 'R19.7 - Diarrhoea, unspecified'],
-  ['2026-08-13', '09:15', '326486', 'pr3', 'at15', 2, 'Scheduled', 'K64.8 - Other haemorrhoids'],
+  ['2026-08-13', '09:15', '326492', 'pr3', 'at15', 2, 'Scheduled', 'K64.8 - Other haemorrhoids'],
 
   /* Monday 17, Wednesday 19 and Thursday 20 August */
   ['2026-08-17', '07:30', '326480', 'pr4', 'at6', 2, 'Confirmed', 'Z12.11 - Encounter for screening for malignant neoplasm of colon'],
@@ -779,7 +779,7 @@ const ROWS = [
   ['2026-08-04', '11:00', '326493', 'pr3', 'at8', 0, 'Confirmed', 'Coeliac — new referral'],
   ['2026-08-04', '11:00', '326504', 'pr3', 'at4', 0, 'Pending Confirmation', 'Biologic consent — virtual add-on'],
   ['2026-08-04', '11:30', '326508', 'pr3', 'at10', 0, 'Scheduled', 'Pre-biologic bloods'],
-  ['2026-08-04', '12:00', '326486', 'pr3', 'at13', 0, 'Scheduled', 'Post-procedure review'],
+  ['2026-08-04', '12:00', '326493', 'pr3', 'at13', 0, 'Scheduled', 'Post-procedure review'],
 
   /* Thursday 06 August. */
   ['2026-08-06', '09:00', '326480', 'pr3', 'at8', 0, 'Confirmed', 'Chronic diarrhoea — second opinion'],
@@ -797,7 +797,7 @@ const ROWS = [
   ['2026-08-10', '12:00', '326485', 'pr3', 'at14', 0, 'Scheduled', 'Records request — solicitor'],
 
   /* Tuesday 11 August — a full clinic, so paging forward a week lands on one. */
-  ['2026-08-11', '08:30', '326486', 'pr3', 'at1', 0, 'Confirmed', 'New referral — chronic diarrhoea'],
+  ['2026-08-11', '08:30', '326494', 'pr3', 'at1', 0, 'Confirmed', 'New referral — chronic diarrhoea'],
   ['2026-08-11', '09:00', '326480', 'pr3', 'at2', 0, 'Confirmed', 'IBS — dietary review'],
   ['2026-08-11', '09:30', '326478', 'pr3', 'at2', 0, 'Confirmed', 'UC — flare follow-up'],
   ['2026-08-11', '10:00', '326475', 'pr3', 'at10', 0, 'Scheduled', 'Biologic monitoring bloods'],
@@ -812,31 +812,31 @@ const ROWS = [
   ['2026-08-13', '12:00', '326483', 'pr3', 'at14', 0, 'Scheduled', 'Records request for insurer'],
 
   /* Friday 14 August — the ASC list, which runs the whole day. */
-  ['2026-08-14', '10:15', '326486', 'pr3', 'at15', 2, 'Scheduled', 'Sigmoidoscopy — rectal bleeding'],
+  ['2026-08-14', '10:15', '326496', 'pr3', 'at15', 2, 'Scheduled', 'Sigmoidoscopy — rectal bleeding'],
   ['2026-08-14', '13:00', '326480', 'pr3', 'at6', 2, 'Confirmed', 'Colonoscopy — surveillance'],
   ['2026-08-14', '14:15', '326478', 'pr3', 'at13', 2, 'Scheduled', 'Post-procedure review'],
 
   /* Monday 17 August. */
   ['2026-08-17', '08:30', '326483', 'pr3', 'at1', 0, 'Confirmed', 'New referral — weight loss'],
   ['2026-08-17', '09:00', '326479', 'pr3', 'at8', 0, 'Confirmed', 'IBD — vaccination review'],
-  ['2026-08-17', '09:30', '326477', 'pr3', 'at10', 0, 'Scheduled', 'Thiopurine monitoring bloods'],
+  ['2026-08-17', '09:30', '326497', 'pr3', 'at10', 0, 'Scheduled', 'Thiopurine monitoring bloods'],
   ['2026-08-17', '10:00', '326475', 'pr3', 'at2', 0, 'Confirmed', 'Coeliac — dietitian outcome'],
   ['2026-08-17', '10:30', '326485', 'pr3', 'at13', 0, 'Scheduled', 'Post-op review, haemorrhoidectomy'],
   ['2026-08-17', '11:30', '326474', 'pr3', 'at4', 0, 'Scheduled', 'Virtual follow-up — biologic tolerance'],
-  ['2026-08-17', '12:00', '326481', 'pr3', 'at2', 0, 'Scheduled', 'IBS — symptom diary review'],
+  ['2026-08-17', '12:00', '326499', 'pr3', 'at2', 0, 'Scheduled', 'IBS — symptom diary review'],
 
   /* Tuesday 18 August. */
   ['2026-08-18', '08:30', '326480', 'pr3', 'at1', 0, 'Confirmed', 'New referral — altered bowel habit'],
   ['2026-08-18', '09:00', '326478', 'pr3', 'at2', 0, 'Confirmed', "Crohn's — post-infusion review"],
   ['2026-08-18', '09:30', '326483', 'pr3', 'at8', 0, 'Confirmed', 'Coeliac — new diagnosis counselling'],
   ['2026-08-18', '10:00', '326479', 'pr3', 'at10', 0, 'Scheduled', 'Pre-biologic bloods'],
-  ['2026-08-18', '10:30', '326477', 'pr3', 'at2', 0, 'Scheduled', 'UC — mesalazine review'],
+  ['2026-08-18', '10:30', '326498', 'pr3', 'at2', 0, 'Scheduled', 'UC — mesalazine review'],
   ['2026-08-18', '11:00', '326475', 'pr3', 'at13', 0, 'Scheduled', 'Post-procedure review'],
   ['2026-08-18', '11:30', '326485', 'pr3', 'at1', 0, 'Pending Confirmation', 'New referral — chronic bloating'],
   ['2026-08-18', '12:00', '326473', 'pr3', 'at14', 0, 'Scheduled', 'Records request for insurer'],
 
   /* Thursday 20 August — a short clinic before the late scope list. */
-  ['2026-08-20', '08:30', '326486', 'pr3', 'at2', 0, 'Confirmed', 'UC — maintenance review'],
+  ['2026-08-20', '08:30', '326495', 'pr3', 'at2', 0, 'Confirmed', 'UC — maintenance review'],
   ['2026-08-20', '09:00', '326480', 'pr3', 'at10', 0, 'Scheduled', 'Monitoring bloods'],
   ['2026-08-20', '10:00', '326478', 'pr3', 'at2', 0, 'Confirmed', "Crohn's — symptom review"],
   ['2026-08-20', '10:30', '326483', 'pr3', 'at13', 0, 'Scheduled', 'Post-op review, fistula repair'],
@@ -846,6 +846,40 @@ const ROWS = [
   ['2026-08-21', '11:30', '326480', 'pr3', 'at15', 2, 'Scheduled', 'Banding — internal haemorrhoids'],
   ['2026-08-21', '13:30', '326478', 'pr3', 'at6', 2, 'Scheduled', 'Colonoscopy — FIT positive'],
   ['2026-08-21', '14:45', '326483', 'pr3', 'at13', 2, 'Scheduled', 'Discharge review'],
+
+  /* --- Visit history for the charted patients ---
+     The earlier visits each chart's Visit Notes section lists. They used to
+     live only in that section's own demo file, which meant a row there could
+     not open an encounter — there was no booking behind it to open. As
+     bookings they are visits like any other: the encounter screens open them,
+     the Encounters worklist lists their notes, and signing one is seen from
+     both places. Appended at the END of the table on purpose: appointment ids
+     are positional (ap1 is the first row), so anything inserted above would
+     renumber every booking after it. */
+  ['2025-09-04', '09:30', '326486', 'pr1', 'at2', 0, 'Confirmed', 'GERD and Type 2 diabetes review'],
+  ['2025-09-18', '14:00', '326486', 'pr1', 'at1', 0, 'No Show', 'Diverticulosis — new referral'],
+  ['2025-10-23', '12:00', '326486', 'pr1', 'at2', 0, 'Confirmed', 'Surveillance colonoscopy review'],
+  ['2025-10-19', '10:00', '326477', 'pr2', 'at3', 1, 'Confirmed', 'New patient consult — hepatology'],
+  ['2026-01-02', '09:00', '326495', 'pr1', 'at2', 0, 'Confirmed', 'Celiac disease — EGD follow-up'],
+  // More of the same history, so each chart's Visit Notes has a real spread of
+  // signed and still-unsigned notes to work through rather than one of each.
+  ['2026-07-21', '10:00', '326486', 'pr3', 'at2', 0, 'Confirmed', 'IBD — maintenance review'],
+  ['2026-06-30', '09:30', '326486', 'pr1', 'at2', 0, 'Confirmed', 'Reflux — PPI step-down'],
+  ['2026-05-12', '11:00', '326486', 'pr2', 'at3', 1, 'Confirmed', 'Fatty liver — results review'],
+  ['2026-03-17', '14:00', '326486', 'pr6', 'at8', 0, 'Confirmed', 'Dysphagia — consultation'],
+  ['2026-02-10', '08:30', '326486', 'pr1', 'at2', 0, 'Confirmed', 'Diabetes and GERD follow-up'],
+  ['2026-07-14', '11:30', '326477', 'pr2', 'at2', 1, 'Confirmed', 'Liver function recheck'],
+  ['2026-06-16', '14:00', '326477', 'pr6', 'at8', 0, 'Confirmed', 'Constipation — biofeedback referral'],
+  ['2026-05-26', '10:30', '326477', 'pr2', 'at8', 1, 'Confirmed', 'Hepatic steatosis — elastography review'],
+  ['2026-03-03', '09:00', '326477', 'pr3', 'at2', 0, 'Confirmed', 'IBD — steroid start'],
+  ['2026-07-27', '15:00', '326481', 'pr6', 'at8', 0, 'Confirmed', 'Rumination — behavioural therapy check-in'],
+  ['2026-07-08', '10:00', '326481', 'pr2', 'at2', 1, 'Confirmed', 'Weight loss — bloods review'],
+  ['2026-06-02', '11:00', '326481', 'pr2', 'at2', 1, 'Confirmed', 'Iron studies — follow-up'],
+  ['2026-04-21', '09:30', '326481', 'pr1', 'at1', 0, 'Confirmed', 'Dyspepsia — first assessment'],
+  ['2026-07-22', '13:30', '326495', 'pr1', 'at2', 0, 'Confirmed', 'Celiac — dietitian follow-up'],
+  ['2026-06-09', '10:00', '326495', 'pr1', 'at8', 0, 'Confirmed', 'Reflux — symptom diary review'],
+  ['2026-04-14', '09:00', '326495', 'pr1', 'at2', 0, 'Confirmed', 'Growth and nutrition check'],
+  ['2026-02-24', '11:00', '326495', 'pr1', 'at8', 0, 'Confirmed', 'Celiac serology results'],
 ];
 
 /**

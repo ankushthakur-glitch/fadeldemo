@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  A STAND-IN PATIENT PHOTOGRAPH — the fourth of four.
+
+  Drawn rather than photographed; see patient-photo-01.svg for why. Same grid,
+  crop and flat treatment as the rest of the set.
+
+  Zoe Tran (MRN 326495) is the minor in the demo set, so the figure is drawn
+  younger — a rounder face set lower in the disc, narrower shoulders, and a
+  fringe — which keeps the Minor badge beside the photo from contradicting it.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96"
+     role="img" aria-label="Patient photograph">
+  <defs>
+    <clipPath id="photo-disc-04"><circle cx="48" cy="48" r="48"/></clipPath>
+  </defs>
+  <g clip-path="url(#photo-disc-04)">
+    <rect width="96" height="96" fill="#dcdcef"/>
+    <path d="M48 19c14 0 20 9 20 21v24c0 4-3 6-6 6H34c-3 0-6-2-6-6V40c0-12 6-21 20-21Z" fill="#1f1a1d"/>
+    <path d="M48 62c15 0 27 9 29 25v9H19v-9c2-16 14-25 29-25Z" fill="#2f8f8a"/>
+    <path d="M41.5 53h13v12a6.5 6.5 0 0 1-13 0V53Z" fill="#e2b58f"/>
+    <ellipse cx="48" cy="42" rx="15" ry="16" fill="#ecc39f"/>
+    <!-- The fringe: a straight-cut band across the brow. -->
+    <path d="M33 38c0-10 6-17 15-17s15 7 15 17c-5-3-9-4-15-4s-10 1-15 4Z" fill="#2a2326"/>
+    <circle cx="42" cy="43" r="2" fill="#2a2326"/>
+    <circle cx="54" cy="43" r="2" fill="#2a2326"/>
+    <path d="M44 50.5c2.6 1.7 5.4 1.7 8 0" fill="none" stroke="#c78a6b" stroke-width="2"
+          stroke-linecap="round"/>
+  </g>
+</svg>

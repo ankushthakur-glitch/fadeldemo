@@ -31,13 +31,14 @@ import {
   SUPPORT_PERMISSIONS,
   SUPPORT_RELATIONSHIPS,
 } from '../../data/patient-form.js';
+import { DEMO_SUPPORT_PERSONS } from '../../data/registration.js';
 
 const removeButton = (id) =>
   `<button type="button" class="ap__row-remove" data-remove="${id}" aria-label="Remove">
      <svg class="ui-icon" aria-hidden="true"><use href="#i-trash"></use></svg>
    </button>`;
 
-export function initSupportPersons() {
+export function initSupportPersons({ demo = false } = {}) {
   const table = document.getElementById('supportPersons');
   const modal = document.getElementById('supportModal');
   const addButton = document.querySelector('[data-testid="add--new-support"]');
@@ -55,8 +56,10 @@ export function initSupportPersons() {
       box: field(`support--${permission.key}`),
     }));
 
-  /* Starts empty: a support person is asked for at the desk, not assumed. */
-  let people = [];
+  /* Starts empty on a real registration: a support person is asked for at the
+     desk, not assumed. The demo record (data/registration.js) brings one with
+     it, so the table is seen with somebody in it. */
+  let people = demo ? DEMO_SUPPORT_PERSONS.map((person) => ({ ...person })) : [];
 
   /* ===== The form ========================================================= */
 

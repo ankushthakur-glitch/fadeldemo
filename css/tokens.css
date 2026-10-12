@@ -188,6 +188,51 @@
   --color-violet-01: #f0ecfa; /* [DERIVED] */
   --color-violet-07: #5b3fa0; /* [DERIVED] 7.4:1 on its own tint */
 
+  /* --- Card-head hues --------------------------------------------------------
+     Seventeen hues spaced evenly round the wheel (every 21 degrees of OKLCH),
+     one per card on the chart's Clinical board, so that no two cards share a
+     lid. Each hue comes in two steps at one fixed lightness and chroma: a
+     wash light enough that primary ink keeps its contrast on it, and an edge
+     dark and saturated enough to read as that hue in a 3px stripe. Holding L
+     and C constant is what keeps seventeen different colours from reading as
+     seventeen different weights — none of them shouts over its neighbours.
+     Like the avatar tints these are decoration: a card's colour says which
+     card it is, never what state anything in it is in. */
+  --color-hue-01-01: oklch(0.965 0.03 0); /* [DERIVED] */
+  --color-hue-01-06: oklch(0.63 0.14 0); /* [DERIVED] */
+  --color-hue-02-01: oklch(0.965 0.03 21); /* [DERIVED] */
+  --color-hue-02-06: oklch(0.63 0.14 21); /* [DERIVED] */
+  --color-hue-03-01: oklch(0.965 0.03 42); /* [DERIVED] */
+  --color-hue-03-06: oklch(0.63 0.14 42); /* [DERIVED] */
+  --color-hue-04-01: oklch(0.965 0.03 63); /* [DERIVED] */
+  --color-hue-04-06: oklch(0.63 0.14 63); /* [DERIVED] */
+  --color-hue-05-01: oklch(0.965 0.03 84); /* [DERIVED] */
+  --color-hue-05-06: oklch(0.63 0.14 84); /* [DERIVED] */
+  --color-hue-06-01: oklch(0.965 0.03 105); /* [DERIVED] */
+  --color-hue-06-06: oklch(0.63 0.14 105); /* [DERIVED] */
+  --color-hue-07-01: oklch(0.965 0.03 126); /* [DERIVED] */
+  --color-hue-07-06: oklch(0.63 0.14 126); /* [DERIVED] */
+  --color-hue-08-01: oklch(0.965 0.03 147); /* [DERIVED] */
+  --color-hue-08-06: oklch(0.63 0.14 147); /* [DERIVED] */
+  --color-hue-09-01: oklch(0.965 0.03 168); /* [DERIVED] */
+  --color-hue-09-06: oklch(0.63 0.14 168); /* [DERIVED] */
+  --color-hue-10-01: oklch(0.965 0.03 189); /* [DERIVED] */
+  --color-hue-10-06: oklch(0.63 0.14 189); /* [DERIVED] */
+  --color-hue-11-01: oklch(0.965 0.03 210); /* [DERIVED] */
+  --color-hue-11-06: oklch(0.63 0.14 210); /* [DERIVED] */
+  --color-hue-12-01: oklch(0.965 0.03 231); /* [DERIVED] */
+  --color-hue-12-06: oklch(0.63 0.14 231); /* [DERIVED] */
+  --color-hue-13-01: oklch(0.965 0.03 252); /* [DERIVED] */
+  --color-hue-13-06: oklch(0.63 0.14 252); /* [DERIVED] */
+  --color-hue-14-01: oklch(0.965 0.03 273); /* [DERIVED] */
+  --color-hue-14-06: oklch(0.63 0.14 273); /* [DERIVED] */
+  --color-hue-15-01: oklch(0.965 0.03 294); /* [DERIVED] */
+  --color-hue-15-06: oklch(0.63 0.14 294); /* [DERIVED] */
+  --color-hue-16-01: oklch(0.965 0.03 315); /* [DERIVED] */
+  --color-hue-16-06: oklch(0.63 0.14 315); /* [DERIVED] */
+  --color-hue-17-01: oklch(0.965 0.03 336); /* [DERIVED] */
+  --color-hue-17-06: oklch(0.63 0.14 336); /* [DERIVED] */
+
   /* --- Strokes, borders, base -------------------------------------------- */
   --color-border-02: #e3ecef; /* [FIGMA] Border/02 */
   --color-stroke-02: #f2f2f7; /* [FIGMA] Stroke/02 */
@@ -598,6 +643,45 @@
      reporting a verdict. */
   --color-chart-series-1: var(--color-sky-05);
   --color-chart-series-2: var(--color-medinova-oxblood);
+
+  /* --- Card heads ------------------------------------------------------------
+     The role the hue ramp above is read through: a head's wash and its edge
+     stripe, numbered rather than named because the number is all a card is
+     promised — that its colour is not the colour of any other card. */
+  --color-card-head-01-surface: var(--color-hue-01-01);
+  --color-card-head-01-edge: var(--color-hue-01-06);
+  --color-card-head-02-surface: var(--color-hue-02-01);
+  --color-card-head-02-edge: var(--color-hue-02-06);
+  --color-card-head-03-surface: var(--color-hue-03-01);
+  --color-card-head-03-edge: var(--color-hue-03-06);
+  --color-card-head-04-surface: var(--color-hue-04-01);
+  --color-card-head-04-edge: var(--color-hue-04-06);
+  --color-card-head-05-surface: var(--color-hue-05-01);
+  --color-card-head-05-edge: var(--color-hue-05-06);
+  --color-card-head-06-surface: var(--color-hue-06-01);
+  --color-card-head-06-edge: var(--color-hue-06-06);
+  --color-card-head-07-surface: var(--color-hue-07-01);
+  --color-card-head-07-edge: var(--color-hue-07-06);
+  --color-card-head-08-surface: var(--color-hue-08-01);
+  --color-card-head-08-edge: var(--color-hue-08-06);
+  --color-card-head-09-surface: var(--color-hue-09-01);
+  --color-card-head-09-edge: var(--color-hue-09-06);
+  --color-card-head-10-surface: var(--color-hue-10-01);
+  --color-card-head-10-edge: var(--color-hue-10-06);
+  --color-card-head-11-surface: var(--color-hue-11-01);
+  --color-card-head-11-edge: var(--color-hue-11-06);
+  --color-card-head-12-surface: var(--color-hue-12-01);
+  --color-card-head-12-edge: var(--color-hue-12-06);
+  --color-card-head-13-surface: var(--color-hue-13-01);
+  --color-card-head-13-edge: var(--color-hue-13-06);
+  --color-card-head-14-surface: var(--color-hue-14-01);
+  --color-card-head-14-edge: var(--color-hue-14-06);
+  --color-card-head-15-surface: var(--color-hue-15-01);
+  --color-card-head-15-edge: var(--color-hue-15-06);
+  --color-card-head-16-surface: var(--color-hue-16-01);
+  --color-card-head-16-edge: var(--color-hue-16-06);
+  --color-card-head-17-surface: var(--color-hue-17-01);
+  --color-card-head-17-edge: var(--color-hue-17-06);
 
   /* --- Status: neutral (inactive, deceased, draft) ------------------------ */
   --color-status-neutral-solid: var(--color-grey-06);

@@ -49,24 +49,15 @@
          the header — four controls the desk sets once and then works for an
          hour do not need to hold a row of the screen open all day. -->
     <div class="ui-page-head ui-page-head--flush lead__head">
-      <!-- TWO LISTS, NOT ONE LIST WITH A FILTER.
-           Rejected leads used to sit among the live ones, reachable only by
-           ticking Rejected in the filter panel — so the pile the desk works
-           through every morning was padded with enquiries somebody had already
-           decided against, and the rejected ones themselves were effectively
-           filed nowhere. They are a different job: the inbox is worked, the
-           rejected list is looked back at when somebody rings again. A tab is
-           what says that, and it says it without anybody opening a panel.
-
-           The heading goes to screen readers only, the way every tabbed screen
-           here does it — the strip is the visible title, and a screen with a
-           tablist and no heading at all is one a screen reader cannot place. -->
+      <!-- ONE LIST. There was a second, Rejected Leads, behind a tab beside
+           this one — enquiries somebody had decided against, filed with a
+           reason and a Reopen. The practice does not reject enquiries; one it
+           will not take is simply never converted. So the second list, the
+           Reject action that fed it and the tab strip that switched between
+           them have all gone, and the screen is titled the way every other
+           list in the product is. -->
       <div class="ui-page-head__lead">
-        <h1 class="u-sr-only">Leads</h1>
-        <ui-tabs id="leadTabs" selected="inbox" primary data-testid="lead--tabs">
-          <ui-tab value="inbox" label="Active Leads"></ui-tab>
-          <ui-tab value="rejected" label="Rejected Leads"></ui-tab>
-        </ui-tabs>
+        <h1 class="ui-page-head__title" data-testid="lead--title">Leads</h1>
       </div>
 
       <div class="ui-page-head__actions">
@@ -121,14 +112,6 @@
             <p>Website submissions from potential patients will appear here.</p>
           </div>
 
-          <!-- An empty rejected list is good news, not a fault, and it is
-               not the same sentence as an empty inbox. -->
-          <div id="noneRejected" class="lead__empty" hidden data-testid="lead--none-rejected">
-            <svg class="ui-icon" aria-hidden="true"><use href="#i-check"></use></svg>
-            <h2>Nothing rejected</h2>
-            <p>Leads you turn away are filed here, and can be reopened at any time.</p>
-          </div>
-
           <div id="noMatch" class="lead__empty" hidden data-testid="lead--no-match">
             <svg class="ui-icon" aria-hidden="true"><use href="#i-search"></use></svg>
             <h2>No leads match these filters</h2>
@@ -167,26 +150,6 @@
         <ui-button variant="tertiary" id="dClose" data-testid="lead--d-close">Close</ui-button>
         <span class="ui-modal__actions-spacer"></span>
         <div id="drawerActions" class="lead__d-actions"></div>
-      </div>
-    </ui-modal>
-    <!-- ================= REJECT =================
-         Not a delete. A rejected enquiry is still evidence that somebody asked
-         and the practice decided not to take them — which is the record anyone
-         wants when the patient rings back. The reason is chosen rather than
-         typed, because "why" has to be answerable from a report later. -->
-    <ui-modal id="rejectModal" heading="Reject lead" size="sm">
-      <div class="lead__reject">
-        <p class="lead__reject-lead" id="rejectLead" data-testid="lead--reject-lead"></p>
-        <ui-select id="rejectReason" label="Reason" required
-          placeholder="Select a reason" data-testid="lead--reject-reason"></ui-select>
-      </div>
-
-      <div class="ui-modal__actions">
-        <ui-button variant="tertiary" id="rejectCancel"
-          data-testid="lead--reject-cancel">Cancel</ui-button>
-        <span class="ui-modal__actions-spacer"></span>
-        <ui-button variant="danger" id="rejectConfirm"
-          data-testid="lead--reject-confirm">Reject Lead</ui-button>
       </div>
     </ui-modal>
 

@@ -249,6 +249,7 @@ ui-avatar { display: inline-flex; }
 .ui-chip--success { background-color: var(--color-status-success-surface); color: var(--color-status-success-text); border-color: var(--color-status-success-surface); }
 .ui-chip--warning { background-color: var(--color-status-warning-surface); color: var(--color-status-warning-text); border-color: var(--color-status-warning-surface); }
 .ui-chip--critical { background-color: var(--color-status-critical-surface); color: var(--color-status-critical-text); border-color: var(--color-status-critical-surface); }
+.ui-chip--info { background-color: var(--color-status-info-surface); color: var(--color-status-info-text); border-color: var(--color-status-info-surface); }
 .ui-chip--neutral { background-color: var(--color-status-neutral-surface); color: var(--color-status-neutral-text); border-color: var(--color-status-neutral-surface); }
 .ui-chip--white { background-color: var(--color-bg-surface); color: var(--color-text-primary); border-color: var(--color-border-default); }
 

@@ -24,6 +24,9 @@ import { providerById, typeById, procedureById } from '../../data/schedule.js';
 import { CLINICAL_SECTIONS } from '../../data/encounter.js';
 import { NOTE_STATES, noteTypeFor, noteFor } from '../../data/visit-notes.js';
 import { notify as toast } from '../lib/toast.js';
+/* Back to whoever opened the note — the chart's Visit Notes as readily as the
+   Encounters worklist. See js/lib/return-to.js. */
+import { returnTo, applyReturnLink } from '../lib/return-to.js';
 import {
   summarySections,
   signatureFor,
@@ -332,7 +335,7 @@ function paintFoot() {
 
 function wireFoot() {
   el('cancel')?.addEventListener('ui-click', () => {
-    window.location.href = 'scheduler.html?tab=visit-notes';
+    window.location.href = returnTo('scheduler.html?tab=visit-notes');
   });
 
   el('signLock')?.addEventListener('ui-click', openSignDialog);
@@ -342,7 +345,7 @@ function wireFoot() {
      so, rather than a second write: it confirms and returns to the worklist. */
   el('save')?.addEventListener('ui-click', () => {
     notify('Note saved to the chart.');
-    window.location.href = 'scheduler.html?tab=visit-notes';
+    window.location.href = returnTo('scheduler.html?tab=visit-notes');
   });
 }
 
@@ -442,3 +445,5 @@ customElements.whenDefined('ui-modal').then(() => {
   paintFoot();
   wireSignDialog();
 });
+
+applyReturnLink(document.querySelector('.ui-page-head__back'));

@@ -2,21 +2,21 @@
  * DEMO DATA for prescriptions. Entirely invented — no real patient
  * information.
  *
- * NO PRESCRIPTION ROW BELOW IS DRAWN ON THE PRESCRIPTIONS SCREEN. Prescribing
- * is not this product's job: that section is the frame the vendor's own
- * e-prescribing UI loads into, and all it takes from this file is
- * SCRIPTSURE_SESSION, which names the vendor. The
- * per-patient records exist for the MEDICATION module, which composes its
- * Active and Past tabs from `active` and `past` — so the chart's own reading
- * of a patient's drugs can be built and reviewed before there is a vendor
- * connected to anything.
+ * Two screens read this file. The PRESCRIPTIONS module lists every row in it,
+ * active and past together, and its Add Prescription dialog appends to
+ * `active`. The MEDICATION module composes its Active and Past tabs from the
+ * same two lists, so a script written on one screen is on the other the moment
+ * it is sent, without a second copy to fall out of step.
  *
- * In production these rows arrive from the prescribing vendor rather than
- * being typed here, which is why the shape stays as it is even though nothing
- * writes to it any more. There is no `pending` list: a queue of scripts
- * composed and not yet signed belongs to the vendor's window alone, this
- * prototype never had one to show, and a script nobody has signed is not a
- * drug the patient is on.
+ * ONE PRESCRIPTION, SEVERAL ROWS. A row here is one medication. A prescription
+ * — one prescriber, one pharmacy, sent at one time — can carry several, and the
+ * rows it produced share an `rxNumber`. That is how a pharmacy receives them
+ * too: each drug is its own line to fill, under one order. Keeping the row at
+ * the level of the drug means Medication can go on reading it as a drug the
+ * patient is on, which is what that list is for.
+ *
+ * Sent scripts live in memory for the session and are gone on reload; there is
+ * no backend and no pharmacy on the other end of Send.
  *
  * Keyed by MRN, like every other per-patient data file in this chart.
  */
@@ -25,23 +25,6 @@
    data (data/patients.js clinician field), so a name means the same person
    on every screen. -------------------------------------------------------- */
 export const PRESCRIBING_PROVIDERS = ['Dr. A. Mensah', 'Dr. L. Bianchi', 'Dr. S. Nakamura'];
-
-/**
- * How the practice's e-prescribing vendor is named on the Prescriptions
- * screen: in the sentence explaining what the empty frame is waiting for, and
- * as the accessible name of the frame itself.
- *
- * It used to carry the whole tenant identity as well — practice, site, live or
- * sandbox — for a title bar drawn above the frame. That title bar is gone: it
- * was a second heading over a section the module title already names, sitting
- * on top of a window with nothing in it to be titled. Only the two names the
- * screen still says are kept, so nothing here describes markup that no longer
- * exists.
- */
-export const SCRIPTSURE_SESSION = {
-  vendor: 'ScriptSure',
-  product: 'ScriptSure Cloud ePrescribing',
-};
 
 /* ============================================================================
    PER-PATIENT RECORDS
@@ -52,6 +35,8 @@ export const CHART_PRESCRIPTIONS = {
     active: [
       {
         id: 'rx-1',
+        rxNumber: 'RX-10421',
+        pharmacy: 'CVS Pharmacy #4471 — Fargo, ND',
         name: 'Lorazepam 1mg tablet',
         sig: '1 tablet orally twice daily',
         diagnosis: 'Dx1: F41.1 — Generalized anxiety disorder',
@@ -65,6 +50,8 @@ export const CHART_PRESCRIPTIONS = {
       },
       {
         id: 'rx-2',
+        rxNumber: 'RX-10433',
+        pharmacy: 'CVS Pharmacy #4471 — Fargo, ND',
         name: 'Sertraline 50mg tablet',
         sig: '1 tablet orally twice daily',
         diagnosis: 'Dx1: F41.1 — Generalized anxiety disorder',
@@ -78,6 +65,8 @@ export const CHART_PRESCRIPTIONS = {
       },
       {
         id: 'rx-3',
+        rxNumber: 'RX-10427',
+        pharmacy: 'CVS Pharmacy #4471 — Fargo, ND',
         name: 'Hydroxyzine 25mg Tablet',
         sig: '1 tablet orally twice daily',
         diagnosis: 'Dx1: F41.1 — Generalized anxiety disorder',
@@ -93,6 +82,8 @@ export const CHART_PRESCRIPTIONS = {
     past: [
       {
         id: 'rx-past-1',
+        rxNumber: 'RX-10102',
+        pharmacy: 'CVS Pharmacy #4471 — Fargo, ND',
         name: 'Omeprazole 20mg capsule',
         sig: '1 capsule orally once daily before breakfast',
         diagnosis: 'Dx1: K21.9 — GERD, without esophagitis',
@@ -107,6 +98,8 @@ export const CHART_PRESCRIPTIONS = {
       },
       {
         id: 'rx-past-2',
+        rxNumber: 'RX-10088',
+        pharmacy: 'CVS Pharmacy #4471 — Fargo, ND',
         name: 'Metronidazole 400mg tablet',
         sig: '1 tablet orally three times daily',
         diagnosis: 'Dx1: K29.70 — Gastritis, unspecified',
@@ -129,6 +122,8 @@ export const CHART_PRESCRIPTIONS = {
     active: [
       {
         id: 'rx-nc-1',
+        rxNumber: 'RX-10512',
+        pharmacy: 'Walgreens #10392 — West Fargo, ND',
         name: 'Mesalamine 1.2g tablet',
         sig: '2 tablets orally once daily with food',
         diagnosis: 'Dx1: K51.90 — Ulcerative colitis, unspecified',
@@ -144,6 +139,8 @@ export const CHART_PRESCRIPTIONS = {
     past: [
       {
         id: 'rx-nc-past-1',
+        rxNumber: 'RX-10467',
+        pharmacy: 'Walgreens #10392 — West Fargo, ND',
         name: 'Prednisone 20mg tablet',
         sig: '1 tablet orally once daily, tapering',
         diagnosis: 'Dx1: K51.90 — Ulcerative colitis, unspecified',
@@ -161,3 +158,50 @@ export const CHART_PRESCRIPTIONS = {
 };
 
 export const EMPTY_CHART_PRESCRIPTIONS = { active: [], past: [] };
+
+/* ============================================================================
+   WHAT ADD PRESCRIPTION OFFERS
+
+   A plausible handful for a gastroenterology practice, not a drug database.
+   The medication and directions boxes take anything typed as well, so a drug
+   that is not on this list can still be written.
+   ========================================================================= */
+
+/* Drug, strength and form in one string, the way a script names it and the
+   way the Medication list reads it back. */
+export const RX_DRUG_CATALOG = [
+  'Omeprazole 20mg capsule',
+  'Pantoprazole 40mg tablet',
+  'Famotidine 20mg tablet',
+  'Ondansetron 4mg tablet',
+  'Dicyclomine 20mg tablet',
+  'Mesalamine 1.2g tablet',
+  'Budesonide 9mg tablet',
+  'Rifaximin 550mg tablet',
+  'Ursodiol 300mg capsule',
+  'Polyethylene glycol 3350 17g powder',
+  'Sucralfate 1g tablet',
+  'Metronidazole 400mg tablet',
+];
+
+/* Common directions, offered rather than enforced: a sig is free text on
+   every real script, and a closed list would make the unusual one unsayable. */
+export const RX_SIG_PRESETS = [
+  '1 tablet orally once daily',
+  '1 tablet orally twice daily',
+  '1 capsule orally once daily before breakfast',
+  '1 tablet orally three times daily',
+  '1 tablet orally every 8 hours as needed for nausea',
+  '17g in 8oz water orally once daily',
+];
+
+export const RX_DISPENSE_UNITS = ['Tablet', 'Capsule', 'Packet', 'Bottle', 'mL'];
+
+export const RX_REFILLS = ['0', '1', '2', '3', '5', '11'];
+
+export const RX_PHARMACIES = [
+  'CVS Pharmacy #4471 — Fargo, ND',
+  'Walgreens #10392 — West Fargo, ND',
+  'Thrifty White Pharmacy — Moorhead, MN',
+  'Express Scripts Mail Order',
+];

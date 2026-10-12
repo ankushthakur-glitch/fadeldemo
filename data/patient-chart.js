@@ -16,6 +16,8 @@
  * carries a few that no longer match their DOB.
  */
 
+import { DIRECTORY } from './directory.js';
+
 /* ============================================================================
    FLAG VOCABULARY
 
@@ -120,15 +122,20 @@ export const PATIENTS = {
     mrn: '326486',
     name: 'Henna West',
     preferredName: 'Hennie',
-    /* The one patient in this demo set with a photograph on file, so every
-       screen with a photo slot can be seen in both of its states: this record
-       filled, and every other record falling back to initials in the same
-       disc. The file itself is a drawn portrait rather than a photograph of a
-       real person — see the note in assets/img/patient-photo-01.svg. Relative
+    /* Every charted patient now has a photograph on file — the chart banner
+       reads as a chart with a face on it, which is how a clinician with three
+       people in three bays tells them apart before reading the MRN. The
+       initials disc is still the fallback for any record with photo: null
+       (see photoMarkup in js/screens/patient-chart.js). The three adults'
+       photos are AI-generated (Figma, 256px JPEG) — photorealistic, but of
+       nobody: a stock photo of a real person who never agreed to be anybody's
+       patient would put a stranger's face on an invented medical record. The
+       minor in the set keeps the drawn portrait (patient-photo-04.svg); a
+       photorealistic child was not generated. Relative
        to the page, the way every other asset path in data/ is (see
        MEDINOVA_LOGO in data/print-config.js). */
-    photo: '../assets/img/patient-photo-01.svg',
-    dob: '20-02-1961',
+    photo: '../assets/img/patient-photo-01.jpg',
+    dob: '20-02-1992',
     gender: 'Female',
     language: 'English',
     phone: '202-555-0188',
@@ -202,15 +209,15 @@ export const PATIENTS = {
       username: 'hennawest',
     },
 
-    counts: { visitNotes: 3, prescriptions: 3, orders: 4, forms: 7, tasks: 4, billing: 2, documents: 11 },
+    counts: { visitNotes: 9, prescriptions: 3, orders: 4, forms: 7, tasks: 4, billing: 2, documents: 11 },
   },
 
   326477: {
     mrn: '326477',
     name: 'Natali Craig',
     preferredName: 'Nat',
-    photo: null,
-    dob: '15-07-1966',
+    photo: '../assets/img/patient-photo-02.jpg',
+    dob: '15-07-1963',
     gender: 'Female',
     language: 'English · Polish interpreter for consents',
     phone: '949-555-7564',
@@ -258,15 +265,15 @@ export const PATIENTS = {
       username: null,
     },
 
-    counts: { visitNotes: 1, prescriptions: 0, orders: 0, forms: 2, tasks: 1, billing: 3, documents: 4 },
+    counts: { visitNotes: 6, prescriptions: 0, orders: 0, forms: 2, tasks: 1, billing: 3, documents: 4 },
   },
 
   326481: {
     mrn: '326481',
     name: 'Liam Rodriguez',
     preferredName: null,
-    photo: null,
-    dob: '09-12-1971',
+    photo: '../assets/img/patient-photo-03.jpg',
+    dob: '09-12-1996',
     gender: 'Male',
     language: 'Spanish',
     phone: '415-555-0198',
@@ -304,14 +311,14 @@ export const PATIENTS = {
       username: null,
     },
 
-    counts: { visitNotes: 0, prescriptions: 0, orders: 0, forms: 0, tasks: 2, billing: 1, documents: 2 },
+    counts: { visitNotes: 6, prescriptions: 0, orders: 0, forms: 0, tasks: 2, billing: 1, documents: 2 },
   },
 
   326495: {
     mrn: '326495',
     name: 'Zoe Tran',
     preferredName: null,
-    photo: null,
+    photo: '../assets/img/patient-photo-04.svg',
     dob: '14-03-2013', // a minor — exercises the age-category badge in the header
     gender: 'Female',
     language: 'English',
@@ -360,9 +367,79 @@ export const PATIENTS = {
       username: null,
     },
 
-    counts: { visitNotes: 1, prescriptions: 1, orders: 0, forms: 3, tasks: 0, billing: 0, documents: 1 },
+    counts: { visitNotes: 7, prescriptions: 1, orders: 0, forms: 3, tasks: 0, billing: 0, documents: 1 },
   },
 };
+
+/* ============================================================================
+   EVERYONE ELSE IN THE DIRECTORY
+
+   Only the four records above are written out by hand. Every other name in
+   the patient directory used to fall through to DEFAULT_MRN, so clicking
+   Phoenix Baker opened Henna West's chart — the one thing a chart must never
+   do is show you somebody other than the person you asked for. Rather than
+   hand-write thirty-odd more records, each remaining directory row is turned
+   into a plain chart record here: the identity facts the directory already
+   holds (name, DOB, sex, phone, last appointment, portal state) and nothing
+   clinical. No flags, no alerts, no photo — the modules all have empty states
+   for an MRN their own data files do not mention, so the chart reads as a
+   thin record rather than a borrowed one.
+
+   A hand-written record always wins: the loop only fills MRNs that are not
+   already keys above.
+   ========================================================================= */
+
+/** The directory's three portal words, in this file's vocabulary. */
+const DIRECTORY_PORTAL = { active: 'active', pending: 'invited', inactive: 'none' };
+
+/** Spread across the practice so the directory is not one doctor's panel. */
+const DIRECTORY_PROVIDERS = [
+  PATIENTS[326486].provider,
+  PATIENTS[326477].provider,
+  PATIENTS[326481].provider,
+];
+
+DIRECTORY.forEach((row, index) => {
+  if (PATIENTS[row.mrn]) return;
+  const provider = DIRECTORY_PROVIDERS[index % DIRECTORY_PROVIDERS.length];
+  // "Sun, 23-10-2025" — the chart stores the bare date and formats its own.
+  const lastVisitDate = row.lastAppt ? row.lastAppt.replace(/^\w+,\s*/, '') : null;
+  const portalState = DIRECTORY_PORTAL[row.portal] || 'none';
+
+  PATIENTS[row.mrn] = {
+    mrn: row.mrn,
+    name: row.name,
+    preferredName: null,
+    photo: null,
+    dob: row.dob,
+    gender: row.sex === 'F' ? 'Female' : row.sex === 'M' ? 'Male' : row.sex,
+    language: 'English',
+    phone: row.phone,
+    phoneType: 'Mobile',
+    email: null,
+    address: null,
+    status: row.active ? 'active' : 'inactive',
+    balance: 0,
+    insuranceBalance: 0,
+    quickNote: null,
+    flags: [],
+    alerts: [],
+    provider: { ...provider },
+    activity: {
+      lastVisitDate,
+      lastEncounterType: lastVisitDate ? 'Office visit' : null,
+      lastProvider: lastVisitDate ? provider.name : null,
+      upcoming: null,
+    },
+    portal: {
+      state: portalState,
+      invitationSent: portalState === 'none' ? null : lastVisitDate,
+      lastLogin: null,
+      username: null,
+    },
+    counts: { visitNotes: 0, prescriptions: 0, orders: 0, forms: 0, tasks: 0, billing: 0, documents: 0 },
+  };
+});
 
 /** Opened without an ?mrn= — the chart still has to show a chart. */
 export const DEFAULT_MRN = '326486';

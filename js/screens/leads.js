@@ -18,10 +18,7 @@ import {
   allLeads,
   leadById,
   openCount,
-  rejectLead,
-  reopenLead,
   linkExistingPatient,
-  REJECTION_REASONS,
   logAudit,
   missingFields,
   findDuplicates,
@@ -45,10 +42,6 @@ const esc = (value) =>
     .replace(/"/g, '&quot;');
 
 const state = {
-  /* Which of the two lists is on screen. Not a filter value: the inbox and the
-     rejected pile are different jobs done at different times, and the filter
-     panel is for narrowing whichever one you are in. */
-  tab: 'inbox',
   query: '',
   status: '',
   date: '',
@@ -96,10 +89,6 @@ function visibleLeads() {
   const q = state.query.trim().toLowerCase();
 
   const rows = allLeads().filter((lead) => {
-    /* The tab decides which pile you are in before any filter is consulted.
-       Rejected leads are not hidden rows of the inbox — they are the other
-       list, and the only way to see them is to go there. */
-    if ((lead.status === 'rejected') !== (state.tab === 'rejected')) return false;
     /* Status takes a set — an inbox is worked as "New and Contacted", not one
        state at a time. Source is a set too, though there is only one source to
        pick today; what changed there is that it now asks the LEAD where it came
@@ -140,18 +129,6 @@ function actionsCell(lead) {
       ${menuButton(lead)}
     </div>`;
   }
-  // A rejected lead is not offered Convert — a Convert button beside the badge
-  // saying it was turned away would be the row contradicting itself. What every
-  // row in the rejected list is offered is the way back: Reopen sends it to the
-  // inbox as New, which is what a rejection made in error actually needs.
-  if (lead.status === 'rejected') {
-    return `<div class="lead__row-actions">
-      <ui-button variant="outline" size="xs" icon="rotate"
-        data-reopen="${esc(lead.id)}"
-        data-testid="lead--reopen-${esc(lead.id)}">Reopen</ui-button>
-      ${menuButton(lead)}
-    </div>`;
-  }
   return `<div class="lead__row-actions">
     <ui-button variant="primary" size="xs" icon="user-plus"
       data-convert="${esc(lead.id)}"
@@ -176,7 +153,7 @@ const menuButton = (lead) => `<button type="button" class="ui-row-menu-btn"
  * which the toolbar's own Export already does, for exactly the list on
  * screen. So the column cost a column of width on every row to offer a second
  * route to the same file, and the bulk bar that went with it has gone too.
- * Work on a lead is per-lead: converting, rejecting and reviewing are all
+ * Work on a lead is per-lead: converting and reviewing are both
  * one-at-a-time by nature.
  */
 const COLUMNS = [
@@ -223,31 +200,6 @@ const COLUMNS = [
   { key: 'actions', label: 'Actions', actions: true, render: actionsCell },
 ];
 
-/**
- * The rejected list swaps Status for Reason.
- *
- * Status on that tab is the same word on every row, which is the argument that
- * took the Source column off this table in the first place — the tab has
- * already said it. What the reader is scanning for there is WHY, because that
- * is what decides whether a lead is worth reopening when the patient rings
- * back: "Could not contact the patient" is a different answer to that question
- * than "Test or spam submission". The submitted date stays; when it was
- * rejected is in the drawer, next to who did it.
- */
-const REJECTED_COLUMNS = COLUMNS.map((column) =>
-  column.key !== 'status'
-    ? column
-    : {
-        key: 'reason',
-        label: 'Rejected For',
-        truncate: true,
-        render: (lead) =>
-          lead.rejection?.reason
-            ? esc(lead.rejection.reason)
-            : '<span class="lead__missing">No reason recorded</span>',
-      }
-);
-
 /*
  * The shared pager, built on first paint. It is the same footer the patient
  * directory carries — see lib/pagination.js — so an inbox that has run to
@@ -262,12 +214,10 @@ let pager;
 
 function paintTable() {
   const rows = visibleLeads();
-  /* What the tab holds before this screen's filters are applied — the number
-     the empty states are about. "Nothing matches" and "nothing here" are
-     different sentences and only one of them is the reader's own doing. */
-  const inTab = allLeads().filter(
-    (lead) => (lead.status === 'rejected') === (state.tab === 'rejected')
-  ).length;
+  /* What the inbox holds before this screen's filters are applied — the
+     number the empty states are about. "Nothing matches" and "nothing here"
+     are different sentences and only one of them is the reader's own doing. */
+  const inTab = allLeads().length;
   const table = el('leadTable');
 
   if (!pager) {
@@ -278,34 +228,25 @@ function paintTable() {
     });
   }
 
-  // Three empties, one per thing that can be true. "No leads yet" is an inbox
-  // with nothing in it, "nothing rejected" is the good news at the other tab,
-  // and "nothing matches" is a filter the reader set and can undo. Showing the
-  // first when a filter is on would say the inbox is empty when it is not.
-  el('empty').hidden = state.tab !== 'inbox' || inTab > 0;
-  el('noneRejected').hidden = state.tab !== 'rejected' || inTab > 0;
+  // Two empties, one per thing that can be true. "No leads yet" is an inbox
+  // with nothing in it, and "nothing matches" is a filter the reader set and
+  // can undo. Showing the first when a filter is on would say the inbox is
+  // empty when it is not.
+  el('empty').hidden = inTab > 0;
   el('noMatch').hidden = inTab === 0 || rows.length > 0;
   table.hidden = rows.length === 0;
 
-  /* How many are still open is a fact about the inbox. On the rejected list it
-     would be a number about the other tab, printed under this one. */
-  pager.setSuffix(state.tab === 'rejected' || inTab === 0 ? '' : `${openCount()} open`);
+  pager.setSuffix(inTab === 0 ? '' : `${openCount()} open`);
   const { start, end } = pager.render(rows.length);
   const pageRows = rows.slice(start, end);
 
-  table.columns = state.tab === 'rejected' ? REJECTED_COLUMNS : COLUMNS;
+  table.columns = COLUMNS;
   table.rows = pageRows.map((lead) => ({ ...lead, id: lead.id }));
 
   el('leadTable').querySelectorAll('[data-convert]').forEach((b) =>
     b.addEventListener('ui-click', (e) => {
       e.stopPropagation();
       startConversion(b.dataset.convert);
-    })
-  );
-  el('leadTable').querySelectorAll('[data-reopen]').forEach((b) =>
-    b.addEventListener('ui-click', (e) => {
-      e.stopPropagation();
-      reopen(b.dataset.reopen);
     })
   );
   el('leadTable').querySelectorAll('[data-view-patient]').forEach((b) =>
@@ -340,24 +281,15 @@ function openRowMenu(id, trigger) {
   if (!lead) return;
 
   /* The actions a lead offers depend on where it has got to: a converted lead
-     can be opened in the chart, a rejected one can only be read. */
+     can be opened in the chart, a new one can only be read until it is. */
   const ACTIONS = {
     view: { label: lead.status === 'converted' ? 'View Lead' : 'View Details',
             icon: 'eye', testid: 'lead--menu-view', run: () => openDrawer(id) },
     chart: { label: 'View Patient Chart', icon: 'user',
              testid: 'lead--menu-chart', run: () => openPatientChart(id) },
-    reject: { label: 'Reject Lead', icon: 'close', danger: true,
-              testid: 'lead--menu-reject', run: () => openRejectDialog(id) },
-    reopen: { label: 'Reopen Lead', icon: 'rotate',
-              testid: 'lead--menu-reopen', run: () => reopen(id) },
   };
 
-  const order =
-    lead.status === 'converted'
-      ? ['view', 'chart']
-      : lead.status === 'rejected'
-        ? ['view', 'reopen']
-        : ['view', 'reject'];
+  const order = lead.status === 'converted' ? ['view', 'chart'] : ['view'];
 
   openRowMenu_(trigger, order.map((key) => ACTIONS[key]));
 }
@@ -469,20 +401,6 @@ function openDrawer(id) {
       </dl>
     </section>`;
 
-  /* A rejected lead's drawer used to say only "Rejected" in a badge. Whoever
-     opens it is deciding whether that call still holds — so the call itself,
-     who made it and when, is the part they need in front of them. */
-  const rejection = lead.rejection
-    ? `<section class="lead__d-section">
-        <h3 class="lead__d-title">Rejection</h3>
-        <dl class="lead__d-facts">
-          <div><dt>Reason</dt><dd>${esc(lead.rejection.reason)}</dd></div>
-          <div><dt>Rejected by</dt><dd>${esc(lead.rejection.by)}</dd></div>
-          <div><dt>Rejected on</dt><dd>${esc(stampText(lead.rejection.at))}</dd></div>
-        </dl>
-      </section>`
-    : '';
-
   const conversion = lead.conversion
     ? `<section class="lead__d-section">
         <h3 class="lead__d-title">Conversion</h3>
@@ -526,86 +444,19 @@ function openDrawer(id) {
 
     ${contact}
     ${submission}
-    ${rejection}
     ${conversion}`;
 
   el('drawerActions').innerHTML =
     lead.status === 'converted'
       ? `<ui-button variant="primary" id="dChart" data-testid="lead--d-chart">
            View Patient Chart</ui-button>`
-      : lead.status === 'rejected'
-        ? `<ui-button variant="primary" icon="rotate" id="dReopen"
-             data-testid="lead--d-reopen">Reopen Lead</ui-button>`
-        : `<ui-button variant="outline" id="dReject" data-testid="lead--d-reject">
-             Reject Lead</ui-button>
-           <ui-button variant="primary" icon="user-plus" id="dConvert"
-             data-testid="lead--d-convert">Convert to Patient</ui-button>`;
+      : `<ui-button variant="primary" icon="user-plus" id="dConvert"
+           data-testid="lead--d-convert">Convert to Patient</ui-button>`;
 
   el('dChart')?.addEventListener('ui-click', () => openPatientChart(id));
-  el('dReopen')?.addEventListener('ui-click', () => reopen(id));
-  el('dReject')?.addEventListener('ui-click', () => openRejectDialog(id));
   el('dConvert')?.addEventListener('ui-click', () => startConversion(id));
 
   el('leadDrawer').open();
-}
-
-/* ===================== Reject ===================== */
-
-/** The lead the reject dialog is about. */
-let rejectingId = null;
-
-function openRejectDialog(id) {
-  const lead = leadById(id);
-  if (!lead) return;
-  rejectingId = id;
-
-  el('rejectLead').textContent =
-    `${fullName(lead)} submitted this enquiry on ${stampText(lead.submittedAt)}.`;
-  el('rejectReason').optionList = REJECTION_REASONS.map((r) => ({ value: r, label: r }));
-  el('rejectReason').setAttribute('value', '');
-  el('rejectReason').removeAttribute('error');
-
-  el('rejectModal').open();
-}
-
-function confirmReject() {
-  const reason = el('rejectReason').value;
-  if (!reason) {
-    el('rejectReason').setAttribute('error', 'Choose a reason');
-    return;
-  }
-  const lead = leadById(rejectingId);
-  rejectLead(rejectingId, reason);
-  el('rejectModal').close();
-  el('leadDrawer').close();
-  notify(`${fullName(lead)} rejected — ${reason}. Filed under Rejected.`, 'info');
-  paint();
-}
-
-/**
- * Reopen — send a rejected lead back to the inbox.
- *
- * No confirmation dialog. Rejecting asks for a reason because the reason has
- * to be answerable in a report later; reopening asks for nothing because it
- * undoes rather than decides, and it is itself undone by rejecting again.
- *
- * The row leaves the list it was pressed on, so the toast says where it went
- * as well as what happened — a row that vanishes and says nothing reads as a
- * delete, which is the one thing this is not. The tab does not follow it:
- * working down a rejected pile is a session of its own, and being thrown into
- * the inbox on every press would put the next row behind a tab press.
- */
-function reopen(id) {
-  const lead = leadById(id);
-  if (!lead || lead.status !== 'rejected') return;
-
-  reopenLead(id);
-  /* If the drawer is showing this lead, redraw it rather than closing it:
-     the reopen was almost certainly decided from what is on screen, and the
-     drawer snapping shut hides the result of the press. */
-  if (el('leadDrawer').isOpen && state.openId === id) openDrawer(id);
-  notify(`${fullName(lead)} reopened — back in Active Leads as New.`);
-  paint();
 }
 
 /* ===================== Conversion ===================== */
@@ -725,15 +576,10 @@ function offerExistingPatient(lead, matches) {
 
 /** A CSV of what is on screen. Export means "what I am looking at". */
 function exportCsv(rows) {
-  /* Rejection Reason rides along even from the inbox, where it is empty on
-     every row: a CSV of the rejected list without the column the tab is about
-     would be the export contradicting what was on screen, and a constant blank
-     costs a downstream reader nothing. */
-  const head = ['First Name', 'Last Name', 'DOB', 'Phone', 'Email', 'Submitted', 'Source', 'Status', 'Rejection Reason'];
+  const head = ['First Name', 'Last Name', 'DOB', 'Phone', 'Email', 'Submitted', 'Source', 'Status'];
   const body = rows.map((l) => [
     l.firstName, l.lastName, shortDob(l.dob), l.phone, l.email,
     stampText(l.submittedAt), 'Website', LEAD_STATUSES[l.status].label,
-    l.rejection?.reason ?? '',
   ]);
   const csv = [head, ...body]
     .map((r) => r.map((c) => `"${String(c ?? '').replace(/"/g, '""')}"`).join(','))
@@ -761,27 +607,7 @@ function exportCsv(rows) {
  */
 function paintFilterChrome() {
   el('leadRange').hidden = state.date !== 'custom';
-  /* On the rejected list, status is a settled question — every row in it is
-     rejected — so the group goes rather than standing there offering to narrow
-     two answers down to the one they already are. */
-  el('leadStatusGroup').hidden = state.tab === 'rejected';
   el('leadFilter').refresh?.();
-}
-
-/**
- * Move between the inbox and the rejected list.
- *
- * The search box and the date question carry over, because "Ibarra" and "last
- * 7 days" are the same question asked of either pile. Status does not: it is
- * the one filter the tab has already answered, and a New tick left on from the
- * inbox would show an empty rejected list for no visible reason.
- */
-function goToTab(value) {
-  if (value === state.tab) return;
-  state.tab = value;
-  state.status = [];
-  el('leadFilter').value = { ...el('leadFilter').value, status: [] };
-  paint();
 }
 
 /*
@@ -801,14 +627,9 @@ function paint() {
 customElements.whenDefined('ui-filter').then(() => {
   const filter = el('leadFilter');
 
-  /* Rejected is a tab, not a tick. Leaving it in the panel as well would be
-     two controls for one question, one of which empties the list you are
-     looking at. */
   filter.setGroupOptions(
     'status',
-    Object.entries(LEAD_STATUSES)
-      .filter(([value]) => value !== 'rejected')
-      .map(([value, s]) => ({ value, label: s.label }))
+    Object.entries(LEAD_STATUSES).map(([value, s]) => ({ value, label: s.label }))
   );
   filter.setGroupOptions('source', LEAD_SOURCES);
   filter.setGroupOptions('date', [
@@ -873,14 +694,10 @@ customElements.whenDefined('ui-data-table').then(() => {
     paint();
   });
 
-  el('leadTabs').addEventListener('ui-change', (event) => goToTab(event.detail.value));
-
   el('export').addEventListener('ui-click', () => exportCsv(visibleLeads()));
 
   el('dClose').addEventListener('ui-click', () => el('leadDrawer').close());
 
-  el('rejectCancel').addEventListener('ui-click', () => el('rejectModal').close());
-  el('rejectConfirm').addEventListener('ui-click', confirmReject);
   el('existingCancel').addEventListener('ui-click', () => el('existingModal').close());
   // "Not them" is the escape hatch: onboard as a genuinely new patient.
   el('existingNew').addEventListener('ui-click', () => {

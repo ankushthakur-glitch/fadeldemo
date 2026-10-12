@@ -2,6 +2,102 @@
 
 ## Unreleased
 
+### Every patient in the directory opens their own chart
+
+- Clicking a name on **Patients** used to open Henna West's chart for
+  everyone except the four patients with hand-written chart data. Every
+  directory patient now opens a chart with their own name, MRN, DOB, sex,
+  phone, last visit and portal state. Their clinical sections show the
+  normal empty states. The header hides the address row when none is on
+  file.
+
+### Prescriptions gets a table, and a prescription can carry several drugs
+
+- **The Prescriptions section is a table** instead of the empty "ScriptSure
+  window renders here" frame. One row per medication, newest first, active
+  and past together: Rx #, medication and diagnosis, directions, dispense
+  (quantity, days, refills), prescribed on, prescriber and pharmacy, status.
+  Every seed row now carries an Rx number and pharmacy.
+
+- **Add Prescription writes several medications, one at a time.** Prescriber
+  and pharmacy are asked once across the top. Below, the left pane is a form
+  for one medication (drug, directions, quantity, unit, days supply, refills,
+  diagnosis, dispense-as-written); **Add to Prescription** moves it into the
+  side panel on the right and clears the form for the next. Each entry in the
+  panel can be edited (it loads back into the form, which then reads
+  **Update Medication**) or removed. The pharmacist note sits under the
+  panel. **Send to Pharmacy** needs a prescriber, a pharmacy and at least one
+  medication in the panel, then files each drug under one shared Rx number.
+  The rows appear in the table and on **Medication → Active** for the
+  session, and are gone on reload. There is no demo banner.
+
+### Leads lose Rejected; registration opens filled; the chart gets faces
+
+- **Every Clinical card has its own colour.** Each of the 17 cards on the
+  chart's Clinical board has a tinted head and a stripe of the same colour
+  down its left edge, instead of the same grey on every card. The colours
+  are spaced evenly round the colour wheel, so no two cards share one, and
+  cards stacked in the same column are far apart in hue. The colours are
+  new derived tokens (`--color-card-head-01..17-surface` and `-edge`).
+  Insurance cards keep their grey heads, and printing drops the colour.
+
+- **Leads: no more rejected leads.** The Rejected Leads tab, the Reject action
+  (row menu and details dialog), its reason dialog, Reopen and the seeded
+  rejected row are gone. The screen is one list titled "Leads", the status
+  filter offers New and Converted, and the CSV drops its Rejection Reason
+  column. The leads store moved to a `.v2` session key so an old tab cannot
+  serve a status that no longer exists.
+
+- **The patient list spans adult ages.** The directory's first page read as
+  a geriatric clinic, every patient 65–74, and its stored ages did not agree
+  with the dates of birth beside them. All 36 rows now run 18–70, each DOB
+  re-dated to the shown age (day and month kept, so Maya Johnson and Naomi
+  Samuelson still share 26-03-1974). The charts for Henna West, Natali Craig
+  and Liam Rodriguez carry the same new dates so list and chart agree.
+
+- **Add Patient opens on a complete demo record** (`DEMO_REGISTRATION` in
+  `data/registration.js`): basics, demographics, consents, a contracted
+  insurer ready to check, a support person and a pharmacy. Every field stays
+  editable, and Save passes. A lead conversion (`?lead=`) still opens on the
+  lead's own five fields and nothing else.
+
+- **Every charted patient has a photo.** Henna West, Natali Craig and Liam
+  Rodriguez carry photorealistic AI-generated portraits
+  (`assets/img/patient-photo-01..03.jpg`, 256px, generated in Figma — of
+  nobody real). Zoe Tran, the minor, keeps a drawn portrait
+  (`patient-photo-04.svg`). The initials disc stays as the fallback.
+
+- **Flags are colour-coded** on the chart banner by their own tone — Allergy,
+  DNR and High Priority critical, Diabetic and Fall Risk warning, VIP brand,
+  Special Assistance info — matching the flag manager's badges. `ui-chip`
+  gained the `info` status it was missing.
+
+- **At least five upcoming appointments per chart.** The four charted
+  patients' future bookings were evened out — Henna, Natali and Liam six each,
+  Zoe five — with the surplus moved to other patients so the scheduler stays as
+  full. The booking store moved to `medinova.appointments.v2`. The Clinical
+  page's Future Appointments card now reads that store (next five), not a
+  hard-coded past-dated visit.
+
+- **Visit notes show Signed and Unsigned.** A Note Status column (Signed green,
+  Unsigned amber, a dash for a no-show) and an All / Signed / Unsigned switch
+  with counts on the module head. Every patient with visits has at least one
+  of each.
+
+- **Chart Visit Notes open the real encounter.** The section now reads the
+  patient's own bookings and note states (the same sources as Schedule ›
+  Encounters) instead of a list of its own. Each row's ⋮ menu offers Open
+  Encounter / Sign Note (unsigned), Review & Sign (co-sign) or View Note
+  (signed), plus View in Schedule — no separate row button. Each charted
+  patient's visit history (6–9 visits, a mix of signed and unsigned) is real
+  past bookings at the end of `ROWS`; the booking store moved to `.v3`. The encounter screens take `?return=` (new `js/lib/return-to.js`,
+  same-folder pages only), so their back arrow, Cancel, Save and the
+  post-signature navigation go back to the chart they were opened from.
+
+- **Schedule › Encounters has both halves.** The note register
+  (`data/visit-notes.js`) was empty, so Signed read "No signed notes yet". It
+  now seeds 16 signed notes and 3 awaiting co-signature; 15 stay unsigned.
+
 ### The section bands take a tint
 
 Every banded heading on a note — the visit note's sections, the pre-procedure

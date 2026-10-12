@@ -1,108 +1,159 @@
 /**
- * Chart — Prescriptions, which is now a frame around the e-prescribing vendor
- * with nothing loaded into it.
+ * Chart — Prescriptions: the table of every script written for the patient,
+ * and the Add Prescription dialog that writes one.
  *
- * The section stopped being our own worklist: prescribing moved to ScriptSure,
- * and the chart's own Active / Past medication lists moved next door to the
- * Medication module (tested in chart-medications.spec.js). What is left is the
- * chrome the host application owns — the patient the session is scoped to —
- * around a space held open for the vendor's UI. These
- * tests are about that space staying empty: no local composer, no mock-up of
- * somebody else's screen, and the same one sentence wherever a reader arrives
- * at it.
+ * The section used to be an empty frame held open for the e-prescribing
+ * vendor. It is now the practice's own record of what it prescribed — one row
+ * per medication, newest first, active and past together — and Add
+ * Prescription writes a prescription of one or more medications under a
+ * single Rx number: one medication at a time in the form, each added to a side
+ * panel listing what the prescription holds. Sent scripts land in the same session record Medication
+ * reads, so they show on both screens, and are gone on reload.
  */
 import { test, expect } from '@playwright/test';
 import { failOnConsoleErrors, expectNoA11yViolations, openChart } from '../helpers/page-helpers.js';
 
 const HENNA_RX = '/screens/patient-chart.html?mrn=326486#prescriptions';
-/** A patient with nothing prescribed — the screen is identical, which is the point. */
+/** A patient with nothing prescribed. */
 const LIAM_RX = '/screens/patient-chart.html?mrn=326481#prescriptions';
 
-const INTEGRATION_LINE = 'The ScriptSure window renders here.';
+async function openCompose(page) {
+  await page.getByTestId('chart--rx-add').locator('button').click();
+  const modal = page.getByTestId('chart--rx-add-modal');
+  await expect(modal).toBeVisible();
+  return modal;
+}
 
-test.describe('chart prescriptions — the vendor frame', () => {
-  test('the section is named, once', async ({ page }) => {
+/** Fill the medication form and add it to the side panel. */
+async function addMedication(modal, drug, sig) {
+  await modal.getByTestId('chart--rx-drug').locator('input').fill(drug);
+  await modal.getByTestId('chart--rx-sig').locator('input').fill(sig);
+  await modal.getByTestId('chart--rx-add-med').locator('button').click();
+}
+
+test.describe('chart prescriptions', () => {
+  test('lists every prescription, newest first, with its status', async ({ page }) => {
     const assertClean = failOnConsoleErrors(page);
     await openChart(page, HENNA_RX);
 
-    /* The heading is on screen. It was hidden while a tab strip beside it
-       named the section; there is no strip now, and a framed window belonging
-       to somebody else is the last place a reader should have to guess which
-       part of the chart they are in. */
-    const title = page.getByTestId('chart--module-title');
-    await expect(title).toHaveText('Prescriptions');
-    await expect(title).not.toHaveClass(/u-sr-only/);
+    const table = page.getByTestId('chart--rx-table');
+    const rows = table.locator('tbody tr');
+    await expect(rows).toHaveCount(5);
 
-    /* And only there. The frame used to carry its own title bar — product,
-       tenant, environment, connection state — which was a second heading over
-       a window with nothing in it to title. */
-    const frame = page.getByTestId('chart--rx-scriptsure');
-    await expect(frame).not.toContainText('ScriptSure Cloud ePrescribing');
-    await expect(frame).not.toContainText('GastroEMR Gastroenterology');
-    await expect(page.getByTestId('chart--rx-connection')).toHaveCount(0);
+    // Newest first: Sertraline (07 Oct 2025) heads, Metronidazole (Nov 2024) ends.
+    await expect(rows.first()).toContainText('Sertraline 50mg tablet');
+    await expect(rows.last()).toContainText('Metronidazole 400mg tablet');
+    await expect(rows.last()).toContainText('Discontinued');
+    await expect(table).toContainText('RX-10421');
 
     assertClean();
   });
 
-  /* The whole point. A screen that drew a convincing prescription window would
-     be worse than an empty one: it invites review of a UI this product does
-     not own, and it reads as progress on a connection that is not there. */
-  test('the interior is held open, not drawn', async ({ page }) => {
-    await openChart(page, HENNA_RX);
-
-    const inside = page.getByTestId('chart--rx-empty');
-    await expect(inside).toContainText(INTEGRATION_LINE);
-    // And it points at where the medication list actually is.
-    await expect(inside).toContainText('Medication');
-
-    // No demo tables, no vendor toolbar or view strip standing in for one.
-    await expect(page.locator('.ch__module table')).toHaveCount(0);
-    await expect(page.getByTestId('chart--rx-view-current')).toHaveCount(0);
-    // Nothing of the old local composer survived either.
-    await expect(page.getByTestId('chart--add-medication')).toHaveCount(0);
+  test('a patient with no prescriptions gets the empty state', async ({ page }) => {
+    await openChart(page, LIAM_RX);
+    await expect(page.getByTestId('chart--rx-table')).toContainText(
+      'No prescriptions written for this patient.'
+    );
   });
 
-  /* An e-prescribing window with the wrong chart open is the failure the
-     patient strip exists to make visible — so it is inside the frame, where it
-     stands for what the vendor session thinks it is scoped to. */
-  test('the frame carries the patient the session is scoped to', async ({ page }) => {
+  test('the dialog has no demo banner and names the patient', async ({ page }) => {
     await openChart(page, HENNA_RX);
-    const frame = page.getByTestId('chart--rx-scriptsure');
+    const modal = await openCompose(page);
 
-    await expect(frame).toContainText('Henna West');
-    await expect(frame).toContainText('MRN 326486');
-  });
+    await expect(modal).not.toContainText('Demo screen');
+    await expect(modal).toContainText('Henna West');
+    await expect(modal).toContainText('MRN 326486');
 
-  test('Add Prescription opens a dialog that says the same thing', async ({ page }) => {
-    await openChart(page, HENNA_RX);
-
-    await page.getByTestId('chart--rx-add').locator('button').click();
-
-    const modal = page.getByTestId('chart--rx-add-modal');
-    await expect(modal).toBeVisible();
-    await expect(modal).toContainText(INTEGRATION_LINE);
-    // A dialog with no form in it: nothing typed here could reach a pharmacy.
-    await expect(modal.locator('input, select, textarea')).toHaveCount(0);
-
-    await modal.getByTestId('chart--rx-add-close').locator('button').click();
+    await modal.getByTestId('chart--rx-add-cancel').locator('button').click();
     await expect(modal).toBeHidden();
   });
 
-  test('a patient with no prescriptions gets exactly the same screen', async ({ page }) => {
-    const assertClean = failOnConsoleErrors(page);
-    await openChart(page, LIAM_RX);
+  test('Add to Prescription moves the form into the side panel and clears it', async ({ page }) => {
+    await openChart(page, HENNA_RX);
+    const modal = await openCompose(page);
 
-    await expect(page.getByTestId('chart--rx-empty')).toContainText(INTEGRATION_LINE);
-    await expect(page.getByTestId('chart--count-prescriptions')).toHaveCount(0);
+    await expect(modal.getByTestId('chart--rx-list-empty')).toBeVisible();
 
-    assertClean();
+    // Nothing is added from an empty form.
+    await modal.getByTestId('chart--rx-add-med').locator('button').click();
+    await expect(modal.getByTestId('chart--rx-drug')).toHaveAttribute('error', /medication/);
+    await expect(modal.locator('[data-rx-item]')).toHaveCount(0);
+
+    await addMedication(modal, 'Pantoprazole 40mg tablet', '1 tablet orally once daily');
+    await addMedication(modal, 'Ondansetron 4mg tablet', '1 tablet orally every 8 hours as needed for nausea');
+
+    const items = modal.locator('[data-rx-item]');
+    await expect(items).toHaveCount(2);
+    await expect(items.nth(0)).toContainText('Pantoprazole 40mg tablet');
+    await expect(items.nth(1)).toContainText('30 Tablet · 30 days · 0 refills');
+    await expect(modal.getByTestId('chart--rx-drug').locator('input')).toHaveValue('');
+  });
+
+  test('an added medication can be edited in place and removed', async ({ page }) => {
+    await openChart(page, HENNA_RX);
+    const modal = await openCompose(page);
+    await addMedication(modal, 'Pantoprazole 40mg tablet', '1 tablet orally once daily');
+    await addMedication(modal, 'Ondansetron 4mg tablet', '1 tablet orally every 8 hours as needed for nausea');
+
+    const items = modal.locator('[data-rx-item]');
+    await items.nth(0).locator('[data-rx-edit]').click();
+    await expect(modal.getByTestId('chart--rx-drug').locator('input')).toHaveValue('Pantoprazole 40mg tablet');
+    await expect(modal).toContainText('Editing Medication 1');
+
+    await modal.getByTestId('chart--rx-sig').locator('input').fill('1 tablet orally twice daily');
+    await modal.getByTestId('chart--rx-add-med').locator('button').click();
+    await expect(items).toHaveCount(2);
+    await expect(items.nth(0)).toContainText('1 tablet orally twice daily');
+
+    await items.nth(1).locator('[data-rx-remove]').click();
+    await expect(items).toHaveCount(1);
+  });
+
+  test('sending refuses a prescription with anything required missing', async ({ page }) => {
+    await openChart(page, HENNA_RX);
+    const modal = await openCompose(page);
+
+    await modal.getByTestId('chart--rx-send').locator('button').click();
+
+    await expect(modal).toBeVisible();
+    await expect(modal.getByTestId('chart--rx-provider')).toHaveAttribute('error', /prescriber/);
+    await expect(modal.getByTestId('chart--rx-pharmacy')).toHaveAttribute('error', /pharmacy/);
+    await expect(modal.getByTestId('chart--rx-panel')).toContainText(
+      'Add at least one medication to the prescription.'
+    );
+  });
+
+  test('two medications sent together share one Rx number and reach Medication', async ({ page }) => {
+    await openChart(page, HENNA_RX);
+    const modal = await openCompose(page);
+
+    await modal.getByTestId('chart--rx-provider').locator('select').selectOption('Dr. A. Mensah');
+    await modal
+      .getByTestId('chart--rx-pharmacy')
+      .locator('select')
+      .selectOption('CVS Pharmacy #4471 — Fargo, ND');
+    await addMedication(modal, 'Pantoprazole 40mg tablet', '1 tablet orally once daily');
+    await addMedication(modal, 'Ondansetron 4mg tablet', '1 tablet orally every 8 hours as needed for nausea');
+
+    await modal.getByTestId('chart--rx-send').locator('button').click();
+    await expect(modal).toBeHidden();
+
+    const rows = page.getByTestId('chart--rx-table').locator('tbody tr');
+    await expect(rows).toHaveCount(7);
+    await expect(rows.nth(0)).toContainText('Pantoprazole 40mg tablet');
+    await expect(rows.nth(1)).toContainText('Ondansetron 4mg tablet');
+    const rxNumber = await rows.nth(0).locator('td').first().innerText();
+    await expect(rows.nth(1).locator('td').first()).toHaveText(rxNumber);
+
+    await page.getByTestId('chart--nav-medications').click();
+    await expect(page.getByTestId('chart--med-list-table')).toContainText('Ondansetron 4mg tablet');
   });
 
   test('no WCAG 2.1 A/AA violations @a11y', async ({ page }) => {
     await openChart(page, HENNA_RX);
     await expectNoA11yViolations(page);
 
-    await page.getByTestId('chart--rx-add').locator('button').click();
+    await openCompose(page);
     await expectNoA11yViolations(page);
   });
 });

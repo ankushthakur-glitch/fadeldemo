@@ -32,6 +32,18 @@ import {
   PAST_MEDICAL_STATUS_TONE,
   SOCIAL_HISTORY_CATEGORIES,
 } from '../../data/chart-history.js';
+/* Future Appointments reads the booking store the Appointments section and
+   the scheduler both read, so the card and the section cannot disagree about
+   what is coming up. */
+import { loadAppointments } from '../../data/appointment-store.js';
+import {
+  TODAY,
+  providerById,
+  typeById,
+  durationOf,
+  toMinutes,
+  toTime,
+} from '../../data/schedule.js';
 
 /* ============================================================================
    SMALL HELPERS — duplicated rather than shared, matching how every other
@@ -405,23 +417,50 @@ function recommendationsCard(list) {
   return cardShell({ title: 'Recommendations', bodyHtml: body, testid: 'recommendations' });
 }
 
-/** Reads the shell's activity data — the same fact the header and the old
- *  Face Sheet Appointments card both showed, never duplicated here. */
-function appointmentsCard(activity) {
-  const upcoming = activity?.upcoming;
+/** How many future visits the card lists — the next five, which is every
+ *  booking most charts carry. The section behind "View All" has the rest. */
+const UPCOMING_SHOWN = 5;
+
+/**
+ * The next visits this patient has booked, soonest first.
+ *
+ * Read from the shared booking store rather than from the shell's
+ * activity.upcoming. That field was a single hand-written visit, dated before
+ * the prototype's own today, so the card could say "No upcoming appointment"
+ * beside an Appointments section listing one — or name a visit the schedule
+ * had never heard of. The store is the one copy of the bookings; this is a
+ * window onto it.
+ */
+function upcomingFor(mrn) {
+  return loadAppointments()
+    .filter((a) => a.mrn === mrn && a.date >= TODAY)
+    .sort((a, b) => `${a.date}${a.start}`.localeCompare(`${b.date}${b.start}`));
+}
+
+function appointmentsCard(mrn) {
+  const upcoming = upcomingFor(mrn).slice(0, UPCOMING_SHOWN);
   // The reference states an appointment as a date-and-time headline with the
   // kind of visit under it — "08/27/2025, 2:00 PM - 2:30 PM" over
   // "Virtual : New (45min)". Same two lines here, and the "Upcoming" heading
   // that used to sit above them goes: the headline is the date, so a label
   // saying the date is in the future was the second statement of it.
-  const body = upcoming
-    ? `<ul class="fs__list">${entry(
-        `<span class="fs__item-line--brand">${seg(
-          `${weekday(upcoming.date)}, ${formatDate(upcoming.date)}`,
-          esc(upcoming.time)
-        )}</span>`,
-        plainDetail(seg(esc(upcoming.type), esc(upcoming.provider)))
-      )}</ul>`
+  const body = upcoming.length
+    ? `<ul class="fs__list">${upcoming
+        .map((a) => {
+          const date = fromIso(a.date);
+          const end = toTime(toMinutes(a.start) + durationOf(a.typeId, a.providerId));
+          const provider = providerById(a.providerId);
+          return entry(
+            `<span class="fs__item-line--brand">${seg(
+              `${weekday(date)}, ${formatDate(date)}`,
+              esc(`${a.start} – ${end}`)
+            )}</span>`,
+            plainDetail(
+              seg(esc(typeById(a.typeId)?.title ?? a.reason), esc(provider ? `Dr. ${provider.name}` : ''))
+            )
+          );
+        })
+        .join('')}</ul>`
     : `<ul class="fs__list">${emptyRow('No upcoming appointment.')}</ul>`;
 
   return cardShell({
@@ -858,7 +897,7 @@ registerModule('profile-clinical', {
       orders: () => ordersCard(data.orders),
       recommendations: () => recommendationsCard(data.recommendations),
       recalls: () => recallsCard(data.recalls),
-      appointments: () => appointmentsCard(ctx.patient.activity),
+      appointments: () => appointmentsCard(ctx.patient.mrn),
       vitals: () => vitalsCard(data.vitals),
       immunizations: () => immunizationsCard(data.immunizations),
       'dx-studies': () => dxStudiesCard(data.dxStudies),

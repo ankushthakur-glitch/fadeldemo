@@ -28,11 +28,10 @@ test.describe('leads — the list', () => {
     const assertClean = failOnConsoleErrors(page);
     await page.goto(LEADS);
 
-    /* Tabs replace the title on the header row; the name stays for screen
-       readers. See .ui-page-head in css/base.css. */
-    await expect(page.locator('h1.u-sr-only')).toHaveText('Leads');
-    await expect(page.getByTestId('lead--tabs')).toBeVisible();
-    await expect(page.getByRole('tab', { name: 'Inbox' })).toHaveAttribute('aria-selected', 'true');
+    /* One list, titled like every other list screen — the Active / Rejected
+       tab strip went with the Rejected state. */
+    await expect(page.getByTestId('lead--title')).toHaveText('Leads');
+    await expect(page.getByTestId('lead--tabs')).toHaveCount(0);
     // Title only — the subtitle came off, here and everywhere else.
     await expect(page.locator('.lead__sub')).toHaveCount(0);
     await expect(page.getByTestId('lead--refresh')).toHaveCount(0);
@@ -103,120 +102,25 @@ test.describe('leads — the list', () => {
   });
 });
 
-test.describe('leads — reject', () => {
-  /* Rejection is a decision with a reason, not a delete. The lead stays on the
-     list as evidence somebody asked and the practice said no. */
-  test('rejecting needs a reason, and keeps the lead', async ({ page }) => {
-    await page.goto(LEADS);
-    const before = await rows(page).count();
-
-    await page.getByTestId('lead--menu-LD-10245').click();
-    await page.getByTestId('lead--menu-reject').click();
-    await expect(page.locator('#rejectModal')).toBeVisible();
-
-    await page.getByTestId('lead--reject-confirm').locator('button').click();
-    await expect(page.getByTestId('lead--reject-reason')).toHaveAttribute('error', /reason/i);
-
-    await page.getByTestId('lead--reject-reason').locator('select').selectOption({ index: 1 });
-    await page.getByTestId('lead--reject-confirm').locator('button').click();
-
-    await expect(page.locator('.ui-toast-region')).toContainText('rejected');
-    // Gone from the inbox — that is the point of the second tab.
-    await expect(rows(page)).not.toContainText('John Doe');
-    expect(await rows(page).count()).toBeLessThanOrEqual(before);
-
-    // Not deleted: filed under Rejected, which is where the toast said it went,
-    // carrying the reason that was chosen for it.
-    await page.getByRole('tab', { name: 'Rejected' }).click();
-    const filed = rows(page).filter({ hasText: 'John Doe' });
-    await expect(filed).toHaveCount(1);
-    await expect(filed).toContainText('Duplicate submission');
-  });
-
-  /* The two piles are worked at different times and by different questions, so
-     they are two lists rather than one list with a tick in a panel. */
-  test('the inbox holds no rejected leads at all', async ({ page }) => {
+test.describe('leads — no rejection', () => {
+  /* The Rejected state, its tab, the reason dialog and Reopen are all gone:
+     an enquiry the practice will not take is simply never converted. */
+  test('nothing on the screen offers to reject a lead', async ({ page }) => {
     await page.goto(LEADS);
     await expect(rows(page)).not.toContainText('Rejected');
+    await expect(page.locator('#rejectModal')).toHaveCount(0);
 
-    await page.getByRole('tab', { name: 'Rejected' }).click();
-    const count = await rows(page).count();
-    expect(count).toBeGreaterThan(0);
-    // Every row in this list is rejected, so it is the reason that is printed
-    // rather than the word — see REJECTED_COLUMNS in js/screens/leads.js.
-    await expect(page.locator('#leadTable thead')).toContainText('Rejected For');
-    await expect(page.locator('#leadTable thead')).not.toContainText('Status');
-    for (let i = 0; i < count; i += 1) {
-      await expect(rows(page).nth(i).getByTestId(/^lead--reopen-/)).toBeVisible();
-    }
+    await page.getByTestId('lead--menu-LD-10245').click();
+    await expect(page.getByTestId('lead--menu-reject')).toHaveCount(0);
   });
 
-  test('a rejected lead offers no way to convert it', async ({ page }) => {
-    await page.goto(LEADS);
-    await page.getByRole('tab', { name: 'Rejected' }).click();
-    await expect(rows(page).first()).not.toContainText('Convert to Patient');
-  });
-
-  /* A rejection made in error used to be the end of the lead: the only route
-     back was to ask the patient to submit the website form again, which loses
-     the original enquiry and everything recorded against it. Reopen is that
-     route, and it moves the lead out of the rejected list and back into the
-     inbox as New. */
-  test('a rejected lead can be reopened, and lands back in the inbox', async ({ page }) => {
-    await page.goto(LEADS);
-    await page.getByRole('tab', { name: 'Rejected' }).click();
-
-    const row = rows(page).first();
-    const name = (await row.locator('.lead__name').textContent()).trim();
-    await row.getByTestId(/^lead--reopen-/).locator('button').click();
-
-    await expect(page.locator('.ui-toast-region')).toContainText('reopened');
-    // Off the rejected list, and the tab has not moved out from under us.
-    await expect(rows(page)).not.toContainText(name);
-    await expect(page.getByRole('tab', { name: 'Rejected' }))
-      .toHaveAttribute('aria-selected', 'true');
-
-    await page.getByRole('tab', { name: 'Inbox' }).click();
-    const back = rows(page).filter({ hasText: name });
-    await expect(back).toContainText('New');
-    await expect(back).toContainText('Convert to Patient');
-  });
-
-  /* The drawer is where the decision is reconsidered, so it has to show the
-     decision: the reason, who made it and when, above the way back. */
-  test('the drawer shows why a lead was rejected, and offers Reopen', async ({ page }) => {
-    await page.goto(LEADS);
-    await page.getByRole('tab', { name: 'Rejected' }).click();
-
-    await rows(page).first().locator('.lead__name').click();
-    await expect(page.locator('#drawerBody')).toContainText('Rejection');
-    await expect(page.locator('#drawerBody')).toContainText('Rejected by');
-    await expect(page.getByTestId('lead--d-reopen')).toBeVisible();
-    await expect(page.getByTestId('lead--d-convert')).toHaveCount(0);
-
-    await page.getByTestId('lead--d-reopen').locator('button').click();
-    await expect(page.getByTestId('lead--d-status')).toContainText('New');
-    await expect(page.getByTestId('lead--d-convert')).toBeVisible();
-  });
-
-  /* The three statuses, and only those three. */
   /* Three answers, and no fourth one meaning "all of them" — nothing ticked
      already says that. */
-  test('the status filter offers New and Converted — Rejected is a tab', async ({ page }) => {
+  test('the status filter offers New and Converted', async ({ page }) => {
     await page.goto(LEADS);
     await openFilter(page, 'lead--filter');
     const options = await filterOptions(page, 'status');
     expect(options.map((o) => o.trim()).filter(Boolean)).toEqual(['New', 'Converted']);
-  });
-
-  /* On the rejected list the question is already answered for every row, so
-     the group goes rather than offering to narrow one answer to itself. */
-  test('the Status question disappears on the rejected tab', async ({ page }) => {
-    await page.goto(LEADS);
-    await page.getByRole('tab', { name: 'Rejected' }).click();
-    await openFilter(page, 'lead--filter');
-    await expect(page.locator('[data-filter-group="status"]')).toHaveCount(0);
-    await expect(page.locator('[data-filter-group="date"]')).toHaveCount(1);
   });
 
   /** The bulk bar went with the checkboxes that were its only way in. Export
@@ -241,7 +145,7 @@ test.describe('leads — the drawer', () => {
     await expect(drawer).toContainText('05/12/1985');
     await expect(drawer).not.toContainText('LD-10245');
     await expect(page.getByTestId('lead--d-convert')).toBeVisible();
-    await expect(page.getByTestId('lead--d-reject')).toBeVisible();
+    await expect(page.getByTestId('lead--d-reject')).toHaveCount(0);
     await expect(page.getByTestId('lead--d-archive')).toHaveCount(0);
     await expect(page.getByTestId('lead--d-review')).toHaveCount(0);
   });

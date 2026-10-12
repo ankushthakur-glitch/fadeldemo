@@ -42,6 +42,8 @@
  *
  * Opened with ?appt=<id>.
  */
+/* Where the back arrow and the clinic-visit hand-off go — see js/lib/return-to.js. */
+import { withReturn, applyReturnLink } from '../lib/return-to.js';
 /* CLINICAL_SECTIONS is the chart's four history lists, quoted on the H&P.
    ICD10 is the diagnosis catalogue the procedure report's indication card
    searches — the same one the rest of the product attaches diagnoses from, so
@@ -490,8 +492,14 @@ const isProcedure =
   appointment?.kind === 'procedure' || Boolean(appointment?.procedureId);
 
 if (appointment && !isProcedure) {
-  window.location.replace(`clinic-visit.html?appt=${encodeURIComponent(appointment.id)}`);
+  // The return address rides along, so a clinic visit opened from a chart
+  // still goes back to that chart (js/lib/return-to.js).
+  window.location.replace(
+    withReturn(`clinic-visit.html?appt=${encodeURIComponent(appointment.id)}`)
+  );
 }
+
+applyReturnLink(document.querySelector('[data-testid="encv--back"]'));
 
 const patient =
   DIRECTORY.find((p) => p.mrn === appointment?.mrn) ?? DIRECTORY.find((p) => p.active);

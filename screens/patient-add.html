@@ -99,9 +99,9 @@
             <span class="ap__head-slot" id="leadSlot"></span>
           </div>
           <div class="ap__card-body ap__grid">
-            <ui-select label="Prefix" placeholder="Select" id="prefix"></ui-select>
+            <ui-select label="Prefix" placeholder="Select" id="prefix" data-testid="add--prefix"></ui-select>
             <ui-input label="First Name" required data-testid="add--first-name"></ui-input>
-            <ui-input label="Middle Name"></ui-input>
+            <ui-input label="Middle Name" data-testid="add--middle-name"></ui-input>
 
             <ui-input label="Last Name" required data-testid="add--last-name"></ui-input>
             <ui-select label="Suffix" empty-option="—" id="suffix" data-testid="add--suffix"></ui-select>
@@ -155,12 +155,12 @@
             <ui-input label="ZIP" required data-testid="add--zip"></ui-input>
 
             <ui-input label="Mobile Phone" placeholder="(000) 000-0000" required data-testid="add--mobile"></ui-input>
-            <ui-input label="Home Phone" placeholder="(000) 000-0000"></ui-input>
-            <ui-input label="Work Phone" placeholder="(000) 000-0000"></ui-input>
+            <ui-input label="Home Phone" placeholder="(000) 000-0000" data-testid="add--home-phone"></ui-input>
+            <ui-input label="Work Phone" placeholder="(000) 000-0000" data-testid="add--work-phone"></ui-input>
 
             <ui-input label="E-mail" type="email" data-testid="add--email"></ui-input>
 
-            <ui-select label="Contact Preference" placeholder="Select" id="contactPreference"></ui-select>
+            <ui-select label="Contact Preference" placeholder="Select" id="contactPreference" data-testid="add--contact-preference"></ui-select>
             <ui-select
               label="Preferred Electronic Clinical Lab"
               placeholder="Select lab"
@@ -185,8 +185,8 @@
           <h2 class="ap__card-head">Additional Details</h2>
           <div class="ap__card-body ap__grid">
             <ui-select label="Type" id="patientType" data-testid="add--type"></ui-select>
-            <ui-select label="Nationality" placeholder="Select" id="nationality"></ui-select>
-            <ui-select label="Marital Status" placeholder="Select" id="maritalStatus"></ui-select>
+            <ui-select label="Nationality" placeholder="Select" id="nationality" data-testid="add--nationality"></ui-select>
+            <ui-select label="Marital Status" placeholder="Select" id="maritalStatus" data-testid="add--marital-status"></ui-select>
             <!-- The RECORD status — active / inactive — which drives the
                  directory's tabs. "Health Status" (alive / deceased) is a
                  different field and is not used by the practice. -->
@@ -214,7 +214,7 @@
             ></ui-select>
 
             <ui-select label="Tribal Affiliation" placeholder="Select" id="tribalAffiliation"></ui-select>
-            <ui-select label="Preferred Language" id="language"></ui-select>
+            <ui-select label="Preferred Language" id="language" data-testid="add--language"></ui-select>
 
             <!-- Identity, as the record codes it. These four used to sit in the
                  basics behind a "Birth Sex Declined" tick-box, appearing only
@@ -349,12 +349,12 @@
                 value="Primary"
                 data-testid="add--coverage-order"
               ></ui-select>
-              <ui-select label="Insurance Type" placeholder="Select" options="Commercial,Medicare,Medicaid,Workers comp,Self-pay"></ui-select>
+              <ui-select label="Insurance Type" placeholder="Select" options="Commercial,Medicare,Medicaid,Workers comp,Self-pay" data-testid="add--insurance-type"></ui-select>
               <ui-input label="Insurance Name" required data-testid="add--insurance-name"></ui-input>
               <ui-input label="Member ID" required data-testid="add--member-id"></ui-input>
               <ui-input label="Group Number" data-testid="add--group-number"></ui-input>
-              <ui-input label="Effective Start Date" type="date"></ui-input>
-              <ui-input label="Effective End Date" type="date"></ui-input>
+              <ui-input label="Effective Start Date" type="date" data-testid="add--effective-start"></ui-input>
+              <ui-input label="Effective End Date" type="date" data-testid="add--effective-end"></ui-input>
 
               <!-- "Other" is typed into this same field: a relationship of
                    "Other" with no way to say WHICH is an answer no claim can be
@@ -370,9 +370,9 @@
 
               <h3 class="ap__group">Subscriber</h3>
               <ui-input label="Subscriber First Name" required data-testid="add--subscriber-first"></ui-input>
-              <ui-input label="Subscriber Last Name" required></ui-input>
-              <ui-input label="Subscriber Date of Birth" type="date"></ui-input>
-              <ui-select label="Subscriber Sex" placeholder="Select" options="Female,Male,Other"></ui-select>
+              <ui-input label="Subscriber Last Name" required data-testid="add--subscriber-last"></ui-input>
+              <ui-input label="Subscriber Date of Birth" type="date" data-testid="add--subscriber-dob"></ui-input>
+              <ui-select label="Subscriber Sex" placeholder="Select" options="Female,Male,Other" data-testid="add--subscriber-sex"></ui-select>
 
               <!-- The fifth cell of the subscriber row rather than a band of
                    its own under it: four fields and a tick-box is one row. -->

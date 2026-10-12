@@ -2531,126 +2531,177 @@
 }
 
 /* ============================================================================
-   PRESCRIPTIONS MODULE (rx__) — the ScriptSure window, and the dialog behind
-   Add Prescription.
+   PRESCRIPTIONS MODULE (rx__) — the table is a plain <ui-data-table> in an
+   ord__panel and needs little of its own. Most of what is here is the Add
+   Prescription dialog: the patient strip at its head, then two panes side by
+   side — the form one medication is written in, and the panel listing what
+   the prescription already holds.
 
-   TWO PIECES, AND THE SEAM BETWEEN THEM IS THE POINT. The chrome (rx__ss) is
-   ours: the frame itself and the patient strip the vendor session is scoped
-   to. That belongs to the host application precisely because it is what nobody
-   can check from inside somebody else's document. There was a title bar above
-   the frame too, naming the tenant and the connection state; it was a second
-   heading over a section the module title already names, so it is gone.
-
-   The INTERIOR (rx__stub) is not ours, and is held open rather than drawn. The
-   section used to carry a mock-up of the vendor's own window — a toolbar, a
-   view strip and demo tables — and the more convincingly it was drawn the more
-   it read as a specification for a UI this product does not own.
-
-   Every colour here is one of this product's semantic tokens. Inventing a
-   second palette to make the frame look like another vendor's software would
-   hard-code values the design system does not own, and it would be a lie about
-   a window that is not there. What says "this belongs to someone else" is
-   structure instead: a border the content does not cross, and a sentence
-   inside it saying so in words.
-
-   The stub is the same block in both places. The section body and the dialog
-   are answering one question, and a reader who has just pressed Add
-   Prescription should recognise what they are looking at instantly rather than
-   reading it twice in two different shapes. The modifier only trims the
-   padding: a dialog is already a held-open space, so it does not need the
-   section's.
+   The panel is a sunken surface rather than a second white card: it is the
+   accumulating result, read rather than typed into, and the ground change is
+   what says "this is where things land" without a heading having to.
    ========================================================================= */
 
-.rx__ss {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-
-/* --- The frame ---------------------------------------------------------------
-   Where the vendor document will be. The border is the seam, drawn so a reader
-   can see exactly how much of this screen stops being ours. */
-
-.rx__ss-frame {
-  padding: var(--space-6);
-  border: var(--border-width-thin) solid var(--color-border-default);
-  border-radius: var(--radius-md);
-  background-color: var(--color-bg-surface);
-}
-
-/* Inside the frame, not above it: an e-prescribing window with the wrong chart
-   open is the failure this strip exists to make visible, and a copy of our own
-   header outside the frame would prove nothing about what the vendor thinks it
-   is looking at. */
-.rx__ss-patient {
+/* What the prescription is scoped to, above the first field: the chart header
+   naming the patient is behind the dialog's scrim. */
+.rx__patient {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
   gap: var(--space-2) var(--space-5);
+  margin-bottom: var(--space-6);
   padding-bottom: var(--space-5);
   border-bottom: var(--border-width-thin) solid var(--color-border-subtle);
   font-size: var(--font-size-caption);
   color: var(--color-text-secondary);
 }
-.rx__ss-patient strong {
+.rx__patient strong {
   font-size: var(--font-size-body);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text-primary);
 }
 
-.rx__stub {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-4);
-  padding: var(--space-10) var(--space-6);
-  text-align: center;
+/* --- The two panes ----------------------------------------------------------
+   The form takes the larger share: it holds a two-column field grid, the
+   panel holds a single column of short entries. */
+.rx__compose {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: var(--space-6);
+  align-items: start;
+  margin-top: var(--space-6);
 }
 
-/* No border and no ground of its own. It used to be a dashed, sunken card,
-   which was right when it WAS the section — but it now sits inside the
-   ScriptSure frame, whose border is already the seam, and a second outline
-   within a few pixels of the first read as two nested boxes rather than one
-   held-open space. The frame says "reserved"; this says what for.
+.rx__pane-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0 0 var(--space-4);
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
 
-   The dialog keeps the same treatment for the same reason: a modal is already
-   a held-open space, so an outline inside one has nothing left to say. */
+.rx__form {
+  padding: var(--space-5) var(--space-6) var(--space-6);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+}
 
-.rx__stub-mark {
+.rx__form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+
+.rx__panel {
+  padding: var(--space-5);
+  border: var(--border-width-thin) solid var(--color-border-subtle);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface-sunken);
+}
+
+.rx__count {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: var(--space-11);
-  height: var(--space-11);
+  min-width: var(--space-7);
+  padding: 0 var(--space-2);
   border-radius: var(--radius-full);
   background-color: var(--color-bg-surface);
-  color: var(--color-text-tertiary);
-  flex: none;
-}
-.rx__stub-mark .ui-icon { width: var(--icon-size-lg); height: var(--icon-size-lg); }
-
-
-.rx__stub-line {
-  max-width: 46ch;
-  margin: 0;
-  font-size: var(--font-size-body);
+  font-size: var(--font-size-caption);
   font-weight: var(--font-weight-medium);
   color: var(--color-text-secondary);
 }
 
-/* The second sentence is quieter than the first on purpose. The first is what
-   is true of the screen; the second is where the reader should go instead, and
-   it is only read by somebody who did not already know. */
-.rx__stub-note {
-  max-width: 60ch;
+/* --- Entries in the panel --------------------------------------------------- */
+
+.rx__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
   margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rx__item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  border: var(--border-width-thin) solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-surface);
+}
+
+/* The entry the form on the left is changing — marked, not hidden, so the
+   reader can see which one an Update will replace. */
+.rx__item--editing {
+  border-color: var(--color-border-focus);
+  box-shadow: var(--focus-ring);
+}
+
+.rx__item-body { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
+.rx__item-name { color: var(--color-brand-text); font-weight: var(--font-weight-medium); }
+.rx__item-sig { font-size: var(--font-size-body); color: var(--color-text-primary); }
+.rx__item-meta { font-size: var(--font-size-caption); color: var(--color-text-secondary); }
+
+.rx__item-actions { display: flex; gap: var(--space-1); flex: none; }
+
+.rx__icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--space-8);
+  height: var(--space-8);
+  border-radius: var(--radius-md);
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+}
+.rx__icon-btn:hover { background-color: var(--color-bg-surface-sunken); color: var(--color-text-primary); }
+.rx__icon-btn--danger:hover { background-color: var(--color-status-critical-surface); color: var(--color-status-critical-text); }
+.rx__icon-btn:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.rx__icon-btn .ui-icon { width: var(--icon-size-sm); height: var(--icon-size-sm); }
+
+.rx__list-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-8) var(--space-4);
+  border: var(--border-width-thin) dashed var(--color-border-default);
+  border-radius: var(--radius-md);
+  text-align: center;
   font-size: var(--font-size-caption);
-  line-height: var(--line-height-normal);
   color: var(--color-text-tertiary);
 }
-.rx__stub-note strong { color: var(--color-text-secondary); font-weight: var(--font-weight-medium); }
+.rx__list-empty p { margin: 0; max-width: 32ch; }
+.rx__list-empty strong { color: var(--color-text-secondary); font-weight: var(--font-weight-medium); }
+.rx__list-empty-mark .ui-icon { width: var(--icon-size-lg); height: var(--icon-size-lg); }
 
-.rx__stub--modal { padding: var(--space-8) var(--space-4); }
+.rx__panel-error {
+  margin: var(--space-3) 0 0;
+  font-size: var(--font-size-caption);
+  color: var(--color-status-critical-text);
+}
+
+/* One column on a narrow window: the form first, the panel under it. */
+@media (max-width: 860px) {
+  .rx__compose { grid-template-columns: minmax(0, 1fr); }
+}
+
+.rx__note { display: block; margin-top: var(--space-5); }
+
+/* The table's two long-text cells (directions, prescriber and pharmacy) wrap
+   at a reading measure. A wrapping cell in an auto-width table otherwise grows
+   to its longest line, and one "every 8 hours as needed for nausea" was enough
+   to push the Status column off a laptop screen. */
+.rx__measure { display: block; max-width: 24ch; white-space: normal; }
+.rx__measure.ord__med { display: flex; }
 
 /* ============================================================================
    VITALS MODULE (vt__)
@@ -4413,4 +4464,98 @@
    card, not a variant anything else can ask for. */
 [data-pc-card='social-history'] .fs__pair {
   grid-template-columns: minmax(0, 8.5rem) auto minmax(0, 1fr);
+}
+
+/* --- Clinical card heads, one colour per card ------------------------------
+   Every Clinical card used to wear the same grey lid, so a column of them read
+   as interchangeable boxes and the eye had nothing to find a card by until it
+   had read the titles. Each card now owns a hue of its own — a wash on the
+   head and a 3px stripe of the same hue down its leading edge — so after a
+   visit or two a reader finds Medications by its colour, wherever the drag
+   handle has moved it.
+
+   The seventeen hues are spaced evenly round the wheel (see the card-head
+   ramp in tokens.css), and they are handed out so that cards stacked in the
+   same default column sit far apart on it: neighbours never differ by one
+   step of 21 degrees, which at this lightness would be hard to tell apart.
+   Alerts keeps the red end, where a reader expects it to be.
+
+   Scoped by data-pc-card so Insurance, which shares .fs__card-head, keeps its
+   grey. Printing drops the fill, as every other band in the product does. */
+[data-pc-card] > .fs__card-head {
+  background-color: var(--fs-head-tint, var(--color-bg-surface-sunken));
+  box-shadow: inset 3px 0 0 var(--fs-head-edge, transparent);
+}
+
+[data-pc-card='summary'] > .fs__card-head {
+  --fs-head-tint: var(--color-card-head-13-surface);
+  --fs-head-edge: var(--color-card-head-13-edge);
+}
+[data-pc-card='alerts'] > .fs__card-head {
+  --fs-head-tint: var(--color-card-head-02-surface);
+  --fs-head-edge: var(--color-card-head-02-edge);
+}
+[data-pc-card='problems'] > .fs__card-head {
+  --fs-head-tint: var(--color-card-head-04-surface);
+  --fs-head-edge: var(--color-card-head-04-edge);
+}
+[data-pc-card='medications'] > .fs__card-head {
+  --fs-head-tint: var(--color-card-head-08-surface);
+  --fs-head-edge: var(--color-card-head-08-edge);
+}
+[data-pc-card='allergies'] > .fs__card-head {
+  --fs-head-tint: var(--color-card-head-17-surface);
+  --fs-head-edge: var(--color-card-head-17-edge);
+}
+[data-pc-card='orders'] > .fs__card-head {
+  --fs-head-tint: var(--color-card-head-15-surface);
+  --fs-head-edge: var(--color-card-head-15-edge);
+}
+[data-pc-card='recommendations'] > .fs__card-head {
+  --fs-head-tint: var(--color-card-head-09-surface);
+  --fs-head-edge: var(--color-card-head-09-edge);
+}
+[data-pc-card='recalls'] > .fs__card-head {
+  --fs-head-tint: var(--color-card-head-05-surface);
+  --fs-head-edge: var(--color-card-head-05-edge);
+}
+[data-pc-card='appointments'] > .fs__card-head {
+  --fs-head-tint: var(--color-card-head-12-surface);
+  --fs-head-edge: var(--color-card-head-12-edge);
+}
+[data-pc-card='vitals'] > .fs__card-head {
+  --fs-head-tint: var(--color-card-head-07-surface);
+  --fs-head-edge: var(--color-card-head-07-edge);
+}
+[data-pc-card='dx-studies'] > .fs__card-head {
+  --fs-head-tint: var(--color-card-head-01-surface);
+  --fs-head-edge: var(--color-card-head-01-edge);
+}
+[data-pc-card='past-medical-history'] > .fs__card-head {
+  --fs-head-tint: var(--color-card-head-03-surface);
+  --fs-head-edge: var(--color-card-head-03-edge);
+}
+[data-pc-card='surgical-history'] > .fs__card-head {
+  --fs-head-tint: var(--color-card-head-14-surface);
+  --fs-head-edge: var(--color-card-head-14-edge);
+}
+[data-pc-card='social-history'] > .fs__card-head {
+  --fs-head-tint: var(--color-card-head-10-surface);
+  --fs-head-edge: var(--color-card-head-10-edge);
+}
+[data-pc-card='family-history'] > .fs__card-head {
+  --fs-head-tint: var(--color-card-head-16-surface);
+  --fs-head-edge: var(--color-card-head-16-edge);
+}
+[data-pc-card='immunizations'] > .fs__card-head {
+  --fs-head-tint: var(--color-card-head-06-surface);
+  --fs-head-edge: var(--color-card-head-06-edge);
+}
+[data-pc-card='devices'] > .fs__card-head {
+  --fs-head-tint: var(--color-card-head-11-surface);
+  --fs-head-edge: var(--color-card-head-11-edge);
+}
+
+@media print {
+  [data-pc-card] > .fs__card-head { background-color: transparent; box-shadow: none; }
 }

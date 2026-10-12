@@ -275,7 +275,7 @@ test.describe('instant appointment — starting', () => {
 
     const id = new URL(page.url()).searchParams.get('appt');
     const record = await page.evaluate((key) => {
-      const list = JSON.parse(sessionStorage.getItem('medinova.appointments') ?? '[]');
+      const list = JSON.parse(sessionStorage.getItem('medinova.appointments.v3') ?? '[]');
       return list.find((a) => a.id === key) ?? null;
     }, id);
 
@@ -297,7 +297,7 @@ test.describe('instant appointment — starting', () => {
 
     await page.goto(SCHEDULER);
     const survived = await page.evaluate((key) => {
-      const list = JSON.parse(sessionStorage.getItem('medinova.appointments') ?? '[]');
+      const list = JSON.parse(sessionStorage.getItem('medinova.appointments.v3') ?? '[]');
       return list.some((a) => a.id === key);
     }, id);
 
