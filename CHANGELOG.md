@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Future Appointments shows the next two
+
+- The **Future Appointments** card on the chart's Clinical board lists at
+  most the next two upcoming visits, down from five. **View All** opens
+  Appointments, where the Upcoming tab still carries every booking and the
+  full count.
+
 ### Every patient in the directory opens their own chart
 
 - Clicking a name on **Patients** used to open Henna West's chart for

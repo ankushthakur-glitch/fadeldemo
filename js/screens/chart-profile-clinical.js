@@ -417,9 +417,12 @@ function recommendationsCard(list) {
   return cardShell({ title: 'Recommendations', bodyHtml: body, testid: 'recommendations' });
 }
 
-/** How many future visits the card lists — the next five, which is every
- *  booking most charts carry. The section behind "View All" has the rest. */
-const UPCOMING_SHOWN = 5;
+/** How many future visits the card lists — the next two. It used to be five,
+ *  which on a busy chart made this one card the tallest on the board and
+ *  pushed its column out of step with the others; the card's job is to say
+ *  what is coming next, not to be the list. The section behind "View All"
+ *  has the rest, with the full count on its Upcoming tab. */
+const UPCOMING_SHOWN = 2;
 
 /**
  * The next visits this patient has booked, soonest first.
