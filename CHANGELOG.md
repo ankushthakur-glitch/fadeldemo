@@ -2,12 +2,13 @@
 
 ## Unreleased
 
-### Future Appointments shows the next two
+### The chart shows a patient's next two appointments
 
 - The **Future Appointments** card on the chart's Clinical board lists at
-  most the next two upcoming visits, down from five. **View All** opens
-  Appointments, where the Upcoming tab still carries every booking and the
-  full count.
+  most the next two upcoming visits, down from five.
+- **Appointments → Upcoming Appointments** shows the same next two, and the
+  tab count stops at 2. Later bookings are not deleted: they stay on the
+  Scheduler, which still shows the whole month.
 
 ### Every patient in the directory opens their own chart
 

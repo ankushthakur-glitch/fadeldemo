@@ -789,6 +789,21 @@ function addModal() {
    MODULE
    ========================================================================= */
 
+/**
+ * How many future visits the chart lists — the next two, and the Upcoming tab
+ * counts no further than that.
+ *
+ * The shared seed gives every patient between three and eleven bookings ahead,
+ * because the same rows have to fill the Scheduler's month; a chart reading
+ * "Upcoming Appointments (11)" looked like a patient booked into every week of
+ * August. The chart is meant to answer "when is this person next in", so it
+ * shows the next two and stops. The bookings beyond them are not deleted —
+ * they are still on the Scheduler, where the desk works the calendar as a
+ * whole — they are simply not this view's business. The Future Appointments
+ * card on the Clinical board stops at the same two.
+ */
+const UPCOMING_LIMIT = 2;
+
 /** The two tallies the tab strip carries. The strip is drawn by the shell into
  *  the module head — before render() has run and outside this module's host —
  *  so the count cannot come from a closure the way it did when the strip was
@@ -797,7 +812,7 @@ function addModal() {
 function tabCounts(mrn) {
   const list = loadAppointments().filter((appointment) => appointment.mrn === mrn);
   return {
-    upcoming: list.filter((a) => a.date >= TODAY).length,
+    upcoming: Math.min(list.filter((a) => a.date >= TODAY).length, UPCOMING_LIMIT),
     past: list.filter((a) => a.date < TODAY).length,
   };
 }
@@ -855,6 +870,7 @@ registerModule('appointments', {
         ? list
             .filter((a) => a.date >= TODAY)
             .sort((a, b) => `${a.date}${a.start}`.localeCompare(`${b.date}${b.start}`))
+            .slice(0, UPCOMING_LIMIT)
         : list
             .filter((a) => a.date < TODAY)
             .sort((a, b) => `${b.date}${b.start}`.localeCompare(`${a.date}${a.start}`));
